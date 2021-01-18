@@ -1,4 +1,7 @@
 # Config file for automatic testing at travis-ci.com
+language: python
+os: linux
+cache: pip
 
 language: python
 python:
@@ -10,7 +13,9 @@ python:
   - 3.4
 
 # Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-install: pip install -U tox-travis
+install:
+   - pip3 install -U pytest pytest-cov codecov tox
+   - pip3 install -U .
 
 # Command to run tests, e.g. python setup.py test
 script: tox

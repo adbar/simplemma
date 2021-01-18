@@ -14,7 +14,7 @@ requirements = []
 
 setup_requirements = []
 
-test_requirements = ['pytest>=3']
+test_requirements = ['pytest>=3', 'pytest-cov', 'tox']
 
 setup(
     author="Adrien Barbaresi",
