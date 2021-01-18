@@ -43,7 +43,6 @@ setup(
     license="MIT license",
     long_description=readme, # + '\n\n' + history,
     include_package_data=True,
-    install_requires=requirements,
     keywords=['nlp', 'lemmatization', 'lemmatisation', 'lemmatiser'],
     name='simplemma',
     package_data={'simplemma': ['data/*.plzma']},
