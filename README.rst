@@ -1,11 +1,15 @@
-=====================================================
-Simplemma: a simple mutilingual lemmatizer for Python
-=====================================================
+======================================================
+Simplemma: a simple multilingual lemmatizer for Python
+======================================================
 
 
 .. image:: https://img.shields.io/pypi/v/simplemma.svg
     :target: https://pypi.python.org/pypi/simplemma
     :alt: Python package
+
+.. image:: https://img.shields.io/pypi/l/simplemma.svg
+    :target: https://pypi.python.org/pypi/simplemma
+    :alt: License
 
 .. image:: https://img.shields.io/pypi/pyversions/trafilatura.svg
     :target: https://pypi.python.org/pypi/trafilatura
@@ -28,7 +32,7 @@ Installation
 
 The current library is written in pure Python with no dependencies:
 
-``pip install simplemma``
+``pip install simplemma`` (or ``pip3`` where applicable)
 
 
 Usage
@@ -133,6 +137,7 @@ The following languages are available using their `ISO 639-1 code <https://en.wi
 Roadmap
 -------
 
+-  [ ] Integrate further lemmatization lists
 -  [ ] Function as a meta-package?
 -  [ ] Integrate optional, more complex models?
 
