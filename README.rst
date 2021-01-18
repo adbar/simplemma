@@ -99,28 +99,28 @@ Supported languages
 
 The following languages are available using their `ISO 639-1 code <https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes>`_:
 
-- ``bg``: Bulgarian *(low coverage)*
+- ``bg``: Bulgarian (low coverage)
 - ``ca``: Catalan
-- ``cs``: Czech *(low coverage)*
+- ``cs``: Czech (low coverage)
 - ``cy``: Welsh
-- ``de``: German
-- ``en``: English *(alternative: *`LemmInflect <https://github.com/bjascob/LemmInflect>`_*)*
+- ``de``: German (see also `this list <https://github.com/adbar/German-NLP#Lemmatization>`_)
+- ``en``: English (alternative: `LemmInflect <https://github.com/bjascob/LemmInflect>`_)
 - ``es``: Spanish
-- ``fa``: Persian *(low coverage)*
+- ``fa``: Persian (low coverage)
 - ``fr``: French
 - ``ga``: Irish
 - ``gd``. Gaelic
 - ``gl``: Galician
 - ``gv``: Manx
-- ``hu``: Hungarian *(low coverage)*
+- ``hu``: Hungarian (low coverage)
 - ``it``: Italian
 - ``pt``: Portuguese
 - ``ro``: Romanian
-- ``ru``: Russian *(alternative: *`pymorphy2 <https://github.com/kmike/pymorphy2/>`_*)*
+- ``ru``: Russian (alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_)
 - ``sk``: Slovak
-- ``sl``: Slovenian *(low coverage)*
-- ``sv``: Swedish *(alternative: *`lemmy <https://github.com/sorenlind/lemmy>`_*)*
-- ``uk``: Ukranian *(alternative: *`pymorphy2 <https://github.com/kmike/pymorphy2/>`_*)*
+- ``sl``: Slovenian (low coverage)
+- ``sv``: Swedish (alternative: `lemmy <https://github.com/sorenlind/lemmy>`_)
+- ``uk``: Ukranian (alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_)
 
 
 *Low coverage* mentions means you'd probably be better off with a language-specific library, but *simplemma* will work to a limited extent. Open-source alternatives for Python are referenced if available.
@@ -141,8 +141,6 @@ Credits
 -------
 
 The current version basically acts as a wrapper for `lemmatization lists <https://github.com/michmech/lemmatization-lists>`_ by Michal Měchura (Open Database License). This rule-based approach based on flexion and lemmatizations dictionaries is to this day an approach used in popular libraries such as `spacy <https://spacy.io/usage/adding-languages#lemmatizer>`_.
-
-This package was created with `Cookiecutter <https://github.com/audreyr/cookiecutter>`_ and the `audreyr/cookiecutter-pypackage <https://github.com/audreyr/cookiecutter-pypackage>`_ project template.
 
 
 Contributions
