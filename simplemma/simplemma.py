@@ -11,6 +11,7 @@ import _pickle as cpickle
 
 
 LOGGER = logging.getLogger(__name__)
+LANGLIST = ['bg', 'ca', 'cs', 'cy', 'de', 'en', 'es', 'et', 'fa', 'fr', 'ga', 'gd', 'gl', 'gv', 'hu', 'it', 'pt', 'ro', 'ru', 'sk',  'sl', 'sv', 'uk'] # 'ast' must be checked
 
 
 def _load_dict(langcode, listpath='lists'):
@@ -63,6 +64,9 @@ def load_data(*langs):
        Returns a list of dictionaries."""
     mylist = []
     for lang in langs:
+        if lang not in LANGLIST:
+            LOGGER.error('language not supported: %s', lang)
+            continue
         LOGGER.debug('loading %s', lang)
         mylist.append(_load_pickle(lang))
     return mylist
@@ -88,5 +92,5 @@ def lemmatize(token, lemmadata, silent=True):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    for listcode in ['bg', 'ca', 'cs', 'cy', 'de', 'en', 'es', 'et', 'fa', 'fr', 'ga', 'gd', 'gl', 'gv', 'hu', 'it', 'pt', 'ro', 'ru', 'sk',  'sl', 'sv', 'uk']: # 'ast'  must be checked
+    for listcode in LANGLIST:
         _pickle_dict(listcode)
