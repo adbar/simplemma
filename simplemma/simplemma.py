@@ -45,14 +45,15 @@ def _load_pickle(langcode):
         return cpickle.load(filehandle)
 
 
-def _return_lemma(token, datadict):
+def _return_lemma(token, datadict, greedy=True):
     candidate = None
     if token in datadict:
         candidate = datadict[token]
     elif token.lower() in datadict:
         candidate = datadict[token.lower()]
     # try further hops
-    if candidate is not None:
+    # not sure this is always a good idea, greediness switch added
+    if candidate is not None and greedy is True:
         while candidate in datadict and len(datadict[candidate]) < len(candidate):
             candidate = datadict[candidate]
     return candidate
@@ -72,14 +73,14 @@ def load_data(*langs):
     return mylist
 
 
-def lemmatize(token, lemmadata, silent=True):
+def lemmatize(token, lemmadata, greedy=True, silent=True):
     """Try to reduce a token to its lemma form according to the
        language list passed as input.
        Returns a string.
        Can raise ValueError by silent=False if no lemma has been found."""
     i = 1
     for language in lemmadata:
-        candidate = _return_lemma(token, language)
+        candidate = _return_lemma(token, language, greedy)
         if candidate is not None:
             if i != 1:
                 LOGGER.debug(token, candidate, 'found in %s', i)

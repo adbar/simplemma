@@ -14,6 +14,10 @@ def test_readme():
     mytokens = ['Hier', 'sind', 'Tokens']
     myoutput = [simplemma.lemmatize(t, mydata) for t in mytokens]
     assert myoutput == ['hier', 'sein', 'tokens']
+    # greediness
+    assert simplemma.lemmatize('angekündigten', mydata, greedy=False) == 'angekündigt'
+    assert simplemma.lemmatize('angekündigten', mydata, greedy=True) == 'ankündigen'
+    # chaining
     mydata = simplemma.load_data('de', 'en')
     assert simplemma.lemmatize('Tokens', mydata) == 'token'
     mydata = simplemma.load_data('en')
@@ -22,6 +26,8 @@ def test_readme():
     assert simplemma.lemmatize('spaghetti', mydata) == 'spaghetto'
     mydata = simplemma.load_data('en', 'it')
     assert simplemma.lemmatize('spaghettini', mydata) == 'spaghettini'
+    # error
     with pytest.raises(ValueError):
         simplemma.lemmatize('スパゲッティ', mydata, silent=False)
+    
 
