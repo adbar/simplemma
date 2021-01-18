@@ -1,22 +1,26 @@
-=========================================
-Simplemma: a simple lemmatizer for Python
-=========================================
+=====================================================
+Simplemma: a simple mutilingual lemmatizer for Python
+=====================================================
 
 
 .. image:: https://img.shields.io/pypi/v/simplemma.svg
-        :target: https://pypi.python.org/pypi/simplemma
+    :target: https://pypi.python.org/pypi/simplemma
+    :alt: Python package
+
+.. image:: https://img.shields.io/pypi/pyversions/trafilatura.svg
+    :target: https://pypi.python.org/pypi/trafilatura
+    :alt: Python versions
 
 .. image:: https://img.shields.io/travis/adbar/simplemma.svg
-        :target: https://travis-ci.org/adbar/simplemma
-
-
+    :target: https://travis-ci.org/adbar/simplemma
+    :alt: Travis build status
 
 
 `Lemmatization <https://en.wikipedia.org/wiki/Lemmatisation>`_ is the process of grouping together the inflected forms of a word so they can be analysed as a single item, identified by the word's lemma, or dictionary form. Unlike stemming, lemmatization outputs word units that are still valid linguistic forms.
 
 In modern natural language processing (NLP), this task is often indirectly tackled by more complex systems encompassing a whole processing pipeline. However, it appears that there is no straightforward way to address lemmatization in Python although this task is useful in information retrieval and natural language processing.
 
-*Simplemma* provides a simple and multilingual approach (currently 22 languages, see list below) to look for base forms or lemmata. It may not be as powerful as full-fledged solutions but it is generic, easy to install and straightforward to use. Designed to be reasonably fast and to work in a large majority of cases, without being perfect. Comparatively small footprint. Useful for educational purposes or as a baseline system for lemmatization and morphological analysis.
+*Simplemma* provides a simple and multilingual approach (currently 22 languages, see list below) to look for base forms or lemmata. It may not be as powerful as full-fledged solutions but it is generic, easy to install and straightforward to use. By design it should be reasonably fast and work in a large majority of cases, without being perfect. With its comparatively small footprint it is especially useful when speed and simplicity matter, for educational purposes or as a baseline system for lemmatization and morphological analysis.
 
 
 Installation
@@ -129,8 +133,8 @@ The following languages are available using their `ISO 639-1 code <https://en.wi
 Roadmap
 -------
 
-* [ ] Function as a meta-package?
-* [ ] Integrate optional, more complex models?
+-  [ ] Function as a meta-package?
+-  [ ] Integrate optional, more complex models?
 
 
 Credits
@@ -152,7 +156,7 @@ You can also contribute to this `lemmatization list repository <https://github.c
 Other solutions
 ---------------
 
-See lists: `German-NLP <https://github.com/adbar/German-NLP>`_ and `other awesome NLP lists <https://github.com/adbar/German-NLP#More-lists>`_).
+See lists: `German-NLP <https://github.com/adbar/German-NLP>`_ and `other awesome-NLP lists <https://github.com/adbar/German-NLP#More-lists>`_.
 
 For a more complex but universal approach in Python see `universal-lemmatizer <https://github.com/jmnybl/universal-lemmatizer/>`_.
 

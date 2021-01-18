@@ -10,11 +10,11 @@ with open('README.rst') as readme_file:
 #with open('HISTORY.rst') as history_file:
 #    history = history_file.read()
 
-requirements = [ ]
+requirements = []
 
-setup_requirements = ['pytest-runner', ]
+setup_requirements = []
 
-test_requirements = ['pytest>=3', ]
+test_requirements = ['pytest>=3']
 
 setup(
     author="Adrien Barbaresi",
@@ -23,8 +23,11 @@ setup(
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
+        'Intended Audience :: Education',
+        'Intended Audience :: Information Technology',
+        'Intended Audience :: Science/Research',
         'License :: OSI Approved :: MIT License',
-        'Natural Language :: English',
+        #'Natural Language :: English',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
@@ -32,13 +35,16 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Topic :: Scientific/Engineering :: Information Analysis',
+        'Topic :: Text Processing :: Linguistic',
     ],
-    description="Python Boilerplate contains all the boilerplate you need to create a Python package.",
+    description="A simple multilingual lemmatizer for Python.",
     install_requires=requirements,
     license="MIT license",
     long_description=readme, # + '\n\n' + history,
     include_package_data=True,
-    keywords='simplemma',
+    install_requires=requirements,
+    keywords=['nlp', 'lemmatization', 'lemmatisation', 'lemmatiser'],
     name='simplemma',
     package_data={'simplemma': ['data/*.plzma']},
     packages=find_packages(include=['simplemma', 'simplemma.*']),
