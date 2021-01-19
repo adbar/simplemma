@@ -3,6 +3,7 @@
 
 import lzma
 import logging
+import re
 
 from collections import OrderedDict
 from pathlib import Path
@@ -12,7 +13,13 @@ import _pickle as cpickle
 
 LOGGER = logging.getLogger(__name__)
 LANGLIST = ['bg', 'ca', 'cs', 'cy', 'de', 'en', 'es', 'et', 'fa', 'fr', 'ga', 'gd', 'gl', 'gv', 'hu', 'it', 'pt', 'ro', 'ru', 'sk',  'sl', 'sv', 'uk'] # 'ast' must be checked
+# https://www.nltk.org/api/nltk.tokenize.html#module-nltk.tokenize.regexp
+TOKREGEX = re.compile(r'\S*?(?:\w+|\$[\d\.]+|\S+)')
 
+my_filters = [
+#    {"id": lzma.FILTER_DELTA, "dist": 1},
+    {"id": lzma.FILTER_LZMA2, "preset": lzma.PRESET_EXTREME, "dict_size": 1300000000},
+]
 
 def _load_dict(langcode, listpath='lists'):
     mydict = dict()
@@ -34,8 +41,8 @@ def _pickle_dict(langcode):
     LOGGER.debug('%s %s', langcode, len(mydict))
     filename = 'data/' + langcode + '.plzma'
     filepath = str(Path(__file__).parent / filename)
-    with lzma.open(filepath, 'w') as filehandle:
-        cpickle.dump(mydict, filehandle)
+    with lzma.open(filepath, 'w') as filehandle: # , filters=my_filters
+        cpickle.dump(mydict, filehandle, protocol=4)
 
 
 def _load_pickle(langcode):
@@ -59,6 +66,13 @@ def _return_lemma(token, datadict, greedy=True):
     return candidate
 
 
+def simple_tokenizer(text):
+    """Simple regular expression adapted from NLTK.
+       Takes a string as input and returns a list of tokens.
+       Provided for convenience and educational purposes."""
+    return TOKREGEX.findall(text)
+
+
 def load_data(*langs):
     """Decompress und unpickle lemmatization rules.
        Takes one or several ISO 639-1 code language code as input.
@@ -73,13 +87,13 @@ def load_data(*langs):
     return mylist
 
 
-def lemmatize(token, lemmadata, greedy=True, silent=True):
+def lemmatize(token, langdata, greedy=True, silent=True):
     """Try to reduce a token to its lemma form according to the
        language list passed as input.
        Returns a string.
        Can raise ValueError by silent=False if no lemma has been found."""
     i = 1
-    for language in lemmadata:
+    for language in langdata:
         candidate = _return_lemma(token, language, greedy)
         if candidate is not None:
             if i != 1:
@@ -89,6 +103,11 @@ def lemmatize(token, lemmadata, greedy=True, silent=True):
     if silent is False:
         raise ValueError('Token not found: %s' % token)
     return token.lower()
+
+
+def textlemmatize(text, langdata, greedy=True, silent=True):
+    """Convenience function to lemmatize a text using a simple tokenizer."""
+    return [lemmatize(t, langdata, greedy, silent) for t in simple_tokenizer(text)]
 
 
 if __name__ == '__main__':
