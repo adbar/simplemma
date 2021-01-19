@@ -16,10 +16,6 @@ LANGLIST = ['bg', 'ca', 'cs', 'cy', 'de', 'en', 'es', 'et', 'fa', 'fr', 'ga', 'g
 # https://www.nltk.org/api/nltk.tokenize.html#module-nltk.tokenize.regexp
 TOKREGEX = re.compile(r'\S*?(?:\w+|\$[\d\.]+|\S+)')
 
-my_filters = [
-#    {"id": lzma.FILTER_DELTA, "dist": 1},
-    {"id": lzma.FILTER_LZMA2, "preset": lzma.PRESET_EXTREME, "dict_size": 1300000000},
-]
 
 def _load_dict(langcode, listpath='lists'):
     mydict = dict()
