@@ -36,7 +36,9 @@ def test_convenience():
     text = 'Nous déciderons une fois arrivées.'
     langdata = simplemma.load_data('fr')
     assert simplemma.textlemmatize(text, langdata, greedy=False) == ['se', 'décider', 'un', 'fois', 'arriver', '.']
+    #assert simplemma.textlemmatize(text, langdata) == simplemma.textlemmatize(text, langdata, greedy=False)
     text = 'Pepa e Iván son una pareja sentimental, ambos dedicados al doblaje de películas.'
     langdata = simplemma.load_data('es')
-    assert simplemma.textlemmatize(text, langdata) == ['pepa', '-er', 'iván', 'ser', 'uno', 'parejo', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'dar', 'película', '.']
+    print(simplemma.textlemmatize(text, langdata))
+    assert simplemma.textlemmatize(text, langdata) == ['pepa', '-er', 'iván', 'ser', 'uno', 'parejo', 'sentimental', ',', 'ambos', 'dedicarse', 'al', 'doblaje', 'dar', 'película', '.'] # dedicar/dedicarse
 
