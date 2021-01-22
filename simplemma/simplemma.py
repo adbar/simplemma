@@ -6,29 +6,42 @@ import logging
 import re
 
 from collections import OrderedDict
+from difflib import ndiff
+from functools import lru_cache
 from pathlib import Path
 
 import _pickle as cpickle
 
 
 LOGGER = logging.getLogger(__name__)
-LANGLIST = ['bg', 'ca', 'cs', 'cy', 'de', 'en', 'es', 'et', 'fa', 'fr', 'ga', 'gd', 'gl', 'gv', 'hu', 'it', 'pt', 'ro', 'ru', 'sk',  'sl', 'sv', 'uk'] # 'ast' must be checked
-# https://www.nltk.org/api/nltk.tokenize.html#module-nltk.tokenize.regexp
-TOKREGEX = re.compile(r'\S*?(?:\w+|\$[\d\.]+|\S+)')
+
+LANGLIST = ['bg', 'ca', 'cs', 'cy', 'de', 'en', 'es', 'et', 'fa', 'fr', 'ga', 'gd', 'gl', 'gv', 'hu', 'it', 'pt', 'ro', 'ru', 'sk',  'sl', 'sv', 'uk']
+
+TOKREGEX = re.compile(r'(?:[\$§]? ?[\d\.,]+€?|\w[\w*-]*|[,;:\.?!¿¡‽⸮…()\[\]–{}—/‒_“„”’′″‘’“”\'"«»=+−×÷•·])')
 
 
-def _load_dict(langcode, listpath='lists'):
+def _load_dict(langcode, listpath='lists', silent=True):
     mydict = dict()
     filename = listpath + '/' + langcode + '.txt'
     filepath = str(Path(__file__).parent / filename)
     with open(filepath , 'r', encoding='utf-8') as filehandle:
         for line in filehandle:
-            line = line.strip()
-            columns = line.split('\t')
-            try:
+            columns = line.strip().split('\t')
+            if ' ' in line or '+' in line or len(columns) != 2 or \
+                len(columns[0]) < 1 or len(columns[1]) < 1:
+                if silent is False:
+                    LOGGER.warning('wrong format: %s', line.strip())
+                continue
+            if columns[1] in mydict and mydict[columns[1]] != columns[0]:
+                dist1, dist2 = _levenshtein_dist(columns[1], mydict[columns[1]]), \
+                    _levenshtein_dist(columns[1], columns[0])
+                if dist1 == 0 or dist2 < dist1:
+                    mydict[columns[1]] = columns[0]
+                elif silent is False:
+                    LOGGER.warning('diverging: %s %s | %s %s', columns[1], mydict[columns[1]], columns[1], columns[0])
+                    LOGGER.debug('distances: %s %s', dist1, dist2)
+            else:
                 mydict[columns[1]] = columns[0]
-            except IndexError:
-                LOGGER.error(line)
     return OrderedDict(sorted(mydict.items()))
 
 
@@ -48,6 +61,27 @@ def _load_pickle(langcode):
         return cpickle.load(filehandle)
 
 
+@lru_cache(maxsize=4096)
+def _levenshtein_dist(str1, str2):
+    # https://codereview.stackexchange.com/questions/217065/calculate-levenshtein-distance-between-two-strings-in-python
+    counter = {"+": 0, "-": 0}
+    distance = 0
+    for edit_code, *_ in ndiff(str1, str2):
+        if edit_code == " ":
+            distance += max(counter.values())
+            counter = {"+": 0, "-": 0}
+        else:
+            counter[edit_code] += 1
+    distance += max(counter.values())
+    return distance
+
+
+#def _define_greediness(langcode):
+#    if langcode in ('bg', 'es', 'fr', 'ru', 'uk'):
+#        return False
+#    return True
+
+
 def _return_lemma(token, datadict, greedy=True):
     candidate = None
     if token in datadict:
@@ -57,8 +91,15 @@ def _return_lemma(token, datadict, greedy=True):
     # try further hops
     # not sure this is always a good idea, greediness switch added
     if candidate is not None and greedy is True:
-        while candidate in datadict and len(datadict[candidate]) < len(candidate):
+        i = 0
+        while candidate in datadict and (
+            _levenshtein_dist(datadict[candidate], candidate) < 2
+            or len(datadict[candidate]) < len(candidate)
+            ):
             candidate = datadict[candidate]
+            i += 1
+            if i >= 3:
+                break
     return candidate
 
 
@@ -90,6 +131,10 @@ def lemmatize(token, langdata, greedy=True, silent=True):
        Can raise ValueError by silent=False if no lemma has been found."""
     i = 1
     for language in langdata:
+        # determine default greediness
+        #if greedy is None:
+        #    greedy = _define_greediness(language)
+        # determine lemma
         candidate = _return_lemma(token, language, greedy)
         if candidate is not None:
             if i != 1:
@@ -98,7 +143,7 @@ def lemmatize(token, langdata, greedy=True, silent=True):
         i += 1
     if silent is False:
         raise ValueError('Token not found: %s' % token)
-    return token.lower()
+    return token
 
 
 def textlemmatize(text, langdata, greedy=True, silent=True):
