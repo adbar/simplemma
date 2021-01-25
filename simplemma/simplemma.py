@@ -15,13 +15,13 @@ import _pickle as cpickle
 
 LOGGER = logging.getLogger(__name__)
 
-LANGLIST = ['bg', 'ca', 'cs', 'cy', 'de', 'en', 'es', 'et', 'fa', 'fr', 'ga', 'gd', 'gl', 'gv', 'hu', 'it', 'pt', 'ro', 'ru', 'sk',  'sl', 'sv', 'uk']
+LANGLIST = ['bg', 'ca', 'cs', 'cy', 'da', 'de', 'en', 'es', 'et', 'fa', 'fi', 'fr', 'ga', 'gd', 'gl', 'gv', 'hu', 'id', 'it', 'ka', 'la', 'lb', 'lt', 'lv', 'nl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'tr', 'uk', 'ur']
 
 TOKREGEX = re.compile(r'(?:[\$§]? ?[\d\.,]+€?|\w[\w*-]*|[,;:\.?!¿¡‽⸮…()\[\]–{}—/‒_“„”’′″‘’“”\'"«»=+−×÷•·])')
 
 
 def _load_dict(langcode, listpath='lists', silent=True):
-    mydict = dict()
+    mydict, i = dict(), 0
     filename = listpath + '/' + langcode + '.txt'
     filepath = str(Path(__file__).parent / filename)
     with open(filepath , 'r', encoding='utf-8') as filehandle:
@@ -41,17 +41,20 @@ def _load_dict(langcode, listpath='lists', silent=True):
                     LOGGER.warning('diverging: %s %s | %s %s', columns[1], mydict[columns[1]], columns[1], columns[0])
                     LOGGER.debug('distances: %s %s', dist1, dist2)
             else:
+                # mydict[columns[0]] = columns[0]
                 mydict[columns[1]] = columns[0]
+                i += 1
+    LOGGER.debug('%s %s', langcode, i)
     return OrderedDict(sorted(mydict.items()))
 
 
 def _pickle_dict(langcode):
     mydict = _load_dict(langcode)
-    LOGGER.debug('%s %s', langcode, len(mydict))
     filename = 'data/' + langcode + '.plzma'
     filepath = str(Path(__file__).parent / filename)
     with lzma.open(filepath, 'w') as filehandle: # , filters=my_filters
         cpickle.dump(mydict, filehandle, protocol=4)
+    LOGGER.debug('%s %s', langcode, len(mydict))
 
 
 def _load_pickle(langcode):
@@ -93,7 +96,7 @@ def _return_lemma(token, datadict, greedy=True):
     if candidate is not None and greedy is True:
         i = 0
         while candidate in datadict and (
-            _levenshtein_dist(datadict[candidate], candidate) < 2
+            _levenshtein_dist(datadict[candidate], candidate) <= 2
             or len(datadict[candidate]) < len(candidate)
             ):
             candidate = datadict[candidate]
@@ -146,8 +149,9 @@ def lemmatize(token, langdata, greedy=True, silent=True):
     return token
 
 
-def textlemmatize(text, langdata, greedy=True, silent=True):
-    """Convenience function to lemmatize a text using a simple tokenizer."""
+def text_lemmatizer(text, langdata, greedy=True, silent=True):
+    """Convenience function to lemmatize a text using a simple tokenizer.
+       Returns a list of tokens and lemmata."""
     return [lemmatize(t, langdata, greedy, silent) for t in simple_tokenizer(text)]
 
 

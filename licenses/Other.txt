@@ -1,1 +1,1 @@
-https://github.com/TALP-UPC/FreeLing/blob/master/COPYING
+See 2b.- DATA COMPONENTS in https://github.com/TALP-UPC/FreeLing/blob/master/COPYING

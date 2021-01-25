@@ -29,6 +29,10 @@ def test_readme():
     assert simplemma.lemmatize('spaghetti', mydata) == 'spaghetto'
     mydata = simplemma.load_data('it')
     assert simplemma.lemmatize('spaghettini', mydata) == 'spaghettini'
+    # tokenization and chaining
+    assert simplemma.simple_tokenizer('Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.') == ['Lorem', 'ipsum', 'dolor', 'sit', 'amet', ',', 'consectetur', 'adipiscing', 'elit', ',', 'sed', 'do', 'eiusmod', 'tempor', 'incididunt', 'ut', 'labore', 'et', 'dolore', 'magna', 'aliqua', '.']
+    mydata = simplemma.load_data('pt')
+    assert simplemma.text_lemmatizer('Sou o intervalo entre o que desejo ser e os outros me fizeram.', mydata) == ['ser', 'o', 'intervalo', 'entre', 'o', 'que', 'desejo', 'ser', 'e', 'o', 'outro', 'me', 'fazer', '.']
     # error
     with pytest.raises(ValueError):
         simplemma.lemmatize('スパゲッティ', mydata, silent=False)
@@ -38,10 +42,11 @@ def test_convenience():
     """Test convenience functions."""
     text = 'Nous déciderons une fois arrivées.'
     langdata = simplemma.load_data('fr')
-    assert simplemma.textlemmatize(text, langdata, greedy=False) == ['lui', 'décider', 'un', 'fois', 'arrivée', '.']
-    #assert simplemma.textlemmatize(text, langdata, greedy=True) == ['lui', 'décider', 'un', 'fois', 'arrivée', '.']
+    # print(simplemma.text_lemmatizer(text, langdata, greedy=True))
+    assert simplemma.text_lemmatizer(text, langdata, greedy=False) == ['lui', 'décider', 'un', 'fois', 'arrivée', '.']
+    #assert simplemma.text_lemmatizer(text, langdata, greedy=True) == ['lui', 'décider', 'un', 'fois', 'arrivée', '.']
     text = 'Pepa e Iván son una pareja sentimental, ambos dedicados al doblaje de películas.'
     langdata = simplemma.load_data('es')
-    assert(simplemma.textlemmatize(text, langdata, greedy=False)) == ['Pepa', 'y', 'Iván', 'son', 'uno', 'parejo', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
-    assert simplemma.textlemmatize(text, langdata, greedy=True) == ['Pepa', 'y', 'Iván', 'son', 'uno', 'parejo', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
+    assert(simplemma.text_lemmatizer(text, langdata, greedy=False)) == ['Pepa', 'y', 'Iván', 'son', 'uno', 'parejo', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
+    assert simplemma.text_lemmatizer(text, langdata, greedy=True) == ['Pepa', 'y', 'Iván', 'son', 'uno', 'parejo', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
 

@@ -11,8 +11,8 @@ Simplemma: a simple multilingual lemmatizer for Python
     :target: https://pypi.python.org/pypi/simplemma
     :alt: License
 
-.. image:: https://img.shields.io/pypi/pyversions/trafilatura.svg
-    :target: https://pypi.python.org/pypi/trafilatura
+.. image:: https://img.shields.io/pypi/pyversions/simplemma.svg
+    :target: https://pypi.python.org/pypi/simplemma
     :alt: Python versions
 
 .. image:: https://img.shields.io/travis/adbar/simplemma.svg
@@ -24,7 +24,9 @@ Simplemma: a simple multilingual lemmatizer for Python
 
 In modern natural language processing (NLP), this task is often indirectly tackled by more complex systems encompassing a whole processing pipeline. However, it appears that there is no straightforward way to address lemmatization in Python although this task is useful in information retrieval and natural language processing.
 
-*Simplemma* provides a simple and multilingual approach (currently 23 languages, see list below) to look for base forms or lemmata. It may not be as powerful as full-fledged solutions but it is generic, easy to install and straightforward to use. By design it should be reasonably fast and work in a large majority of cases, without being perfect. With its comparatively small footprint it is especially useful when speed and simplicity matter, for educational purposes or as a baseline system for lemmatization and morphological analysis.
+*Simplemma* provides a simple and multilingual approach (currently 35 languages, see list below) to look for base forms or lemmata. It may not be as powerful as full-fledged solutions but it is generic, easy to install and straightforward to use. By design it should be reasonably fast and work in a large majority of cases, without being perfect.
+
+With its comparatively small footprint it is especially useful when speed and simplicity matter, for educational purposes or as a baseline system for lemmatization and morphological analysis.
 
 
 Installation
@@ -37,6 +39,9 @@ The current library is written in pure Python with no dependencies:
 
 Usage
 -----
+
+Word-by-word
+~~~~~~~~~~~~
 
 Simplemma is used by selecting a language of interest and then applying the data on a list of words.
 
@@ -107,6 +112,29 @@ Caveats:
     'son' # valid common name, but what about the verb form?
 
 
+Tokenization
+~~~~~~~~~~~~
+
+A simple tokenization is included:
+
+.. code-block:: python
+
+    >>> from simplemma import simple_tokenizer
+    >>> simple_tokenizer('Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.')
+    ['Lorem', 'ipsum', 'dolor', 'sit', 'amet', ',', 'consectetur', 'adipiscing', 'elit', ',', 'sed', 'do', 'eiusmod', 'tempor', 'incididunt', 'ut', 'labore', 'et', 'dolore', 'magna', 'aliqua', '.']
+
+
+The function ``text_lemmatizer()`` chains tokenization and lemmatization. It can take *greedy* and *silent* as arguments:
+
+.. code-block:: python
+
+    >>> from simplemma import text_lemmatizer
+    >>> langdata = simplemma.load_data('pt')
+    >>> text_lemmatizer('Sou o intervalo entre o que desejo ser e os outros me fizeram.', langdata)
+    # caveat: desejo is also a noun, should be desejar here
+    ['ser', 'o', 'intervalo', 'entre', 'o', 'que', 'desejo', 'ser', 'e', 'o', 'outro', 'me', 'fazer', '.']
+
+
 Supported languages
 -------------------
 
@@ -117,25 +145,36 @@ The following languages are available using their `ISO 639-1 code <https://en.wi
 - ``ca``: Catalan, 583,969 word pairs
 - ``cs``: Czech, 35,021 word pairs (low coverage)
 - ``cy``: Welsh, 349,638 word pairs
+- ``da``: Danish, 555,559 word pairs (alternative: `lemmy <https://github.com/sorenlind/lemmy>`_)
 - ``de``: German, 623,249 word pairs (see also `this list <https://github.com/adbar/German-NLP#Lemmatization>`_)
 - ``en``: English, 136,226 word pairs (alternative: `LemmInflect <https://github.com/bjascob/LemmInflect>`_)
 - ``es``: Spanish, 666,016 word pairs
 - ``et``: Estonian, 112,501 word pairs (low coverage)
 - ``fa``: Persian, 9,333 word pairs (low coverage)
+- ``fi``: Finnish, 2,096,328 word pairs (alternative: `voikko <https://voikko.puimula.org/python.html>`_)
 - ``fr``: French, 217,091 word pairs
 - ``ga``: Irish, 366,086 word pairs
 - ``gd``. Gaelic, 49,080 word pairs
 - ``gl``: Galician, 386,714 word pairs
 - ``gv``: Manx, 63,667 word pairs
 - ``hu``: Hungarian, 446,650 word pairs
+- ``id``: Indonesian, 36,461 word pairs
 - ``it``: Italian, 333,682 word pairs
-- ``pt``: Portuguese, 855,436 word pairs
+- ``ka``: Georgian, 65,938 word pairs
+- ``la``: Latin, 96,409 word pairs (low coverage)
+- ``lb``: Luxembourgish, 305,398 word pairs
+- ``lt``: Lithuanian, 247,418 word pairs
+- ``lv``: Latvian, 57,154 word pairs
+- ``nl``: Dutch, 228,123 word pairs
+- ``pt``: Portuguese, 933,730 word pairs
 - ``ro``: Romanian, 313,181 word pairs
 - ``ru``: Russian, 608,770 word pairs (alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_)
 - ``sk``: Slovak, 847,383 word pairs
 - ``sl``: Slovene, 97,460 word pairs (low coverage)
 - ``sv``: Swedish, 663,984 word pairs (alternative: `lemmy <https://github.com/sorenlind/lemmy>`_)
+- ``tr``: Turkish, 1,333,970 word pairs
 - ``uk``: Ukranian, 190,725 word pairs (alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_)
+- ``ur``: Urdu, 28,848 word pairs
 
 
 *Low coverage* mentions means you'd probably be better off with a language-specific library, but *simplemma* will work to a limited extent. Open-source alternatives for Python are referenced if available.

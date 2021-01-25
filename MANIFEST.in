@@ -3,6 +3,7 @@
 #include HISTORY.rst
 include LICENSE
 include README.rst
+include licenses/
 
 recursive-include tests *
 recursive-exclude * __pycache__
