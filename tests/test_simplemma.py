@@ -39,6 +39,11 @@ def test_readme():
 
 def test_convenience():
     """Test convenience functions."""
+    # known words
+    langdata = simplemma.load_data('en')
+    assert simplemma.is_known('FanCY', langdata) is True
+    assert simplemma.is_known('Fancy-String', langdata) is False
+    # text lemmatization
     text = 'Nous déciderons une fois arrivées.'
     langdata = simplemma.load_data('fr')
     # print(simplemma.text_lemmatizer(text, langdata, greedy=True))

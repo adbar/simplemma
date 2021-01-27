@@ -99,15 +99,14 @@ def _simple_search(token, datadict):
 def _return_lemma(token, datadict, greedy=True):
     candidate = _simple_search(token, datadict)
     # decompose
-    if candidate is None:
+    if candidate is None: # and greedy is True
         splitted = re.split('([_-])', token)
         if len(splitted) > 1 and len(splitted[-1]) > 0:
             subcandidate = _simple_search(splitted[-1], datadict)
             if subcandidate is not None:
                 splitted[-1] = subcandidate
                 candidate = ''.join(splitted)
-    # try further hops
-    # not sure this is always a good idea, greediness switch added
+    # try further hops, not sure this is always a good idea
     if candidate is not None and greedy is True:
         i = 0
         while candidate in datadict and (
@@ -119,6 +118,15 @@ def _return_lemma(token, datadict, greedy=True):
             if i >= 3:
                 break
     return candidate
+
+
+def is_known(token, langdata):
+    """Tell if a token is present in one of the loaded dictionaries.
+       Case-insensitive, whole word forms only. Returns True or False."""
+    for language in langdata:
+        if _simple_search(token, language) is not None:
+            return True
+    return False
 
 
 def simple_tokenizer(text):
