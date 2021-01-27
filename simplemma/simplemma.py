@@ -106,6 +106,26 @@ def _return_lemma(token, datadict, greedy=True):
             if subcandidate is not None:
                 splitted[-1] = subcandidate
                 candidate = ''.join(splitted)
+    # stop here in some cases
+    if len(token) <= 4 or greedy is False:
+        return candidate
+    # greedy subword decomposition: suffix search
+    if candidate is None and greedy is True:
+        # find break point
+        for count, prefix in enumerate(token, start=1):
+            part1, part2 = _simple_search(token[:-count], datadict), \
+                           _simple_search(token[-count:], datadict)
+            if part1 is not None and part2 is not None:
+                # shorten the second known part of the token
+                if len(part2) < len(token[-count:]):
+                    candidate = ''.join([token[:-count], part2.lower()])
+                # maybe an affix? discard it
+                elif len(part2) < 2:
+                    candidate = part1
+                # don't destroy anything more
+                else:
+                    candidate = token
+                break
     # try further hops, not sure this is always a good idea
     if candidate is not None and greedy is True:
         i = 0

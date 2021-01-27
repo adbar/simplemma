@@ -59,7 +59,19 @@ def test_subwords():
     """Test recognition and conversion of subword units."""
     mydata = simplemma.load_data('de')
     myword = 'mRNA-Impfstoffe'
-    assert simplemma.lemmatize(myword, mydata) == 'mRNA-Impfstoff'
+    assert simplemma.lemmatize(myword, mydata, greedy=False) == 'mRNA-Impfstoff'
     myword = 'mRNA-impfstoffe'
-    assert simplemma.lemmatize(myword, mydata) == 'mRNA-Impfstoff'
+    assert simplemma.lemmatize(myword, mydata, greedy=False) == 'mRNA-Impfstoff'
+    # greedy subword
+    myword = 'Impftermine'
+    assert simplemma.lemmatize(myword, mydata, greedy=False) == 'Impftermine'
+    assert simplemma.lemmatize(myword, mydata, greedy=True) == 'Impftermin'
+    myword = 'Impfbeginn'
+    assert simplemma.lemmatize(myword, mydata, greedy=False) == 'Impfbeginn'
+    assert simplemma.lemmatize(myword, mydata, greedy=True) == 'Impfbeginn'
+    myword = 'venezolanische'
+    assert simplemma.lemmatize(myword, mydata, greedy=False) == 'venezolanische'
+    assert simplemma.lemmatize(myword, mydata, greedy=True) == 'venezolanisch'
+    # Verdachtsfällen, Verdachtsfälle, Verdachtsfall
+    # börsennotierter, börsennotiert
 
