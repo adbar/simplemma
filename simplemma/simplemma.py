@@ -85,12 +85,27 @@ def _levenshtein_dist(str1, str2):
 #    return True
 
 
-def _return_lemma(token, datadict, greedy=True):
+def _simple_search(token, datadict):
     candidate = None
     if token in datadict:
         candidate = datadict[token]
     elif token.lower() in datadict:
         candidate = datadict[token.lower()]
+    elif token.capitalize() in datadict:
+        candidate = datadict[token.capitalize()]
+    return candidate
+
+
+def _return_lemma(token, datadict, greedy=True):
+    candidate = _simple_search(token, datadict)
+    # decompose
+    if candidate is None:
+        splitted = re.split('([_-])', token)
+        if len(splitted) > 1 and len(splitted[-1]) > 0:
+            subcandidate = _simple_search(splitted[-1], datadict)
+            if subcandidate is not None:
+                splitted[-1] = subcandidate
+                candidate = ''.join(splitted)
     # try further hops
     # not sure this is always a good idea, greediness switch added
     if candidate is not None and greedy is True:

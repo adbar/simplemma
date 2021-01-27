@@ -24,11 +24,10 @@ def test_readme():
     assert [simplemma.lemmatize(t, mydata) for t in mytokens] == ['hier', 'sein', 'vaccine', '.']
     mydata = simplemma.load_data('it')
     assert simplemma.lemmatize('spaghettis', mydata) == 'spaghettis'
+    assert simplemma.lemmatize('spaghettini', mydata) == 'spaghettini'
     mydata = simplemma.load_data('it', 'fr')
     assert simplemma.lemmatize('spaghettis', mydata) == 'spaghetti'
     assert simplemma.lemmatize('spaghetti', mydata) == 'spaghetto'
-    mydata = simplemma.load_data('it')
-    assert simplemma.lemmatize('spaghettini', mydata) == 'spaghettini'
     # tokenization and chaining
     assert simplemma.simple_tokenizer('Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.') == ['Lorem', 'ipsum', 'dolor', 'sit', 'amet', ',', 'consectetur', 'adipiscing', 'elit', ',', 'sed', 'do', 'eiusmod', 'tempor', 'incididunt', 'ut', 'labore', 'et', 'dolore', 'magna', 'aliqua', '.']
     mydata = simplemma.load_data('pt')
@@ -49,4 +48,13 @@ def test_convenience():
     langdata = simplemma.load_data('es')
     assert(simplemma.text_lemmatizer(text, langdata, greedy=False)) == ['Pepa', 'y', 'Iván', 'son', 'uno', 'parejo', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
     assert simplemma.text_lemmatizer(text, langdata, greedy=True) == ['Pepa', 'y', 'Iván', 'son', 'uno', 'parejo', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
+
+
+def test_subwords():
+    """Test recognition and conversion of subword units."""
+    mydata = simplemma.load_data('de')
+    myword = 'mRNA-Impfstoffe'
+    assert simplemma.lemmatize(myword, mydata) == 'mRNA-Impfstoff'
+    myword = 'mRNA-impfstoffe'
+    assert simplemma.lemmatize(myword, mydata) == 'mRNA-Impfstoff'
 
