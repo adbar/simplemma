@@ -1,13 +1,14 @@
 #include AUTHORS.rst
 #include CONTRIBUTING.rst
-#include HISTORY.rst
+include HISTORY.rst
 include LICENSE
 include README.rst
 include licenses/
+recursive-include simplemma/data/
 
-recursive-include tests *
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
+include tests/__init__.py tests/test_simplemma.py
 
 recursive-include conf.py Makefile make.bat *.jpg *.png *.gif
 # recursive-include docs *.rst
