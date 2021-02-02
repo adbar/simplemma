@@ -24,7 +24,7 @@ Simplemma: a simple multilingual lemmatizer for Python
 
 In modern natural language processing (NLP), this task is often indirectly tackled by more complex systems encompassing a whole processing pipeline. However, it appears that there is no straightforward way to address lemmatization in Python although this task is useful in information retrieval and natural language processing.
 
-*Simplemma* provides a simple and multilingual approach (currently 35 languages, see list below) to look for base forms or lemmata. It may not be as powerful as full-fledged solutions but it is generic, easy to install and straightforward to use. By design it should be reasonably fast and work in a large majority of cases, without being perfect.
+*Simplemma* provides a simple and multilingual approach to look for base forms or lemmata. It may not be as powerful as full-fledged solutions but it is generic, easy to install and straightforward to use. By design it should be reasonably fast and work in a large majority of cases, without being perfect. Currently, 35 languages are partly or fully supported, see table below.
 
 With its comparatively small footprint it is especially useful when speed and simplicity matter, for educational purposes or as a baseline system for lemmatization and morphological analysis.
 
@@ -86,10 +86,14 @@ Chaining several languages can improve coverage:
     'spaghetto'
 
 
-There are cases for which a greedier algorithm is better. It is activated by default:
+There are cases in which a greedier decomposition and lemmatization algorithm is better. It is deactivated by default:
 
 .. code-block:: python
 
+    # same example as before, comes to this result in one step
+    >>> simplemma.lemmatize('spaghettis', mydata, greedy=True)
+    'spaghetto'
+    # a German case
     >>> langdata = simplemma.load_data('de')
     >>> simplemma.lemmatize('angekündigten', langdata)
     'ankündigen' # infinitive verb
@@ -97,25 +101,10 @@ There are cases for which a greedier algorithm is better. It is activated by def
     'angekündigt' # past participle
 
 
-Caveats:
-
-.. code-block:: python
-
-    # don't expect too much though
-    >>> langdata = simplemma.load_data('it')
-    # this diminutive form isn't in the model data
-    >>> simplemma.lemmatize('spaghettini', langdata)
-    'spaghettini' # should read 'spaghettino'
-    # the algorithm cannot choose between valid alternatives yet
-    >>> langdata = simplemma.load_data('es')
-    >>> simplemma.lemmatize('son', langdata)
-    'son' # valid common name, but what about the verb form?
-
-
 Tokenization
 ~~~~~~~~~~~~
 
-A simple tokenization is included:
+A simple tokenization is included for convenience:
 
 .. code-block:: python
 
@@ -135,50 +124,79 @@ The function ``text_lemmatizer()`` chains tokenization and lemmatization. It can
     ['ser', 'o', 'intervalo', 'entre', 'o', 'que', 'desejo', 'ser', 'e', 'o', 'outro', 'me', 'fazer', '.']
 
 
+Caveats
+~~~~~~~
+
+.. code-block:: python
+
+    # don't expect too much though
+    >>> langdata = simplemma.load_data('it')
+    # this diminutive form isn't in the model data
+    >>> simplemma.lemmatize('spaghettini', langdata)
+    'spaghettini' # should read 'spaghettino'
+    # the algorithm cannot choose between valid alternatives yet
+    >>> langdata = simplemma.load_data('es')
+    >>> simplemma.lemmatize('son', langdata)
+    'son' # valid common name, but what about the verb form?
+
+As the focus lies on overall coverage, some short frequent words (typically: pronouns) can need post-processing, this generally concerns 10-20 tokens per language.
+
+The greedy algorithm rarely produces forms that are not valid. Still, it is mainly useful on long words and neologisms, not for general approaches.
+
+Bug reports over the `issues page <https://github.com/adbar/simplemma/issues>`_ are welcome.
+
+
 Supported languages
 -------------------
 
-
 The following languages are available using their `ISO 639-1 code <https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes>`_:
 
-- ``bg``: Bulgarian, 69,680 word pairs (low coverage)
-- ``ca``: Catalan, 583,969 word pairs
-- ``cs``: Czech, 35,021 word pairs (low coverage)
-- ``cy``: Welsh, 349,638 word pairs
-- ``da``: Danish, 555,559 word pairs (alternative: `lemmy <https://github.com/sorenlind/lemmy>`_)
-- ``de``: German, 623,249 word pairs (see also `this list <https://github.com/adbar/German-NLP#Lemmatization>`_)
-- ``en``: English, 136,226 word pairs (alternative: `LemmInflect <https://github.com/bjascob/LemmInflect>`_)
-- ``es``: Spanish, 666,016 word pairs
-- ``et``: Estonian, 112,501 word pairs (low coverage)
-- ``fa``: Persian, 9,333 word pairs (low coverage)
-- ``fi``: Finnish, 2,096,328 word pairs (alternative: `voikko <https://voikko.puimula.org/python.html>`_)
-- ``fr``: French, 217,091 word pairs
-- ``ga``: Irish, 366,086 word pairs
-- ``gd``. Gaelic, 49,080 word pairs
-- ``gl``: Galician, 386,714 word pairs
-- ``gv``: Manx, 63,667 word pairs
-- ``hu``: Hungarian, 446,650 word pairs
-- ``id``: Indonesian, 36,461 word pairs
-- ``it``: Italian, 333,682 word pairs
-- ``ka``: Georgian, 65,938 word pairs
-- ``la``: Latin, 96,409 word pairs (low coverage)
-- ``lb``: Luxembourgish, 305,398 word pairs
-- ``lt``: Lithuanian, 247,418 word pairs
-- ``lv``: Latvian, 57,154 word pairs
-- ``nl``: Dutch, 228,123 word pairs
-- ``pt``: Portuguese, 933,730 word pairs
-- ``ro``: Romanian, 313,181 word pairs
-- ``ru``: Russian, 608,770 word pairs (alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_)
-- ``sk``: Slovak, 847,383 word pairs
-- ``sl``: Slovene, 97,460 word pairs (low coverage)
-- ``sv``: Swedish, 663,984 word pairs (alternative: `lemmy <https://github.com/sorenlind/lemmy>`_)
-- ``tr``: Turkish, 1,333,970 word pairs
-- ``uk``: Ukranian, 190,725 word pairs (alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_)
-- ``ur``: Urdu, 28,848 word pairs
+
+====== ============= ========== ========= =========================================================================
+Available languages (2021-02-02)
+-------------------------------------------------------------------------------------------------------------------
+Code   Language      Word pairs Scores    Comments
+====== ============= ========== ========= =========================================================================
+``bg`` Bulgarian     69,680               low coverage
+``ca`` Catalan       583,969
+``cs`` Czech         35,021               low coverage
+``cy`` Welsh         349,638
+``da`` Danish        555,559              alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
+``de`` German        623,249    0.94      on UD DE-GSD. See also `this list <https://github.com/adbar/German-NLP#Lemmatization>`_
+``en`` English       136,226    0.93      on UD EN-GUM. Alternative: `LemmInflect <https://github.com/bjascob/LemmInflect>`_
+``es`` Spanish       666,016    0.87      on UD ES-GSD.
+``et`` Estonian      112,501              low coverage
+``fa`` Persian       9,333                low coverage
+``fi`` Finnish       2,096,328            alternative: `voikko <https://voikko.puimula.org/python.html>`_
+``fr`` French        217,091    0.93      on UD FR-GSD.
+``ga`` Irish         366,086
+``gd`` Gaelic        49,080
+``gl`` Galician      386,714
+``gv`` Manx          63,667
+``hu`` Hungarian     446,650
+``id`` Indonesian    36,461
+``it`` Italian       333,682
+``ka`` Georgian      65,938
+``la`` Latin         96,409               low coverage
+``lb`` Luxembourgish 305,398
+``lt`` Lithuanian    247,418
+``lv`` Latvian       57,154
+``nl`` Dutch         228,123
+``pt`` Portuguese    933,730
+``ro`` Romanian      313,181
+``ru`` Russian       608,770              alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
+``sk`` Slovak        847,383
+``sl`` Slovene       97,460               low coverage
+``sv`` Swedish       663,984              alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
+``tr`` Turkish       1,333,970
+``uk`` Ukranian      190,725              alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
+``ur`` Urdu          28,848
+====== ============= ========== ========= =========================================================================
 
 
 *Low coverage* mentions means you'd probably be better off with a language-specific library, but *simplemma* will work to a limited extent. Open-source alternatives for Python are referenced if available.
 
+The scores are calculated on `Universal Dependencies <https://universaldependencies.org/>`_ treebanks on single word tokens (including some contractions but not merged prepositions), they describe to what extent simplemma can accurately map tokens to their lemma form.
 
 * Software under MIT license, for the linguistic information databases see ``licenses`` folder
 * Documentation: https://github.com/adbar/simplemma
@@ -187,7 +205,7 @@ The following languages are available using their `ISO 639-1 code <https://en.wi
 Roadmap
 -------
 
--  [ ] Add further lemmatization lists
+-  [-] Add further lemmatization lists
 -  [ ] Grammatical categories as option
 -  [ ] Function as a meta-package?
 -  [ ] Integrate optional, more complex models?

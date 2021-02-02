@@ -3,6 +3,13 @@ History
 =======
 
 
+0.2.1 (2021-02-02)
+------------------
+
+* Better decomposition into subwords by greedy algorithm
+* First benchmarks and data-based corrections: German, French, English, Spanish
+
+
 0.2.0 (2021-01-25)
 ------------------
 
