@@ -28,10 +28,11 @@ def test_readme():
     mydata = simplemma.load_data('it', 'fr')
     assert simplemma.lemmatize('spaghettis', mydata) == 'spaghetti'
     assert simplemma.lemmatize('spaghetti', mydata) == 'spaghetto'
+    assert simplemma.lemmatize('spaghettis', mydata, greedy=True) == 'spaghetto'
     # tokenization and chaining
     assert simplemma.simple_tokenizer('Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.') == ['Lorem', 'ipsum', 'dolor', 'sit', 'amet', ',', 'consectetur', 'adipiscing', 'elit', ',', 'sed', 'do', 'eiusmod', 'tempor', 'incididunt', 'ut', 'labore', 'et', 'dolore', 'magna', 'aliqua', '.']
     mydata = simplemma.load_data('pt')
-    assert simplemma.text_lemmatizer('Sou o intervalo entre o que desejo ser e os outros me fizeram.', mydata) == ['ser', 'o', 'intervalo', 'entre', 'o', 'que', 'desejo', 'ser', 'e', 'o', 'outro', 'me', 'fazer', '.']
+    assert simplemma.text_lemmatizer('Sou o intervalo entre o que desejo ser e os outros me fizeram.', mydata) == ['ser', 'o', 'intervalo', 'entre', 'o', 'que', 'desejo', 'ser', 'e', 'os', 'outro', 'me', 'fazer', '.']
     # error
     with pytest.raises(ValueError):
         simplemma.lemmatize('スパゲッティ', mydata, silent=False)
@@ -47,8 +48,7 @@ def test_convenience():
     text = 'Nous déciderons une fois arrivées.'
     langdata = simplemma.load_data('fr')
     # print(simplemma.text_lemmatizer(text, langdata, greedy=True))
-    assert simplemma.text_lemmatizer(text, langdata, greedy=False) == ['lui', 'décider', 'un', 'fois', 'arrivée', '.']
-    #assert simplemma.text_lemmatizer(text, langdata, greedy=True) == ['lui', 'décider', 'un', 'fois', 'arrivée', '.']
+    assert simplemma.text_lemmatizer(text, langdata, greedy=False) == ['nous', 'décider', 'un', 'fois', 'arrivée', '.']
     text = 'Pepa e Iván son una pareja sentimental, ambos dedicados al doblaje de películas.'
     langdata = simplemma.load_data('es')
     assert(simplemma.text_lemmatizer(text, langdata, greedy=False)) == ['Pepa', 'y', 'Iván', 'son', 'uno', 'parejo', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
@@ -69,9 +69,18 @@ def test_subwords():
     myword = 'Impfbeginn'
     assert simplemma.lemmatize(myword, mydata, greedy=False) == 'Impfbeginn'
     assert simplemma.lemmatize(myword, mydata, greedy=True) == 'Impfbeginn'
-    myword = 'venezolanische'
-    assert simplemma.lemmatize(myword, mydata, greedy=False) == 'venezolanische'
-    assert simplemma.lemmatize(myword, mydata, greedy=True) == 'venezolanisch'
-    # Verdachtsfällen, Verdachtsfälle, Verdachtsfall
-    # börsennotierter, börsennotiert
-
+    myword = 'Hoffnungsmaschinen'
+    assert simplemma.lemmatize(myword, mydata, greedy=False) == 'Hoffnungsmaschinen'
+    assert simplemma.lemmatize(myword, mydata, greedy=True) == 'Hoffnungsmaschine'
+    assert simplemma.lemmatize('börsennotierter', mydata, greedy=True) == 'börsennotiert'
+    assert simplemma.lemmatize('journalistischer', mydata, greedy=True) == 'journalistisch'
+    assert simplemma.lemmatize('rekordverdächtige', mydata, greedy=True) == 'rekordverdächtig'
+    assert simplemma.lemmatize('Delegiertenstimmen', mydata, greedy=True) == 'Delegiertenstimme'
+    assert simplemma.lemmatize('Koalitionskreisen', mydata, greedy=True) == 'Koalitionskreis'
+    assert simplemma.lemmatize('Infektionsfälle', mydata, greedy=True) == 'Infektionsfall'
+    assert simplemma.lemmatize('Corona-Einsatzstabes', mydata, greedy=True) == 'Corona-Einsatzstab'
+    assert simplemma.lemmatize('venezolanische', mydata, greedy=True) == 'venezolanisch'
+    #assert simplemma.lemmatize('wiederverwendbaren', mydata, greedy=True) == 'wiederverwendbar'
+    #assert simplemma.lemmatize('Anspruchsberechtigten', mydata, greedy=True) == 'Anspruchsberechtigten'
+    #assert simplemma.lemmatize('Beginn', mydata, greedy=True) == 'Beginn'
+    #geheimdienstlich
