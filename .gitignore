@@ -113,3 +113,7 @@ AUTHORS.rst
 CONTRIBUTING.rst
 Makefile
 .github/
+
+# eval
+UD/
+udscore.py
