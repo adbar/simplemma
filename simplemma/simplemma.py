@@ -12,11 +12,21 @@ from pathlib import Path
 
 import _pickle as cpickle
 
+try:
+    from .rules import apply_rules
+except ModuleNotFoundError: # as from __main__
+    pass
+
+
 LOGGER = logging.getLogger(__name__)
 
 LANGLIST = ['bg', 'ca', 'cs', 'cy', 'da', 'de', 'en', 'es', 'et', 'fa', 'fi', 'fr', 'ga', 'gd', 'gl', 'gv', 'hu', 'id', 'it', 'ka', 'la', 'lb', 'lt', 'lv', 'nl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'tr', 'uk', 'ur']
+#LANGLIST = ['de']
 
 TOKREGEX = re.compile(r'(?:[\$§]? ?[\d\.,]+€?|\w[\w*-]*|[,;:\.?!¿¡‽⸮…()\[\]–{}—/‒_“„”’′″‘’“”\'"«»=+−×÷•·])')
+
+AFFIXLEN = 2
+MINCOMPLEN = 4
 
 
 def _load_dict(langcode, listpath='lists', silent=True):
@@ -40,7 +50,11 @@ def _load_dict(langcode, listpath='lists', silent=True):
             # process
             if columns[1] in mydict and mydict[columns[1]] != columns[0]:
                 # capitalized vs rest
-                #if mydict[columns[1]] == columns[0].capitalize():
+                #if columns[1][0].isupper() and not mydict[columns[1]][0].isupper():
+                #    print(columns[0], columns[1], mydict[columns[1]])
+                #    continue
+                #if mydict[columns[1]] == columns[1].capitalize():
+                    #print(columns[0], columns[1], mydict[columns[1]])
                 #    mydict[columns[1]] = columns[0]
                 #    continue
                 # prevent mistakes and noise coming from the lists
@@ -123,38 +137,78 @@ def _greedy_search(candidate, datadict, steps=2, distance=4):
 
 def _decompose(token, datadict, affixlen=0):
     candidate = None
-    for count, prefix in enumerate(token, start=1):
+    for count, prefix in enumerate(token, start=1): # AFFIXLEN, MINCOMPLEN
+        if len(token[:-count]) < MINCOMPLEN:
+            break
         length = count + affixlen
         if len(token[:-length]) == 0:
             continue
         part1, part2 = _simple_search(token[:-length], datadict), \
                        _simple_search(token[-count:].capitalize(), datadict)
         if part1 is not None:
-            # print(part1, part2, affixlen, count)
+            #print(part1, part2, affixlen, count)
             # maybe an affix? discard it
-            if affixlen == 0 and count <= 2:
+            if affixlen == 0 and count <= AFFIXLEN:
                 candidate = part1
                 break
             elif part2 is not None:
-                newcandidate = _greedy_search(part2, datadict, steps=2, distance=4)
+                newcandidate = _greedy_search(part2, datadict)
                 # shorten the second known part of the token
-                if len(newcandidate) < len(token[-count:]):
+                if newcandidate and len(newcandidate) < len(token[-count:]):
                     candidate = ''.join([token[:-count], newcandidate.lower()])
                 else:
-                    newcandidate = _greedy_search(part2.capitalize(), datadict, steps=2, distance=4)
+                    newcandidate = _greedy_search(part2.capitalize(), datadict)
                     # shorten the second known part of the token
-                    if len(newcandidate) < len(token[-count:]):
+                    if newcandidate and len(newcandidate) < len(token[-count:]):
                         candidate = ''.join([token[:-count], newcandidate.lower()])
+                    # try without capitalizing
                     else:
-                        # don't destroy anything more
-                        candidate = token
+                        newcandidate = _simple_search(token[-count:], datadict)
+                        if newcandidate and len(newcandidate) < len(token[-count:]):
+                            candidate = ''.join([token[:-count], newcandidate.lower()])
+                # backup
+                if candidate is None:
+                    newcandidate = _simple_search(part2, datadict)
+                    if newcandidate and len(newcandidate) <= len(token[-count:]):
+                        candidate = ''.join([token[:-count], newcandidate.lower()])
+                # even greedier: if candidate is not None:
                 break
     return candidate
 
 
-def _return_lemma(token, datadict, greedy=True):
+def _affix_search(wordform, datadict):
+    candidate = None
+    # simple rules
+    candidate = apply_rules(wordform, 'de')
+    if candidate is None:
+        for l in range(0, AFFIXLEN+1):
+            candidate = _decompose(wordform, datadict, affixlen=l)
+            if candidate is not None:
+                break
+    return candidate
+
+
+def _suffix_search(token, datadict):
+    candidate, lastpart, lastcount = None, None, 0
+    for count, prefix in enumerate(token, start=MINCOMPLEN):
+        #print(token[-count:], token[:-count], lastpart)
+        if len(token[:-count]) < MINCOMPLEN:
+            break
+        part = _simple_search(token[-count:].capitalize(), datadict)
+        if part is not None and len(part) <= len(token[-count:]):
+            #newpart = _simple_search(part, datadict) # _greedy_search(token[-count:].capitalize(), datadict, steps=1, distance=3)
+            #if newpart is not None and len(newpart) < len(part):
+            #    part = newpart
+            lastpart, lastcount = part, count
+    if lastpart is not None:
+        candidate = ''.join([token[:-lastcount], lastpart.lower()])
+    return candidate
+
+
+def _return_lemma(token, datadict, greedy=True, lang=None):
+    # dictionary search
     candidate = _simple_search(token, datadict)
-    # decompose
+    # decomposition
     if candidate is None: # and greedy is True
         splitted = re.split('([_-])', token)
         if len(splitted) > 1 and len(splitted[-1]) > 0:
@@ -163,23 +217,29 @@ def _return_lemma(token, datadict, greedy=True):
                 splitted[-1] = subcandidate
                 candidate = ''.join(splitted)
             elif greedy is True:
-                subcandidate = _decompose(splitted[-1], datadict, affixlen=0)
+                subcandidate = _affix_search(splitted[-1], datadict)
                 if subcandidate is not None:
                     splitted[-1] = subcandidate
                     candidate = ''.join(splitted)
+    # let acronyms untouched
+    if token.isupper() and len(token) <= 5:
+        return token
+    # simple rules
+    if candidate is None:
+        candidate = apply_rules(token, lang)
     # stop here in some cases
     if len(token) <= 9 or greedy is False:
         #if candidate is None and len(token) <= 3:
         #if not 'de' in langdata and not 'fr' in langdata:
         #    candidate = token.lower()
         return candidate
-    # greedy subword decomposition: suffix search
+    # greedy subword decomposition: suffix/affix search
     if candidate is None:
-        # find break point
-        candidate = _decompose(token, datadict, affixlen=0)
         # greedier subword decomposition: suffix search with character in between
+        candidate = _affix_search(token, datadict)
+        # try something else
         if candidate is None:
-             candidate = _decompose(token, datadict, affixlen=1)
+            candidate = _suffix_search(token, datadict)
     # try further hops, not sure this is always a good idea
     else:
         candidate = _greedy_search(candidate, datadict)
@@ -190,7 +250,7 @@ def is_known(token, langdata):
     """Tell if a token is present in one of the loaded dictionaries.
        Case-insensitive, whole word forms only. Returns True or False."""
     for language in langdata:
-        if _simple_search(token, language) is not None:
+        if _simple_search(token, language[1]) is not None:
             return True
     return False
 
@@ -212,7 +272,7 @@ def load_data(*langs):
             LOGGER.error('language not supported: %s', lang)
             continue
         LOGGER.debug('loading %s', lang)
-        mylist.append(_load_pickle(lang))
+        mylist.append((lang, _load_pickle(lang)))
     return mylist
 
 
@@ -227,7 +287,7 @@ def lemmatize(token, langdata, greedy=False, silent=True):
         #if greedy is None:
         #    greedy = _define_greediness(language)
         # determine lemma
-        candidate = _return_lemma(token, language, greedy)
+        candidate = _return_lemma(token, language[1], greedy=greedy, lang=language[0])
         if candidate is not None:
             if i != 1:
                 LOGGER.debug(token, candidate, 'found in %s', i)

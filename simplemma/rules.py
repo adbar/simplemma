@@ -5,9 +5,10 @@ import re
 
 
 def apply_rules(token, langcode):
+    candidate = None
     if langcode == 'de':
-        token = apply_de(token)
-    return token
+        candidate = apply_de(token)
+    return candidate
 
 
 
