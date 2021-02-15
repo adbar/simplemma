@@ -23,7 +23,7 @@ LOGGER = logging.getLogger(__name__)
 LANGLIST = ['bg', 'ca', 'cs', 'cy', 'da', 'de', 'en', 'es', 'et', 'fa', 'fi', 'fr', 'ga', 'gd', 'gl', 'gv', 'hu', 'id', 'it', 'ka', 'la', 'lb', 'lt', 'lv', 'nl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'tr', 'uk', 'ur']
 #LANGLIST = ['de']
 
-TOKREGEX = re.compile(r'(?:[\$§]? ?[\d\.,]+€?|\w[\w*-]*|[,;:\.?!¿¡‽⸮…()\[\]–{}—/‒_“„”’′″‘’“”\'"«»=+−×÷•·])')
+TOKREGEX = re.compile(r'(?:[\$§]? ?[\d\.,]+€?\b|\w[\w*-]*|[,;:\.?!¿¡‽⸮…()\[\]–{}—/‒_“„”’′″‘’“”\'"«»=+−×÷•·])')
 
 AFFIXLEN = 2
 MINCOMPLEN = 4
@@ -112,13 +112,12 @@ def _levenshtein_dist(str1, str2):
 
 
 def _simple_search(token, datadict):
-    candidate = None
-    if token in datadict:
-        candidate = datadict[token]
-    elif token.lower() in datadict:
-        candidate = datadict[token.lower()]
-    elif token.capitalize() in datadict:
-        candidate = datadict[token.capitalize()]
+    candidate = datadict.get(token)
+    if candidate is None:
+        if token[0].isupper():
+            candidate = datadict.get(token.lower())
+        else:
+            candidate = datadict.get(token.capitalize())
     return candidate
 
 
@@ -176,6 +175,29 @@ def _decompose(token, datadict, affixlen=0):
     return candidate
 
 
+def _dehyphen(token, datadict, greedy):
+    splitted = re.split('([_-])', token)
+    if len(splitted) > 1 and len(splitted[-1]) > 0:
+        # try to find a word form without hyphen
+        subcandidate = ''.join([t.lower() for t in splitted if t != '-' and t != '_'])
+        if token[0].isupper():
+            subcandidate = subcandidate.capitalize()
+        if subcandidate in datadict:
+            return datadict[subcandidate]
+        # decompose
+        else:
+            subcandidate = _simple_search(splitted[-1], datadict)
+            if subcandidate is not None:
+                splitted[-1] = subcandidate
+                return ''.join(splitted)
+            elif greedy is True:
+                subcandidate = _affix_search(splitted[-1], datadict)
+                if subcandidate is not None:
+                    splitted[-1] = subcandidate
+                    return ''.join(splitted)
+    return None
+
+
 def _affix_search(wordform, datadict):
     candidate = None
     # simple rules
@@ -206,24 +228,14 @@ def _suffix_search(token, datadict):
 
 
 def _return_lemma(token, datadict, greedy=True, lang=None):
+    # filters
+    if token.isnumeric():
+        return token
     # dictionary search
     candidate = _simple_search(token, datadict)
     # decomposition
     if candidate is None: # and greedy is True
-        splitted = re.split('([_-])', token)
-        if len(splitted) > 1 and len(splitted[-1]) > 0:
-            subcandidate = _simple_search(splitted[-1], datadict)
-            if subcandidate is not None:
-                splitted[-1] = subcandidate
-                candidate = ''.join(splitted)
-            elif greedy is True:
-                subcandidate = _affix_search(splitted[-1], datadict)
-                if subcandidate is not None:
-                    splitted[-1] = subcandidate
-                    candidate = ''.join(splitted)
-    # let acronyms untouched
-    if token.isupper() and len(token) <= 5:
-        return token
+        candidate = _dehyphen(token, datadict, greedy)
     # simple rules
     if candidate is None:
         candidate = apply_rules(token, lang)
