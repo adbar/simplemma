@@ -28,13 +28,16 @@ TOKREGEX = re.compile(r'(?:[\$§]? ?[\d\.,]+€?\b|\w[\w*-]*|[,;:\.?!¿¡‽⸮�
 AFFIXLEN = 2
 MINCOMPLEN = 4
 
+SAFE_LIMIT = {'en', 'es', 'ga', 'pt', 'sk', 'tr'}
+SAFE_LOWER = {'es', 'lt', 'pt', 'sk'}
+
 
 def _load_dict(langcode, listpath='lists', silent=True):
     mydict, i = dict(), 0
     filename = listpath + '/' + langcode + '.txt'
     filepath = str(Path(__file__).parent / filename)
     leftlimit = 2
-    if langcode in ('es', 'sk'):
+    if langcode in SAFE_LIMIT:
         leftlimit = 1
     # load data from list
     with open(filepath , 'r', encoding='utf-8') as filehandle:
@@ -111,12 +114,16 @@ def _levenshtein_dist(str1, str2):
 #    return True
 
 
-def _simple_search(token, datadict):
+def _simple_search(token, datadict, deep=False):
     candidate = datadict.get(token)
-    if candidate is None:
+    if candidate is None and deep is False:
         if token[0].isupper():
             candidate = datadict.get(token.lower())
         else:
+            candidate = datadict.get(token.capitalize())
+    elif candidate is None and deep is True:
+        candidate = datadict.get(token.lower())
+        if candidate is None:
             candidate = datadict.get(token.capitalize())
     return candidate
 
@@ -200,13 +207,10 @@ def _dehyphen(token, datadict, greedy):
 
 def _affix_search(wordform, datadict):
     candidate = None
-    # simple rules
-    candidate = apply_rules(wordform, 'de')
-    if candidate is None:
-        for l in range(0, AFFIXLEN+1):
-            candidate = _decompose(wordform, datadict, affixlen=l)
-            if candidate is not None:
-                break
+    for l in range(0, AFFIXLEN+1):
+        candidate = _decompose(wordform, datadict, affixlen=l)
+        if candidate is not None:
+            break
     return candidate
 
 
@@ -216,7 +220,7 @@ def _suffix_search(token, datadict):
         #print(token[-count:], token[:-count], lastpart)
         if len(token[:-count]) < MINCOMPLEN:
             break
-        part = _simple_search(token[-count:].capitalize(), datadict)
+        part = _simple_search(token[-count:].capitalize(), datadict, deep=False)
         if part is not None and len(part) <= len(token[-count:]):
             #newpart = _simple_search(part, datadict) # _greedy_search(token[-count:].capitalize(), datadict, steps=1, distance=3)
             #if newpart is not None and len(newpart) < len(part):
@@ -233,17 +237,18 @@ def _return_lemma(token, datadict, greedy=True, lang=None):
         return token
     # dictionary search
     candidate = _simple_search(token, datadict)
-    # decomposition
-    if candidate is None: # and greedy is True
-        candidate = _dehyphen(token, datadict, greedy)
     # simple rules
     if candidate is None:
         candidate = apply_rules(token, lang)
+    # decomposition
+    if candidate is None: # and greedy is True
+        candidate = _dehyphen(token, datadict, greedy)
+    else:
+        newcandidate = _dehyphen(candidate, datadict, greedy)
+        if newcandidate is not None:
+            candidate = newcandidate
     # stop here in some cases
     if len(token) <= 9 or greedy is False:
-        #if candidate is None and len(token) <= 3:
-        #if not 'de' in langdata and not 'fr' in langdata:
-        #    candidate = token.lower()
         return candidate
     # greedy subword decomposition: suffix/affix search
     if candidate is None:
@@ -304,6 +309,9 @@ def lemmatize(token, langdata, greedy=False, silent=True):
             if i != 1:
                 LOGGER.debug(token, candidate, 'found in %s', i)
             return candidate
+        # try to simply lowercase and len(token) < 10
+        elif candidate is None and language[0] in SAFE_LOWER:
+            return token.lower()
         i += 1
     if silent is False:
         raise ValueError('Token not found: %s' % token)
