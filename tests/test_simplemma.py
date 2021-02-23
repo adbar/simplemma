@@ -32,7 +32,7 @@ def test_readme():
     # tokenization and chaining
     assert simplemma.simple_tokenizer('Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.') == ['Lorem', 'ipsum', 'dolor', 'sit', 'amet', ',', 'consectetur', 'adipiscing', 'elit', ',', 'sed', 'do', 'eiusmod', 'tempor', 'incididunt', 'ut', 'labore', 'et', 'dolore', 'magna', 'aliqua', '.']
     mydata = simplemma.load_data('pt')
-    assert simplemma.text_lemmatizer('Sou o intervalo entre o que desejo ser e os outros me fizeram.', mydata) == ['ser', 'o', 'intervalo', 'entre', 'o', 'que', 'desejo', 'ser', 'e', 'os', 'outro', 'me', 'fazer', '.']
+    assert simplemma.text_lemmatizer('Sou o intervalo entre o que desejo ser e os outros me fizeram.', mydata) == ['ser', 'o', 'intervalo', 'entre', 'o', 'que', 'desejo', 'ser', 'e', 'o', 'outro', 'me', 'fazer', '.']
     # error
     with pytest.raises(ValueError):
         simplemma.lemmatize('スパゲッティ', mydata, silent=False)
@@ -51,8 +51,8 @@ def test_convenience():
     assert simplemma.text_lemmatizer(text, langdata, greedy=False) == ['nous', 'décider', 'un', 'fois', 'arrivée', '.']
     text = 'Pepa e Iván son una pareja sentimental, ambos dedicados al doblaje de películas.'
     langdata = simplemma.load_data('es')
-    assert(simplemma.text_lemmatizer(text, langdata, greedy=False)) == ['Pepa', 'y', 'Iván', 'son', 'uno', 'parejo', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
-    assert simplemma.text_lemmatizer(text, langdata, greedy=True) == ['Pepa', 'y', 'Iván', 'son', 'uno', 'parejo', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
+    assert(simplemma.text_lemmatizer(text, langdata, greedy=False)) == ['pepa', 'y', 'iván', 'son', 'uno', 'parejo', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
+    assert simplemma.text_lemmatizer(text, langdata, greedy=True) == ['pepa', 'y', 'iván', 'son', 'uno', 'parejo', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
 
 
 def test_subwords():
@@ -92,7 +92,18 @@ def test_subwords():
     assert simplemma.lemmatize('Gen-Sequenzierungen', mydata, greedy=True) == 'Gen-Sequenzierung'
     assert simplemma.lemmatize('wiederverwendbaren', mydata, greedy=True) == 'wiederverwendbar'
     assert simplemma.lemmatize('Spitzenposten', mydata, greedy=True) == 'Spitzenposten'
+    assert simplemma.lemmatize('I-Pace', mydata, greedy=True) == 'I-Pace'
     #assert simplemma.lemmatize('Anspruchsberechtigten', mydata, greedy=True) == 'Anspruchsberechtigter'
+    #assert simplemma.lemmatize('Lichtbild-Ausweis', mydata, greedy=True) == 'Lichtbildausweis'
+    #assert simplemma.lemmatize('zweitstärkster', mydata, greedy=True) == 'zweitstärkste'
     #assert simplemma.lemmatize('Bürgerschaftsabgeordneter', mydata, greedy=True) == 'Bürgerschaftsabgeordneter'
     #assert simplemma.lemmatize('Grünenvorsitzende', mydata, greedy=True) == 'Grünenvorsitzende'
     #assert simplemma.lemmatize('Pharmagrößen', mydata, greedy=True) == 'Pharmagroßer'
+
+
+def test_tokenizer():
+    # tokenization and chaining
+    # problem here
+    assert simplemma.simple_tokenizer('200er-Inzidenz 1.000er-Inzidenz') == ['200er-Inzidenz', ' 1.', '000er-Inzidenz']
+
+

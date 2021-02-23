@@ -309,12 +309,12 @@ def lemmatize(token, langdata, greedy=False, silent=True):
             if i != 1:
                 LOGGER.debug(token, candidate, 'found in %s', i)
             return candidate
-        # try to simply lowercase and len(token) < 10
-        elif candidate is None and language[0] in SAFE_LOWER:
-            return token.lower()
         i += 1
     if silent is False:
         raise ValueError('Token not found: %s' % token)
+    # try to simply lowercase and len(token) < 10
+    if candidate is None and language[0] in SAFE_LOWER:
+        return token.lower()
     return token
 
 
