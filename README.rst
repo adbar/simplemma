@@ -162,12 +162,12 @@ Code   Language      Word pairs Scores    Comments
 ``cs`` Czech         35,021               low coverage
 ``cy`` Welsh         349,638
 ``da`` Danish        555,559              alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
-``de`` German        623,249    0.95      on UD DE-GSD. See also `this list <https://github.com/adbar/German-NLP#Lemmatization>`_
+``de`` German        623,249    0.95      on UD DE-GSD. See also `German-NLP list <https://github.com/adbar/German-NLP#Lemmatization>`_
 ``en`` English       136,226    0.94      on UD EN-GUM. Alternative: `LemmInflect <https://github.com/bjascob/LemmInflect>`_
 ``es`` Spanish       666,016    0.93      on UD ES-GSD.
 ``et`` Estonian      112,501              low coverage
 ``fa`` Persian       9,333                low coverage
-``fi`` Finnish       2,096,328            alternatives: `voikko <https://voikko.puimula.org/python.html>`_ or `this list <https://blogs.helsinki.fi/language-technology/hi-nlp/morphology/>`_
+``fi`` Finnish       2,096,328            alternatives: `voikko <https://voikko.puimula.org/python.html>`_ or `NLP list <https://blogs.helsinki.fi/language-technology/hi-nlp/morphology/>`_
 ``fr`` French        217,091    0.93      on UD FR-GSD.
 ``ga`` Irish         366,086
 ``gd`` Gaelic        49,080

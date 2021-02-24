@@ -3,6 +3,14 @@ History
 =======
 
 
+0.2.2 (2021-02-24)
+------------------
+
+* Work on decomposition rules
+* Reviewed language data
+* Cleaner code
+
+
 0.2.1 (2021-02-02)
 ------------------
 
