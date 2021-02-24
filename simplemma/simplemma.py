@@ -29,7 +29,7 @@ AFFIXLEN = 2
 MINCOMPLEN = 4
 
 SAFE_LIMIT = {'en', 'es', 'ga', 'pt', 'sk', 'tr'}
-SAFE_LOWER = {'es', 'lt', 'pt', 'sk'}
+BETTER_LOWER = {'es', 'lt', 'pt', 'sk'}
 
 
 def _load_dict(langcode, listpath='lists', silent=True):
@@ -313,7 +313,7 @@ def lemmatize(token, langdata, greedy=False, silent=True):
     if silent is False:
         raise ValueError('Token not found: %s' % token)
     # try to simply lowercase and len(token) < 10
-    if candidate is None and language[0] in SAFE_LOWER:
+    if candidate is None and language[0] in BETTER_LOWER:
         return token.lower()
     return token
 

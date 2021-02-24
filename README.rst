@@ -162,12 +162,12 @@ Code   Language      Word pairs Scores    Comments
 ``cs`` Czech         35,021               low coverage
 ``cy`` Welsh         349,638
 ``da`` Danish        555,559              alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
-``de`` German        623,249    0.94      on UD DE-GSD. See also `this list <https://github.com/adbar/German-NLP#Lemmatization>`_
-``en`` English       136,226    0.93      on UD EN-GUM. Alternative: `LemmInflect <https://github.com/bjascob/LemmInflect>`_
-``es`` Spanish       666,016    0.87      on UD ES-GSD.
+``de`` German        623,249    0.95      on UD DE-GSD. See also `this list <https://github.com/adbar/German-NLP#Lemmatization>`_
+``en`` English       136,226    0.94      on UD EN-GUM. Alternative: `LemmInflect <https://github.com/bjascob/LemmInflect>`_
+``es`` Spanish       666,016    0.93      on UD ES-GSD.
 ``et`` Estonian      112,501              low coverage
 ``fa`` Persian       9,333                low coverage
-``fi`` Finnish       2,096,328            alternative: `voikko <https://voikko.puimula.org/python.html>`_
+``fi`` Finnish       2,096,328            alternatives: `voikko <https://voikko.puimula.org/python.html>`_ or `this list <https://blogs.helsinki.fi/language-technology/hi-nlp/morphology/>`_
 ``fr`` French        217,091    0.93      on UD FR-GSD.
 ``ga`` Irish         366,086
 ``gd`` Gaelic        49,080
@@ -181,14 +181,14 @@ Code   Language      Word pairs Scores    Comments
 ``lb`` Luxembourgish 305,398
 ``lt`` Lithuanian    247,418
 ``lv`` Latvian       57,154
-``nl`` Dutch         228,123
-``pt`` Portuguese    933,730
+``nl`` Dutch         228,123    0.91      on UD-NL-Alpino.
+``pt`` Portuguese    933,730    0.92      on UD-PT-GSD.
 ``ro`` Romanian      313,181
 ``ru`` Russian       608,770              alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
-``sk`` Slovak        847,383
+``sk`` Slovak        847,383    0.87      on UD SK-SNK.
 ``sl`` Slovene       97,460               low coverage
 ``sv`` Swedish       663,984              alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
-``tr`` Turkish       1,333,970
+``tr`` Turkish       1,333,970  0.88      on UD-TR-Boun.
 ``uk`` Ukranian      190,725              alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
 ``ur`` Urdu          28,848
 ====== ============= ========== ========= =========================================================================

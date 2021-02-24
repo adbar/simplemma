@@ -2,7 +2,19 @@
 
 """The setup script."""
 
+import re
+
+from pathlib import Path
 from setuptools import setup, find_packages
+
+
+def get_version(package):
+    "Return package version as listed in `__version__` in `init.py`"
+    # version = Path(package, '__init__.py').read_text() # Python >= 3.5
+    with open(str(Path(package, '__init__.py')), 'r', encoding='utf-8') as filehandle:
+        initfile = filehandle.read()
+    return re.search('__version__ = [\'"]([^\'"]+)[\'"]', initfile).group(1)
+
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -51,6 +63,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/adbar/simplemma',
-    version='0.2.1',
+    version=get_version('simplemma'),
     zip_safe=False,
 )
