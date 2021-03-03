@@ -104,7 +104,8 @@ def test_subwords():
 def test_tokenizer():
     # tokenization and chaining
     # problem here
-    assert simplemma.simple_tokenizer('200er-Inzidenz 1.000er-Inzidenz') == ['200er-Inzidenz', ' 1.', '000er-Inzidenz']
-    assert simplemma.simple_tokenizer('360-Grad-Panorama @sebastiankurz') == ['360-Grad-Panorama', '@sebastiankurz']
+    assert simplemma.simple_tokenizer('200er-Inzidenz 1.000er-Inzidenz') == ['200er-Inzidenz', '1.000er-Inzidenz']
+    assert simplemma.simple_tokenizer('360-Grad-Panorama @sebastiankurz 2,5-Zimmer-Wohnung') == ['360-Grad-Panorama', '@sebastiankurz', '2,5-Zimmer-Wohnung']
+    assert simplemma.simple_tokenizer('Covid-19, Covid19, Covid-19-Pandemie') == ['Covid-19', ',', 'Covid19', ',', 'Covid-19-Pandemie']
 
 
