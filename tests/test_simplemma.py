@@ -105,5 +105,6 @@ def test_tokenizer():
     # tokenization and chaining
     # problem here
     assert simplemma.simple_tokenizer('200er-Inzidenz 1.000er-Inzidenz') == ['200er-Inzidenz', ' 1.', '000er-Inzidenz']
+    assert simplemma.simple_tokenizer('360-Grad-Panorama @sebastiankurz') == ['360-Grad-Panorama', '@sebastiankurz']
 
 

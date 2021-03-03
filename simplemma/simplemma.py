@@ -23,7 +23,7 @@ LOGGER = logging.getLogger(__name__)
 LANGLIST = ['bg', 'ca', 'cs', 'cy', 'da', 'de', 'en', 'es', 'et', 'fa', 'fi', 'fr', 'ga', 'gd', 'gl', 'gv', 'hu', 'id', 'it', 'ka', 'la', 'lb', 'lt', 'lv', 'nl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'tr', 'uk', 'ur']
 #LANGLIST = ['de']
 
-TOKREGEX = re.compile(r'(?:[\$§]? ?[\d\.,]+€?\b|\w[\w*-]*|[,;:\.?!¿¡‽⸮…()\[\]–{}—/‒_“„”’′″‘’“”\'"«»=+−×÷•·])')
+TOKREGEX = re.compile(r'(?:\d+[\w_-]+|[\$§]? ?[\d.,]+€?\b|[@#]?\w[\w*_-]*|[,;:\.?!¿¡‽⸮…()\[\]–{}—/‒_“„”’′″‘’“”\'"«»=+−×÷•·]+)')
 
 AFFIXLEN = 2
 MINCOMPLEN = 4
