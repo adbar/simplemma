@@ -12,29 +12,29 @@ from pathlib import Path
 
 import _pickle as cpickle
 
-try:
+try: # as from __main__
     from .rules import apply_rules
-except ModuleNotFoundError: # as from __main__
+    from .tokenizer import TOKREGEX
+except ModuleNotFoundError:
     pass
-
-from .tokenizer import TOKREGEX
 
 
 LOGGER = logging.getLogger(__name__)
 
 LANGLIST = ['bg', 'ca', 'cs', 'cy', 'da', 'de', 'en', 'es', 'et', 'fa', 'fi', 'fr', 'ga', 'gd', 'gl', 'gv', 'hu', 'id', 'it', 'ka', 'la', 'lb', 'lt', 'lv', 'nl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'tr', 'uk', 'ur']
+#LANGLIST = ['da', 'de', 'en', 'et', 'es', 'fi', 'fr', 'ga', 'hu', 'id', 'it', 'lt', 'nl', 'pt', 'ru', 'sk', 'tr', 'ur']
 #LANGLIST = ['de']
 
-
-AFFIXLEN = 2
+AFFIXLEN = 2 # >6 better for et, fi, hu, lt, ru, sk, tr
 MINCOMPLEN = 4
 
-SAFE_LIMIT = {'en', 'es', 'ga', 'pt', 'sk', 'tr'}
+SAFE_LIMIT = {'en', 'es', 'fr', 'ga', 'it', 'pt', 'sk', 'tr'}
 BETTER_LOWER = {'es', 'lt', 'pt', 'sk'}
+# -PRO: 'et', 'fi'?
 
 
 def _load_dict(langcode, listpath='lists', silent=True):
-    mydict, i = dict(), 0
+    mydict, myadditions, i = dict(), list(), 0
     filename = listpath + '/' + langcode + '.txt'
     filepath = str(Path(__file__).parent / filename)
     leftlimit = 2
@@ -53,27 +53,30 @@ def _load_dict(langcode, listpath='lists', silent=True):
                 continue
             # process
             if columns[1] in mydict and mydict[columns[1]] != columns[0]:
-                # capitalized vs rest
-                #if columns[1][0].isupper() and not mydict[columns[1]][0].isupper():
-                #    print(columns[0], columns[1], mydict[columns[1]])
-                #    continue
-                #if mydict[columns[1]] == columns[1].capitalize():
-                    #print(columns[0], columns[1], mydict[columns[1]])
-                #    mydict[columns[1]] = columns[0]
-                #    continue
                 # prevent mistakes and noise coming from the lists
                 dist1, dist2 = _levenshtein_dist(columns[1], mydict[columns[1]]), \
                     _levenshtein_dist(columns[1], columns[0])
-                if dist1 == 0  or dist2 < dist1: # dist1 < 2
+                # fail-safe: delete potential false entry
+                #if dist1 >= len(columns[1]) and dist2 >= len(columns[1]):
+                #    del mydict[columns[1]]
+                #    continue
+                if dist1 == 0 or dist2 < dist1: # dist1 < 2
                     mydict[columns[1]] = columns[0]
                 elif silent is False:
                     LOGGER.warning('diverging: %s %s | %s %s', columns[1], mydict[columns[1]], columns[1], columns[0])
                     LOGGER.debug('distances: %s %s', dist1, dist2)
             else:
                 mydict[columns[1]] = columns[0]
-                if columns[0] not in mydict:
-                    mydict[columns[0]] = columns[0]
+                # deal with verbal forms (mostly)
+                if langcode in ('es', 'et', 'fi', 'fr', 'it', 'lt'):
+                    myadditions.append(columns[0])
+                else:
+                    if columns[0] not in mydict:
+                        mydict[columns[0]] = columns[0]
                 i += 1
+    # overwrite
+    for word in myadditions:
+        mydict[word] = word
     LOGGER.debug('%s %s', langcode, i)
     return OrderedDict(sorted(mydict.items()))
 
@@ -223,9 +226,6 @@ def _suffix_search(token, datadict):
             break
         part = _simple_search(token[-count:].capitalize(), datadict, deep=False)
         if part is not None and len(part) <= len(token[-count:]):
-            #newpart = _simple_search(part, datadict) # _greedy_search(token[-count:].capitalize(), datadict, steps=1, distance=3)
-            #if newpart is not None and len(newpart) < len(part):
-            #    part = newpart
             lastpart, lastcount = part, count
     if lastpart is not None:
         candidate = ''.join([token[:-lastcount], lastpart.lower()])
