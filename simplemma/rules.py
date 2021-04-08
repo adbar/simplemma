@@ -4,8 +4,8 @@ import re
 
 
 
-ADJ_DE = re.compile(r'^(.+?)(arm|artig|bar|ell|en|end|erig|ern|fach|frei|haft|isch|iv|lich|los|mäßig|reich|sam|sch|voll)(?:e|em|en|es|er)$')  # ig
-
+ADJ_DE = re.compile(r'^(.+?)(arm|artig|bar|chig|ell|en|end|erig|ern|fach|frei|haft|iert|igt|isch|iv|lich|los|mäßig|reich|rig|sam|sch|schig|voll)(er|e?st)?(e|em|en|es|er)?$') # ig
+# https://de.wiktionary.org/wiki/-ent
 
 def apply_rules(token, langcode):
     candidate = None
@@ -18,21 +18,29 @@ def apply_rules(token, langcode):
 
 
 def apply_de(token):
-    if len(token) > 8 and re.search(r'(e|em|en|es|er)$', token):
+    if token[0].isupper() and len(token) > 8 and re.search(r'(e|em|en|es|er)$', token):
         # plural noun forms
-        if token[0].isupper():
-            if re.search('(and|ant|ent|erei|erie|heit|ik|ist|keit|or|schaft|tät|tion|ung|ur)en$', token):
-                return token[:-2]
-            if re.search('(eur|ich|ier|ling|ör)e$', token): # ig
-                return token[:-1]
-            # genitive – too rare?
-            #if re.search('(aner|chen|eur|ier|iker|ikum|iment|iner|iter|ium|land|lein|ler|ling|ner|tum)s$', token):  # er
-            #    return token[:-1]
-        else:
-            # adjectives
-            if ADJ_DE.match(token):
-                return ADJ_DE.sub(r'\1\2', token)
+        if re.search('(and|ant|ent|erei|erie|heit|ik|ist|keit|or|schaft|tät|tion|ung|ur)en$', token):
+            return token[:-2]
+        if re.search('(eur|ich|ier|ling|ör)e$', token): # ig
+            return token[:-1]
+        # genitive – too rare?
+        #if re.search('(aner|chen|eur|ier|iker|ikum|iment|iner|iter|ium|land|lein|ler|ling|ner|tum)s$', token):  # er
+        #    return token[:-1]
+        # -end
+        if re.search('end(e|em|en|er)$', token):
+            return re.sub(r'(e|em|en|er)$', 'er', token)
+    # adjectives
+    if token[0].islower():
+        if ADJ_DE.match(token):
+            return ADJ_DE.sub(r'\1\2', token)
+        if re.search(r'ge.+?t(e|em|en|er|es)$', token):
+            return re.sub(r'(e|em|en|er|es)$', '', token)
+        #print(token)
+        #if re.search(r'st(e|em|en|es|er)?$', token):
+        #    return re.sub(r'st(e|em|en|es|er)?$', '', token)
     # inclusive speech
+    # + Binnen-I: ArbeitnehmerInnenschutzgesetz?
     if token.endswith('nnen'):
         return re.sub(r'Innen|\*innen|\*Innen|-innen', ':innen', token)
     return None
