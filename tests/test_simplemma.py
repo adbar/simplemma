@@ -51,8 +51,8 @@ def test_convenience():
     assert simplemma.text_lemmatizer(text, langdata, greedy=False) == ['nous', 'décider', 'un', 'fois', 'arrivée', '.']
     text = 'Pepa e Iván son una pareja sentimental, ambos dedicados al doblaje de películas.'
     langdata = simplemma.load_data('es')
-    assert(simplemma.text_lemmatizer(text, langdata, greedy=False)) == ['pepa', 'y', 'iván', 'son', 'uno', 'parejo', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
-    assert simplemma.text_lemmatizer(text, langdata, greedy=True) == ['pepa', 'y', 'iván', 'son', 'uno', 'parejo', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
+    assert(simplemma.text_lemmatizer(text, langdata, greedy=False)) == ['pepa', 'e', 'iván', 'son', 'uno', 'pareja', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
+    assert simplemma.text_lemmatizer(text, langdata, greedy=True) == ['pepa', 'e', 'iván', 'son', 'uno', 'pareja', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
 
 
 def test_subwords():
@@ -83,6 +83,8 @@ def test_subwords():
     assert simplemma.lemmatize('Gesundheitsschutzkontrollen', mydata, greedy=True) == 'Gesundheitsschutzkontrolle'
     assert simplemma.lemmatize('Nachkriegsjuristen', mydata, greedy=True) == 'Nachkriegsjurist'
     assert simplemma.lemmatize('insulinproduzierende', mydata, greedy=True) == 'insulinproduzierend'
+    assert simplemma.lemmatize('Urlaubsreisenden', mydata, greedy=True) == 'Urlaubsreisender'
+    assert simplemma.lemmatize('Grünenvorsitzende', mydata, greedy=True) == 'Grünenvorsitzender'
     assert simplemma.lemmatize('Qualifikationsrunde', mydata, greedy=True) == 'Qualifikationsrunde'
     assert simplemma.lemmatize('krisensichere', mydata, greedy=True) == 'krisensicher'
     assert simplemma.lemmatize('ironischerweise', mydata, greedy=True) == 'ironischerweise'
@@ -93,12 +95,21 @@ def test_subwords():
     assert simplemma.lemmatize('wiederverwendbaren', mydata, greedy=True) == 'wiederverwendbar'
     assert simplemma.lemmatize('Spitzenposten', mydata, greedy=True) == 'Spitzenposten'
     assert simplemma.lemmatize('I-Pace', mydata, greedy=True) == 'I-Pace'
+    assert simplemma.lemmatize('PCR-Bestätigungstests', mydata, greedy=True) == 'PCR-Bestätigungstest'
+    assert simplemma.lemmatize('Bürgerschaftsabgeordneter', mydata, greedy=True) == 'Bürgerschaftsabgeordneter'
+    assert simplemma.lemmatize('standortübergreifend', mydata, greedy=True) == 'standortübergreifend'
+    assert simplemma.lemmatize('obamamäßigsten', mydata, greedy=True) == 'obamamäßig'
+    assert simplemma.lemmatize('obamaartigere', mydata, greedy=True) == 'obamaartig'
+    assert simplemma.lemmatize('durchgestyltes', mydata, greedy=True) == 'durchgestylt'
+    assert simplemma.lemmatize('durchgeknallte', mydata, greedy=True) == 'durchgeknallt'
+    #assert simplemma.lemmatize('beständigsten', mydata, greedy=True) == 'beständig'
+    #assert simplemma.lemmatize('Funktionärsebene', mydata, greedy=True) == 'Funktionärsebene'
+    #assert simplemma.lemmatize('herunterfährt', mydata, greedy=True) == 'herunterfahren'
+    #assert simplemma.lemmatize('Abholservices', mydata, greedy=True) == 'Abholservice'
+    #assert simplemma.lemmatize('zweitstärkster', mydata, greedy=True) == 'zweitstärkste'
+    #assert simplemma.lemmatize('Pharmagrößen', mydata, greedy=True) == 'Pharmagroßer'
     #assert simplemma.lemmatize('Anspruchsberechtigten', mydata, greedy=True) == 'Anspruchsberechtigter'
     #assert simplemma.lemmatize('Lichtbild-Ausweis', mydata, greedy=True) == 'Lichtbildausweis'
-    #assert simplemma.lemmatize('zweitstärkster', mydata, greedy=True) == 'zweitstärkste'
-    #assert simplemma.lemmatize('Bürgerschaftsabgeordneter', mydata, greedy=True) == 'Bürgerschaftsabgeordneter'
-    #assert simplemma.lemmatize('Grünenvorsitzende', mydata, greedy=True) == 'Grünenvorsitzende'
-    #assert simplemma.lemmatize('Pharmagrößen', mydata, greedy=True) == 'Pharmagroßer'
 
 
 def test_tokenizer():
@@ -107,5 +118,7 @@ def test_tokenizer():
     assert simplemma.simple_tokenizer('200er-Inzidenz 1.000er-Inzidenz St.-Martini-Gemeinde') == ['200er-Inzidenz', '1.000er-Inzidenz', 'St.-Martini-Gemeinde']
     assert simplemma.simple_tokenizer('360-Grad-Panorama @sebastiankurz 2,5-Zimmer-Wohnung') == ['360-Grad-Panorama', '@sebastiankurz', '2,5-Zimmer-Wohnung']
     assert simplemma.simple_tokenizer('Covid-19, Covid19, Covid-19-Pandemie') == ['Covid-19', ',', 'Covid19', ',', 'Covid-19-Pandemie']
+    # todo: test with several words
+    assert simplemma.simple_tokenizer('4:1-Auswärtssieg') == ['4:1-Auswärtssieg']
 
 
