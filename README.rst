@@ -24,7 +24,7 @@ Simplemma: a simple multilingual lemmatizer for Python
 
 In modern natural language processing (NLP), this task is often indirectly tackled by more complex systems encompassing a whole processing pipeline. However, it appears that there is no straightforward way to address lemmatization in Python although this task is useful in information retrieval and natural language processing.
 
-*Simplemma* provides a simple and multilingual approach to look for base forms or lemmata. It may not be as powerful as full-fledged solutions but it is generic, easy to install and straightforward to use. By design it should be reasonably fast and work in a large majority of cases, without being perfect. Currently, 35 languages are partly or fully supported, see table below.
+*Simplemma* provides a simple and multilingual approach to look for base forms or lemmata. It may not be as powerful as full-fledged solutions but it is generic, easy to install and straightforward to use. In particular, it doesn't need morphosyntactic information and can process a raw series of tokens or even a text with its built-in (simple) tokenizer. By design it should be reasonably fast and work in a large majority of cases, without being perfect. Currently, 35 languages are partly or fully supported (see table below).
 
 With its comparatively small footprint it is especially useful when speed and simplicity matter, for educational purposes or as a baseline system for lemmatization and morphological analysis.
 
@@ -104,7 +104,7 @@ There are cases in which a greedier decomposition and lemmatization algorithm is
 Tokenization
 ~~~~~~~~~~~~
 
-A simple tokenization is included for convenience:
+A simple tokenization function is included for convenience:
 
 .. code-block:: python
 
@@ -113,7 +113,7 @@ A simple tokenization is included for convenience:
     ['Lorem', 'ipsum', 'dolor', 'sit', 'amet', ',', 'consectetur', 'adipiscing', 'elit', ',', 'sed', 'do', 'eiusmod', 'tempor', 'incididunt', 'ut', 'labore', 'et', 'dolore', 'magna', 'aliqua', '.']
 
 
-The function ``text_lemmatizer()`` chains tokenization and lemmatization. It can take *greedy* and *silent* as arguments:
+The function ``text_lemmatizer()`` chains tokenization and lemmatization. It can take ``greedy`` (affecting lemmatization) and ``silent`` (affecting errors and logging) as arguments:
 
 .. code-block:: python
 
@@ -139,9 +139,12 @@ Caveats
     >>> simplemma.lemmatize('son', langdata)
     'son' # valid common name, but what about the verb form?
 
+
 As the focus lies on overall coverage, some short frequent words (typically: pronouns) can need post-processing, this generally concerns 10-20 tokens per language.
 
-The greedy algorithm rarely produces forms that are not valid. Still, it is mainly useful on long words and neologisms, not for general approaches.
+Additionally, the current absence of morphosyntactic information is both an advantage in terms of simplicity and an impassable frontier with respect to lemmatization accuracy, e.g. to disambiguate between past participles and adjectives derived from verbs in Germanic and Romance languages. For most languages simplemma often doesn't change the input in such cases. For some others it acts more like a linguistically motivated stemmer.
+
+The greedy algorithm rarely produces forms that are not valid. It is designed to work best in the low-frequency range, notably for compound words and neologisms. Aggressive decomposition is only useful as a general approach in the case of morphologically-rich languages.
 
 Bug reports over the `issues page <https://github.com/adbar/simplemma/issues>`_ are welcome.
 
@@ -162,8 +165,8 @@ Code   Language      Word pairs Acc.  Comments
 ``cs`` Czech         34,674           low coverage
 ``cy`` Welsh         360,412
 ``da`` Danish        554,238          alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
-``de`` German        610,718    0.95  on UD DE-GSD. See also `German-NLP list <https://github.com/adbar/German-NLP#Lemmatization>`_
-``en`` English       136,162    0.94  on UD EN-GUM. Alternative: `LemmInflect <https://github.com/bjascob/LemmInflect>`_
+``de`` German        610,718    0.95  on UD DE-GSD, see also `German-NLP list <https://github.com/adbar/German-NLP#Lemmatization>`_
+``en`` English       136,162    0.94  on UD EN-GUM, alternative: `LemmInflect <https://github.com/bjascob/LemmInflect>`_
 ``es`` Spanish       720,623    0.94  on UD ES-GSD
 ``et`` Estonian      133,104          low coverage
 ``fa`` Persian       10,967           low coverage
@@ -196,10 +199,7 @@ Code   Language      Word pairs Acc.  Comments
 
 *Low coverage* mentions means you'd probably be better off with a language-specific library, but *simplemma* will work to a limited extent. Open-source alternatives for Python are referenced if available.
 
-The scores are calculated on `Universal Dependencies <https://universaldependencies.org/>`_ treebanks on single word tokens (including some contractions but not merged prepositions), they describe to what extent simplemma can accurately map tokens to their lemma form.
-
-* Software under MIT license, for the linguistic information databases see ``licenses`` folder
-* Documentation: https://github.com/adbar/simplemma
+The scores are calculated on `Universal Dependencies <https://universaldependencies.org/>`_ treebanks on single word tokens (including some contractions but not merged prepositions), they describe to what extent simplemma can accurately map tokens to their lemma form. They can be reproduced using the script ``udscore.py`` in the ``tests/`` folder.
 
 
 Roadmap
@@ -214,14 +214,15 @@ Roadmap
 Credits
 -------
 
-The current version basically acts as a wrapper for lemmatization lists:
+Software under MIT license, for the linguistic information databases see ``licenses`` folder.
+
+The surface lookups (non-greedy mode) mostly act like a wrapper for lemmatization lists:
 
 - `Lemmatization lists <https://github.com/michmech/lemmatization-lists>`_ by Michal Měchura (Open Database License)
 - `Wikinflection corpus <https://github.com/lenakmeth/Wikinflection-Corpus>`_ by Eleni Metheniti (CC BY 4.0 License)
 - `Unimorph Project <http://unimorph.ethz.ch/languages>`_
 - `FreeLing project <https://github.com/TALP-UPC/FreeLing>`_
 - `spaCy lookups data <https://github.com/explosion/spacy-lookups-data/tree/master/spacy_lookups_data/data>`_
-
 
 This rule-based approach based on flexion and lemmatizations dictionaries is to this day an approach used in popular libraries such as `spacy <https://spacy.io/usage/adding-languages#lemmatizer>`_.
 
@@ -239,7 +240,7 @@ Other solutions
 
 See lists: `German-NLP <https://github.com/adbar/German-NLP>`_ and `other awesome-NLP lists <https://github.com/adbar/German-NLP#More-lists>`_.
 
-For a more complex but universal approach in Python see `universal-lemmatizer <https://github.com/jmnybl/universal-lemmatizer/>`_.
+For a more complex and universal approach in Python see `universal-lemmatizer <https://github.com/jmnybl/universal-lemmatizer/>`_.
 
 
 References

@@ -55,7 +55,7 @@ setup(
     license="MIT license",
     long_description=readme, # + '\n\n' + history,
     include_package_data=True,
-    keywords=['nlp', 'lemmatization', 'lemmatisation', 'lemmatiser'],
+    keywords=['nlp', 'lemmatization', 'lemmatisation', 'lemmatiser', 'tokenization', 'tokenizer'],
     name='simplemma',
     package_data={'simplemma': ['data/*.plzma']},
     packages=find_packages(include=['simplemma', 'simplemma.*']),
