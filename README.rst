@@ -152,46 +152,46 @@ Supported languages
 The following languages are available using their `ISO 639-1 code <https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes>`_:
 
 
-====== ============= ========== ========= =========================================================================
-Available languages (2021-02-02)
--------------------------------------------------------------------------------------------------------------------
-Code   Language      Word pairs Scores    Comments
-====== ============= ========== ========= =========================================================================
-``bg`` Bulgarian     69,680               low coverage
-``ca`` Catalan       583,969
-``cs`` Czech         35,021               low coverage
-``cy`` Welsh         349,638
-``da`` Danish        555,559              alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
-``de`` German        623,249    0.95      on UD DE-GSD. See also `German-NLP list <https://github.com/adbar/German-NLP#Lemmatization>`_
-``en`` English       136,226    0.94      on UD EN-GUM. Alternative: `LemmInflect <https://github.com/bjascob/LemmInflect>`_
-``es`` Spanish       666,016    0.93      on UD ES-GSD.
-``et`` Estonian      112,501              low coverage
-``fa`` Persian       9,333                low coverage
-``fi`` Finnish       2,096,328            alternatives: `voikko <https://voikko.puimula.org/python.html>`_ or `NLP list <https://blogs.helsinki.fi/language-technology/hi-nlp/morphology/>`_
-``fr`` French        217,091    0.93      on UD FR-GSD.
-``ga`` Irish         366,086
-``gd`` Gaelic        49,080
-``gl`` Galician      386,714
-``gv`` Manx          63,667
-``hu`` Hungarian     446,650
-``id`` Indonesian    36,461
-``it`` Italian       333,682
-``ka`` Georgian      65,938
-``la`` Latin         96,409               low coverage
-``lb`` Luxembourgish 305,398
-``lt`` Lithuanian    247,418
-``lv`` Latvian       57,154
-``nl`` Dutch         228,123    0.91      on UD-NL-Alpino.
-``pt`` Portuguese    933,730    0.92      on UD-PT-GSD.
-``ro`` Romanian      313,181
-``ru`` Russian       608,770              alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
-``sk`` Slovak        847,383    0.87      on UD SK-SNK.
-``sl`` Slovene       97,460               low coverage
-``sv`` Swedish       663,984              alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
-``tr`` Turkish       1,333,970  0.88      on UD-TR-Boun.
-``uk`` Ukranian      190,725              alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
-``ur`` Urdu          28,848
-====== ============= ========== ========= =========================================================================
+====== ============= ========== ===== =========================================================================
+Available languages (2021-03-30)
+---------------------------------------------------------------------------------------------------------------
+Code   Language      Word pairs Acc.  Comments
+====== ============= ========== ===== =========================================================================
+``bg`` Bulgarian     73,847           low coverage
+``ca`` Catalan       579,507
+``cs`` Czech         34,674           low coverage
+``cy`` Welsh         360,412
+``da`` Danish        554,238          alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
+``de`` German        610,718    0.95  on UD DE-GSD. See also `German-NLP list <https://github.com/adbar/German-NLP#Lemmatization>`_
+``en`` English       136,162    0.94  on UD EN-GUM. Alternative: `LemmInflect <https://github.com/bjascob/LemmInflect>`_
+``es`` Spanish       720,623    0.94  on UD ES-GSD
+``et`` Estonian      133,104          low coverage
+``fa`` Persian       10,967           low coverage
+``fi`` Finnish       2,094,238        alternatives: `voikko <https://voikko.puimula.org/python.html>`_ or `NLP list <https://blogs.helsinki.fi/language-technology/hi-nlp/morphology/>`_
+``fr`` French        217,213    0.94  on UD FR-GSD
+``ga`` Irish         383,448
+``gd`` Gaelic        48,661
+``gl`` Galician      384,183
+``gv`` Manx          62,765
+``hu`` Hungarian     447,762
+``id`` Indonesian    17,419     0.91  on UD ID-CSUI
+``it`` Italian       333,680    0.92  on UD IT-ISDT
+``ka`` Georgian      65,936
+``la`` Latin         96,045           low coverage
+``lb`` Luxembourgish 305,367
+``lt`` Lithuanian    247,337
+``lv`` Latvian       57,153
+``nl`` Dutch         226,210    0.91  on UD-NL-Alpino
+``pt`` Portuguese    933,730    0.92  on UD-PT-GSD
+``ro`` Romanian      311,411
+``ru`` Russian       823,323          alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
+``sk`` Slovak        846,453    0.87  on UD SK-SNK
+``sl`` Slovene       97,050           low coverage
+``sv`` Swedish       659,249          alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
+``tr`` Turkish       1,333,137  0.88  on UD-TR-Boun
+``uk`` Ukranian      190,472          alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
+``ur`` Urdu          28,848           issues with the data
+====== ============= ========== ===== =========================================================================
 
 
 *Low coverage* mentions means you'd probably be better off with a language-specific library, but *simplemma* will work to a limited extent. Open-source alternatives for Python are referenced if available.
@@ -240,4 +240,13 @@ Other solutions
 See lists: `German-NLP <https://github.com/adbar/German-NLP>`_ and `other awesome-NLP lists <https://github.com/adbar/German-NLP#More-lists>`_.
 
 For a more complex but universal approach in Python see `universal-lemmatizer <https://github.com/jmnybl/universal-lemmatizer/>`_.
+
+
+References
+----------
+
+This work draws from lexical analysis algorithms used in:
+
+- Barbaresi, A., & Hein, K. (2017). `Data-driven identification of German phrasal compounds <https://hal.archives-ouvertes.fr/hal-01575651/document>`_. In International Conference on Text, Speech, and Dialogue Springer, pp. 192-200.
+- Barbaresi, A. (2016). `Bootstrapped OCR error detection for a less-resourced language variant <https://hal.archives-ouvertes.fr/hal-01371689/document>`_. In 13th Conference on Natural Language Processing (KONVENS 2016), pp. 21-26.
 
