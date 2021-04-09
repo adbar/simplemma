@@ -118,7 +118,6 @@ def test_tokenizer():
     assert simplemma.simple_tokenizer('200er-Inzidenz 1.000er-Inzidenz St.-Martini-Gemeinde') == ['200er-Inzidenz', '1.000er-Inzidenz', 'St.-Martini-Gemeinde']
     assert simplemma.simple_tokenizer('360-Grad-Panorama @sebastiankurz 2,5-Zimmer-Wohnung') == ['360-Grad-Panorama', '@sebastiankurz', '2,5-Zimmer-Wohnung']
     assert simplemma.simple_tokenizer('Covid-19, Covid19, Covid-19-Pandemie') == ['Covid-19', ',', 'Covid19', ',', 'Covid-19-Pandemie']
-    # todo: test with several words
-    assert simplemma.simple_tokenizer('4:1-Auswärtssieg') == ['4:1-Auswärtssieg']
+    assert simplemma.simple_tokenizer('Test 4:1-Auswärtssieg 2,5€ §52, for $5') == ['Test', '4:1-Auswärtssieg', '2,5€', '§52', ',', 'for', '$5']
 
 
