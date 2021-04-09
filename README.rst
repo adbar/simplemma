@@ -246,6 +246,11 @@ For a more complex and universal approach in Python see `universal-lemmatizer <h
 References
 ----------
 
+.. image:: https://zenodo.org/badge/330707034.svg
+   :target: https://zenodo.org/badge/latestdoi/330707034
+
+Barbaresi A. (2021). Simplemma: a simple multilingual lemmatizer for Python. Zenodo. http://doi.org/10.5281/zenodo.4673264
+
 This work draws from lexical analysis algorithms used in:
 
 - Barbaresi, A., & Hein, K. (2017). `Data-driven identification of German phrasal compounds <https://hal.archives-ouvertes.fr/hal-01575651/document>`_. In International Conference on Text, Speech, and Dialogue Springer, pp. 192-200.
