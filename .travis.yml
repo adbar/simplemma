@@ -1,16 +1,15 @@
 # Config file for automatic testing at travis-ci.com
-language: python
 os: linux
 cache: pip
 
 language: python
 python:
+  - nightly
   - 3.9
   - 3.8
   - 3.7
   - 3.6
   - 3.5
-  - 3.4
 
 # Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 install:
@@ -19,6 +18,10 @@ install:
 
 # Command to run tests, e.g. python setup.py test
 script: tox
+
+matrix:
+  allow_failures:
+    - python: nightly
 
 after_success: codecov
 
