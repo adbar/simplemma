@@ -146,44 +146,52 @@ def _greedy_search(candidate, datadict, steps=2, distance=4):
 
 
 def _decompose(token, datadict, affixlen=0):
-    candidate = None
+    candidate, plan_b = None, None
     for count, prefix in enumerate(token, start=1): # AFFIXLEN, MINCOMPLEN
         if len(token[:-count]) < MINCOMPLEN:
             break
         length = count + affixlen
         if len(token[:-length]) == 0:
             continue
-        part1, part2 = _simple_search(token[:-length], datadict), \
-                       _simple_search(token[-count:].capitalize(), datadict)
-        if part1 is not None:
+        part1, part1_aff, part2 = token[:-count], token[:-length], token[-count:]
+        lempart1, lempart2 = _simple_search(part1, datadict), \
+                             _simple_search(part2.capitalize(), datadict)
+        if lempart1 is not None:
             #print(part1, part2, affixlen, count)
             # maybe an affix? discard it
             if affixlen == 0 and count <= AFFIXLEN:
-                candidate = part1
+                candidate = lempart1
                 break
-            elif part2 is not None:
-                newcandidate = _greedy_search(part2, datadict)
+            elif lempart2 is not None:
+                # candidate must be shorter
+                newcandidate = _greedy_search(part2.capitalize(), datadict) # lempart2?
                 # shorten the second known part of the token
-                if newcandidate and len(newcandidate) < len(token[-count:]):
-                    candidate = ''.join([token[:-count], newcandidate.lower()])
+                if newcandidate and len(newcandidate) < len(part2):
+                    candidate = ''.join([part1, newcandidate.lower()])
                 else:
-                    newcandidate = _greedy_search(part2.capitalize(), datadict)
-                    # shorten the second known part of the token
-                    if newcandidate and len(newcandidate) < len(token[-count:]):
-                        candidate = ''.join([token[:-count], newcandidate.lower()])
                     # try without capitalizing
-                    else:
-                        newcandidate = _simple_search(token[-count:], datadict)
-                        if newcandidate and len(newcandidate) < len(token[-count:]):
-                            candidate = ''.join([token[:-count], newcandidate.lower()])
-                # backup
+                    newcandidate = _greedy_search(part2, datadict)
+                    # shorten the second known part of the token
+                    if newcandidate and len(newcandidate) < len(part2):
+                        candidate = ''.join([part1, newcandidate.lower()])
+                # backup: equal length or further candidates accepted
                 if candidate is None:
+                    # try without capitalizing
                     newcandidate = _simple_search(part2, datadict)
-                    if newcandidate and len(newcandidate) <= len(token[-count:]):
-                        candidate = ''.join([token[:-count], newcandidate.lower()])
-                # even greedier: if candidate is not None:
+                    if newcandidate and len(newcandidate) <= len(part2):
+                        candidate = ''.join([part1, newcandidate.lower()])
+                    # even greedier
+                    else:
+                        # with capital letter
+                        #print(part1, part2, affixlen, count, newcandidate)
+                        if len(lempart2) < len(part2) + AFFIXLEN:
+                            plan_b = ''.join([part1, lempart2.lower()])
+                            #print(part1, part2, affixlen, count, newcandidate, planb)
+                        elif newcandidate and len(newcandidate) < len(part2) + AFFIXLEN:
+                            plan_b = ''.join([part1, newcandidate.lower()])
+                            #print(part1, part2, affixlen, count, newcandidate, planb)
                 break
-    return candidate
+    return candidate, plan_b
 
 
 def _dehyphen(token, datadict, greedy):
@@ -210,11 +218,16 @@ def _dehyphen(token, datadict, greedy):
 
 
 def _affix_search(wordform, datadict):
-    candidate = None
+    candidate, plan_b = None, None
     for l in range(0, AFFIXLEN+1):
-        candidate = _decompose(wordform, datadict, affixlen=l)
+        candidate, bufferstring = _decompose(wordform, datadict, affixlen=l)
         if candidate is not None:
             break
+        if bufferstring is not None:
+            plan_b = bufferstring
+    # exceptionally accept a longer solution
+    if candidate is None and plan_b is not None:
+        candidate = plan_b
     return candidate
 
 
@@ -249,7 +262,7 @@ def _return_lemma(token, datadict, greedy=True, lang=None):
         if newcandidate is not None:
             candidate = newcandidate
     # stop here in some cases
-    if len(token) <= 9 or greedy is False:
+    if len(token) <= 8 or greedy is False:
         return candidate
     # greedy subword decomposition: suffix/affix search
     if candidate is None:

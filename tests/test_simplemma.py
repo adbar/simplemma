@@ -96,28 +96,31 @@ def test_subwords():
     assert simplemma.lemmatize('Spitzenposten', mydata, greedy=True) == 'Spitzenposten'
     assert simplemma.lemmatize('I-Pace', mydata, greedy=True) == 'I-Pace'
     assert simplemma.lemmatize('PCR-Bestätigungstests', mydata, greedy=True) == 'PCR-Bestätigungstest'
-    assert simplemma.lemmatize('Bürgerschaftsabgeordneter', mydata, greedy=True) == 'Bürgerschaftsabgeordneter'
     assert simplemma.lemmatize('standortübergreifend', mydata, greedy=True) == 'standortübergreifend'
     assert simplemma.lemmatize('obamamäßigsten', mydata, greedy=True) == 'obamamäßig'
     assert simplemma.lemmatize('obamaartigere', mydata, greedy=True) == 'obamaartig'
     assert simplemma.lemmatize('durchgestyltes', mydata, greedy=True) == 'durchgestylt'
     assert simplemma.lemmatize('durchgeknallte', mydata, greedy=True) == 'durchgeknallt'
+    assert simplemma.lemmatize('herunterfährt', mydata, greedy=True) == 'herunterfahren'
+    assert simplemma.lemmatize('Atomdeals', mydata, greedy=True) == 'Atomdeal'
+    assert simplemma.lemmatize('Bürgerschaftsabgeordneter', mydata, greedy=True) == 'Bürgerschaftsabgeordnete'
+    #assert simplemma.lemmatize('Abholservices', mydata, greedy=True) == 'Abholservice'
     #assert simplemma.lemmatize('beständigsten', mydata, greedy=True) == 'beständig'
     #assert simplemma.lemmatize('Funktionärsebene', mydata, greedy=True) == 'Funktionärsebene'
-    #assert simplemma.lemmatize('herunterfährt', mydata, greedy=True) == 'herunterfahren'
-    #assert simplemma.lemmatize('Abholservices', mydata, greedy=True) == 'Abholservice'
     #assert simplemma.lemmatize('zweitstärkster', mydata, greedy=True) == 'zweitstärkste'
     #assert simplemma.lemmatize('Pharmagrößen', mydata, greedy=True) == 'Pharmagroßer'
     #assert simplemma.lemmatize('Anspruchsberechtigten', mydata, greedy=True) == 'Anspruchsberechtigter'
     #assert simplemma.lemmatize('Lichtbild-Ausweis', mydata, greedy=True) == 'Lichtbildausweis'
+    #Spargelstange/stangen, Kapuzenpullis, strafbewehrte/strafbewehrt, fälschungssicheren
+
 
 
 def test_tokenizer():
     # tokenization and chaining
-    # problem here
-    assert simplemma.simple_tokenizer('200er-Inzidenz 1.000er-Inzidenz St.-Martini-Gemeinde') == ['200er-Inzidenz', '1.000er-Inzidenz', 'St.-Martini-Gemeinde']
-    assert simplemma.simple_tokenizer('360-Grad-Panorama @sebastiankurz 2,5-Zimmer-Wohnung') == ['360-Grad-Panorama', '@sebastiankurz', '2,5-Zimmer-Wohnung']
-    assert simplemma.simple_tokenizer('Covid-19, Covid19, Covid-19-Pandemie') == ['Covid-19', ',', 'Covid19', ',', 'Covid-19-Pandemie']
+    # problem here: WDR5-„Morgenecho“
+    assert simplemma.simple_tokenizer('200er-Inzidenz 1.000er-Inzidenz 5%-Hürde 5-%-Hürde FFP2-Masken St.-Martini-Gemeinde, Lebens-, Liebes- und Arbeitsbedingungen') == ['200er-Inzidenz', '1.000er-Inzidenz', '5%-Hürde', '5-%-Hürde', 'FFP2-Masken', 'St.-Martini-Gemeinde', ',', 'Lebens-', ',', 'Liebes-', 'und', 'Arbeitsbedingungen']
+    assert simplemma.simple_tokenizer('360-Grad-Panorama @sebastiankurz 2,5-Zimmer-Wohnung 1,2-butylketoaldehyde') == ['360-Grad-Panorama', '@sebastiankurz', '2,5-Zimmer-Wohnung', '1,2-butylketoaldehyde']
+    assert simplemma.simple_tokenizer('Covid-19, Covid19, Covid-19-Pandemie https://example.org/covid-test') == ['Covid-19', ',', 'Covid19', ',', 'Covid-19-Pandemie', 'https://example.org/covid-test']
     assert simplemma.simple_tokenizer('Test 4:1-Auswärtssieg 2,5€ §52, for $5') == ['Test', '4:1-Auswärtssieg', '2,5€', '§52', ',', 'for', '$5']
 
 
