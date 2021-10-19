@@ -21,14 +21,13 @@ except ModuleNotFoundError:
 
 LOGGER = logging.getLogger(__name__)
 
-LANGLIST = ['bg', 'ca', 'cs', 'cy', 'da', 'de', 'en', 'es', 'et', 'fa', 'fi', 'fr', 'ga', 'gd', 'gl', 'gv', 'hu', 'id', 'it', 'ka', 'la', 'lb', 'lt', 'lv', 'nl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'tr', 'uk', 'ur']
-#LANGLIST = ['da', 'de', 'en', 'et', 'es', 'fi', 'fr', 'ga', 'hu', 'id', 'it', 'lt', 'nl', 'pt', 'ru', 'sk', 'tr', 'ur']
-#LANGLIST = ['de']
+LANGLIST = ['bg', 'ca', 'cs', 'cy', 'da', 'de', 'el', 'en', 'es', 'et', 'fa', 'fi', 'fr', 'ga', 'gd', 'gl', 'gv', 'hu', 'hy', 'id', 'it', 'ka', 'la', 'lb', 'lt', 'lv', 'mk', 'nb', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'tr', 'uk']
 
 AFFIXLEN = 2 # >6 better for et, fi, hu, lt, ru, sk, tr
 MINCOMPLEN = 4
+MAXLENGTH = 20
 
-SAFE_LIMIT = {'en', 'es', 'fr', 'ga', 'it', 'pt', 'sk', 'tr'}
+SAFE_LIMIT = {'en', 'es', 'fr', 'ga', 'hu', 'it', 'pl', 'pt', 'ru', 'sk', 'tr'}
 BETTER_LOWER = {'es', 'lt', 'pt', 'sk'}
 # -PRO: 'et', 'fi'?
 
@@ -45,12 +44,17 @@ def _load_dict(langcode, listpath='lists', silent=True):
         for line in filehandle:
             columns = line.strip().split('\t')
             # invalid: remove noise
+            # todo: exclude columns with punctuation!
             if len(columns) != 2 or len(columns[0]) < leftlimit or \
-            line.startswith('-') or re.search(r'[+_]|[^ ]+ [^ ]+ [^ ]+', line):
+            line.startswith('-') or re.search(r'[+_]|[^ ]+ [^ ]+ [^ ]+', line) or \
+            ':' in columns[1]:
                 # or len(columns[1]) < 2:
                 if silent is False:
                     LOGGER.warning('wrong format: %s', line.strip())
                 continue
+            # too long
+            #if len(columns[1]) > MAXLENGTH:
+            #    continue
             # process
             if columns[1] in mydict and mydict[columns[1]] != columns[0]:
                 # prevent mistakes and noise coming from the lists
