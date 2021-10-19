@@ -31,7 +31,7 @@ test_requirements = ['pytest>=3', 'pytest-cov', 'tox']
 setup(
     author="Adrien Barbaresi",
     author_email='barbaresi@bbaw.de',
-    python_requires='>=3.4',
+    python_requires='>=3.5',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Developers',
@@ -46,6 +46,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: Text Processing :: Linguistic',
     ],
