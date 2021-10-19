@@ -15,7 +15,7 @@ import _pickle as cpickle
 try: # as from __main__
     from .rules import apply_rules
     from .tokenizer import TOKREGEX
-except ModuleNotFoundError:
+except ImportError:  # ModuleNotFoundError, Python >= 3.6
     pass
 
 
@@ -33,7 +33,7 @@ BETTER_LOWER = {'es', 'lt', 'pt', 'sk'}
 
 
 def _load_dict(langcode, listpath='lists', silent=True):
-    mydict, myadditions, i = dict(), list(), 0
+    mydict, myadditions, i = {}, [], 0
     filename = listpath + '/' + langcode + '.txt'
     filepath = str(Path(__file__).parent / filename)
     leftlimit = 2
@@ -202,22 +202,21 @@ def _dehyphen(token, datadict, greedy):
     splitted = re.split('([_-])', token)
     if len(splitted) > 1 and len(splitted[-1]) > 0:
         # try to find a word form without hyphen
-        subcandidate = ''.join([t.lower() for t in splitted if t != '-' and t != '_'])
+        subcandidate = ''.join([t.lower() for t in splitted if t not in ('-', '_')])
         if token[0].isupper():
             subcandidate = subcandidate.capitalize()
         if subcandidate in datadict:
             return datadict[subcandidate]
         # decompose
-        else:
-            subcandidate = _simple_search(splitted[-1], datadict)
+        subcandidate = _simple_search(splitted[-1], datadict)
+        if subcandidate is not None:
+            splitted[-1] = subcandidate
+            return ''.join(splitted)
+        if greedy is True:
+            subcandidate = _affix_search(splitted[-1], datadict)
             if subcandidate is not None:
                 splitted[-1] = subcandidate
                 return ''.join(splitted)
-            elif greedy is True:
-                subcandidate = _affix_search(splitted[-1], datadict)
-                if subcandidate is not None:
-                    splitted[-1] = subcandidate
-                    return ''.join(splitted)
     return None
 
 
