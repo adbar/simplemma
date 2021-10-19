@@ -1,5 +1,5 @@
 [run]
-source = courlan
+source = simplemma
 
 omit =
     tests/*
