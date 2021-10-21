@@ -36,9 +36,7 @@ def _load_dict(langcode, listpath='lists', silent=True):
     mydict, myadditions, i = {}, [], 0
     filename = listpath + '/' + langcode + '.txt'
     filepath = str(Path(__file__).parent / filename)
-    leftlimit = 2
-    if langcode in SAFE_LIMIT:
-        leftlimit = 1
+    leftlimit = 1 if langcode in SAFE_LIMIT else 2
     # load data from list
     with open(filepath , 'r', encoding='utf-8') as filehandle:
         for line in filehandle:
@@ -74,9 +72,8 @@ def _load_dict(langcode, listpath='lists', silent=True):
                 # deal with verbal forms (mostly)
                 if langcode in ('es', 'et', 'fi', 'fr', 'it', 'lt'):
                     myadditions.append(columns[0])
-                else:
-                    if columns[0] not in mydict:
-                        mydict[columns[0]] = columns[0]
+                elif columns[0] not in mydict:
+                    mydict[columns[0]] = columns[0]
                 i += 1
     # overwrite
     for word in myadditions:
@@ -124,15 +121,16 @@ def _levenshtein_dist(str1, str2):
 
 def _simple_search(token, datadict, deep=False):
     candidate = datadict.get(token)
-    if candidate is None and deep is False:
-        if token[0].isupper():
+    if candidate is None:
+        if deep is False:
+            if token[0].isupper():
+                candidate = datadict.get(token.lower())
+            else:
+                candidate = datadict.get(token.capitalize())
+        elif deep is True:
             candidate = datadict.get(token.lower())
-        else:
-            candidate = datadict.get(token.capitalize())
-    elif candidate is None and deep is True:
-        candidate = datadict.get(token.lower())
-        if candidate is None:
-            candidate = datadict.get(token.capitalize())
+            if candidate is None:
+                candidate = datadict.get(token.capitalize())
     return candidate
 
 
@@ -184,16 +182,12 @@ def _decompose(token, datadict, affixlen=0):
                     newcandidate = _simple_search(part2, datadict)
                     if newcandidate and len(newcandidate) <= len(part2):
                         candidate = ''.join([part1, newcandidate.lower()])
-                    # even greedier
-                    else:
-                        # with capital letter
-                        #print(part1, part2, affixlen, count, newcandidate)
-                        if len(lempart2) < len(part2) + AFFIXLEN:
-                            plan_b = ''.join([part1, lempart2.lower()])
-                            #print(part1, part2, affixlen, count, newcandidate, planb)
-                        elif newcandidate and len(newcandidate) < len(part2) + AFFIXLEN:
-                            plan_b = ''.join([part1, newcandidate.lower()])
-                            #print(part1, part2, affixlen, count, newcandidate, planb)
+                    elif len(lempart2) < len(part2) + AFFIXLEN:
+                        plan_b = ''.join([part1, lempart2.lower()])
+                        #print(part1, part2, affixlen, count, newcandidate, planb)
+                    elif newcandidate and len(newcandidate) < len(part2) + AFFIXLEN:
+                        plan_b = ''.join([part1, newcandidate.lower()])
+                        #print(part1, part2, affixlen, count, newcandidate, planb)
                 break
     return candidate, plan_b
 
@@ -222,7 +216,7 @@ def _dehyphen(token, datadict, greedy):
 
 def _affix_search(wordform, datadict):
     candidate, plan_b = None, None
-    for l in range(0, AFFIXLEN+1):
+    for l in range(AFFIXLEN+1):
         candidate, bufferstring = _decompose(wordform, datadict, affixlen=l)
         if candidate is not None:
             break
@@ -283,10 +277,9 @@ def _return_lemma(token, datadict, greedy=True, lang=None):
 def is_known(token, langdata):
     """Tell if a token is present in one of the loaded dictionaries.
        Case-insensitive, whole word forms only. Returns True or False."""
-    for language in langdata:
-        if _simple_search(token, language[1]) is not None:
-            return True
-    return False
+    return any(
+        _simple_search(token, language[1]) is not None for language in langdata
+    )
 
 
 def simple_tokenizer(text):
@@ -315,8 +308,7 @@ def lemmatize(token, langdata, greedy=False, silent=True):
        language list passed as input.
        Returns a string.
        Can raise ValueError by silent=False if no lemma has been found."""
-    i = 1
-    for language in langdata:
+    for i, language in enumerate(langdata, start=1):
         # determine default greediness
         #if greedy is None:
         #    greedy = _define_greediness(language)
@@ -326,7 +318,6 @@ def lemmatize(token, langdata, greedy=False, silent=True):
             if i != 1:
                 LOGGER.debug(token, candidate, 'found in %s', i)
             return candidate
-        i += 1
     if silent is False:
         raise ValueError('Token not found: %s' % token)
     # try to simply lowercase and len(token) < 10

@@ -8,12 +8,7 @@ ADJ_DE = re.compile(r'^(.+?)(arm|artig|bar|chig|ell|en|end|erig|ern|fach|frei|ha
 # https://de.wiktionary.org/wiki/-ent
 
 def apply_rules(token, langcode):
-    candidate = None
-    if langcode == 'de':
-        candidate = apply_de(token)
-    elif langcode == 'en':
-        candidate = apply_de(token)
-    return candidate
+    return apply_de(token) if langcode in ['de', 'en'] else None
 
 
 
