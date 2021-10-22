@@ -192,12 +192,16 @@ def _decompose(token, datadict, affixlen=0):
                     newcandidate = _simple_search(part2, datadict)
                     if newcandidate and len(newcandidate) <= len(part2):
                         candidate = ''.join([part1, newcandidate.lower()])
-                    elif len(lempart2) < len(part2) + AFFIXLEN:
-                        plan_b = ''.join([part1, lempart2.lower()])
-                        #print(part1, part2, affixlen, count, newcandidate, planb)
-                    elif newcandidate and len(newcandidate) < len(part2) + AFFIXLEN:
-                        plan_b = ''.join([part1, newcandidate.lower()])
-                        #print(part1, part2, affixlen, count, newcandidate, planb)
+                    # even greedier
+                    else:
+                        # with capital letter
+                        #print(part1, part2, affixlen, count, newcandidate)
+                        if len(lempart2) < len(part2) + AFFIXLEN:
+                            plan_b = ''.join([part1, lempart2.lower()])
+                            #print(part1, part2, affixlen, count, newcandidate, planb)
+                        elif newcandidate and len(newcandidate) < len(part2) + AFFIXLEN:
+                            plan_b = ''.join([part1, newcandidate.lower()])
+                            #print(part1, part2, affixlen, count, newcandidate, planb)
                 break
     return candidate, plan_b
 
@@ -287,9 +291,14 @@ def _return_lemma(token, datadict, greedy=True, lang=None):
 def is_known(token, langdata):
     """Tell if a token is present in one of the loaded dictionaries.
        Case-insensitive, whole word forms only. Returns True or False."""
-    return any(
-        _simple_search(token, language[1]) is not None for language in langdata
-    )
+    for language in langdata:
+        if _simple_search(token, language[1]) is not None:
+            return True
+    return False
+    # suggestion:
+    #return any(
+    #    _simple_search(token, language[1]) is not None for language in langdata
+    #)
 
 
 def simple_tokenizer(text):
