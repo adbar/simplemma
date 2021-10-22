@@ -2,11 +2,13 @@
 
 import pytest
 
-from simplemma.rules import apply_de, apply_en
+from simplemma.rules import apply_rules, apply_de, apply_en
 
 
 def test_apply_de():
     """Test German rules."""
+    # doesn't exist
+    assert apply_de('Whatawordicantbelieveit') is None
     # nouns
     assert apply_de('Pfifferlinge') == 'Pfifferling'
     assert apply_de('Heiterkeiten') == 'Heiterkeit'
@@ -26,6 +28,8 @@ def test_apply_de():
 
 def test_apply_en():
     """Test English rules."""
+    # doesn't exist
+    assert apply_en('Whatawordicantbelieveit') is None
     # nouns
     assert apply_en('delicacies') == 'delicacy'
     assert apply_en('nurseries') == 'nursery'
@@ -45,3 +49,11 @@ def test_apply_en():
     assert apply_en('dignified') == 'dignify'
     assert apply_en('realized') == 'realize'
     # assert apply_en('realised') == 'realise'
+
+
+def test_apply_rules():
+    """Test rules on all available languages."""
+    assert apply_rules('Pfifferlinge', 'de') == 'Pfifferling'
+    assert apply_rules('Pfifferlinge', 'en') is None
+    assert apply_rules('atonements', 'de') is None
+    assert apply_rules('atonements', 'en') == 'atonement'
