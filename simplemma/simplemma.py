@@ -32,11 +32,21 @@ BETTER_LOWER = {'es', 'lt', 'pt', 'sk'}
 # -PRO: 'et', 'fi'?
 
 
-def _load_dict(langcode, listpath='lists', silent=True):
-    mydict, myadditions, i = {}, [], 0
+def _determine_path(listpath, langcode):
     filename = listpath + '/' + langcode + '.txt'
-    filepath = str(Path(__file__).parent / filename)
-    leftlimit = 1 if langcode in SAFE_LIMIT else 2
+    return str(Path(__file__).parent / filename)
+
+
+def _load_dict(langcode, listpath='lists', silent=True):
+    filepath = _determine_path(listpath, langcode)
+    return _read_dict(filepath, langcode, silent)
+
+
+def _read_dict(filepath, langcode, silent):
+    mydict, myadditions, i = {}, [], 0
+    leftlimit = 2
+    if langcode in SAFE_LIMIT:
+        leftlimit = 1
     # load data from list
     with open(filepath , 'r', encoding='utf-8') as filehandle:
         for line in filehandle:

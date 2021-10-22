@@ -1,11 +1,12 @@
-#!/usr/bin/env python
-
 """Tests for `simplemma` package."""
 
+import os
 import pytest
 
 import simplemma
 
+
+TEST_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
 def test_readme():
@@ -38,6 +39,33 @@ def test_readme():
         simplemma.lemmatize('スパゲッティ', mydata, silent=False)
 
 
+def test_logic():
+    """Test if certain code parts correspond to the intended logic."""
+    # dict generation
+    testfile = os.path.join(TEST_DIR, 'data/zz.txt')
+    # simple generation, silent mode
+    mydict = simplemma.simplemma._read_dict(testfile, 'zz', silent=True)
+    assert len(mydict) == 3
+    # log warning
+    mydict = simplemma.simplemma._read_dict(testfile, 'zz', silent=False)
+    assert len(mydict) == 3
+    # different length
+    mydict = simplemma.simplemma._read_dict(testfile, 'en', silent=True)
+    assert len(mydict) == 5
+    # different order
+    mydict = simplemma.simplemma._read_dict(testfile, 'es', silent=True)
+    assert len(mydict) == 5
+    assert mydict['closeones'] == 'closeone'
+    item = next(reversed(mydict))
+    assert item == 'valid-word'
+
+    # dict pickling
+    # simplemma.simplemma._pickle_dict('zz')
+
+    # missing languages or faulty language codes
+    mydata = simplemma.load_data('de', 'abc', 'en')
+
+
 def test_convenience():
     """Test convenience functions."""
     # known words
@@ -53,6 +81,18 @@ def test_convenience():
     langdata = simplemma.load_data('es')
     assert(simplemma.text_lemmatizer(text, langdata, greedy=False)) == ['pepa', 'e', 'iván', 'son', 'uno', 'pareja', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
     assert simplemma.text_lemmatizer(text, langdata, greedy=True) == ['pepa', 'e', 'iván', 'son', 'uno', 'pareja', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
+
+
+def test_search():
+    """Test simple and greedy dict search."""
+    langcode, datadict = simplemma.load_data('en')[0]
+    assert simplemma.simplemma._simple_search('ignorant', datadict, deep=False) == 'ignorant'
+    assert simplemma.simplemma._simple_search('Ignorant', datadict, deep=True) == 'ignorant'
+    assert simplemma.simplemma._simple_search('Ignorant', datadict, deep=False) == 'ignorant'
+    assert simplemma.simplemma._dehyphen('magni-ficent', datadict, False) == 'magnificent'
+    assert simplemma.simplemma._dehyphen('magni-ficents', datadict, False) is None
+    # assert simplemma.simplemma._greedy_search('Ignorance-Tests', datadict) == 'Ignorance-Test'
+
 
 
 def test_subwords():
