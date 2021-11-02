@@ -180,28 +180,28 @@ def _decompose(token, datadict, affixlen=0):
                 newcandidate = _greedy_search(part2, datadict)  # lempart2?
                 # shorten the second known part of the token
                 if newcandidate and len(newcandidate) < len(part2):
-                    candidate = ''.join([part1, newcandidate.lower()])
+                    candidate = part1 + newcandidate.lower()
                 else:
                     # try other case
                     newcandidate = _greedy_search(substitute2, datadict)
                     # shorten the second known part of the token
                     if newcandidate and len(newcandidate) < len(part2):
-                        candidate = ''.join([part1, newcandidate.lower()])
+                        candidate = part1 + newcandidate.lower()
                 # backup: equal length or further candidates accepted
                 if candidate is None:
                     # try without capitalizing
                     newcandidate = _simple_search(part2, datadict)
                     if newcandidate and len(newcandidate) <= len(part2):
-                        candidate = ''.join([part1, newcandidate.lower()])
+                        candidate = part1 + newcandidate.lower()
                     # even greedier
                     else:
                         # with capital letter?
                         #print(part1, part2, affixlen, count, newcandidate)
                         if len(lempart2) < len(part2) + AFFIXLEN:
-                            plan_b = ''.join([part1, lempart2.lower()])
+                            plan_b = part1 + lempart2.lower()
                             #print(part1, part2, affixlen, count, newcandidate, planb)
                         elif newcandidate and len(newcandidate) < len(part2) + AFFIXLEN:
-                            plan_b = ''.join([part1, newcandidate.lower()])
+                            plan_b = part1 + newcandidate.lower()
                             #print(part1, part2, affixlen, count, newcandidate, planb)
                 break
     return candidate, plan_b
@@ -247,7 +247,7 @@ def _suffix_search(token, datadict):
         if part is not None and len(part) <= len(token[-count:]):
             lastpart, lastcount = part, count
     if lastcount > 0:
-        return ''.join([token[:-lastcount], lastpart.lower()])
+        return token[:-lastcount] + lastpart.lower()
     return None
 
 
