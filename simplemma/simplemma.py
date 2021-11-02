@@ -159,9 +159,9 @@ def _greedy_search(candidate, datadict, steps=2, distance=4):
 
 def _decompose(token, datadict, affixlen=0):
     candidate, plan_b = None, None
-    for count, prefix in enumerate(token, start=1): # AFFIXLEN, MINCOMPLEN
-        if len(token[:-count]) < MINCOMPLEN:
-            break
+    # this only makes sense for languages written from left to right
+    # AFFIXLEN or MINCOMPLEN can spare time for some languages
+    for count in range(1, len(token)-(MINCOMPLEN-1)):
         length = count + affixlen
         if len(token[:-length]) == 0:
             continue
@@ -174,7 +174,7 @@ def _decompose(token, datadict, affixlen=0):
             if affixlen == 0 and count <= AFFIXLEN:
                 candidate = lempart1
                 break
-            elif lempart2 is not None:
+            if lempart2 is not None:
                 # candidate must be shorter
                 newcandidate = _greedy_search(part2.capitalize(), datadict) # lempart2?
                 # shorten the second known part of the token
@@ -244,10 +244,8 @@ def _affix_search(wordform, datadict):
 
 def _suffix_search(token, datadict):
     candidate, lastpart, lastcount = None, None, 0
-    for count, prefix in enumerate(token, start=MINCOMPLEN):
+    for count in range(MINCOMPLEN, len(token)-(MINCOMPLEN-1)):
         #print(token[-count:], token[:-count], lastpart)
-        if len(token[:-count]) < MINCOMPLEN:
-            break
         part = _simple_search(token[-count:].capitalize(), datadict, deep=False)
         if part is not None and len(part) <= len(token[-count:]):
             lastpart, lastcount = part, count
