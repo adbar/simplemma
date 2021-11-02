@@ -56,7 +56,7 @@ def test_logic():
     mydict = simplemma.simplemma._read_dict(testfile, 'es', silent=True)
     assert len(mydict) == 5
     assert mydict['closeones'] == 'closeone'
-    item = next(reversed(mydict))
+    item = sorted(mydict.keys(), reverse=True)[0]
     assert item == 'valid-word'
 
     # dict pickling
