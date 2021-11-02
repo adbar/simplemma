@@ -162,10 +162,7 @@ def _decompose(token, datadict, affixlen=0):
     # this only makes sense for languages written from left to right
     # AFFIXLEN or MINCOMPLEN can spare time for some languages
     for count in range(1, len(token)-(MINCOMPLEN-1)):
-        length = count + affixlen
-        if len(token[:-length]) == 0:
-            continue
-        part1, part1_aff, part2 = token[:-count], token[:-length], token[-count:]
+        part1, part1_aff, part2 = token[:-count], token[:-(count + affixlen)], token[-count:]
         lempart1, lempart2 = _simple_search(part1, datadict), \
                              _simple_search(part2.capitalize(), datadict)
         if lempart1 is not None:
@@ -217,25 +214,21 @@ def _dehyphen(token, datadict, greedy):
             return datadict[subcandidate]
         # decompose
         subcandidate = _simple_search(splitted[-1], datadict)
+        # search further
+        if subcandidate is None and greedy is True:
+            subcandidate = _affix_search(splitted[-1], datadict)
+        # return
         if subcandidate is not None:
             splitted[-1] = subcandidate
             return ''.join(splitted)
-        if greedy is True:
-            subcandidate = _affix_search(splitted[-1], datadict)
-            if subcandidate is not None:
-                splitted[-1] = subcandidate
-                return ''.join(splitted)
     return None
 
 
 def _affix_search(wordform, datadict):
-    candidate, plan_b = None, None
     for l in range(AFFIXLEN+1):
-        candidate, bufferstring = _decompose(wordform, datadict, affixlen=l)
+        candidate, plan_b = _decompose(wordform, datadict, affixlen=l)
         if candidate is not None:
             break
-        if bufferstring is not None:
-            plan_b = bufferstring
     # exceptionally accept a longer solution
     if candidate is None and plan_b is not None:
         candidate = plan_b
@@ -243,15 +236,15 @@ def _affix_search(wordform, datadict):
 
 
 def _suffix_search(token, datadict):
-    candidate, lastpart, lastcount = None, None, 0
+    lastcount = 0
     for count in range(MINCOMPLEN, len(token)-(MINCOMPLEN-1)):
         #print(token[-count:], token[:-count], lastpart)
         part = _simple_search(token[-count:].capitalize(), datadict, deep=False)
         if part is not None and len(part) <= len(token[-count:]):
             lastpart, lastcount = part, count
-    if lastpart is not None:
-        candidate = ''.join([token[:-lastcount], lastpart.lower()])
-    return candidate
+    if lastcount > 0:
+        return ''.join([token[:-lastcount], lastpart.lower()])
+    return None
 
 
 def _return_lemma(token, datadict, greedy=True, lang=None):
