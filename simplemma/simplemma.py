@@ -5,7 +5,6 @@ import lzma
 import logging
 import re
 
-from collections import OrderedDict
 from difflib import ndiff
 from functools import lru_cache
 from pathlib import Path
@@ -89,7 +88,7 @@ def _read_dict(filepath, langcode, silent):
     for word in myadditions:
         mydict[word] = word
     LOGGER.debug('%s %s', langcode, i)
-    return OrderedDict(sorted(mydict.items()))
+    return dict(sorted(mydict.items()))
 
 
 def _pickle_dict(langcode):
