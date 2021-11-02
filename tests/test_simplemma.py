@@ -86,9 +86,8 @@ def test_convenience():
 def test_search():
     """Test simple and greedy dict search."""
     langcode, datadict = simplemma.load_data('en')[0]
-    assert simplemma.simplemma._simple_search('ignorant', datadict, deep=False) == 'ignorant'
-    assert simplemma.simplemma._simple_search('Ignorant', datadict, deep=True) == 'ignorant'
-    assert simplemma.simplemma._simple_search('Ignorant', datadict, deep=False) == 'ignorant'
+    assert simplemma.simplemma._simple_search('ignorant', datadict) == 'ignorant'
+    assert simplemma.simplemma._simple_search('Ignorant', datadict) == 'ignorant'
     assert simplemma.simplemma._dehyphen('magni-ficent', datadict, False) == 'magnificent'
     assert simplemma.simplemma._dehyphen('magni-ficents', datadict, False) is None
     # assert simplemma.simplemma._greedy_search('Ignorance-Tests', datadict) == 'Ignorance-Test'

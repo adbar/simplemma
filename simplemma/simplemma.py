@@ -129,18 +129,14 @@ def _levenshtein_dist(str1, str2):
 #    return True
 
 
-def _simple_search(token, datadict, deep=False):
+def _simple_search(token, datadict):
     candidate = datadict.get(token)
     if candidate is None:
-        if deep is False:
-            if token[0].isupper():
-                candidate = datadict.get(token.lower())
-            else:
-                candidate = datadict.get(token.capitalize())
-        elif deep is True:
+        # try upper or lowercase
+        if token[0].isupper():
             candidate = datadict.get(token.lower())
-            if candidate is None:
-                candidate = datadict.get(token.capitalize())
+        else:
+            candidate = datadict.get(token.capitalize())
     return candidate
 
 
@@ -163,8 +159,11 @@ def _decompose(token, datadict, affixlen=0):
     # AFFIXLEN or MINCOMPLEN can spare time for some languages
     for count in range(1, len(token)-(MINCOMPLEN-1)):
         part1, part1_aff, part2 = token[:-count], token[:-(count + affixlen)], token[-count:]
-        lempart1, lempart2 = _simple_search(part1, datadict), \
-                             _simple_search(part2.capitalize(), datadict)
+        lempart1 = _simple_search(part1, datadict)
+        if token[0].isupper():
+            lempart2 = _simple_search(part2.capitalize(), datadict)
+        else:
+            lempart2 = _simple_search(part2, datadict)
         if lempart1 is not None:
             #print(part1, part2, affixlen, count)
             # maybe an affix? discard it
@@ -173,13 +172,18 @@ def _decompose(token, datadict, affixlen=0):
                 break
             if lempart2 is not None:
                 # candidate must be shorter
-                newcandidate = _greedy_search(part2.capitalize(), datadict) # lempart2?
+                # try original case, then substitute
+                if part2[0].isupper():
+                    substitute2 = part2.lower()
+                else:
+                    substitute2 = part2.capitalize()
+                newcandidate = _greedy_search(part2, datadict)  # lempart2?
                 # shorten the second known part of the token
                 if newcandidate and len(newcandidate) < len(part2):
                     candidate = ''.join([part1, newcandidate.lower()])
                 else:
-                    # try without capitalizing
-                    newcandidate = _greedy_search(part2, datadict)
+                    # try other case
+                    newcandidate = _greedy_search(substitute2, datadict)
                     # shorten the second known part of the token
                     if newcandidate and len(newcandidate) < len(part2):
                         candidate = ''.join([part1, newcandidate.lower()])
@@ -191,7 +195,7 @@ def _decompose(token, datadict, affixlen=0):
                         candidate = ''.join([part1, newcandidate.lower()])
                     # even greedier
                     else:
-                        # with capital letter
+                        # with capital letter?
                         #print(part1, part2, affixlen, count, newcandidate)
                         if len(lempart2) < len(part2) + AFFIXLEN:
                             plan_b = ''.join([part1, lempart2.lower()])
@@ -239,7 +243,7 @@ def _suffix_search(token, datadict):
     lastcount = 0
     for count in range(MINCOMPLEN, len(token)-(MINCOMPLEN-1)):
         #print(token[-count:], token[:-count], lastpart)
-        part = _simple_search(token[-count:].capitalize(), datadict, deep=False)
+        part = _simple_search(token[-count:].capitalize(), datadict)
         if part is not None and len(part) <= len(token[-count:]):
             lastpart, lastcount = part, count
     if lastcount > 0:
