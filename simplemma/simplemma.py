@@ -154,38 +154,35 @@ def _greedy_search(candidate, datadict, steps=2, distance=4):
 
 def _decompose(token, datadict, affixlen=0):
     candidate, plan_b = None, None
+    if affixlen == 0:
+        affixlen = AFFIXLEN
     # this only makes sense for languages written from left to right
     # AFFIXLEN or MINCOMPLEN can spare time for some languages
     for count in range(1, len(token)-(MINCOMPLEN-1)):
         part1, part1_aff, part2 = token[:-count], token[:-(count + affixlen)], token[-count:]
         lempart1 = _simple_search(part1, datadict)
-        if token[0].isupper():
-            lempart2 = _simple_search(part2.capitalize(), datadict)
-        else:
-            lempart2 = _simple_search(part2, datadict)
         if lempart1 is not None:
-            #print(part1, part2, affixlen, count)
             # maybe an affix? discard it
-            if affixlen == 0 and count <= AFFIXLEN:
+            if count <= affixlen:
                 candidate = lempart1
                 break
+            # account for case before looking for second part
+            if token[0].isupper():
+                part2 = part2.capitalize()
+            lempart2 = _simple_search(part2, datadict)
             if lempart2 is not None:
+                #print('#', part1, part2, affixlen, count)
                 # candidate must be shorter
                 # try original case, then substitute
-                if part2[0].isupper():
-                    substitute2 = part2.lower()
+                if lempart2[0].isupper():
+                    substitute = part2.lower()
                 else:
-                    substitute2 = part2.capitalize()
-                newcandidate = _greedy_search(part2, datadict)  # lempart2?
+                    substitute = part2.capitalize()
+                # try other case
+                newcandidate = _greedy_search(substitute, datadict)
                 # shorten the second known part of the token
                 if newcandidate and len(newcandidate) < len(part2):
                     candidate = part1 + newcandidate.lower()
-                else:
-                    # try other case
-                    newcandidate = _greedy_search(substitute2, datadict)
-                    # shorten the second known part of the token
-                    if newcandidate and len(newcandidate) < len(part2):
-                        candidate = part1 + newcandidate.lower()
                 # backup: equal length or further candidates accepted
                 if candidate is None:
                     # try without capitalizing
@@ -193,15 +190,15 @@ def _decompose(token, datadict, affixlen=0):
                     if newcandidate and len(newcandidate) <= len(part2):
                         candidate = part1 + newcandidate.lower()
                     # even greedier
-                    else:
-                        # with capital letter?
-                        #print(part1, part2, affixlen, count, newcandidate)
-                        if len(lempart2) < len(part2) + AFFIXLEN:
-                            plan_b = part1 + lempart2.lower()
-                            #print(part1, part2, affixlen, count, newcandidate, planb)
-                        elif newcandidate and len(newcandidate) < len(part2) + AFFIXLEN:
-                            plan_b = part1 + newcandidate.lower()
-                            #print(part1, part2, affixlen, count, newcandidate, planb)
+                    # with capital letter?
+                    elif len(lempart2) < len(part2) + affixlen:
+                        plan_b = part1 + lempart2.lower()
+                        #print(part1, part2, affixlen, count, newcandidate, planb)
+                    #elif newcandidate and len(newcandidate) < len(part2) + affixlen:
+                        #plan_b = part1 + newcandidate.lower()
+                        #print(part1, part2, affixlen, count, newcandidate, planb)
+                    #else:
+                    #    print(part1, part2, affixlen, count, newcandidate)
                 break
     return candidate, plan_b
 

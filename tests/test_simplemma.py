@@ -91,6 +91,8 @@ def test_search():
     assert simplemma.simplemma._dehyphen('magni-ficent', datadict, False) == 'magnificent'
     assert simplemma.simplemma._dehyphen('magni-ficents', datadict, False) is None
     # assert simplemma.simplemma._greedy_search('Ignorance-Tests', datadict) == 'Ignorance-Test'
+    # don't lemmatize numbers
+    assert simplemma.simplemma._return_lemma('01234', datadict) == '01234'
 
 
 
@@ -143,15 +145,17 @@ def test_subwords():
     assert simplemma.lemmatize('herunterfährt', mydata, greedy=True) == 'herunterfahren'
     assert simplemma.lemmatize('Atomdeals', mydata, greedy=True) == 'Atomdeal'
     assert simplemma.lemmatize('Bürgerschaftsabgeordneter', mydata, greedy=True) == 'Bürgerschaftsabgeordnete'
+    assert simplemma.lemmatize('Anspruchsberechtigten', mydata, greedy=True) == 'Anspruchsberechtigte'
+    assert simplemma.lemmatize('Lichtbild-Ausweis', mydata, greedy=True) == 'Lichtbildausweis'
+    assert simplemma.lemmatize('Kapuzenpullis', mydata, greedy=True) == 'Kapuzenpulli'
+    assert simplemma.lemmatize('Pharmagrößen', mydata, greedy=True) == 'Pharmagröße'
     #assert simplemma.lemmatize('Abholservices', mydata, greedy=True) == 'Abholservice'
     #assert simplemma.lemmatize('beständigsten', mydata, greedy=True) == 'beständig'
     #assert simplemma.lemmatize('Funktionärsebene', mydata, greedy=True) == 'Funktionärsebene'
     #assert simplemma.lemmatize('zweitstärkster', mydata, greedy=True) == 'zweitstärkste'
-    #assert simplemma.lemmatize('Pharmagrößen', mydata, greedy=True) == 'Pharmagroßer'
-    #assert simplemma.lemmatize('Anspruchsberechtigten', mydata, greedy=True) == 'Anspruchsberechtigter'
-    #assert simplemma.lemmatize('Lichtbild-Ausweis', mydata, greedy=True) == 'Lichtbildausweis'
-    #Spargelstange/stangen, Kapuzenpullis, strafbewehrte/strafbewehrt, fälschungssicheren
-
+    #assert simplemma.lemmatize('strafbewehrte', mydata, greedy=True) == 'strafbewehrt'
+    #assert simplemma.lemmatize('fälschungssicheren', mydata, greedy=True) == 'fälschungssicher'
+    #assert simplemma.lemmatize('Spargelstangen', mydata, greedy=True) == 'Spargelstange'
 
 
 def test_tokenizer():
