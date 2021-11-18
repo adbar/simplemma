@@ -1,0 +1,10 @@
+authors:
+  - family-names: Barbaresi
+    given-names: Adrien
+cff-version: 1.2.0
+identifiers:
+  - description: "This is the collection of archived snapshots of all versions of Simplemma"
+    type: doi
+    value: 10.5281/zenodo.4673264
+message: "If you use this software, please cite it using these metadata."
+title: "Simplemma"
