@@ -11,11 +11,10 @@ from pathlib import Path
 
 import _pickle as cpickle
 
-try: # as from __main__
-    from .rules import apply_rules
-    from .tokenizer import TOKREGEX
-except ImportError:  # ModuleNotFoundError, Python >= 3.6
-    pass
+from .rules import apply_rules
+from .tokenizer import simple_tokenizer
+#except ImportError:  # ModuleNotFoundError, Python >= 3.6
+#    pass
 
 
 LOGGER = logging.getLogger(__name__)
@@ -290,13 +289,6 @@ def is_known(token, langdata):
     #return any(
     #    _simple_search(token, language[1]) is not None for language in langdata
     #)
-
-
-def simple_tokenizer(text):
-    """Simple regular expression adapted from NLTK.
-       Takes a string as input and returns a list of tokens.
-       Provided for convenience and educational purposes."""
-    return TOKREGEX.findall(text)
 
 
 def load_data(*langs):
