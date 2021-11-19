@@ -3,6 +3,13 @@ History
 =======
 
 
+0.5.0
+-----
+
+* faster, more efficient code
+* dropped support for Python 3.5
+
+
 0.4.0
 -----
 

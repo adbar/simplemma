@@ -202,10 +202,10 @@ Code   Language           Word pairs Acc.  Comments
 ``ro`` Romanian           311,411
 ``ru`` Russian            607,416          alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
 ``sk`` Slovak             846,453    0.87  on UD SK-SNK
-``sl`` Slovene            97,050           low coverage
+``sl`` Slovenian          97,050           low coverage
 ``sv`` Swedish            658,606          alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
 ``tr`` Turkish            1,333,137  0.88  on UD-TR-Boun
-``uk`` Ukranian           190,472          alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
+``uk`` Ukrainian          190,472          alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
 ====== ================== ========== ===== =========================================================================
 
 

@@ -1,5 +1,6 @@
 #include AUTHORS.rst
 #include CONTRIBUTING.rst
+include CITATION.cff
 include HISTORY.rst
 include LICENSE
 include README.rst

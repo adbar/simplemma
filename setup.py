@@ -87,6 +87,10 @@ setup(
     name='simplemma',
     package_data={'simplemma': ['data/*.plzma']},
     packages=find_packages(include=['simplemma', 'simplemma.*']),
+    project_urls={
+        "Source": "https://github.com/adbar/",
+        "Blog": "https://adrien.barbaresi.eu/blog/", # tag/simplemma
+    },
     setup_requires=setup_requirements,
     test_suite='tests',
     tests_require=test_requirements,
