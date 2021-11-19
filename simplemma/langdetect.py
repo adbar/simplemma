@@ -3,25 +3,32 @@
 import re
 
 from collections import Counter
+from operator import itemgetter
 
 from .simplemma import _simple_search, _return_lemma  # load_data, LANGLIST
 
 
-SPLIT_INPUT = re.compile(r'[^\W\d_]{5,}')
+SPLIT_INPUT = re.compile(r'[^\W\d_]{3,}')
 
 
 def prepare_text(text):
     """Extract potential words, scramble them, extract the most frequent,
        some of the rest, and return at most 1000 tokens."""
-    counter = Counter(SPLIT_INPUT.findall(text))
-    most_frequent = set([item[0] for item in counter.most_common(1000)])
+    # generator expression to split the text
+    counter = Counter(match[0] for match in SPLIT_INPUT.finditer(text))
+    #total = sum(counter.values())
+    #if total > 100:
+    #    # take about 10% of the tokens
+    #    limit = int(sum(counter.values())/10)
+    #else:
+    #    limit = total
+    #most_frequent_short = [item[0] for item in counter.most_common(10)]
     #rest = [t for t in set(tokens) if len(t) > 4 and t not in most_frequent][:990]
-    #print(rest)
-    return list(most_frequent) # + rest
+    return [item[0] for item in counter.most_common(1000)]
 
 
 def in_target_language(text, langdata):
-    """Determine which proportion of the text is in the target language(s)."""
+    """Determine which proportion of the text is in the target language."""
     total = 0
     in_target = 0
     for token in prepare_text(text):
@@ -35,22 +42,24 @@ def in_target_language(text, langdata):
 
 def lang_detector(text, langdata, extensive=False):
     """Determine which proportion of the text is in the target language(s)."""
-    myresults = dict()
+    myresults = {}
     found = set()
     tokens = prepare_text(text)
-    for language in langdata:
-        total = 0
-        in_target = 0
+    for langcode, langdict in langdata:
+        in_target = []
         for token in tokens:
-            total += 1
             if extensive is False:
-                result = _simple_search(token, language[1])
+                result = _simple_search(token, langdict)
             else:
-                result = _return_lemma(token, language[1], greedy=True, lang=language[0])
+                result = _return_lemma(token, langdict, greedy=True, lang=langcode)
             if result is not None:
-                in_target += 1
-                if token not in found:
-                    found.add(token)
-        myresults[language[0]] = in_target/total
+                in_target.append(token)
+        found.update(in_target)
+        myresults[langcode] = len(in_target)/len(tokens)
     myresults['unk'] = (len(tokens)-len(found))/len(tokens)
-    return sorted(myresults.items(), key=lambda kv: kv[1], reverse=True)
+    results = sorted(myresults.items(), key=itemgetter(1), reverse=True)
+    # in case of ex-aequo
+    if extensive is False and results[0][1] == results[1][1]:
+        results = lang_detector(text, langdata, extensive=True)
+    # todo: None if 'unk'?
+    return results
