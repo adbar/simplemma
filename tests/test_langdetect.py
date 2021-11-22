@@ -13,4 +13,5 @@ def test_detection():
     assert results[0][0] == 'de'
     assert in_target_language('Diese Wörter', langdata) == 1
     text = 'Test test'
-    assert lang_detector(text, langdata, extensive=False) == lang_detector(text, langdata, extensive=True)
+    assert lang_detector(text, langdata, extensive=False) == [('unk', 1)]
+    assert lang_detector(text, langdata, extensive=True) == [('unk', 1)]
