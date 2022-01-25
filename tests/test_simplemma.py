@@ -59,11 +59,25 @@ def test_logic():
     item = sorted(mydict.keys(), reverse=True)[0]
     assert item == 'valid-word'
 
+    # file I/O
+    assert simplemma.simplemma._determine_path('lists', 'de').endswith('de.txt')
+    
     # dict pickling
-    # simplemma.simplemma._pickle_dict('zz')
+    #simplemma.simplemma._pickle_dict('zz')
 
     # missing languages or faulty language codes
     mydata = simplemma.load_data('de', 'abc', 'en')
+ 
+    # searches
+    assert simplemma.simplemma._suffix_search('ccc', mydata[0][1]) is None
+
+    assert simplemma.simplemma._return_lemma('Gender-Sternchens', mydata[0][1]) == 'Gendersternchen'
+    assert simplemma.simplemma._return_lemma('an-gespieltes', mydata[0][1]) == 'anspielen'
+
+    assert simplemma.simplemma._greedy_search('getesteten', mydata[0][1], steps=0, distance=20) == 'getestet'
+    assert simplemma.simplemma._greedy_search('getesteten', mydata[0][1], steps=1, distance=20) == 'getestet'
+    assert simplemma.simplemma._greedy_search('getesteten', mydata[0][1], steps=2, distance=20) == 'testen'
+    assert simplemma.simplemma._greedy_search('getesteten', mydata[0][1], steps=2, distance=2) == 'getestet'
 
 
 def test_convenience():
