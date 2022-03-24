@@ -171,7 +171,10 @@ def _decompose(token, datadict, affixlen=0):
                 #print('#', part1, part2, affixlen, count)
                 # candidate must be shorter
                 # try original case, then substitute
-                substitute = part2.lower() if lempart2[0].isupper() else part2.capitalize()
+                if lempart2[0].isupper():
+                    substitute = part2.lower()
+                else:
+                    substitute = part2.capitalize()
                 # try other case
                 newcandidate = _greedy_search(substitute, datadict)
                 # shorten the second known part of the token
@@ -276,9 +279,10 @@ def _return_lemma(token, datadict, greedy=True, lang=None):
 def is_known(token, langdata):
     """Tell if a token is present in one of the loaded dictionaries.
        Case-insensitive, whole word forms only. Returns True or False."""
-    return any(
-        _simple_search(token, language[1]) is not None for language in langdata
-    )
+    for language in langdata:
+        if _simple_search(token, language[1]) is not None:
+            return True
+    return False
     # suggestion:
     #return any(
     #    _simple_search(token, language[1]) is not None for language in langdata
