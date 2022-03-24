@@ -125,7 +125,10 @@ def _levenshtein_dist(str1, str2):
 #    return True
 
 
-def _simple_search(token, datadict):
+def _simple_search(token, datadict, initial=False):
+    # beginning of sentence, reverse case
+    if initial is True:
+        token = token.lower()
     candidate = datadict.get(token)
     if candidate is None:
         # try upper or lowercase
@@ -244,12 +247,12 @@ def _suffix_search(token, datadict):
     return None
 
 
-def _return_lemma(token, datadict, greedy=True, lang=None):
+def _return_lemma(token, datadict, greedy=True, lang=None, initial=False):
     # filters
     if token.isnumeric():
         return token
     # dictionary search
-    candidate = _simple_search(token, datadict)
+    candidate = _simple_search(token, datadict, initial=initial)
     # simple rules
     if candidate is None:
         candidate = apply_rules(token, lang)
@@ -303,7 +306,7 @@ def load_data(*langs):
     return mylist
 
 
-def lemmatize(token, langdata, greedy=False, silent=True):
+def lemmatize(token, langdata, greedy=False, silent=True, initial=False):
     """Try to reduce a token to its lemma form according to the
        language list passed as input.
        Returns a string.
@@ -313,7 +316,7 @@ def lemmatize(token, langdata, greedy=False, silent=True):
         #if greedy is None:
         #    greedy = _define_greediness(language)
         # determine lemma
-        candidate = _return_lemma(token, language[1], greedy=greedy, lang=language[0])
+        candidate = _return_lemma(token, language[1], greedy=greedy, lang=language[0], initial=initial)
         if candidate is not None:
             if i != 1:
                 LOGGER.debug(token, candidate, 'found in %s', i)
@@ -329,7 +332,18 @@ def lemmatize(token, langdata, greedy=False, silent=True):
 def text_lemmatizer(text, langdata, greedy=False, silent=True):
     """Convenience function to lemmatize a text using a simple tokenizer.
        Returns a list of tokens and lemmata."""
-    return [lemmatize(t, langdata, greedy, silent) for t in simple_tokenizer(text)]
+    lemmata = []
+    last = '.'  # beginning is initial
+    for token in simple_tokenizer(text):
+        # simple heuristic for sentence boundary
+        if last in ('.', '?', '!', '…', '¿', '¡'):
+            initial = True
+        else:
+            initial = False
+        # lemmatize
+        lemmata.append(lemmatize(token, langdata, greedy, silent))
+        last = token
+    return lemmata
 
 
 if __name__ == '__main__':

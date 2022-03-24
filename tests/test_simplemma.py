@@ -87,10 +87,10 @@ def test_convenience():
     assert simplemma.is_known('FanCY', langdata) is True
     assert simplemma.is_known('Fancy-String', langdata) is False
     # text lemmatization
-    text = 'Nous déciderons une fois arrivées.'
+    text = 'Nous déciderons une fois arrivées. Voilà.'
     langdata = simplemma.load_data('fr')
     # print(simplemma.text_lemmatizer(text, langdata, greedy=True))
-    assert simplemma.text_lemmatizer(text, langdata, greedy=False) == ['nous', 'décider', 'un', 'fois', 'arrivée', '.']
+    assert simplemma.text_lemmatizer(text, langdata, greedy=False) == ['nous', 'décider', 'un', 'fois', 'arrivée', '.', 'voilà', '.']
     text = 'Pepa e Iván son una pareja sentimental, ambos dedicados al doblaje de películas.'
     langdata = simplemma.load_data('es')
     assert(simplemma.text_lemmatizer(text, langdata, greedy=False)) == ['pepa', 'e', 'iván', 'son', 'uno', 'pareja', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
@@ -107,7 +107,10 @@ def test_search():
     # assert simplemma.simplemma._greedy_search('Ignorance-Tests', datadict) == 'Ignorance-Test'
     # don't lemmatize numbers
     assert simplemma.simplemma._return_lemma('01234', datadict) == '01234'
-
+    # initial or not
+    langcode, datadict = simplemma.load_data('de')[0]
+    assert simplemma.simplemma._simple_search('Dritte', datadict, initial=True) == 'dritt'
+    assert simplemma.simplemma._simple_search('Dritte', datadict, initial=False) == 'Dritter'
 
 
 def test_subwords():
