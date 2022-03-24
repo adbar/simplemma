@@ -51,35 +51,35 @@ def apply_en(token):
     if token.endswith('s'):
         if token.endswith('ies') and len(token) > 7:
             if token.endswith('cies'):
-                return f'{token[:-4]}cy'
+                return token[:-4] + 'cy'
             if token.endswith('ries'):
-                return f'{token[:-4]}ry'
+                return token[:-4] + 'ry'
             if token.endswith('ties'):
-                return f'{token[:-4]}ty'
+                return token[:-4] + 'ty'
         if token.endswith('doms'):
-            return f'{token[:-4]}dom'
+            return token[:-4] + 'dom'
         if token.endswith('esses'):
-            return f'{token[:-5]}ess'
+            return token[:-5] + 'ess'
         if token.endswith('isms'):
-            return f'{token[:-4]}ism'
+            return token[:-4] + 'ism'
         if token.endswith('ists'):
-            return f'{token[:-4]}ist'
+            return token[:-4] + 'ist'
         if token.endswith('ments'):
-            return f'{token[:-5]}ment'
+            return token[:-5] + 'ment'
         if token.endswith('nces'):
-            return f'{token[:-4]}nce'
+            return token[:-4] + 'nce'
         if token.endswith('ships'):
-            return f'{token[:-5]}ship'
+            return token[:-5] + 'ship'
         if token.endswith('tions'):
-            return f'{token[:-5]}tion'
+            return token[:-5] + 'tion'
     # verbs
     if token.endswith('ed'):
         if token.endswith('ated'):
-            return f'{token[:-4]}ate'
+            return token[:-4] + 'ate'
         if token.endswith('ened'):
-            return f'{token[:-4]}en'
+            return token[:-4] + 'en'
         if token.endswith('fied'):
-            return f'{token[:-4]}fy'
+            return token[:-4] + 'fy'
         if token.endswith('ized'):
-            return f'{token[:-4]}ize'
+            return token[:-4] + 'ize'
     return None
