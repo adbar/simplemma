@@ -31,7 +31,7 @@ BETTER_LOWER = {'es', 'lt', 'pt', 'sk'}
 
 
 def _determine_path(listpath, langcode):
-    filename = listpath + '/' + langcode + '.txt'
+    filename = f'{listpath}/{langcode}.txt'
     return str(Path(__file__).parent / filename)
 
 
@@ -42,9 +42,7 @@ def _load_dict(langcode, listpath='lists', silent=True):
 
 def _read_dict(filepath, langcode, silent):
     mydict, myadditions, i = {}, [], 0
-    leftlimit = 2
-    if langcode in SAFE_LIMIT:
-        leftlimit = 1
+    leftlimit = 1 if langcode in SAFE_LIMIT else 2
     # load data from list
     with open(filepath , 'r', encoding='utf-8') as filehandle:
         for line in filehandle:
@@ -92,7 +90,7 @@ def _read_dict(filepath, langcode, silent):
 
 def _pickle_dict(langcode):
     mydict = _load_dict(langcode)
-    filename = 'data/' + langcode + '.plzma'
+    filename = f'data/{langcode}.plzma'
     filepath = str(Path(__file__).parent / filename)
     with lzma.open(filepath, 'w') as filehandle: # , filters=my_filters
         cpickle.dump(mydict, filehandle, protocol=4)
@@ -100,7 +98,7 @@ def _pickle_dict(langcode):
 
 
 def _load_pickle(langcode):
-    filename = 'data/' + langcode + '.plzma'
+    filename = f'data/{langcode}.plzma'
     filepath = str(Path(__file__).parent / filename)
     with lzma.open(filepath) as filehandle:
         return cpickle.load(filehandle)
@@ -321,7 +319,7 @@ def lemmatize(token, langdata, greedy=False, silent=True):
                 LOGGER.debug(token, candidate, 'found in %s', i)
             return candidate
     if silent is False:
-        raise ValueError('Token not found: %s' % token)
+        raise ValueError(f'Token not found: {token}')
     # try to simply lowercase and len(token) < 10
     if candidate is None and language[0] in BETTER_LOWER:
         return token.lower()
