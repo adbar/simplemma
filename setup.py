@@ -16,9 +16,7 @@ def get_version(package):
     return re.search('__version__ = [\'"]([^\'"]+)[\'"]', initfile).group(1)
 
 
-with open('README.rst') as readme_file:
-    readme = readme_file.read()
-
+readme = Path('README.rst').read_text()
 #with open('HISTORY.rst') as history_file:
 #    history = history_file.read()
 
