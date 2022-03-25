@@ -3,31 +3,33 @@
 
 import lzma
 import logging
+import pickle
 import re
 
 from difflib import ndiff
 from functools import lru_cache
 from pathlib import Path
 
-import _pickle as cpickle
-
-from .rules import apply_rules
-from .tokenizer import simple_tokenizer
-#except ImportError:  # ModuleNotFoundError, Python >= 3.6
-#    pass
+try:
+    from .rules import apply_rules
+    from .tokenizer import simple_tokenizer
+except ImportError:  # ModuleNotFoundError, Python >= 3.6
+    pass
 
 
 LOGGER = logging.getLogger(__name__)
 
 LANGLIST = ['bg', 'ca', 'cs', 'cy', 'da', 'de', 'el', 'en', 'es', 'et', 'fa', 'fi', 'fr', 'ga', 'gd', 'gl', 'gv', 'hu', 'hy', 'id', 'it', 'ka', 'la', 'lb', 'lt', 'lv', 'mk', 'nb', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'tr', 'uk']
 
-AFFIXLEN = 2 # >6 better for et, fi, hu, lt, ru, sk, tr
+AFFIXLEN = 2
+LONGAFFIXLEN = 5  # better for some languages
 MINCOMPLEN = 4
-MAXLENGTH = 20
+#MAXLENGTH = 20
 
 SAFE_LIMIT = {'en', 'es', 'fr', 'ga', 'hu', 'it', 'pl', 'pt', 'ru', 'sk', 'tr'}
 BETTER_LOWER = {'es', 'lt', 'pt', 'sk'}
-# -PRO: 'et', 'fi'?
+BUFFER_HACK = {'es', 'et', 'fi', 'fr', 'it', 'lt'}
+LONGER_AFFIXES = {'et', 'fi', 'hu', 'lt', 'ru'}
 
 
 def _determine_path(listpath, langcode):
@@ -76,7 +78,7 @@ def _read_dict(filepath, langcode, silent):
             else:
                 mydict[columns[1]] = columns[0]
                 # deal with verbal forms (mostly)
-                if langcode in ('es', 'et', 'fi', 'fr', 'it', 'lt'):
+                if langcode in BUFFER_HACK:
                     myadditions.append(columns[0])
                 elif columns[0] not in mydict:
                     mydict[columns[0]] = columns[0]
@@ -93,7 +95,7 @@ def _pickle_dict(langcode):
     filename = f'data/{langcode}.plzma'
     filepath = str(Path(__file__).parent / filename)
     with lzma.open(filepath, 'w') as filehandle: # , filters=my_filters
-        cpickle.dump(mydict, filehandle, protocol=4)
+        pickle.dump(mydict, filehandle, protocol=4)
     LOGGER.debug('%s %s', langcode, len(mydict))
 
 
@@ -101,7 +103,7 @@ def _load_pickle(langcode):
     filename = f'data/{langcode}.plzma'
     filepath = str(Path(__file__).parent / filename)
     with lzma.open(filepath) as filehandle:
-        return cpickle.load(filehandle)
+        return pickle.load(filehandle)
 
 
 @lru_cache(maxsize=4096)
@@ -154,8 +156,6 @@ def _greedy_search(candidate, datadict, steps=2, distance=4):
 
 def _decompose(token, datadict, affixlen=0):
     candidate, plan_b = None, None
-    if affixlen == 0:
-        affixlen = AFFIXLEN
     # this only makes sense for languages written from left to right
     # AFFIXLEN or MINCOMPLEN can spare time for some languages
     for count in range(1, len(token)-(MINCOMPLEN-1)):
@@ -224,8 +224,8 @@ def _dehyphen(token, datadict, greedy):
     return None
 
 
-def _affix_search(wordform, datadict):
-    for l in range(AFFIXLEN+1):
+def _affix_search(wordform, datadict, maxlen=AFFIXLEN):
+    for l in range(maxlen, 1, -1):
         candidate, plan_b = _decompose(wordform, datadict, affixlen=l)
         if candidate is not None:
             break
@@ -269,7 +269,11 @@ def _return_lemma(token, datadict, greedy=True, lang=None, initial=False):
     # greedy subword decomposition: suffix/affix search
     if candidate is None:
         # greedier subword decomposition: suffix search with character in between
-        candidate = _affix_search(token, datadict)
+        if lang in LONGER_AFFIXES:
+            maxlen = LONGAFFIXLEN
+        else:
+            maxlen = AFFIXLEN
+        candidate = _affix_search(token, datadict, maxlen)
         # try something else
         if candidate is None:
             candidate = _suffix_search(token, datadict)
