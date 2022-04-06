@@ -3,6 +3,15 @@ History
 =======
 
 
+0.6.0
+-----
+
+* improved language models
+* improved tokenizer
+* maintenance and code efficiency
+* added basic language detection (undocumented)
+
+
 0.5.0
 -----
 

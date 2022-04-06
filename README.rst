@@ -29,7 +29,7 @@ In modern natural language processing (NLP), this task is often indirectly tackl
 
 *Simplemma* provides a simple and multilingual approach to look for base forms or lemmata. It may not be as powerful as full-fledged solutions but it is generic, easy to install and straightforward to use. In particular, it doesn't need morphosyntactic information and can process a raw series of tokens or even a text with its built-in (simple) tokenizer. By design it should be reasonably fast and work in a large majority of cases, without being perfect.
 
-With its comparatively small footprint it is especially useful when speed and simplicity matter, for educational purposes or as a baseline system for lemmatization and morphological analysis.
+With its comparatively small footprint it is especially useful when speed and simplicity matter, in low-resource contexts, for educational purposes, or as a baseline system for lemmatization and morphological analysis.
 
 Currently, 38 languages are partly or fully supported (see table below).
 
@@ -148,7 +148,7 @@ Caveats
     'son' # valid common name, but what about the verb form?
 
 
-As the focus lies on overall coverage, some short frequent words (typically: pronouns) can need post-processing, this generally concerns 10-20 tokens per language.
+As the focus lies on overall coverage, some short frequent words (typically: pronouns and conjunctions) may need post-processing, this generally concerns a few dozens of tokens per language.
 
 Additionally, the current absence of morphosyntactic information is both an advantage in terms of simplicity and an impassable frontier with respect to lemmatization accuracy, e.g. to disambiguate between past participles and adjectives derived from verbs in Germanic and Romance languages. In most cases, ``simplemma`` often doesn't change the input then.
 
@@ -163,55 +163,57 @@ Supported languages
 The following languages are available using their `ISO 639-1 code <https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes>`_:
 
 
-====== ================== ========== ===== =========================================================================
-Available languages (2021-10-19)
---------------------------------------------------------------------------------------------------------------------
-Code   Language           Word pairs Acc.  Comments
-====== ================== ========== ===== =========================================================================
-``bg`` Bulgarian          73,847           low coverage
-``ca`` Catalan            579,507
-``cs`` Czech              34,674           low coverage
-``cy`` Welsh              360,412
-``da`` Danish             554,238          alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
-``de`` German             683,207    0.95  on UD DE-GSD, see also `German-NLP list <https://github.com/adbar/German-NLP#Lemmatization>`_
-``el`` Greek              76,388           low coverage
-``en`` English            136,162    0.94  on UD EN-GUM, alternative: `LemmInflect <https://github.com/bjascob/LemmInflect>`_
-``es`` Spanish            720,623    0.94  on UD ES-GSD
-``et`` Estonian           133,104          low coverage
-``fa`` Persian            10,967           low coverage
-``fi`` Finnish            2,106,359        alternatives: `voikko <https://voikko.puimula.org/python.html>`_ or `NLP list <https://blogs.helsinki.fi/language-technology/hi-nlp/morphology/>`_
-``fr`` French             217,213    0.94  on UD FR-GSD
-``ga`` Irish              383,448
-``gd`` Gaelic             48,661
-``gl`` Galician           384,183
-``gv`` Manx               62,765
-``hu`` Hungarian          458,847
-``hy`` Armenian           323,820
-``id`` Indonesian         17,419     0.91  on UD ID-CSUI
-``it`` Italian            333,680    0.92  on UD IT-ISDT
-``ka`` Georgian           65,936
-``la`` Latin              850,283
-``lb`` Luxembourgish      305,367
-``lt`` Lithuanian         247,337
-``lv`` Latvian            57,153
-``mk`` Macedonian         57,063
-``nb`` Norwegian (Bokmål) 617,940
-``nl`` Dutch              254,073    0.91  on UD-NL-Alpino
-``pl`` Polish             3,723,580
-``pt`` Portuguese         933,730    0.92  on UD-PT-GSD
-``ro`` Romanian           311,411
-``ru`` Russian            607,416          alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
-``sk`` Slovak             846,453    0.87  on UD SK-SNK
-``sl`` Slovenian          97,050           low coverage
-``sv`` Swedish            658,606          alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
-``tr`` Turkish            1,333,137  0.88  on UD-TR-Boun
-``uk`` Ukrainian          190,472          alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
-====== ================== ========== ===== =========================================================================
+====== ================== =========== ===== =========================================================================
+Available languages (2022-04-06)
+---------------------------------------------------------------------------------------------------------------------
+Code   Language           Words (10³) Acc.  Comments
+====== ================== =========== ===== =========================================================================
+``bg`` Bulgarian          213
+``ca`` Catalan            579
+``cs`` Czech              187         0.88  on UD CS-PDT
+``cy`` Welsh              360
+``da`` Danish             554         0.92  on UD DA-DDT, alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
+``de`` German             682         0.95  on UD DE-GSD, see also `German-NLP list <https://github.com/adbar/German-NLP#Lemmatization>`_
+``el`` Greek              183         0.88  on UD EL-GDT
+``en`` English            136         0.94  on UD EN-GUM, alternative: `LemmInflect <https://github.com/bjascob/LemmInflect>`_
+``es`` Spanish            720         0.94  on UD ES-GSD
+``et`` Estonian           133               low coverage
+``fa`` Persian            10                low coverage, potential issues
+``fi`` Finnish            2,106             alternatives: `voikko <https://voikko.puimula.org/python.html>`_ or `NLP list <https://blogs.helsinki.fi/language-technology/hi-nlp/morphology/>`_
+``fr`` French             217         0.94  on UD FR-GSD
+``ga`` Irish              383
+``gd`` Gaelic             48
+``gl`` Galician           384
+``gv`` Manx               62
+``hu`` Hungarian          458
+``hy`` Armenian           323
+``id`` Indonesian         17          0.91  on UD ID-CSUI
+``it`` Italian            333         0.93  on UD IT-ISDT
+``ka`` Georgian           65
+``la`` Latin              850
+``lb`` Luxembourgish      305
+``lt`` Lithuanian         247
+``lv`` Latvian            168
+``mk`` Macedonian         57
+``nb`` Norwegian (Bokmål) 617
+``nl`` Dutch              254         0.91  on UD-NL-Alpino
+``pl`` Polish             3,733       0.91	on UD-PL-PDB
+``pt`` Portuguese         933         0.92  on UD-PT-GSD
+``ro`` Romanian           311
+``ru`` Russian            607               alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
+``sk`` Slovak             846         0.92  on UD SK-SNK
+``sl`` Slovenian          97                low coverage
+``sv`` Swedish            658               alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
+``tr`` Turkish            1,333       0.88  on UD-TR-Boun
+``uk`` Ukrainian          190               alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
+====== ================== =========== ===== =========================================================================
 
 
-*Low coverage* mentions means you'd probably be better off with a language-specific library, but *simplemma* will work to a limited extent. Open-source alternatives for Python are referenced if possible.
+*Low coverage* mentions means one would probably be better off with a language-specific library, but *simplemma* will work to a limited extent. Open-source alternatives for Python are referenced if possible.
 
 The scores are calculated on `Universal Dependencies <https://universaldependencies.org/>`_ treebanks on single word tokens (including some contractions but not merged prepositions), they describe to what extent simplemma can accurately map tokens to their lemma form. They can be reproduced using the script ``udscore.py`` in the ``tests/`` folder.
+
+This library is particularly relevant as regards the lemmatization of less frequent words. Its performance in this case is only incidentally captured by the benchmark above.
 
 
 Roadmap

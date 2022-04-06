@@ -5,11 +5,12 @@ include HISTORY.rst
 include LICENSE
 include README.rst
 include licenses/
-recursive-include simplemma/data/
+graft simplemma/data/
 
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
-include tests/__init__.py tests/test_simplemma.py
+include tests/__init__.py tests/test_*.py
+graft tests/data/
 
 recursive-include conf.py Makefile make.bat *.jpg *.png *.gif
 # recursive-include docs *.rst
