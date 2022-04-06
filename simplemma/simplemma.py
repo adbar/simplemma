@@ -24,12 +24,12 @@ LANGLIST = ['bg', 'ca', 'cs', 'cy', 'da', 'de', 'el', 'en', 'es', 'et', 'fa', 'f
 AFFIXLEN = 2
 LONGAFFIXLEN = 5  # better for some languages
 MINCOMPLEN = 4
-#MAXLENGTH = 20
+#MAXLENGTH = 14
 
-SAFE_LIMIT = {'en', 'es', 'fr', 'ga', 'hu', 'it', 'pl', 'pt', 'ru', 'sk', 'tr'}
-BETTER_LOWER = {'es', 'lt', 'pt', 'sk'}
-BUFFER_HACK = {'es', 'et', 'fi', 'fr', 'it', 'lt'}
-LONGER_AFFIXES = {'et', 'fi', 'hu', 'lt', 'ru'}
+SAFE_LIMIT = {'cs', 'da', 'el', 'en', 'es', 'fi', 'fr', 'ga', 'hu', 'it', 'pl', 'pt', 'ru', 'sk', 'tr'}
+BETTER_LOWER = {'bg', 'es', 'hy', 'lt', 'lv', 'pt', 'sk'}
+BUFFER_HACK = {'bg', 'es', 'et', 'fi', 'fr', 'it', 'lt', 'pl', 'sk'}  # 'da'
+LONGER_AFFIXES = {'et', 'fi', 'hu', 'hy', 'lt', 'ru'}  # 'pl'
 
 
 def _determine_path(listpath, langcode):
@@ -59,7 +59,7 @@ def _read_dict(filepath, langcode, silent):
                     LOGGER.warning('wrong format: %s', line.strip())
                 continue
             # too long
-            #if len(columns[1]) > MAXLENGTH:
+            #if len(columns[0]) > MAXLENGTH:
             #    continue
             # process
             if columns[1] in mydict and mydict[columns[1]] != columns[0]:
@@ -94,7 +94,7 @@ def _pickle_dict(langcode):
     mydict = _load_dict(langcode)
     filename = f'data/{langcode}.plzma'
     filepath = str(Path(__file__).parent / filename)
-    with lzma.open(filepath, 'w') as filehandle: # , filters=my_filters
+    with lzma.open(filepath, 'wb') as filehandle: # , filters=my_filters, preset=9
         pickle.dump(mydict, filehandle, protocol=4)
     LOGGER.debug('%s %s', langcode, len(mydict))
 
@@ -102,11 +102,11 @@ def _pickle_dict(langcode):
 def _load_pickle(langcode):
     filename = f'data/{langcode}.plzma'
     filepath = str(Path(__file__).parent / filename)
-    with lzma.open(filepath) as filehandle:
+    with lzma.open(filepath, 'rb') as filehandle:
         return pickle.load(filehandle)
 
 
-@lru_cache(maxsize=4096)
+@lru_cache(maxsize=65536)
 def _levenshtein_dist(str1, str2):
     # https://codereview.stackexchange.com/questions/217065/calculate-levenshtein-distance-between-two-strings-in-python
     counter = {"+": 0, "-": 0}
@@ -141,7 +141,7 @@ def _simple_search(token, datadict, initial=False):
     return candidate
 
 
-def _greedy_search(candidate, datadict, steps=2, distance=4):
+def _greedy_search(candidate, datadict, steps=1, distance=5):
     i = 0
     while candidate in datadict and (
         len(datadict[candidate]) < len(candidate) and
@@ -158,7 +158,7 @@ def _decompose(token, datadict, affixlen=0):
     candidate, plan_b = None, None
     # this only makes sense for languages written from left to right
     # AFFIXLEN or MINCOMPLEN can spare time for some languages
-    for count in range(1, len(token)-(MINCOMPLEN-1)):
+    for count in range(1, len(token)-MINCOMPLEN+1):
         part1, part1_aff, part2 = token[:-count], token[:-(count + affixlen)], token[-count:]
         lempart1 = _simple_search(part1, datadict)
         if lempart1 is not None:
@@ -237,7 +237,7 @@ def _affix_search(wordform, datadict, maxlen=AFFIXLEN):
 
 def _suffix_search(token, datadict):
     lastcount = 0
-    for count in range(MINCOMPLEN, len(token)-(MINCOMPLEN-1)):
+    for count in range(MINCOMPLEN, len(token)-MINCOMPLEN+1):
         #print(token[-count:], token[:-count], lastpart)
         part = _simple_search(token[-count:].capitalize(), datadict)
         if part is not None and len(part) <= len(token[-count:]):
