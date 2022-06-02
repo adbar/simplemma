@@ -31,6 +31,8 @@ BETTER_LOWER = {'bg', 'es', 'hy', 'lt', 'lv', 'pt', 'sk'}
 BUFFER_HACK = {'bg', 'es', 'et', 'fi', 'fr', 'it', 'lt', 'pl', 'sk'}  # 'da'
 LONGER_AFFIXES = {'et', 'fi', 'hu', 'hy', 'lt', 'ru'}  # 'pl'
 
+HYPHEN_REGEX = re.compile(r'([_-])')
+HYPHENS = {'-', '_'}
 PUNCTUATION = {'.', '?', '!', '…', '¿', '¡'}
 
 
@@ -206,10 +208,10 @@ def _decompose(token, datadict, affixlen=0):
 
 
 def _dehyphen(token, datadict, greedy):
-    splitted = re.split('([_-])', token)
+    splitted = HYPHEN_REGEX.split(token)
     if len(splitted) > 1 and len(splitted[-1]) > 0:
         # try to find a word form without hyphen
-        subcandidate = ''.join([t.lower() for t in splitted if t not in ('-', '_')])
+        subcandidate = ''.join([t.lower() for t in splitted if t not in HYPHENS])
         if token[0].isupper():
             subcandidate = subcandidate.capitalize()
         if subcandidate in datadict:
