@@ -177,10 +177,12 @@ def test_subwords():
 
 def test_tokenizer():
     # tokenization and chaining
-    # problem here: WDR5-„Morgenecho“
+    assert simplemma.simple_tokenizer('Sent1. Sent2\r\nSent3') == ['Sent1', '.', 'Sent2', 'Sent3']
     assert simplemma.simple_tokenizer('200er-Inzidenz 1.000er-Inzidenz 5%-Hürde 5-%-Hürde FFP2-Masken St.-Martini-Gemeinde, Lebens-, Liebes- und Arbeitsbedingungen') == ['200er-Inzidenz', '1.000er-Inzidenz', '5%-Hürde', '5-%-Hürde', 'FFP2-Masken', 'St.-Martini-Gemeinde', ',', 'Lebens-', ',', 'Liebes-', 'und', 'Arbeitsbedingungen']
     assert simplemma.simple_tokenizer('360-Grad-Panorama @sebastiankurz 2,5-Zimmer-Wohnung 1,2-butylketoaldehyde') == ['360-Grad-Panorama', '@sebastiankurz', '2,5-Zimmer-Wohnung', '1,2-butylketoaldehyde']
     assert simplemma.simple_tokenizer('Covid-19, Covid19, Covid-19-Pandemie https://example.org/covid-test') == ['Covid-19', ',', 'Covid19', ',', 'Covid-19-Pandemie', 'https://example.org/covid-test']
     assert simplemma.simple_tokenizer('Test 4:1-Auswärtssieg 2,5€ §52, for $5') == ['Test', '4:1-Auswärtssieg', '2,5€', '§52', ',', 'for', '$5']
+    # problem here: WDR5-„Morgenecho“
+    assert simplemma.simple_tokenizer('WDR5-„Morgenecho“') == ['WDR5-', '„', 'Morgenecho', '“']
 
 

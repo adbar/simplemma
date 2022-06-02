@@ -31,6 +31,8 @@ BETTER_LOWER = {'bg', 'es', 'hy', 'lt', 'lv', 'pt', 'sk'}
 BUFFER_HACK = {'bg', 'es', 'et', 'fi', 'fr', 'it', 'lt', 'pl', 'sk'}  # 'da'
 LONGER_AFFIXES = {'et', 'fi', 'hu', 'hy', 'lt', 'ru'}  # 'pl'
 
+PUNCTUATION = {'.', '?', '!', '…', '¿', '¡'}
+
 
 def _determine_path(listpath, langcode):
     filename = f'{listpath}/{langcode}.txt'
@@ -340,12 +342,9 @@ def text_lemmatizer(text, langdata, greedy=False, silent=True):
     last = '.'  # beginning is initial
     for token in simple_tokenizer(text):
         # simple heuristic for sentence boundary
-        if last in ('.', '?', '!', '…', '¿', '¡'):
-            initial = True
-        else:
-            initial = False
+        initial = last in PUNCTUATION
         # lemmatize
-        lemmata.append(lemmatize(token, langdata, greedy, silent))
+        lemmata.append(lemmatize(token, langdata, greedy, silent, initial))
         last = token
     return lemmata
 
