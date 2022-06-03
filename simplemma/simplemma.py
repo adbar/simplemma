@@ -6,7 +6,6 @@ import logging
 import pickle
 import re
 
-from difflib import ndiff
 from functools import lru_cache
 from pathlib import Path
 
@@ -112,17 +111,38 @@ def _load_pickle(langcode):
 
 @lru_cache(maxsize=65536)
 def _levenshtein_dist(str1, str2):
-    # https://codereview.stackexchange.com/questions/217065/calculate-levenshtein-distance-between-two-strings-in-python
-    counter = {"+": 0, "-": 0}
-    distance = 0
-    for edit_code, *_ in ndiff(str1, str2):
-        if edit_code == " ":
-            distance += max(counter.values())
-            counter = {"+": 0, "-": 0}
-        else:
-            counter[edit_code] += 1
-    distance += max(counter.values())
-    return distance
+    # https://gist.github.com/p-hash/9e0f9904ce7947c133308fbe48fe032b
+    if str1 == str2:
+        return 0
+    if len(str1) > len(str2):
+        str1, str2 = str2, str1
+    r1 = list(range(len(str2) + 1))
+    r2 = [0] * len(r1)
+    i = 0
+    for c1 in str1:
+        r2[0] = i + 1
+        j = 0
+        for c2 in str2:
+            if c1 == c2:
+                r2[j+1] = r1[j]
+            else:
+                a1 = r2[j]
+                a2 = r1[j]
+                a3 = r1[j+1]
+                if a1 > a2:
+                    if a2 > a3:
+                        r2[j+1] = 1 + a3
+                    else:
+                        r2[j+1] = 1 + a2
+                else:
+                    if a1 > a3:
+                        r2[j+1] = 1 + a3
+                    else:
+                        r2[j+1] = 1 + a1
+            j += 1
+        aux = r1; r1 = r2; r2 = aux
+        i += 1
+    return r1[-1]
 
 
 #def _define_greediness(langcode):
@@ -208,6 +228,8 @@ def _decompose(token, datadict, affixlen=0):
 
 
 def _dehyphen(token, datadict, greedy):
+    if not '-' in token and not '_' in token:
+        return None
     splitted = HYPHEN_REGEX.split(token)
     if len(splitted) > 1 and len(splitted[-1]) > 0:
         # try to find a word form without hyphen
