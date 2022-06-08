@@ -34,6 +34,8 @@ HYPHEN_REGEX = re.compile(r'([_-])')
 HYPHENS = {'-', '_'}
 PUNCTUATION = {'.', '?', '!', '…', '¿', '¡'}
 
+LANG_DATA = {}
+
 
 def _determine_path(listpath, langcode):
     filename = f'{listpath}/{langcode}.txt'
@@ -107,6 +109,34 @@ def _load_pickle(langcode):
     filepath = str(Path(__file__).parent / filename)
     with lzma.open(filepath, 'rb') as filehandle:
         return pickle.load(filehandle)
+
+
+def _load_data(langs):
+    """Decompress und unpickle lemmatization rules.
+       Takes one or several ISO 639-1 code language code as input.
+       Returns a list of dictionaries."""
+    mylist = []
+    for lang in langs:
+        if lang not in LANGLIST:
+            LOGGER.error('language not supported: %s', lang)
+            continue
+        LOGGER.debug('loading %s', lang)
+        mylist.append((lang, _load_pickle(lang)))
+    return mylist
+
+
+def _update_lang_data(lang):
+    # convert string
+    if isinstance(lang, str):
+        lang = (lang,)
+    if not isinstance(lang, tuple):
+        raise TypeError('lang argument must be a two-letter language code')
+    # load corresponding data
+    global LANG_DATA
+    if not LANG_DATA or tuple([l[0] for l in LANG_DATA]) != lang:
+        LANG_DATA = _load_data(lang)
+        lemmatize.cache_clear()
+    return lang
 
 
 @lru_cache(maxsize=65536)
@@ -309,10 +339,11 @@ def _return_lemma(token, datadict, greedy=True, lang=None, initial=False):
     return candidate
 
 
-def is_known(token, langdata):
+def is_known(token, lang=None):
     """Tell if a token is present in one of the loaded dictionaries.
        Case-insensitive, whole word forms only. Returns True or False."""
-    for language in langdata:
+    lang = _update_lang_data(lang)
+    for language in LANG_DATA:
         if _simple_search(token, language[1]) is not None:
             return True
     return False
@@ -322,26 +353,15 @@ def is_known(token, langdata):
     #)
 
 
-def load_data(*langs):
-    """Decompress und unpickle lemmatization rules.
-       Takes one or several ISO 639-1 code language code as input.
-       Returns a list of dictionaries."""
-    mylist = []
-    for lang in langs:
-        if lang not in LANGLIST:
-            LOGGER.error('language not supported: %s', lang)
-            continue
-        LOGGER.debug('loading %s', lang)
-        mylist.append((lang, _load_pickle(lang)))
-    return mylist
-
-
-def lemmatize(token, langdata, greedy=False, silent=True, initial=False):
+@lru_cache(maxsize=1048576)
+def lemmatize(token, lang=None, greedy=False, silent=True, initial=False):
     """Try to reduce a token to its lemma form according to the
        language list passed as input.
        Returns a string.
        Can raise ValueError by silent=False if no lemma has been found."""
-    for i, language in enumerate(langdata, start=1):
+    lang = _update_lang_data(lang)
+    # start
+    for i, language in enumerate(LANG_DATA, start=1):
         # determine default greediness
         #if greedy is None:
         #    greedy = _define_greediness(language)
@@ -354,12 +374,12 @@ def lemmatize(token, langdata, greedy=False, silent=True, initial=False):
     if silent is False:
         raise ValueError(f'Token not found: {token}')
     # try to simply lowercase and len(token) < 10
-    if candidate is None and language[0] in BETTER_LOWER:
+    if lang[0] in BETTER_LOWER:
         return token.lower()
     return token
 
 
-def text_lemmatizer(text, langdata, greedy=False, silent=True):
+def text_lemmatizer(text, lang=None, greedy=False, silent=True):
     """Convenience function to lemmatize a text using a simple tokenizer.
        Returns a list of tokens and lemmata."""
     lemmata = []
@@ -368,7 +388,7 @@ def text_lemmatizer(text, langdata, greedy=False, silent=True):
         # simple heuristic for sentence boundary
         initial = last in PUNCTUATION
         # lemmatize
-        lemmata.append(lemmatize(token, langdata, greedy, silent, initial))
+        lemmata.append(lemmatize(token, lang=lang, greedy=greedy, silent=silent, initial=initial))
         last = token
     return lemmata
 

@@ -4,8 +4,8 @@ __title__ = 'simplemma'
 __author__ = 'Adrien Barbaresi'
 __email__ = 'barbaresi@bbaw.de'
 __license__ = 'MIT'
-__version__ = '0.6.0'
+__version__ = '0.7.0'
 
 
-from .simplemma import load_data, lemmatize, text_lemmatizer, is_known
+from .simplemma import lemmatize, text_lemmatizer, is_known
 from .tokenizer import simple_tokenizer
