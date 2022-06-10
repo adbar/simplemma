@@ -6,7 +6,6 @@ import logging
 import pickle
 import re
 
-#from collections import namedtuple
 from functools import lru_cache
 from pathlib import Path
 
@@ -46,9 +45,6 @@ LANG_DATA = []
 #        self.dictionaries = LangDict()
 
 
-#LangDict = namedtuple('LangDict', 'code dict')
-
-
 class LangDict:
     "Class to store word pairs and relevant information for a single language."
     __slots__ = ('code', 'dict')
@@ -56,8 +52,6 @@ class LangDict:
     def __init__(self, langcode=None, langdict=None):
         self.code = langcode
         self.dict = langdict
-
-
 
 
 def _determine_path(listpath, langcode):
@@ -164,6 +158,7 @@ def _update_lang_data(lang):
 
 @lru_cache(maxsize=65536)
 def _levenshtein_dist(str1, str2):
+    # inspired by this noticeably faster code:
     # https://gist.github.com/p-hash/9e0f9904ce7947c133308fbe48fe032b
     if str1 == str2:
         return 0
@@ -179,9 +174,7 @@ def _levenshtein_dist(str1, str2):
             if c1 == c2:
                 r2[j+1] = r1[j]
             else:
-                a1 = r2[j]
-                a2 = r1[j]
-                a3 = r1[j+1]
+                a1, a2, a3 = r2[j], r1[j], r1[j+1]
                 if a1 > a2:
                     if a2 > a3:
                         r2[j+1] = 1 + a3
@@ -193,7 +186,8 @@ def _levenshtein_dist(str1, str2):
                     else:
                         r2[j+1] = 1 + a1
             j += 1
-        aux = r1; r1 = r2; r2 = aux
+        aux = r1
+        r1, r2 = r2, aux
         i += 1
     return r1[-1]
 

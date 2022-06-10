@@ -2,8 +2,6 @@
 
 import re
 
-from functools import lru_cache
-
 
 ADJ_DE = re.compile(r'^(.+?)(arm|artig|bar|chig|ell|en|end|erig|ern|fach|frei|haft|iert|igt|isch|iv|lich|los|mäßig|reich|rig|sam|sch|schig|voll)(er|e?st)?(e|em|en|es|er)?$')  # ig
 # https://de.wiktionary.org/wiki/-ent
@@ -11,7 +9,6 @@ ADJ_DE = re.compile(r'^(.+?)(arm|artig|bar|chig|ell|en|end|erig|ern|fach|frei|ha
 ENDING_DE = re.compile(r'(e|em|en|er|es)$')
 
 
-@lru_cache(maxsize=524288)
 def apply_rules(token, langcode):
     candidate = None
     if langcode == 'de':
