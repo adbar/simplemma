@@ -66,15 +66,15 @@ def test_logic():
         simplemma.lemmatize('test', lang=['test'])
  
     # searches
-    assert simplemma.simplemma._suffix_search('ccc', mydata[0][1]) is None
+    assert simplemma.simplemma._suffix_search('ccc', mydata[0].dict) is None
 
-    assert simplemma.simplemma._return_lemma('Gender-Sternchens', mydata[0][1]) == 'Gendersternchen'
-    assert simplemma.simplemma._return_lemma('an-gespieltes', mydata[0][1]) == 'anspielen'
+    assert simplemma.simplemma._return_lemma('Gender-Sternchens', mydata[0].dict) == 'Gendersternchen'
+    assert simplemma.simplemma._return_lemma('an-gespieltes', mydata[0].dict) == 'anspielen'
 
-    assert simplemma.simplemma._greedy_search('getesteten', mydata[0][1], steps=0, distance=20) == 'getestet'
-    assert simplemma.simplemma._greedy_search('getesteten', mydata[0][1], steps=1, distance=20) == 'getestet'
-    assert simplemma.simplemma._greedy_search('getesteten', mydata[0][1], steps=2, distance=20) == 'testen'
-    assert simplemma.simplemma._greedy_search('getesteten', mydata[0][1], steps=2, distance=2) == 'getestet'
+    assert simplemma.simplemma._greedy_search('getesteten', mydata[0].dict, steps=0, distance=20) == 'getestet'
+    assert simplemma.simplemma._greedy_search('getesteten', mydata[0].dict, steps=1, distance=20) == 'getestet'
+    assert simplemma.simplemma._greedy_search('getesteten', mydata[0].dict, steps=2, distance=20) == 'testen'
+    assert simplemma.simplemma._greedy_search('getesteten', mydata[0].dict, steps=2, distance=2) == 'getestet'
 
 
 def test_convenience():
@@ -92,18 +92,18 @@ def test_convenience():
 
 def test_search():
     """Test simple and greedy dict search."""
-    langcode, datadict = simplemma.simplemma._load_data(('en',))[0]
-    assert simplemma.simplemma._simple_search('ignorant', datadict) == 'ignorant'
-    assert simplemma.simplemma._simple_search('Ignorant', datadict) == 'ignorant'
-    assert simplemma.simplemma._dehyphen('magni-ficent', datadict, False) == 'magnificent'
-    assert simplemma.simplemma._dehyphen('magni-ficents', datadict, False) is None
+    data = simplemma.simplemma._load_data(('en',))[0]
+    assert simplemma.simplemma._simple_search('ignorant', data.dict) == 'ignorant'
+    assert simplemma.simplemma._simple_search('Ignorant', data.dict) == 'ignorant'
+    assert simplemma.simplemma._dehyphen('magni-ficent', data.dict, False) == 'magnificent'
+    assert simplemma.simplemma._dehyphen('magni-ficents', data.dict, False) is None
     # assert simplemma.simplemma._greedy_search('Ignorance-Tests', datadict) == 'Ignorance-Test'
     # don't lemmatize numbers
-    assert simplemma.simplemma._return_lemma('01234', datadict) == '01234'
+    assert simplemma.simplemma._return_lemma('01234', data.dict) == '01234'
     # initial or not
-    langcode, datadict = simplemma.simplemma._load_data(('de',))[0]
-    assert simplemma.simplemma._simple_search('Dritte', datadict, initial=True) == 'dritt'
-    assert simplemma.simplemma._simple_search('Dritte', datadict, initial=False) == 'Dritter'
+    data = simplemma.simplemma._load_data(('de',))[0]
+    assert simplemma.simplemma._simple_search('Dritte', data.dict, initial=True) == 'dritt'
+    assert simplemma.simplemma._simple_search('Dritte', data.dict, initial=False) == 'Dritter'
 
 
 def test_subwords():

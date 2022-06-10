@@ -6,6 +6,7 @@ import logging
 import pickle
 import re
 
+#from collections import namedtuple
 from functools import lru_cache
 from pathlib import Path
 
@@ -34,7 +35,29 @@ HYPHEN_REGEX = re.compile(r'([_-])')
 HYPHENS = {'-', '_'}
 PUNCTUATION = {'.', '?', '!', '…', '¿', '¡'}
 
-LANG_DATA = {}
+LANG_DATA = []
+
+#class LangData:
+#    "Class to store word pairs and relevant information."
+#    __slots__ = ('dictionaries', 'languages')
+#
+#    def __init__(self):
+#        self.languages = []
+#        self.dictionaries = LangDict()
+
+
+#LangDict = namedtuple('LangDict', 'code dict')
+
+
+class LangDict:
+    "Class to store word pairs and relevant information for a single language."
+    __slots__ = ('code', 'dict')
+
+    def __init__(self, langcode=None, langdict=None):
+        self.code = langcode
+        self.dict = langdict
+
+
 
 
 def _determine_path(listpath, langcode):
@@ -115,14 +138,14 @@ def _load_data(langs):
     """Decompress und unpickle lemmatization rules.
        Takes one or several ISO 639-1 code language code as input.
        Returns a list of dictionaries."""
-    mylist = []
+    langlist = []
     for lang in langs:
         if lang not in LANGLIST:
             LOGGER.error('language not supported: %s', lang)
             continue
         LOGGER.debug('loading %s', lang)
-        mylist.append((lang, _load_pickle(lang)))
-    return mylist
+        langlist.append(LangDict(lang, _load_pickle(lang)))
+    return langlist
 
 
 def _update_lang_data(lang):
@@ -133,7 +156,7 @@ def _update_lang_data(lang):
         raise TypeError('lang argument must be a two-letter language code')
     # load corresponding data
     global LANG_DATA
-    if not LANG_DATA or tuple([l[0] for l in LANG_DATA]) != lang:
+    if not LANG_DATA or tuple(l.code for l in LANG_DATA) != lang:
         LANG_DATA = _load_data(lang)
         lemmatize.cache_clear()
     return lang
@@ -344,12 +367,12 @@ def is_known(token, lang=None):
        Case-insensitive, whole word forms only. Returns True or False."""
     lang = _update_lang_data(lang)
     for language in LANG_DATA:
-        if _simple_search(token, language[1]) is not None:
+        if _simple_search(token, language.dict) is not None:
             return True
     return False
     # suggestion:
     #return any(
-    #    _simple_search(token, language[1]) is not None for language in langdata
+    #    _simple_search(token, language.dict) is not None for language in langdata
     #)
 
 
@@ -361,20 +384,20 @@ def lemmatize(token, lang=None, greedy=False, silent=True, initial=False):
        Can raise ValueError by silent=False if no lemma has been found."""
     lang = _update_lang_data(lang)
     # start
-    for i, language in enumerate(LANG_DATA, start=1):
+    for i, l in enumerate(LANG_DATA, start=1):
         # determine default greediness
         #if greedy is None:
         #    greedy = _define_greediness(language)
         # determine lemma
-        candidate = _return_lemma(token, language[1], greedy=greedy, lang=language[0], initial=initial)
+        candidate = _return_lemma(token, l.dict, greedy=greedy, lang=l.code, initial=initial)
         if candidate is not None:
             if i != 1:
                 LOGGER.debug(token, candidate, 'found in %s', i)
             return candidate
     if silent is False:
         raise ValueError(f'Token not found: {token}')
-    # try to simply lowercase and len(token) < 10
-    if lang[0] in BETTER_LOWER:
+    # try to simply lowercase
+    if lang[0] in BETTER_LOWER:  # and len(token) < 10 ?
         return token.lower()
     return token
 

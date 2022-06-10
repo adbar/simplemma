@@ -35,7 +35,7 @@ def in_target_language(text, lang=None):
         total += 1
         langdata = _load_data(lang)
         for l in langdata:
-            candidate = _return_lemma(token, l[1], greedy=True, lang=l[0])
+            candidate = _return_lemma(token, l.dict, greedy=True, lang=l.code)
             if candidate is not None:
                 in_target += 1
                 break
@@ -58,12 +58,12 @@ def lang_detector(text, lang=None, extensive=False):
     langdata = _load_data(lang)
     for l in langdata:
         if extensive is False:
-            in_target = len(list(filter(None, (_return_lemma(t, l[1], greedy=False, lang=l[0]) for t in tokens))))
+            in_target = len(list(filter(None, (_return_lemma(t, l.dict, greedy=False, lang=l.code) for t in tokens))))
         else:
-            in_target = len(list(filter(None, (_return_lemma(t, l[1], greedy=True, lang=l[0]) for t in tokens))))
+            in_target = len(list(filter(None, (_return_lemma(t, l.dict, greedy=True, lang=l.code) for t in tokens))))
         # compute results
         found_ratio = in_target/total_tokens
-        myresults[l[0]] = found_ratio
+        myresults[l.code] = found_ratio
         unknown = 1 - found_ratio or 0.0
         if myresults.get('unk') is None or unknown < myresults['unk']:
             myresults['unk'] = unknown
