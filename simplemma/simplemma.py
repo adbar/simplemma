@@ -401,7 +401,8 @@ def text_lemmatizer(text, lang=None, greedy=False, silent=True):
        Returns a list of tokens and lemmata."""
     lemmata = []
     last = '.'  # beginning is initial
-    for token in simple_tokenizer(text):
+    for match in simple_tokenizer(text, iterate=True):
+        token = match[0]
         # simple heuristic for sentence boundary
         initial = last in PUNCTUATION
         # lemmatize

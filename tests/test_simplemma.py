@@ -41,6 +41,8 @@ def test_logic():
     # simple generation, silent mode
     mydict = simplemma.simplemma._read_dict(testfile, 'zz', silent=True)
     assert len(mydict) == 3
+    mydict = simplemma.simplemma._load_dict('zz', listpath=os.path.join(TEST_DIR, 'data'), silent=True)
+    assert len(mydict) == 3
     # log warning
     mydict = simplemma.simplemma._read_dict(testfile, 'zz', silent=False)
     assert len(mydict) == 3
@@ -56,7 +58,7 @@ def test_logic():
 
     # file I/O
     assert simplemma.simplemma._determine_path('lists', 'de').endswith('de.txt')
-    
+
     # dict pickling
     #simplemma.simplemma._pickle_dict('zz')
 
@@ -64,6 +66,8 @@ def test_logic():
     mydata = simplemma.simplemma._load_data(('de', 'abc', 'en'))
     with pytest.raises(TypeError):
         simplemma.lemmatize('test', lang=['test'])
+    with pytest.raises(TypeError):
+        simplemma.simplemma._update_lang_data(['id', 'lv'])
  
     # searches
     assert simplemma.simplemma._suffix_search('ccc', mydata[0].dict) is None
@@ -169,7 +173,9 @@ def test_subwords():
 
 def test_tokenizer():
     # tokenization and chaining
-    assert simplemma.simple_tokenizer('Sent1. Sent2\r\nSent3') == ['Sent1', '.', 'Sent2', 'Sent3']
+    text = 'Sent1. Sent2\r\nSent3'
+    assert simplemma.simple_tokenizer(text) == ['Sent1', '.', 'Sent2', 'Sent3']
+    assert simplemma.simple_tokenizer(text) == [m[0] for m in simplemma.simple_tokenizer(text, iterate=True)]
     assert simplemma.simple_tokenizer('200er-Inzidenz 1.000er-Inzidenz 5%-Hürde 5-%-Hürde FFP2-Masken St.-Martini-Gemeinde, Lebens-, Liebes- und Arbeitsbedingungen') == ['200er-Inzidenz', '1.000er-Inzidenz', '5%-Hürde', '5-%-Hürde', 'FFP2-Masken', 'St.-Martini-Gemeinde', ',', 'Lebens-', ',', 'Liebes-', 'und', 'Arbeitsbedingungen']
     assert simplemma.simple_tokenizer('360-Grad-Panorama @sebastiankurz 2,5-Zimmer-Wohnung 1,2-butylketoaldehyde') == ['360-Grad-Panorama', '@sebastiankurz', '2,5-Zimmer-Wohnung', '1,2-butylketoaldehyde']
     assert simplemma.simple_tokenizer('Covid-19, Covid19, Covid-19-Pandemie https://example.org/covid-test') == ['Covid-19', ',', 'Covid19', ',', 'Covid-19-Pandemie', 'https://example.org/covid-test']
