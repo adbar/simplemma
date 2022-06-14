@@ -402,13 +402,28 @@ def text_lemmatizer(text, lang=None, greedy=False, silent=True):
     lemmata = []
     last = '.'  # beginning is initial
     for match in simple_tokenizer(text, iterate=True):
-        token = match[0]
-        # simple heuristic for sentence boundary
-        initial = last in PUNCTUATION
-        # lemmatize
-        lemmata.append(lemmatize(token, lang=lang, greedy=greedy, silent=silent, initial=initial))
-        last = token
+        # lemmatize, simple heuristic for sentence boundary
+        lemmata.append(
+            lemmatize(
+                match[0], lang=lang, greedy=greedy, silent=silent,
+                initial=last in PUNCTUATION
+            )
+        )
+        last = match[0]
     return lemmata
+
+
+def lemma_iterator(text, lang=None, greedy=False, silent=True):
+    """Convenience function to lemmatize a text using a simple tokenizer.
+       Returns a list of tokens and lemmata."""
+    last = '.'  # beginning is initial
+    for match in simple_tokenizer(text, iterate=True):
+        # lemmatize
+        initial = last in PUNCTUATION
+        last = match[0]
+        yield lemmatize(
+            match[0], lang=lang, greedy=greedy, silent=silent, initial=initial
+        )
 
 
 if __name__ == '__main__':
