@@ -2,6 +2,14 @@
 History
 =======
 
+0.7.0
+-----
+
+* **breaking change**: language data pre-loading now occurs internally, language codes are now directly provided in ``lemmatize()`` call, e.g. ``simplemma.lemmatize("test", lang="en")``
+* faster lemmatization, result cache
+* sentence-aware ``text_lemmatizer()``
+* optional iterators for tokenization and lemmatization
+
 
 0.6.0
 -----

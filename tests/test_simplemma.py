@@ -4,7 +4,7 @@ import os
 import pytest
 
 import simplemma
-from simplemma import lemmatize
+from simplemma import lemmatize, lemma_iterator, simple_tokenizer, text_lemmatizer
 
 
 TEST_DIR = os.path.abspath(os.path.dirname(__file__))

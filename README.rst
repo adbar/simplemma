@@ -58,39 +58,34 @@ Simplemma is used by selecting a language of interest and then applying the data
     >>> import simplemma
     # get a word
     myword = 'masks'
-    # decide which language data to load
-    >>> langdata = simplemma.load_data('en')
-    # apply it on a word form
-    >>> simplemma.lemmatize(myword, langdata)
+    # decide which language to use and apply it on a word form
+    >>> simplemma.lemmatize(myword, lang='en')
     'mask'
     # grab a list of tokens
     >>> mytokens = ['Hier', 'sind', 'Vaccines']
-    >>> langdata = simplemma.load_data('de')
     >>> for token in mytokens:
-    >>>     simplemma.lemmatize(token, langdata)
+    >>>     simplemma.lemmatize(token, lang='de')
     'hier'
     'sein'
     'Vaccines'
     # list comprehensions can be faster
-    >>> [simplemma.lemmatize(t, langdata) for t in mytokens]
+    >>> [simplemma.lemmatize(t, lang='de') for t in mytokens]
     ['hier', 'sein', 'Vaccines']
 
 
-Chaining several languages can improve coverage:
+Chaining several languages can improve coverage, they are used in sequence:
 
 
 .. code-block:: python
 
-    >>> langdata = simplemma.load_data('de', 'en')
-    >>> simplemma.lemmatize('Vaccines', langdata)
+    >>> from simplemma import lemmatize
+    >>> lemmatize('Vaccines', lang=('de', 'en'))
     'vaccine'
-    >>> langdata = simplemma.load_data('it')
-    >>> simplemma.lemmatize('spaghettis', langdata)
+    >>> lemmatize('spaghettis', lang='it')
     'spaghettis'
-    >>> langdata = simplemma.load_data('it', 'fr')
-    >>> simplemma.lemmatize('spaghettis', langdata)
+    >>> lemmatize('spaghettis', lang=('it', 'fr'))
     'spaghetti'
-    >>> simplemma.lemmatize('spaghetti', langdata)
+    >>> lemmatize('spaghetti', lang=('it', 'fr'))
     'spaghetto'
 
 
@@ -99,14 +94,21 @@ There are cases in which a greedier decomposition and lemmatization algorithm is
 .. code-block:: python
 
     # same example as before, comes to this result in one step
-    >>> simplemma.lemmatize('spaghettis', mydata, greedy=True)
+    >>> simplemma.lemmatize('spaghettis', lang=('it', 'fr'), greedy=True)
     'spaghetto'
     # a German case
-    >>> langdata = simplemma.load_data('de')
-    >>> simplemma.lemmatize('angekündigten', langdata)
+    >>> simplemma.lemmatize('angekündigten', lang='de')
     'ankündigen' # infinitive verb
-    >>> simplemma.lemmatize('angekündigten', langdata, greedy=False)
+    >>> simplemma.lemmatize('angekündigten', lang='de', greedy=False)
     'angekündigt' # past participle
+
+
+Additional functions:
+
+.. code-block:: python
+
+    # same example as before, comes to this result in one step
+    >>> simplemma.is_known('spaghetti', lang='it')
 
 
 Tokenization
@@ -119,17 +121,20 @@ A simple tokenization function is included for convenience:
     >>> from simplemma import simple_tokenizer
     >>> simple_tokenizer('Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.')
     ['Lorem', 'ipsum', 'dolor', 'sit', 'amet', ',', 'consectetur', 'adipiscing', 'elit', ',', 'sed', 'do', 'eiusmod', 'tempor', 'incididunt', 'ut', 'labore', 'et', 'dolore', 'magna', 'aliqua', '.']
+    # use iterator instead
+    >>> simple_tokenizer('Lorem ipsum dolor sit amet', iterate=True)
 
 
-The function ``text_lemmatizer()`` chains tokenization and lemmatization. It can take ``greedy`` (affecting lemmatization) and ``silent`` (affecting errors and logging) as arguments:
+The functions ``text_lemmatizer()`` and ``lemma_iterator()`` chain tokenization and lemmatization. They can take ``greedy`` (affecting lemmatization) and ``silent`` (affecting errors and logging) as arguments:
 
 .. code-block:: python
 
     >>> from simplemma import text_lemmatizer
-    >>> langdata = simplemma.load_data('pt')
-    >>> text_lemmatizer('Sou o intervalo entre o que desejo ser e os outros me fizeram.', langdata)
+    >>> text_lemmatizer('Sou o intervalo entre o que desejo ser e os outros me fizeram.', lang='pt')
     # caveat: desejo is also a noun, should be desejar here
     ['ser', 'o', 'intervalo', 'entre', 'o', 'que', 'desejo', 'ser', 'e', 'o', 'outro', 'me', 'fazer', '.']
+    # same principle, returns an iterator and not a list
+    >>> from simplemma import lemma_iterator
 
 
 Caveats
@@ -138,13 +143,11 @@ Caveats
 .. code-block:: python
 
     # don't expect too much though
-    >>> langdata = simplemma.load_data('it')
     # this diminutive form isn't in the model data
-    >>> simplemma.lemmatize('spaghettini', langdata)
+    >>> simplemma.lemmatize('spaghettini', lang='it')
     'spaghettini' # should read 'spaghettino'
     # the algorithm cannot choose between valid alternatives yet
-    >>> langdata = simplemma.load_data('es')
-    >>> simplemma.lemmatize('son', langdata)
+    >>> simplemma.lemmatize('son', lang='es')
     'son' # valid common name, but what about the verb form?
 
 
@@ -214,6 +217,15 @@ Code   Language           Words (10³) Acc.  Comments
 The scores are calculated on `Universal Dependencies <https://universaldependencies.org/>`_ treebanks on single word tokens (including some contractions but not merged prepositions), they describe to what extent simplemma can accurately map tokens to their lemma form. They can be reproduced using the script ``udscore.py`` in the ``tests/`` folder.
 
 This library is particularly relevant as regards the lemmatization of less frequent words. Its performance in this case is only incidentally captured by the benchmark above.
+
+
+Speed
+-----
+
+Measured on an old laptop to give a lower bound:
+
+- Tokenization: > 1 million tokens/sec
+- Lemmatization: > 250,000 words/sec
 
 
 Roadmap

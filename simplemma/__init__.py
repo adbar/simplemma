@@ -7,5 +7,5 @@ __license__ = 'MIT'
 __version__ = '0.7.0'
 
 
-from .simplemma import lemmatize, text_lemmatizer, is_known
+from .simplemma import lemmatize, lemma_iterator, text_lemmatizer, is_known
 from .tokenizer import simple_tokenizer
