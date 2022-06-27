@@ -1,5 +1,6 @@
 """Tests for `simplemma` package."""
 
+import logging
 import os
 import pytest
 
@@ -8,6 +9,8 @@ from simplemma import lemmatize, lemma_iterator, simple_tokenizer, text_lemmatiz
 
 
 TEST_DIR = os.path.abspath(os.path.dirname(__file__))
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 def test_readme():

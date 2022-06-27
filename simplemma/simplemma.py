@@ -386,7 +386,7 @@ def lemmatize(token, lang=None, greedy=False, silent=True, initial=False):
         candidate = _return_lemma(token, l.dict, greedy=greedy, lang=l.code, initial=initial)
         if candidate is not None:
             if i != 1:
-                LOGGER.debug(token, candidate, 'found in %s', i)
+                LOGGER.debug(f'{token} found in {l.code}')
             return candidate
     if silent is False:
         raise ValueError(f'Token not found: {token}')

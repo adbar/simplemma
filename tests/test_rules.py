@@ -1,8 +1,11 @@
 """Tests for rule-based behavior of the `simplemma` package."""
 
+import logging
 import pytest
 
 from simplemma.rules import apply_rules, apply_de, apply_en
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 def test_apply_de():

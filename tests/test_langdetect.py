@@ -1,7 +1,10 @@
 """Tests for Simplemma's language detection utilities."""
 
+import logging
 
 from simplemma.langdetect import in_target_language, lang_detector
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 def test_detection():
