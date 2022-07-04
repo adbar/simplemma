@@ -75,6 +75,8 @@ def test_logic():
     # searches
     with pytest.raises(TypeError):
         assert simplemma.simplemma.lemmatize(None, lang='en') is None
+    with pytest.raises(ValueError):
+        assert simplemma.simplemma.lemmatize('', lang='en') is None
     assert simplemma.simplemma._suffix_search('ccc', mydata[0].dict) is None
 
     assert simplemma.simplemma._return_lemma('Gender-Sternchens', mydata[0].dict) == 'Gendersternchen'
@@ -88,10 +90,13 @@ def test_logic():
 
 def test_convenience():
     """Test convenience functions."""
-    # known words
+    # logic
     with pytest.raises(TypeError):
         assert simplemma.simplemma.is_known(None, lang='en') is None
+    with pytest.raises(ValueError):
+        assert simplemma.simplemma.is_known('', lang='en') is None
     assert simplemma.is_known('FanCY', lang='en') is True
+    # known words
     assert simplemma.is_known('Fancy-String', lang='en') is False
     # text lemmatization
     text = 'Nous déciderons une fois arrivées. Voilà.'
