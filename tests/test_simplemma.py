@@ -73,6 +73,8 @@ def test_logic():
         simplemma.simplemma._update_lang_data(['id', 'lv'])
  
     # searches
+    with pytest.raises(TypeError):
+        assert simplemma.simplemma.lemmatize(None, lang='en') is None
     assert simplemma.simplemma._suffix_search('ccc', mydata[0].dict) is None
 
     assert simplemma.simplemma._return_lemma('Gender-Sternchens', mydata[0].dict) == 'Gendersternchen'
@@ -87,6 +89,8 @@ def test_logic():
 def test_convenience():
     """Test convenience functions."""
     # known words
+    with pytest.raises(TypeError):
+        assert simplemma.simplemma.is_known(None, lang='en') is None
     assert simplemma.is_known('FanCY', lang='en') is True
     assert simplemma.is_known('Fancy-String', lang='en') is False
     # text lemmatization

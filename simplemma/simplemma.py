@@ -360,6 +360,8 @@ def _return_lemma(token, datadict, greedy=True, lang=None, initial=False):
 def is_known(token, lang=None):
     """Tell if a token is present in one of the loaded dictionaries.
        Case-insensitive, whole word forms only. Returns True or False."""
+    if not isinstance(token, str):
+        raise TypeError(f'Wrong input type, expected string, got {type(token)}')
     _ = _update_lang_data(lang)
     for language in LANG_DATA:
         if _simple_search(token, language.dict) is not None:
@@ -377,6 +379,8 @@ def lemmatize(token, lang=None, greedy=False, silent=True, initial=False):
        language list passed as input.
        Returns a string.
        Can raise ValueError by silent=False if no lemma has been found."""
+    if not isinstance(token, str):
+        raise TypeError(f'Wrong input type, expected string, got {type(token)}')
     lang = _update_lang_data(lang)
     # start
     for i, l in enumerate(LANG_DATA, start=1):
