@@ -10,6 +10,7 @@ ENDING_DE = re.compile(r'(e|em|en|er|es)$')
 
 
 def apply_rules(token, langcode):
+    'Apply pre-defined rules for certain languages.'
     candidate = None
     if langcode == 'de':
         candidate = apply_de(token)
@@ -19,6 +20,7 @@ def apply_rules(token, langcode):
 
 
 def apply_de(token):
+    'Apply pre-defined rules for German.'
     if token[0].isupper() and len(token) > 8:
         if ENDING_DE.search(token):
             # plural noun forms
@@ -49,6 +51,7 @@ def apply_de(token):
 
 
 def apply_en(token):
+    'Apply pre-defined rules for English.'
     # nouns
     if token.endswith('s'):
         if token.endswith('ies') and len(token) > 7:

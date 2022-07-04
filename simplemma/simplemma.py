@@ -230,7 +230,8 @@ def _decompose(token, datadict, affixlen=0):
     # this only makes sense for languages written from left to right
     # AFFIXLEN or MINCOMPLEN can spare time for some languages
     for count in range(1, len(token)-MINCOMPLEN+1):
-        part1, part1_aff, part2 = token[:-count], token[:-(count + affixlen)], token[-count:]
+        part1, part2 = token[:-count], token[-count:]
+        # part1_aff = token[:-(count + affixlen)]
         lempart1 = _simple_search(part1, datadict)
         if lempart1 is not None:
             # maybe an affix? discard it
@@ -298,8 +299,8 @@ def _dehyphen(token, datadict, greedy):
 
 
 def _affix_search(wordform, datadict, maxlen=AFFIXLEN):
-    for l in range(maxlen, 1, -1):
-        candidate, plan_b = _decompose(wordform, datadict, affixlen=l)
+    for length in range(maxlen, 1, -1):
+        candidate, plan_b = _decompose(wordform, datadict, affixlen=length)
         if candidate is not None:
             break
     # exceptionally accept a longer solution
@@ -359,7 +360,7 @@ def _return_lemma(token, datadict, greedy=True, lang=None, initial=False):
 def is_known(token, lang=None):
     """Tell if a token is present in one of the loaded dictionaries.
        Case-insensitive, whole word forms only. Returns True or False."""
-    lang = _update_lang_data(lang)
+    _ = _update_lang_data(lang)
     for language in LANG_DATA:
         if _simple_search(token, language.dict) is not None:
             return True
@@ -386,7 +387,7 @@ def lemmatize(token, lang=None, greedy=False, silent=True, initial=False):
         candidate = _return_lemma(token, l.dict, greedy=greedy, lang=l.code, initial=initial)
         if candidate is not None:
             if i != 1:
-                LOGGER.debug(f'{token} found in {l.code}')
+                LOGGER.debug('%s found in %s', token, l.code)
             return candidate
     if silent is False:
         raise ValueError(f'Token not found: {token}')
