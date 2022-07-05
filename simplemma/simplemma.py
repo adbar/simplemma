@@ -8,6 +8,7 @@ import re
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Any, Dict, List, Iterator, Optional, Tuple, Union
 
 try:
     from .rules import apply_rules
@@ -34,7 +35,7 @@ HYPHEN_REGEX = re.compile(r'([_-])')
 HYPHENS = {'-', '_'}
 PUNCTUATION = {'.', '?', '!', '…', '¿', '¡'}
 
-LANG_DATA = []
+LANG_DATA = []  # type: List[LangDict]
 
 #class LangData:
 #    "Class to store word pairs and relevant information."
@@ -49,23 +50,23 @@ class LangDict:
     "Class to store word pairs and relevant information for a single language."
     __slots__ = ('code', 'dict')
 
-    def __init__(self, langcode=None, langdict=None):
-        self.code = langcode
-        self.dict = langdict
+    def __init__(self, langcode: Optional[str]=None, langdict: Optional[Dict[str, str]]=None):
+        self.code: Optional[str] = langcode
+        self.dict: Optional[Dict[str, str]] = langdict
 
 
-def _determine_path(listpath, langcode):
+def _determine_path(listpath: str, langcode: str) -> str:
     filename = f'{listpath}/{langcode}.txt'
     return str(Path(__file__).parent / filename)
 
 
-def _load_dict(langcode, listpath='lists', silent=True):
+def _load_dict(langcode: str, listpath: str='lists', silent: bool=True) -> Dict[str, str]:
     filepath = _determine_path(listpath, langcode)
     return _read_dict(filepath, langcode, silent)
 
 
-def _read_dict(filepath, langcode, silent):
-    mydict, myadditions, i = {}, [], 0
+def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
+    mydict, myadditions, i = {}, [], 0  # type: Dict[str, str], List[str], int
     leftlimit = 1 if langcode in SAFE_LIMIT else 2
     # load data from list
     with open(filepath , 'r', encoding='utf-8') as filehandle:
@@ -112,7 +113,7 @@ def _read_dict(filepath, langcode, silent):
     return dict(sorted(mydict.items()))
 
 
-def _pickle_dict(langcode):
+def _pickle_dict(langcode: str) -> None:
     mydict = _load_dict(langcode)
     filename = f'data/{langcode}.plzma'
     filepath = str(Path(__file__).parent / filename)
@@ -121,19 +122,19 @@ def _pickle_dict(langcode):
     LOGGER.debug('%s %s', langcode, len(mydict))
 
 
-def _load_pickle(langcode):
+def _load_pickle(langcode: str) -> Dict[str, str]:
     filename = f'data/{langcode}.plzma'
     filepath = str(Path(__file__).parent / filename)
     with lzma.open(filepath, 'rb') as filehandle:
-        return pickle.load(filehandle)
+        return pickle.load(filehandle)  # type: ignore
 
 
-def _load_data(langs):
+def _load_data(langs: Optional[Tuple[str]]) -> List[LangDict]:
     """Decompress und unpickle lemmatization rules.
        Takes one or several ISO 639-1 code language code as input.
        Returns a list of dictionaries."""
     langlist = []
-    for lang in langs:
+    for lang in langs:  # type: ignore
         if lang not in LANGLIST:
             LOGGER.error('language not supported: %s', lang)
             continue
@@ -142,7 +143,7 @@ def _load_data(langs):
     return langlist
 
 
-def _update_lang_data(lang):
+def _update_lang_data(lang: Optional[Union[str, Tuple[str]]]) -> Tuple[str]:
     # convert string
     if isinstance(lang, str):
         lang = (lang,)
@@ -157,7 +158,7 @@ def _update_lang_data(lang):
 
 
 @lru_cache(maxsize=65536)
-def _levenshtein_dist(str1, str2):
+def _levenshtein_dist(str1: str, str2: str) -> int:
     # inspired by this noticeably faster code:
     # https://gist.github.com/p-hash/9e0f9904ce7947c133308fbe48fe032b
     if str1 == str2:
@@ -198,7 +199,7 @@ def _levenshtein_dist(str1, str2):
 #    return True
 
 
-def _simple_search(token, datadict, initial=False):
+def _simple_search(token: str, datadict: Dict[str, str], initial: bool=False) -> Optional[str]:
     # beginning of sentence, reverse case
     if initial is True:
         token = token.lower()
@@ -212,7 +213,7 @@ def _simple_search(token, datadict, initial=False):
     return candidate
 
 
-def _greedy_search(candidate, datadict, steps=1, distance=5):
+def _greedy_search(candidate: str, datadict: Dict[str, str], steps: int=1, distance: int=5) -> str:
     i = 0
     while candidate in datadict and (
         len(datadict[candidate]) < len(candidate) and
@@ -225,7 +226,7 @@ def _greedy_search(candidate, datadict, steps=1, distance=5):
     return candidate
 
 
-def _decompose(token, datadict, affixlen=0):
+def _decompose(token: str, datadict: Dict[str, str], affixlen: int=0) -> Tuple[Optional[str], Optional[str]]:
     candidate, plan_b = None, None
     # this only makes sense for languages written from left to right
     # AFFIXLEN or MINCOMPLEN can spare time for some languages
@@ -258,7 +259,7 @@ def _decompose(token, datadict, affixlen=0):
                 # backup: equal length or further candidates accepted
                 if candidate is None:
                     # try without capitalizing
-                    newcandidate = _simple_search(part2, datadict)
+                    newcandidate = _simple_search(part2, datadict)  # type: ignore
                     if newcandidate and len(newcandidate) <= len(part2):
                         candidate = part1 + newcandidate.lower()
                     # even greedier
@@ -275,7 +276,7 @@ def _decompose(token, datadict, affixlen=0):
     return candidate, plan_b
 
 
-def _dehyphen(token, datadict, greedy):
+def _dehyphen(token: str, datadict: Dict[str, str], greedy: bool) -> Optional[str]:
     if not '-' in token and not '_' in token:
         return None
     splitted = HYPHEN_REGEX.split(token)
@@ -287,7 +288,7 @@ def _dehyphen(token, datadict, greedy):
         if subcandidate in datadict:
             return datadict[subcandidate]
         # decompose
-        subcandidate = _simple_search(splitted[-1], datadict)
+        subcandidate = _simple_search(splitted[-1], datadict)  # type: ignore
         # search further
         if subcandidate is None and greedy is True:
             subcandidate = _affix_search(splitted[-1], datadict)
@@ -298,7 +299,7 @@ def _dehyphen(token, datadict, greedy):
     return None
 
 
-def _affix_search(wordform, datadict, maxlen=AFFIXLEN):
+def _affix_search(wordform: str, datadict: Dict[str, str], maxlen: int=AFFIXLEN) -> Optional[str]:
     for length in range(maxlen, 1, -1):
         candidate, plan_b = _decompose(wordform, datadict, affixlen=length)
         if candidate is not None:
@@ -309,7 +310,7 @@ def _affix_search(wordform, datadict, maxlen=AFFIXLEN):
     return candidate
 
 
-def _suffix_search(token, datadict):
+def _suffix_search(token: str, datadict: Dict[str, str]) -> Optional[str]:
     lastcount = 0
     for count in range(MINCOMPLEN, len(token)-MINCOMPLEN+1):
         #print(token[-count:], token[:-count], lastpart)
@@ -321,7 +322,7 @@ def _suffix_search(token, datadict):
     return None
 
 
-def _return_lemma(token, datadict, greedy=True, lang=None, initial=False):
+def _return_lemma(token: str, datadict: Dict[str, str], greedy: bool=True, lang: Optional[str]=None, initial: bool=False) -> Optional[str]:
     # filters
     if token.isnumeric():
         return token
@@ -357,7 +358,7 @@ def _return_lemma(token, datadict, greedy=True, lang=None, initial=False):
     return candidate
 
 
-def _control_input_type(token):
+def _control_input_type(token: Any) -> None:
     "Make sure the input is a string of length > 0."
     if not isinstance(token, str):
         raise TypeError(f'Wrong input type, expected string, got {type(token)}')
@@ -365,13 +366,13 @@ def _control_input_type(token):
         raise ValueError('Wrong input type: empty string')
 
 
-def is_known(token, lang=None):
+def is_known(token: str, lang: Optional[Union[str, Tuple[str]]]=None) -> bool:
     """Tell if a token is present in one of the loaded dictionaries.
        Case-insensitive, whole word forms only. Returns True or False."""
     _control_input_type(token)
     _ = _update_lang_data(lang)
     for language in LANG_DATA:
-        if _simple_search(token, language.dict) is not None:
+        if _simple_search(token, language.dict) is not None:  # type: ignore
             return True
     return False
     # suggestion:
@@ -381,7 +382,7 @@ def is_known(token, lang=None):
 
 
 @lru_cache(maxsize=1048576)
-def lemmatize(token, lang=None, greedy=False, silent=True, initial=False):
+def lemmatize(token: str, lang: Optional[Union[str, Tuple[str]]]=None, greedy: bool=False, silent: bool=True, initial: bool=False) -> str:
     """Try to reduce a token to its lemma form according to the
        language list passed as input.
        Returns a string.
@@ -394,7 +395,7 @@ def lemmatize(token, lang=None, greedy=False, silent=True, initial=False):
         #if greedy is None:
         #    greedy = _define_greediness(language)
         # determine lemma
-        candidate = _return_lemma(token, l.dict, greedy=greedy, lang=l.code, initial=initial)
+        candidate = _return_lemma(token, l.dict, greedy=greedy, lang=l.code, initial=initial)  # type: ignore
         if candidate is not None:
             if i != 1:
                 LOGGER.debug('%s found in %s', token, l.code)
@@ -407,7 +408,7 @@ def lemmatize(token, lang=None, greedy=False, silent=True, initial=False):
     return token
 
 
-def text_lemmatizer(text, lang=None, greedy=False, silent=True):
+def text_lemmatizer(text: str, lang: Optional[Union[str, Tuple[str]]]=None, greedy: bool=False, silent: bool=True) -> List[str]:
     """Convenience function to lemmatize a text using a simple tokenizer.
        Returns a list of tokens and lemmata."""
     lemmata = []
@@ -424,7 +425,7 @@ def text_lemmatizer(text, lang=None, greedy=False, silent=True):
     return lemmata
 
 
-def lemma_iterator(text, lang=None, greedy=False, silent=True):
+def lemma_iterator(text: str, lang: Optional[Union[str, Tuple[str]]]=None, greedy: bool=False, silent: bool=True) -> Iterator[str]:
     """Convenience function to lemmatize a text using a simple tokenizer.
        Returns a list of tokens and lemmata."""
     last = '.'  # beginning is initial

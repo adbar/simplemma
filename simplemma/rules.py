@@ -2,6 +2,8 @@
 
 import re
 
+from typing import Optional
+
 
 ADJ_DE = re.compile(r'^(.+?)(arm|artig|bar|chig|ell|en|end|erig|ern|fach|frei|haft|iert|igt|isch|iv|lich|los|mäßig|reich|rig|sam|sch|schig|voll)(er|e?st)?(e|em|en|es|er)?$')  # ig
 # https://de.wiktionary.org/wiki/-ent
@@ -9,7 +11,7 @@ ADJ_DE = re.compile(r'^(.+?)(arm|artig|bar|chig|ell|en|end|erig|ern|fach|frei|ha
 ENDING_DE = re.compile(r'(e|em|en|er|es)$')
 
 
-def apply_rules(token, langcode):
+def apply_rules(token: str, langcode: Optional[str]) -> Optional[str]:
     'Apply pre-defined rules for certain languages.'
     candidate = None
     if langcode == 'de':
@@ -19,7 +21,7 @@ def apply_rules(token, langcode):
     return candidate
 
 
-def apply_de(token):
+def apply_de(token: str) -> Optional[str]:
     'Apply pre-defined rules for German.'
     if token[0].isupper() and len(token) > 8:
         if ENDING_DE.search(token):
@@ -50,7 +52,7 @@ def apply_de(token):
     return None
 
 
-def apply_en(token):
+def apply_en(token: str) -> Optional[str]:
     'Apply pre-defined rules for English.'
     # nouns
     if token.endswith('s'):

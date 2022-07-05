@@ -4,6 +4,7 @@ import re
 
 from collections import Counter
 from operator import itemgetter
+from typing import List, Optional, Sequence, Tuple
 
 from .simplemma import _load_data, _return_lemma
 
@@ -11,7 +12,7 @@ from .simplemma import _load_data, _return_lemma
 SPLIT_INPUT = re.compile(r'[^\W\d_]{3,}')
 
 
-def prepare_text(text):
+def prepare_text(text: str) -> List[str]:
     """Extract potential words, scramble them, extract the most frequent,
        some of the rest, and return at most 1000 tokens."""
     # generator expression to split the text
@@ -27,7 +28,7 @@ def prepare_text(text):
     return [item[0] for item in counter.most_common(1000)]
 
 
-def in_target_language(text, lang=None):
+def in_target_language(text: str, lang: Optional[Tuple[str]]=None) -> float:
     """Determine which proportion of the text is in the target language(s)."""
     total = 0
     in_target = 0
@@ -35,21 +36,21 @@ def in_target_language(text, lang=None):
         total += 1
         langdata = _load_data(lang)
         for l in langdata:
-            candidate = _return_lemma(token, l.dict, greedy=True, lang=l.code)
+            candidate = _return_lemma(token, l.dict, greedy=True, lang=l.code)  # type: ignore
             if candidate is not None:
                 in_target += 1
                 break
     return in_target/total
 
 
-def _return_default():
+def _return_default() -> Sequence[Tuple[str, float]]:
     # todo: None if 'unk'?
     return [('unk', 1)]
 
 
-def lang_detector(text, lang=None, extensive=False):
+def lang_detector(text: str, lang: Optional[Tuple[str]]=None, extensive: bool=False) -> Sequence[Tuple[Optional[str], float]]:
     """Determine which proportion of the text is in the target language(s)."""
-    myresults = {}
+    myresults = {}  # Dict[str, float]
     tokens = prepare_text(text)
     total_tokens = len(tokens)
     if total_tokens == 0:
@@ -58,9 +59,9 @@ def lang_detector(text, lang=None, extensive=False):
     langdata = _load_data(lang)
     for l in langdata:
         if extensive is False:
-            in_target = len(list(filter(None, (_return_lemma(t, l.dict, greedy=False, lang=l.code) for t in tokens))))
+            in_target = len(list(filter(None, (_return_lemma(t, l.dict, greedy=False, lang=l.code) for t in tokens))))  # type: ignore
         else:
-            in_target = len(list(filter(None, (_return_lemma(t, l.dict, greedy=True, lang=l.code) for t in tokens))))
+            in_target = len(list(filter(None, (_return_lemma(t, l.dict, greedy=True, lang=l.code) for t in tokens))))  # type: ignore
         # compute results
         found_ratio = in_target/total_tokens
         myresults[l.code] = found_ratio
@@ -70,7 +71,7 @@ def lang_detector(text, lang=None, extensive=False):
     results = sorted(myresults.items(), key=itemgetter(1), reverse=True)
     # in case of ex-aequo
     if extensive is False and results[0][1] == results[1][1]:
-        results = lang_detector(text, lang=lang, extensive=True)
+        results = lang_detector(text, lang=lang, extensive=True)  # type: ignore
     if len(results) > 1 and results[0][1] == results[1][1]:
         return _return_default()
     return results
