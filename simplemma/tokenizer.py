@@ -12,6 +12,4 @@ def simple_tokenizer(text: str, iterate: bool=False) -> Union[Iterator[Match[str
     """Simple regular expression adapted from NLTK.
        Takes a string as input and returns a list of tokens.
        Provided for convenience and educational purposes."""
-    if iterate is False:
-        return TOKREGEX.findall(text)
-    return TOKREGEX.finditer(text)
+    return TOKREGEX.finditer(text) if iterate else TOKREGEX.findall(text)

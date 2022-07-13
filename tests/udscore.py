@@ -60,11 +60,7 @@ for filedata in data_files:
             #    flag = True
                 continue
 
-            if token['id'] == 1:
-                initial = True
-            else:
-                initial = False
-
+            initial = token['id'] == 1
             greedy_candidate = lemmatize(token['form'], lang=language, greedy=True, initial=initial)
             candidate = lemmatize(token['form'], lang=language, greedy=False, initial=initial)
 

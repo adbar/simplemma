@@ -102,7 +102,10 @@ def test_convenience():
     text = 'Nous déciderons une fois arrivées. Voilà.'
     assert simplemma.text_lemmatizer(text, lang='fr', greedy=False) == ['nous', 'décider', 'un', 'fois', 'arrivée', '.', 'voilà', '.']
     text = 'Nous déciderons une fois arrivées. Voilà.'
-    assert [l for l in simplemma.simplemma.lemma_iterator(text, lang='fr', greedy=False)] == simplemma.text_lemmatizer(text, lang='fr', greedy=False)
+    assert list(
+        simplemma.simplemma.lemma_iterator(text, lang='fr', greedy=False)
+    ) == simplemma.text_lemmatizer(text, lang='fr', greedy=False)
+
     text = 'Pepa e Iván son una pareja sentimental, ambos dedicados al doblaje de películas.'
     assert(simplemma.text_lemmatizer(text, lang='es', greedy=False)) == ['pepa', 'e', 'iván', 'son', 'uno', 'pareja', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']
     assert simplemma.text_lemmatizer(text, lang='es', greedy=True) == ['pepa', 'e', 'iván', 'son', 'uno', 'pareja', 'sentimental', ',', 'ambos', 'dedicar', 'al', 'doblaje', 'de', 'película', '.']

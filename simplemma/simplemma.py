@@ -78,7 +78,7 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
             line.startswith('-') or re.search(r'[+_]|[^ ]+ [^ ]+ [^ ]+', line) or \
             ':' in columns[1]:
                 # or len(columns[1]) < 2:
-                if silent is False:
+                if not silent:
                     LOGGER.warning('wrong format: %s', line.strip())
                 continue
             # too long
@@ -95,7 +95,7 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
                 #    continue
                 if dist1 == 0 or dist2 < dist1: # dist1 < 2
                     mydict[columns[1]] = columns[0]
-                elif silent is False:
+                elif not silent:
                     LOGGER.warning('diverging: %s %s | %s %s', columns[1], mydict[columns[1]], columns[1], columns[0])
                     LOGGER.debug('distances: %s %s', dist1, dist2)
             else:
@@ -167,29 +167,21 @@ def _levenshtein_dist(str1: str, str2: str) -> int:
         str1, str2 = str2, str1
     r1 = list(range(len(str2) + 1))
     r2 = [0] * len(r1)
-    i = 0
-    for c1 in str1:
+    for i, c1 in enumerate(str1):
         r2[0] = i + 1
-        j = 0
-        for c2 in str2:
+        for j, c2 in enumerate(str2):
             if c1 == c2:
                 r2[j+1] = r1[j]
             else:
                 a1, a2, a3 = r2[j], r1[j], r1[j+1]
-                if a1 > a2:
-                    if a2 > a3:
-                        r2[j+1] = 1 + a3
-                    else:
-                        r2[j+1] = 1 + a2
+                if a1 > a2 > a3 or a1 <= a2 and a1 > a3:
+                    r2[j+1] = 1 + a3
+                elif a1 > a2:
+                    r2[j+1] = 1 + a2
                 else:
-                    if a1 > a3:
-                        r2[j+1] = 1 + a3
-                    else:
-                        r2[j+1] = 1 + a1
-            j += 1
+                    r2[j+1] = 1 + a1
         aux = r1
         r1, r2 = r2, aux
-        i += 1
     return r1[-1]
 
 
@@ -201,7 +193,7 @@ def _levenshtein_dist(str1: str, str2: str) -> int:
 
 def _simple_search(token: str, datadict: Dict[str, str], initial: bool=False) -> Optional[str]:
     # beginning of sentence, reverse case
-    if initial is True:
+    if initial:
         token = token.lower()
     candidate = datadict.get(token)
     if candidate is None:
@@ -247,10 +239,7 @@ def _decompose(token: str, datadict: Dict[str, str], affixlen: int=0) -> Tuple[O
                 #print('#', part1, part2, affixlen, count)
                 # candidate must be shorter
                 # try original case, then substitute
-                if lempart2[0].isupper():
-                    substitute = part2.lower()
-                else:
-                    substitute = part2.capitalize()
+                substitute = part2.lower() if lempart2[0].isupper() else part2.capitalize()
                 # try other case
                 newcandidate = _greedy_search(substitute, datadict)
                 # shorten the second known part of the token
@@ -277,7 +266,7 @@ def _decompose(token: str, datadict: Dict[str, str], affixlen: int=0) -> Tuple[O
 
 
 def _dehyphen(token: str, datadict: Dict[str, str], greedy: bool) -> Optional[str]:
-    if not '-' in token and not '_' in token:
+    if '-' not in token and '_' not in token:
         return None
     splitted = HYPHEN_REGEX.split(token)
     if len(splitted) > 1 and len(splitted[-1]) > 0:
@@ -290,7 +279,7 @@ def _dehyphen(token: str, datadict: Dict[str, str], greedy: bool) -> Optional[st
         # decompose
         subcandidate = _simple_search(splitted[-1], datadict)  # type: ignore
         # search further
-        if subcandidate is None and greedy is True:
+        if subcandidate is None and greedy:
             subcandidate = _affix_search(splitted[-1], datadict)
         # return
         if subcandidate is not None:
@@ -317,9 +306,7 @@ def _suffix_search(token: str, datadict: Dict[str, str]) -> Optional[str]:
         part = _simple_search(token[-count:].capitalize(), datadict)
         if part is not None and len(part) <= len(token[-count:]):
             lastpart, lastcount = part, count
-    if lastcount > 0:
-        return token[:-lastcount] + lastpart.lower()
-    return None
+    return token[:-lastcount] + lastpart.lower() if lastcount > 0 else None
 
 
 def _return_lemma(token: str, datadict: Dict[str, str], greedy: bool=True, lang: Optional[str]=None, initial: bool=False) -> Optional[str]:
@@ -339,20 +326,16 @@ def _return_lemma(token: str, datadict: Dict[str, str], greedy: bool=True, lang:
         if newcandidate is not None:
             candidate = newcandidate
     # stop here in some cases
-    if len(token) <= 8 or greedy is False:
+    if len(token) <= 8 or not greedy:
         return candidate
     # greedy subword decomposition: suffix/affix search
     if candidate is None:
         # greedier subword decomposition: suffix search with character in between
-        if lang in LONGER_AFFIXES:
-            maxlen = LONGAFFIXLEN
-        else:
-            maxlen = AFFIXLEN
+        maxlen = LONGAFFIXLEN if lang in LONGER_AFFIXES else AFFIXLEN
         candidate = _affix_search(token, datadict, maxlen)
         # try something else
         if candidate is None:
             candidate = _suffix_search(token, datadict)
-    # try further hops, not sure this is always a good idea
     else:
         candidate = _greedy_search(candidate, datadict)
     return candidate
@@ -371,10 +354,10 @@ def is_known(token: str, lang: Optional[Union[str, Tuple[str]]]=None) -> bool:
        Case-insensitive, whole word forms only. Returns True or False."""
     _control_input_type(token)
     _ = _update_lang_data(lang)
-    for language in LANG_DATA:
-        if _simple_search(token, language.dict) is not None:  # type: ignore
-            return True
-    return False
+    return any(
+        _simple_search(token, language.dict) is not None
+        for language in LANG_DATA
+    )
     # suggestion:
     #return any(
     #    _simple_search(token, language.dict) is not None for language in langdata
@@ -400,12 +383,10 @@ def lemmatize(token: str, lang: Optional[Union[str, Tuple[str]]]=None, greedy: b
             if i != 1:
                 LOGGER.debug('%s found in %s', token, l.code)
             return candidate
-    if silent is False:
+    if not silent:
         raise ValueError(f'Token not found: {token}')
     # try to simply lowercase
-    if lang[0] in BETTER_LOWER:  # and len(token) < 10 ?
-        return token.lower()
-    return token
+    return token.lower() if lang[0] in BETTER_LOWER else token
 
 
 def text_lemmatizer(text: str, lang: Optional[Union[str, Tuple[str]]]=None, greedy: bool=False, silent: bool=True) -> List[str]:

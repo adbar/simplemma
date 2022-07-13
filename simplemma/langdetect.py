@@ -58,10 +58,32 @@ def lang_detector(text: str, lang: Optional[Tuple[str]]=None, extensive: bool=Fa
     # iterate
     langdata = _load_data(lang)
     for l in langdata:
-        if extensive is False:
-            in_target = len(list(filter(None, (_return_lemma(t, l.dict, greedy=False, lang=l.code) for t in tokens))))  # type: ignore
-        else:
-            in_target = len(list(filter(None, (_return_lemma(t, l.dict, greedy=True, lang=l.code) for t in tokens))))  # type: ignore
+        in_target = (
+            len(
+                list(
+                    filter(
+                        None,
+                        (
+                            _return_lemma(t, l.dict, greedy=True, lang=l.code)
+                            for t in tokens
+                        ),
+                    )
+                )
+            )
+            if extensive
+            else len(
+                list(
+                    filter(
+                        None,
+                        (
+                            _return_lemma(t, l.dict, greedy=False, lang=l.code)
+                            for t in tokens
+                        ),
+                    )
+                )
+            )
+        )
+
         # compute results
         found_ratio = in_target/total_tokens
         myresults[l.code] = found_ratio
@@ -70,7 +92,7 @@ def lang_detector(text: str, lang: Optional[Tuple[str]]=None, extensive: bool=Fa
             myresults['unk'] = unknown
     results = sorted(myresults.items(), key=itemgetter(1), reverse=True)
     # in case of ex-aequo
-    if extensive is False and results[0][1] == results[1][1]:
+    if not extensive and results[0][1] == results[1][1]:
         results = lang_detector(text, lang=lang, extensive=True)  # type: ignore
     if len(results) > 1 and results[0][1] == results[1][1]:
         return _return_default()
