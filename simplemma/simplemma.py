@@ -204,7 +204,7 @@ def _levenshtein_dist(str1: str, str2: str) -> int:
 
 def _simple_search(token: str, datadict: Dict[str, str], initial: bool=False) -> Optional[str]:
     # beginning of sentence, reverse case
-    if initial is True:
+    if initial:
         token = token.lower()
     candidate = datadict.get(token)
     if candidate is None:
@@ -247,7 +247,6 @@ def _decompose(token: str, datadict: Dict[str, str], affixlen: int=0) -> Tuple[O
                 part2 = part2.capitalize()
             lempart2 = _simple_search(part2, datadict)
             if lempart2 is not None:
-                #print('#', part1, part2, affixlen, count)
                 # candidate must be shorter
                 # try original case, then substitute
                 if lempart2[0].isupper():
@@ -280,12 +279,10 @@ def _decompose(token: str, datadict: Dict[str, str], affixlen: int=0) -> Tuple[O
 
 
 def _dehyphen(token: str, datadict: Dict[str, str], greedy: bool) -> Optional[str]:
-    if not '-' in token and not '_' in token:
-        return None
     splitted = HYPHEN_REGEX.split(token)
-    if len(splitted[-1]) > 0:
+    if len(splitted) > 1 and len(splitted[-1]) > 0:
         # try to find a word form without hyphen
-        subcandidate = ''.join([t.lower() for t in splitted if t not in HYPHENS])
+        subcandidate = ''.join([t for t in splitted if t not in HYPHENS]).lower()
         if token[0].isupper():
             subcandidate = subcandidate.capitalize()
         if subcandidate in datadict:
@@ -316,7 +313,6 @@ def _affix_search(wordform: str, datadict: Dict[str, str], maxlen: int=AFFIXLEN)
 def _suffix_search(token: str, datadict: Dict[str, str]) -> Optional[str]:
     lastcount = 0
     for count in range(MINCOMPLEN, len(token)-MINCOMPLEN+1):
-        #print(token[-count:], token[:-count], lastpart)
         part = _simple_search(token[-count:].capitalize(), datadict)
         if part is not None and len(part) <= len(token[-count:]):
             lastpart, lastcount = part, count
@@ -342,7 +338,7 @@ def _return_lemma(token: str, datadict: Dict[str, str], greedy: bool=True, lang:
         if newcandidate is not None:
             candidate = newcandidate
     # stop here in some cases
-    if len(token) <= 8 or greedy is False:
+    if len(token) <= 8 or not greedy:
         return candidate
     # greedy subword decomposition: suffix/affix search
     if candidate is None:
@@ -374,14 +370,10 @@ def is_known(token: str, lang: Optional[Union[str, Tuple[str]]]=None) -> bool:
        Case-insensitive, whole word forms only. Returns True or False."""
     _control_input_type(token)
     _ = _update_lang_data(lang)
-    for language in LANG_DATA:
-        if _simple_search(token, language.dict) is not None:
-            return True
-    return False
-    # suggestion:
-    #return any(
-    #    _simple_search(token, language.dict) is not None for language in langdata
-    #)
+    return any(
+        _simple_search(token, language.dict) is not None
+        for language in LANG_DATA
+    )
 
 
 @lru_cache(maxsize=1048576)
@@ -403,12 +395,10 @@ def lemmatize(token: str, lang: Optional[Union[str, Tuple[str]]]=None, greedy: b
             if i != 1:
                 LOGGER.debug('%s found in %s', token, l.code)
             return candidate
-    if silent is False:
+    if not silent:
         raise ValueError(f'Token not found: {token}')
-    # try to simply lowercase
-    if lang[0] in BETTER_LOWER:  # and len(token) < 10 ?
-        return token.lower()
-    return token
+    # try to simply lowercase # and len(token) < 10 ?
+    return token.lower() if lang[0] in BETTER_LOWER else token
 
 
 def text_lemmatizer(text: str, lang: Optional[Union[str, Tuple[str]]]=None, greedy: bool=False, silent: bool=True) -> List[str]:
