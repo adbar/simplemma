@@ -50,9 +50,9 @@ class LangDict:
     "Class to store word pairs and relevant information for a single language."
     __slots__ = ('code', 'dict')
 
-    def __init__(self, langcode: Optional[str]=None, langdict: Optional[Dict[str, str]]=None):
-        self.code: Optional[str] = langcode
-        self.dict: Optional[Dict[str, str]] = langdict
+    def __init__(self, langcode: str, langdict: Dict[str, str]):
+        self.code: str = langcode
+        self.dict: Dict[str, str] = langdict
 
 
 def _determine_path(listpath: str, langcode: str) -> str:
@@ -126,7 +126,9 @@ def _load_pickle(langcode: str) -> Dict[str, str]:
     filename = f'data/{langcode}.plzma'
     filepath = str(Path(__file__).parent / filename)
     with lzma.open(filepath, 'rb') as filehandle:
-        return pickle.load(filehandle)  # type: ignore
+        pickled_dict = pickle.load(filehandle)
+        assert isinstance(pickled_dict, dict)
+        return pickled_dict
 
 
 def _load_data(langs: Optional[Tuple[str]]) -> List[LangDict]:
@@ -134,7 +136,8 @@ def _load_data(langs: Optional[Tuple[str]]) -> List[LangDict]:
        Takes one or several ISO 639-1 code language code as input.
        Returns a list of dictionaries."""
     langlist = []
-    for lang in langs:  # type: ignore
+    assert isinstance(langs, tuple)
+    for lang in langs:
         if lang not in LANGLIST:
             LOGGER.error('language not supported: %s', lang)
             continue
@@ -252,16 +255,16 @@ def _decompose(token: str, datadict: Dict[str, str], affixlen: int=0) -> Tuple[O
                 else:
                     substitute = part2.capitalize()
                 # try other case
-                newcandidate = _greedy_search(substitute, datadict)
+                greedy_candidate = _greedy_search(substitute, datadict)
                 # shorten the second known part of the token
-                if newcandidate and len(newcandidate) < len(part2):
-                    candidate = part1 + newcandidate.lower()
+                if greedy_candidate and len(greedy_candidate) < len(part2):
+                    candidate = part1 + greedy_candidate.lower()
                 # backup: equal length or further candidates accepted
                 if candidate is None:
                     # try without capitalizing
-                    newcandidate = _simple_search(part2, datadict)  # type: ignore
-                    if newcandidate and len(newcandidate) <= len(part2):
-                        candidate = part1 + newcandidate.lower()
+                    lower_candidate = _simple_search(part2, datadict)
+                    if lower_candidate and len(lower_candidate) <= len(part2):
+                        candidate = part1 + lower_candidate.lower()
                     # even greedier
                     # with capital letter?
                     elif len(lempart2) < len(part2) + affixlen:
@@ -280,7 +283,7 @@ def _dehyphen(token: str, datadict: Dict[str, str], greedy: bool) -> Optional[st
     if not '-' in token and not '_' in token:
         return None
     splitted = HYPHEN_REGEX.split(token)
-    if len(splitted) > 1 and len(splitted[-1]) > 0:
+    if len(splitted[-1]) > 0:
         # try to find a word form without hyphen
         subcandidate = ''.join([t.lower() for t in splitted if t not in HYPHENS])
         if token[0].isupper():
@@ -288,13 +291,13 @@ def _dehyphen(token: str, datadict: Dict[str, str], greedy: bool) -> Optional[st
         if subcandidate in datadict:
             return datadict[subcandidate]
         # decompose
-        subcandidate = _simple_search(splitted[-1], datadict)  # type: ignore
+        last_candidate = _simple_search(splitted[-1], datadict)
         # search further
-        if subcandidate is None and greedy is True:
-            subcandidate = _affix_search(splitted[-1], datadict)
+        if last_candidate is None and greedy is True:
+            last_candidate = _affix_search(splitted[-1], datadict)
         # return
-        if subcandidate is not None:
-            splitted[-1] = subcandidate
+        if last_candidate is not None:
+            splitted[-1] = last_candidate
             return ''.join(splitted)
     return None
 
@@ -372,7 +375,7 @@ def is_known(token: str, lang: Optional[Union[str, Tuple[str]]]=None) -> bool:
     _control_input_type(token)
     _ = _update_lang_data(lang)
     for language in LANG_DATA:
-        if _simple_search(token, language.dict) is not None:  # type: ignore
+        if _simple_search(token, language.dict) is not None:
             return True
     return False
     # suggestion:
@@ -395,7 +398,7 @@ def lemmatize(token: str, lang: Optional[Union[str, Tuple[str]]]=None, greedy: b
         #if greedy is None:
         #    greedy = _define_greediness(language)
         # determine lemma
-        candidate = _return_lemma(token, l.dict, greedy=greedy, lang=l.code, initial=initial)  # type: ignore
+        candidate = _return_lemma(token, l.dict, greedy=greedy, lang=l.code, initial=initial)
         if candidate is not None:
             if i != 1:
                 LOGGER.debug('%s found in %s', token, l.code)
