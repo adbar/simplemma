@@ -11,20 +11,20 @@ from setuptools import setup, find_packages
 def get_version(package):
     "Return package version as listed in `__version__` in `init.py`"
     # version = Path(package, '__init__.py').read_text() # Python >= 3.5
-    with open(str(Path(package, '__init__.py')), 'r', encoding='utf-8') as filehandle:
+    with open(str(Path(package, "__init__.py")), "r", encoding="utf-8") as filehandle:
         initfile = filehandle.read()
-    return re.search('__version__ = [\'"]([^\'"]+)[\'"]', initfile)[1]
+    return re.search("__version__ = ['\"]([^'\"]+)['\"]", initfile)[1]
 
 
-readme = Path('README.rst').read_text()
-#with open('HISTORY.rst') as history_file:
+readme = Path("README.rst").read_text()
+# with open('HISTORY.rst') as history_file:
 #    history = history_file.read()
 
 requirements = []
 
 setup_requirements = []
 
-test_requirements = ['pytest>=3', 'pytest-cov']
+test_requirements = ["pytest>=3", "pytest-cov"]
 
 # add argument to compile with mypyc
 if len(sys.argv) > 1 and sys.argv[1] == "--use-mypyc":
@@ -33,11 +33,11 @@ if len(sys.argv) > 1 and sys.argv[1] == "--use-mypyc":
 
     ext_modules = mypycify(
         [
-            'simplemma/__init__.py',
-            'simplemma/langdetect.py',
-            'simplemma/rules.py',
-            'simplemma/simplemma.py',
-            'simplemma/tokenizer.py',
+            "simplemma/__init__.py",
+            "simplemma/langdetect.py",
+            "simplemma/rules.py",
+            "simplemma/simplemma.py",
+            "simplemma/tokenizer.py",
         ],
         opt_level="3",
         multi_file=True,
@@ -47,73 +47,80 @@ else:
 
 setup(
     author="Adrien Barbaresi",
-    author_email='barbaresi@bbaw.de',
-    python_requires='>=3.6',
+    author_email="barbaresi@bbaw.de",
+    python_requires=">=3.6",
     classifiers=[
-        'Development Status :: 3 - Alpha',
-        'Intended Audience :: Developers',
-        'Intended Audience :: Education',
-        'Intended Audience :: Information Technology',
-        'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: MIT License',
-        'Natural Language :: Bulgarian',
-        'Natural Language :: Catalan',
-        'Natural Language :: Czech',
-        'Natural Language :: Danish',
-        'Natural Language :: Dutch',
-        'Natural Language :: English',
-        'Natural Language :: Finnish',
-        'Natural Language :: French',
-        'Natural Language :: Galician',
-        'Natural Language :: German',
-        'Natural Language :: Greek',
-        'Natural Language :: Hungarian',
-        'Natural Language :: Indonesian',
-        'Natural Language :: Irish',
-        'Natural Language :: Italian',
-        'Natural Language :: Latin',
-        'Natural Language :: Latvian',
-        'Natural Language :: Lithuanian',
-        'Natural Language :: Macedonian',
-        'Natural Language :: Norwegian',
-        'Natural Language :: Polish',
-        'Natural Language :: Portuguese',
-        'Natural Language :: Romanian',
-        'Natural Language :: Russian',
-        'Natural Language :: Slovak',
-        'Natural Language :: Slovenian',
-        'Natural Language :: Spanish',
-        'Natural Language :: Swedish',
-        'Natural Language :: Turkish',
-        'Natural Language :: Ukrainian',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
-        'Topic :: Scientific/Engineering :: Information Analysis',
-        'Topic :: Text Processing :: Linguistic',
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Education",
+        "Intended Audience :: Information Technology",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: MIT License",
+        "Natural Language :: Bulgarian",
+        "Natural Language :: Catalan",
+        "Natural Language :: Czech",
+        "Natural Language :: Danish",
+        "Natural Language :: Dutch",
+        "Natural Language :: English",
+        "Natural Language :: Finnish",
+        "Natural Language :: French",
+        "Natural Language :: Galician",
+        "Natural Language :: German",
+        "Natural Language :: Greek",
+        "Natural Language :: Hungarian",
+        "Natural Language :: Indonesian",
+        "Natural Language :: Irish",
+        "Natural Language :: Italian",
+        "Natural Language :: Latin",
+        "Natural Language :: Latvian",
+        "Natural Language :: Lithuanian",
+        "Natural Language :: Macedonian",
+        "Natural Language :: Norwegian",
+        "Natural Language :: Polish",
+        "Natural Language :: Portuguese",
+        "Natural Language :: Romanian",
+        "Natural Language :: Russian",
+        "Natural Language :: Slovak",
+        "Natural Language :: Slovenian",
+        "Natural Language :: Spanish",
+        "Natural Language :: Swedish",
+        "Natural Language :: Turkish",
+        "Natural Language :: Ukrainian",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Topic :: Scientific/Engineering :: Information Analysis",
+        "Topic :: Text Processing :: Linguistic",
     ],
     description="A simple multilingual lemmatizer for Python.",
     install_requires=requirements,
     license="MIT license",
-    long_description=readme, # + '\n\n' + history,
+    long_description=readme,  # + '\n\n' + history,
     include_package_data=True,
-    keywords=['nlp', 'lemmatization', 'lemmatisation', 'lemmatiser', 'tokenization', 'tokenizer'],
-    name='simplemma',
-    package_data={'simplemma': ['data/*.plzma']},
-    packages=find_packages(include=['simplemma', 'simplemma.*']),
+    keywords=[
+        "nlp",
+        "lemmatization",
+        "lemmatisation",
+        "lemmatiser",
+        "tokenization",
+        "tokenizer",
+    ],
+    name="simplemma",
+    package_data={"simplemma": ["data/*.plzma"]},
+    packages=find_packages(include=["simplemma", "simplemma.*"]),
     project_urls={
         "Source": "https://github.com/adbar/",
-        "Blog": "https://adrien.barbaresi.eu/blog/", # tag/simplemma
+        "Blog": "https://adrien.barbaresi.eu/blog/",  # tag/simplemma
     },
     setup_requires=setup_requirements,
-    test_suite='tests',
+    test_suite="tests",
     tests_require=test_requirements,
-    url='https://github.com/adbar/simplemma',
-    version=get_version('simplemma'),
+    url="https://github.com/adbar/simplemma",
+    version=get_version("simplemma"),
     zip_safe=False,
     # optional mypyc
     ext_modules=ext_modules,
