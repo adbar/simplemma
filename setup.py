@@ -13,7 +13,7 @@ def get_version(package):
     # version = Path(package, '__init__.py').read_text() # Python >= 3.5
     with open(str(Path(package, '__init__.py')), 'r', encoding='utf-8') as filehandle:
         initfile = filehandle.read()
-    return re.search('__version__ = [\'"]([^\'"]+)[\'"]', initfile).group(1)
+    return re.search('__version__ = [\'"]([^\'"]+)[\'"]', initfile)[1]
 
 
 readme = Path('README.rst').read_text()
@@ -25,6 +25,25 @@ requirements = []
 setup_requirements = []
 
 test_requirements = ['pytest>=3', 'pytest-cov']
+
+# add argument to compile with mypyc
+if len(sys.argv) > 1 and sys.argv[1] == "--use-mypyc":
+    sys.argv.pop(1)
+    from mypyc.build import mypycify
+
+    ext_modules = mypycify(
+        [
+            'simplemma/__init__.py',
+            'simplemma/langdetect.py',
+            'simplemma/rules.py',
+            'simplemma/simplemma.py',
+            'simplemma/tokenizer.py',
+        ],
+        opt_level="3",
+        multi_file=True,
+    )
+else:
+    ext_modules = []
 
 setup(
     author="Adrien Barbaresi",
@@ -73,6 +92,7 @@ setup(
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: Text Processing :: Linguistic',
     ],
@@ -95,4 +115,6 @@ setup(
     url='https://github.com/adbar/simplemma',
     version=get_version('simplemma'),
     zip_safe=False,
+    # optional mypyc
+    ext_modules=ext_modules,
 )
