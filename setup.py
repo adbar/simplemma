@@ -3,6 +3,7 @@
 """The setup script."""
 
 import re
+import sys
 
 from pathlib import Path
 from setuptools import setup, find_packages
