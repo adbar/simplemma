@@ -5,6 +5,7 @@ include HISTORY.rst
 include LICENSE
 include README.rst
 include licenses/
+include simplemma/py.typed
 graft simplemma/data/
 
 recursive-exclude * __pycache__
