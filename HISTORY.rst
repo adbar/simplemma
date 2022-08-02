@@ -2,6 +2,15 @@
 History
 =======
 
+
+0.8.0
+-----
+
+* code fully type checked, optional pre-compilation with ``mypyc``
+* fixes: logging error (#11), input type (#12)
+* code style: `black <https://github.com/psf/black>`_
+
+
 0.7.0
 -----
 

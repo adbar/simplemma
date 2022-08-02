@@ -11,9 +11,7 @@ from setuptools import setup, find_packages
 
 def get_version(package):
     "Return package version as listed in `__version__` in `init.py`"
-    # version = Path(package, '__init__.py').read_text() # Python >= 3.5
-    with open(str(Path(package, "__init__.py")), "r", encoding="utf-8") as filehandle:
-        initfile = filehandle.read()
+    initfile = Path(package, "__init__.py").read_text()
     return re.search("__version__ = ['\"]([^'\"]+)['\"]", initfile)[1]
 
 

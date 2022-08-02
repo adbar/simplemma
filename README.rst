@@ -19,6 +19,10 @@ Simplemma: a simple multilingual lemmatizer for Python
     :target: https://codecov.io/gh/adbar/simplemma
     :alt: Code Coverage
 
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+   :target: https://github.com/psf/black
+   :alt: Code style: black
+
 
 Purpose
 -------
@@ -222,10 +226,21 @@ This library is particularly relevant as regards the lemmatization of less frequ
 Speed
 -----
 
-Measured on an old laptop to give a lower bound:
+Orders of magnitude given for reference only, measured on an old laptop to give a lower bound:
 
 - Tokenization: > 1 million tokens/sec
 - Lemmatization: > 250,000 words/sec
+
+Installing the most recent Python version can improve speed.
+
+
+Optional pre-compilation with ``mypyc``
+---------------------------------------
+
+1. ``pip3 install mypy``
+2. clone or download the source code from the repository
+3. ``python3 setup.py --use-mypyc bdist_wheel``
+4. ``pip3 install dist/*.whl`` (where ``*`` is the compiled wheel)
 
 
 Roadmap
