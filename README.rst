@@ -23,15 +23,19 @@ Simplemma: a simple multilingual lemmatizer for Python
    :target: https://github.com/psf/black
    :alt: Code style: black
 
+.. image:: https://img.shields.io/badge/DOI-10.5281%2Fzenodo.4673264-brightgreen
+   :target: https://doi.org/10.5281/zenodo.4673264
+   :alt: Reference DOI: 10.5281/zenodo.4673264
+
 
 Purpose
 -------
 
 `Lemmatization <https://en.wikipedia.org/wiki/Lemmatisation>`_ is the process of grouping together the inflected forms of a word so they can be analysed as a single item, identified by the word's lemma, or dictionary form. Unlike stemming, lemmatization outputs word units that are still valid linguistic forms.
 
-In modern natural language processing (NLP), this task is often indirectly tackled by more complex systems encompassing a whole processing pipeline. However, it appears that there is no straightforward way to address lemmatization in Python although this task is useful in information retrieval and natural language processing.
+In modern natural language processing (NLP), this task is often indirectly tackled by more complex systems encompassing a whole processing pipeline. However, it appears that there is no straightforward way to address lemmatization in Python although this task can be crucial in fields such as information retrieval and NLP.
 
-*Simplemma* provides a simple and multilingual approach to look for base forms or lemmata. It may not be as powerful as full-fledged solutions but it is generic, easy to install and straightforward to use. In particular, it doesn't need morphosyntactic information and can process a raw series of tokens or even a text with its built-in (simple) tokenizer. By design it should be reasonably fast and work in a large majority of cases, without being perfect.
+*Simplemma* provides a simple and multilingual approach to look for base forms or lemmata. It may not be as powerful as full-fledged solutions but it is generic, easy to install and straightforward to use. In particular, it does not need morphosyntactic information and can process a raw series of tokens or even a text with its built-in tokenizer. By design it should be reasonably fast and work in a large majority of cases, without being perfect.
 
 With its comparatively small footprint it is especially useful when speed and simplicity matter, in low-resource contexts, for educational purposes, or as a baseline system for lemmatization and morphological analysis.
 
@@ -157,9 +161,9 @@ Caveats
 
 As the focus lies on overall coverage, some short frequent words (typically: pronouns and conjunctions) may need post-processing, this generally concerns a few dozens of tokens per language.
 
-Additionally, the current absence of morphosyntactic information is both an advantage in terms of simplicity and an impassable frontier with respect to lemmatization accuracy, e.g. to disambiguate between past participles and adjectives derived from verbs in Germanic and Romance languages. In most cases, ``simplemma`` often doesn't change the input then.
+The current absence of morphosyntactic information is both an advantage in terms of simplicity and an impassable frontier regarding lemmatization accuracy, e.g. disambiguation between past participles and adjectives derived from verbs in Germanic and Romance languages. In most cases, ``simplemma`` often does not change such input words.
 
-The greedy algorithm rarely produces forms that are not valid. It is designed to work best in the low-frequency range, notably for compound words and neologisms. Aggressive decomposition is only useful as a general approach in the case of morphologically-rich languages. It can also act as a linguistically motivated stemmer.
+The greedy algorithm seldom produces invalid forms. It is designed to work best in the low-frequency range, notably for compound words and neologisms. Aggressive decomposition is only useful as a general approach in the case of morphologically-rich languages, where it can also act as a linguistically motivated stemmer.
 
 Bug reports over the `issues page <https://github.com/adbar/simplemma/issues>`_ are welcome.
 
@@ -235,7 +239,7 @@ Installing the most recent Python version can improve speed.
 
 
 Optional pre-compilation with ``mypyc``
----------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 1. ``pip3 install mypy``
 2. clone or download the source code from the repository
@@ -288,8 +292,9 @@ For a more complex and universal approach in Python see `universal-lemmatizer <h
 References
 ----------
 
-.. image:: https://zenodo.org/badge/330707034.svg
-   :target: https://zenodo.org/badge/latestdoi/330707034
+.. image:: https://img.shields.io/badge/DOI-10.5281%2Fzenodo.4673264-brightgreen
+   :target: https://doi.org/10.5281/zenodo.4673264
+   :alt: Reference DOI: 10.5281/zenodo.4673264
 
 Barbaresi A. (2021). Simplemma: a simple multilingual lemmatizer for Python. Zenodo. http://doi.org/10.5281/zenodo.4673264
 
