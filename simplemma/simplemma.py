@@ -181,10 +181,13 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
     return dict(sorted(mydict.items()))
 
 
-def _pickle_dict(langcode: str) -> None:
-    mydict = _load_dict(langcode)
-    filename = f"data/{langcode}.plzma"
-    filepath = str(Path(__file__).parent / filename)
+def _pickle_dict(
+    langcode: str, listpath: str = "lists", filepath: Optional[str] = None
+) -> None:
+    mydict = _load_dict(langcode, listpath)
+    if filepath is None:
+        filename = f"data/{langcode}.plzma"
+        filepath = str(Path(__file__).parent / filename)
     with lzma.open(filepath, "wb") as filehandle:  # , filters=my_filters, preset=9
         pickle.dump(mydict, filehandle, protocol=4)
     LOGGER.debug("%s %s", langcode, len(mydict))

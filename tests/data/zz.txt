@@ -3,4 +3,5 @@ Another invalid
 valid-word	valid-word
 s	st
 closeone	closeones
+closeone	closeones
 closeon	closeones

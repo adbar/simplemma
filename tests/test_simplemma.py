@@ -3,6 +3,8 @@
 import logging
 import os
 import pytest
+import tempfile
+
 
 import simplemma
 from simplemma import lemmatize, lemma_iterator, simple_tokenizer, text_lemmatizer
@@ -117,7 +119,9 @@ def test_logic():
     assert simplemma.simplemma._determine_path("lists", "de").endswith("de.txt")
 
     # dict pickling
-    # simplemma.simplemma._pickle_dict('zz')
+    listpath = os.path.join(TEST_DIR, "data")
+    os_handle, temp_outputfile = tempfile.mkstemp(suffix=".pkl", text=True)
+    simplemma.simplemma._pickle_dict("zz", listpath, temp_outputfile)
 
     # missing languages or faulty language codes
     mydata = simplemma.simplemma._load_data(("de", "abc", "en"))
