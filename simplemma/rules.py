@@ -10,7 +10,9 @@ ADJ_DE = re.compile(
 )  # ig
 # https://de.wiktionary.org/wiki/-ent
 
-NOUN_ENDINGS_DE = re.compile(r"(and|ant|ent|erei|erie|heit|ik|ist|keit|or|schaft|tät|tion|ung|ur)en$|(eur|ich|ier|ling|ör)e$")  # ig
+NOUN_ENDINGS_DE = re.compile(
+    r"(and|ant|ent|erei|erie|heit|ik|ist|keit|or|schaft|tät|tion|ung|ur)en$|(eur|ich|ier|ling|ör)e$"
+)  # ig
 FEM_PLUR_DE = re.compile(r"Innen|\*innen|\*Innen|-innen")
 
 GERUNDIVE_DE = re.compile(r"end(e|em|en|er)$")
