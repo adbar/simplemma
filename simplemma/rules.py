@@ -10,6 +10,13 @@ ADJ_DE = re.compile(
 )  # ig
 # https://de.wiktionary.org/wiki/-ent
 
+NOUN_ENDINGS_DE = re.compile(r"(and|ant|ent|erei|erie|heit|ik|ist|keit|or|schaft|tät|tion|ung|ur)en$|(eur|ich|ier|ling|ör)e$")  # ig
+FEM_PLUR_DE = re.compile(r"Innen|\*innen|\*Innen|-innen")
+
+GERUNDIVE_DE = re.compile(r"end(e|em|en|er)$")
+PP_DE = re.compile(r"ge.+?t(e|em|en|er|es)$")
+
+ENDING_CHARS_DE = {"e", "m", "n", "r"}
 ENDING_DE = re.compile(r"(e|em|en|er|es)$")
 
 
@@ -26,30 +33,31 @@ def apply_rules(token: str, langcode: Optional[str]) -> Optional[str]:
 def apply_de(token: str) -> Optional[str]:
     "Apply pre-defined rules for German."
     if token[0].isupper() and len(token) > 8:
-        if ENDING_DE.search(token):
+        if token[-1] in ENDING_CHARS_DE:
             # plural noun forms
-            if re.search(
-                "(and|ant|ent|erei|erie|heit|ik|ist|keit|or|schaft|tät|tion|ung|ur)en$",
-                token,
-            ):
-                return token[:-2]
-            if re.search("(eur|ich|ier|ling|ör)e$", token):  # ig
-                return token[:-1]
+            match = NOUN_ENDINGS_DE.search(token)
+            if match:
+                # -en pattern
+                if match[0].endswith("n"):
+                    return token[:-2]
+                # -e pattern
+                else:
+                    return token[:-1]
             # genitive – too rare?
             # if re.search('(aner|chen|eur|ier|iker|ikum|iment|iner|iter|ium|land|lein|ler|ling|ner|tum)s$', token):  # er
             #    return token[:-1]
             # -end
-            if re.search("end(e|em|en|er)$", token):
+            if GERUNDIVE_DE.search(token):
                 return ENDING_DE.sub("er", token)
         # inclusive speech
         # + Binnen-I: ArbeitnehmerInnenschutzgesetz?
         if token.endswith("nnen"):
-            return re.sub(r"Innen|\*innen|\*Innen|-innen", ":innen", token)
+            return FEM_PLUR_DE.sub(":innen", token)
     # adjectives
     elif token[0].islower():
         if ADJ_DE.match(token):
             return ADJ_DE.sub(r"\1\2", token)
-        if re.search(r"ge.+?t(e|em|en|er|es)$", token):
+        if PP_DE.search(token):
             return ENDING_DE.sub("", token)
         # print(token)
         # if re.search(r'st(e|em|en|es|er)?$', token):
