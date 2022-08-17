@@ -357,13 +357,14 @@ def _decompose(
 
 def _dehyphen(token: str, datadict: Dict[str, str], greedy: bool) -> Optional[str]:
     splitted = HYPHEN_REGEX.split(token)
-    if len(splitted) > 1 and len(splitted[-1]) > 0:
+    if len(splitted) > 1 and splitted[-1]:
         # try to find a word form without hyphen
         subcandidate = "".join([t for t in splitted if t not in HYPHENS]).lower()
         if token[0].isupper():
             subcandidate = subcandidate.capitalize()
-        if subcandidate in datadict:
-            return datadict[subcandidate]
+        candidate = datadict.get(subcandidate)
+        if candidate:
+            return candidate
         # decompose
         last_candidate = _simple_search(splitted[-1], datadict)
         # search further
