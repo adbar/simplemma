@@ -16,17 +16,21 @@ def test_apply_de():
     assert apply_de("Pfifferlinge") == "Pfifferling"
     assert apply_de("Heiterkeiten") == "Heiterkeit"
     assert apply_de("Bahnreisenden") == "Bahnreisender"
-    # assert apply_de('Bürgertums') == 'Bürgertum'
+    assert apply_de('Bürgertums') == 'Bürgertum'
+    assert apply_de('Inspekteurinnen') == 'Inspekteurin'
     # adjectives
     assert apply_de("großartiges") == "großartig"
     assert apply_de("achtsame") == "achtsam"
     assert apply_de("aufgemachtes") == "aufgemacht"
-    # assert apply_de('geächteten') == 'geächtet'
-    # assert apply_de('schnellster') == 'schnell'
+    assert apply_de("schnellster") == "schnell"
+    assert apply_de("geächteten") == "geächtet"
+    assert apply_de("aufgeblasenes") == "aufgeblasen"
+    assert apply_de("geschleunigst") == "geschleunig"
+    assert apply_de("zweitrangigster") == "zweitrangig"
     # Gendersprache normalization
     assert apply_de("ZuschauerInnen") == "Zuschauer:innen"
     assert apply_de("Zuschauer*innen") == "Zuschauer:innen"
-    # assert apply_de('Zuschauer_innen') == 'Zuschauer:innen'
+    assert apply_de('Zuschauer_innen') == 'Zuschauer:innen'
 
 
 def test_apply_en():

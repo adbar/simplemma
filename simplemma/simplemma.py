@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Iterator, Optional, Tuple, Union
 
 try:
-    from .rules import apply_rules
+    from .rules import apply_rules, RULES_LANGS
     from .tokenizer import simple_tokenizer
 except ImportError:  # ModuleNotFoundError, Python >= 3.6
     pass
@@ -414,7 +414,7 @@ def _return_lemma(
     # dictionary search
     candidate = _simple_search(token, datadict, initial=initial)
     # simple rules
-    if candidate is None:
+    if candidate is None and lang in RULES_LANGS:
         candidate = apply_rules(token, lang)
     # decomposition
     if candidate is None:  # and greedy is True
