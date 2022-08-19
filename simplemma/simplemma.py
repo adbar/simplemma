@@ -241,11 +241,9 @@ def _levenshtein_dist(str1: str, str2: str) -> int:
         str1, str2 = str2, str1
     r1 = list(range(len(str2) + 1))
     r2 = [0] * len(r1)
-    i = 0
-    for c1 in str1:
+    for i, c1 in enumerate(str1):
         r2[0] = i + 1
-        j = 0
-        for c2 in str2:
+        for j, c2 in enumerate(str2):
             if c1 == c2:
                 r2[j + 1] = r1[j]
             else:
@@ -260,10 +258,8 @@ def _levenshtein_dist(str1: str, str2: str) -> int:
                         r2[j + 1] = 1 + a3
                     else:
                         r2[j + 1] = 1 + a1
-            j += 1
         aux = r1
         r1, r2 = r2, aux
-        i += 1
     return r1[-1]
 
 
@@ -368,7 +364,7 @@ def _dehyphen(token: str, datadict: Dict[str, str], greedy: bool) -> Optional[st
         # decompose
         last_candidate = _simple_search(splitted[-1], datadict)
         # search further
-        if last_candidate is None and greedy is True:
+        if last_candidate is None and greedy:
             last_candidate = _affix_search(splitted[-1], datadict)
         # return
         if last_candidate is not None:

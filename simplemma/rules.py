@@ -49,8 +49,7 @@ def apply_de(token: str) -> Optional[str]:
             if match[0].endswith("n"):
                 return token[:-2]
             # -e pattern
-            else:
-                return token[:-1]
+            return token[:-1]
         # genitive – too rare?
         if token[-1] == "s" and GENITIVE_DE.search(token):
             return token[:-1]
@@ -78,10 +77,11 @@ def apply_de(token: str) -> Optional[str]:
             elif PP_DE.search(token):
                 alternative = ENDING_DE.sub("", token)
         # summing up
-        if alternative and not candidate:
-            return alternative
-        if alternative and candidate and len(alternative) < len(candidate):
-            return alternative
+        if alternative:
+            if not candidate:
+                return alternative
+            if candidate and len(alternative) < len(candidate):
+                return alternative
         return candidate
     return None
 
