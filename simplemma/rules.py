@@ -42,15 +42,9 @@ def apply_rules(token: str, langcode: Optional[str]) -> Optional[str]:
 def apply_de(token: str) -> Optional[str]:
     "Apply pre-defined rules for German."
     if token[0].isupper() and len(token) > 8 and token[-1] in ENDING_CHARS_NN_DE:
-        # plural noun forms
-        match = NOUN_ENDINGS_DE.search(token)
-        if match:
+        if match := NOUN_ENDINGS_DE.search(token):
             # -en pattern
-            if match[0].endswith("n"):
-                return token[:-2]
-            # -e pattern
-            else:
-                return token[:-1]
+            return token[:-2] if match[0].endswith("n") else token[:-1]
         # genitive – too rare?
         if token[-1] == "s" and GENITIVE_DE.search(token):
             return token[:-1]
@@ -65,7 +59,6 @@ def apply_de(token: str) -> Optional[str]:
                 return PLUR_ORTH_DE.sub(":innen", token)
             # normalize without regex
             return token[:-3]
-    # adjectives
     elif token[0].islower():  # and token[-1] in ENDING_CHARS_ADJ_DE
         candidate, alternative = None, None
         # general search
@@ -77,11 +70,11 @@ def apply_de(token: str) -> Optional[str]:
                 alternative = COMP_ADJ.sub("", token)
             elif PP_DE.search(token):
                 alternative = ENDING_DE.sub("", token)
-        # summing up
-        if alternative and not candidate:
-            return alternative
-        if alternative and candidate and len(alternative) < len(candidate):
-            return alternative
+        if alternative:
+            if not candidate:
+                return alternative
+            if len(alternative) < len(candidate):
+                return alternative
         return candidate
     return None
 
@@ -92,35 +85,34 @@ def apply_en(token: str) -> Optional[str]:
     if token[-1] == "s":
         if token.endswith("ies") and len(token) > 7:
             if token.endswith("cies"):
-                return token[:-4] + "cy"
+                return f"{token[:-4]}cy"
             if token.endswith("ries"):
-                return token[:-4] + "ry"
+                return f"{token[:-4]}ry"
             if token.endswith("ties"):
-                return token[:-4] + "ty"
+                return f"{token[:-4]}ty"
         if token.endswith("doms"):
-            return token[:-4] + "dom"
+            return f"{token[:-4]}dom"
         if token.endswith("esses"):
-            return token[:-5] + "ess"
+            return f"{token[:-5]}ess"
         if token.endswith("isms"):
-            return token[:-4] + "ism"
+            return f"{token[:-4]}ism"
         if token.endswith("ists"):
-            return token[:-4] + "ist"
+            return f"{token[:-4]}ist"
         if token.endswith("ments"):
-            return token[:-5] + "ment"
+            return f"{token[:-5]}ment"
         if token.endswith("nces"):
-            return token[:-4] + "nce"
+            return f"{token[:-4]}nce"
         if token.endswith("ships"):
-            return token[:-5] + "ship"
+            return f"{token[:-5]}ship"
         if token.endswith("tions"):
-            return token[:-5] + "tion"
-    # verbs
+            return f"{token[:-5]}tion"
     elif token.endswith("ed"):
         if token.endswith("ated"):
-            return token[:-4] + "ate"
+            return f"{token[:-4]}ate"
         if token.endswith("ened"):
-            return token[:-4] + "en"
+            return f"{token[:-4]}en"
         if token.endswith("fied"):
-            return token[:-4] + "fy"
+            return f"{token[:-4]}fy"
         if token.endswith("ized"):
-            return token[:-4] + "ize"
+            return f"{token[:-4]}ize"
     return None
