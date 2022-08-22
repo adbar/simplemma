@@ -411,7 +411,7 @@ def _return_lemma(
     candidate = _simple_search(token, datadict, initial=initial)
     # simple rules
     if candidate is None and lang in RULES_LANGS:
-        candidate = apply_rules(token, lang)
+        candidate = apply_rules(token, lang, greedy)
     # decomposition
     if candidate is None:  # and greedy is True
         candidate = _dehyphen(token, datadict, greedy)

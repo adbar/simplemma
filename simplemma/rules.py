@@ -8,18 +8,17 @@ from typing import Optional
 RULES_LANGS = {"de", "en"}
 
 ADJ_DE = re.compile(
-    r"^(.+?)(arm|artig|bar|chig|ell|en|end|erig|ern|fach|frei|haft|iert|igt|isch|iv|lich|los|mäßig|reich|rig|sam|sch|schig|voll)(?:er|e?st)?(?:e|em|en|er|es)?$"
-)  # ig
-# https://de.wiktionary.org/wiki/-ent
+    r"^(.+?)(arm|artig|bar|chig|ell|en|end|erig|ern|esk|fach|fähig|förmig|frei|haft|iert|igt|isch|iv|lich|los|mäßig|reich|rig|sam|sch|schig|selig|voll)(?:er|e?st)?(?:e|em|en|er|es)?$"
+)
 
 NOUN_ENDINGS_DE = re.compile(
-    r"(?:and|ant|ent|erei|erie|heit|ik|ist|keit|or|schaft|tät|tion|ung|ur)en$|(?:eur|ich|ier|ling|ör)e$"
-)  # ig
-PLUR_ORTH_DE = re.compile(r"Innen|\*innen|\*Innen|-innen|_innen")
+    r"(?:and|ant|anz|ent|enz|erei|erie|heit|ik|ion|ist|keit|nom|or|schaft|tät|tion|ung|ur)(en)?$|"
+    r"(?:eur|ich|ier|ling|om|ör|nis)(en?)?$|"
+    r"(?:ette)(n)?$|"  # ie|er
+    r"(?:chen|ent|erl|eur|gramm|iker|iter|land|lein|ler|ling|loge|ment|ner|om|stan|thek|um)(e?s)?$"  # en|er
+)
 
-GENITIVE_DE = re.compile(
-    "(?:aner|chen|ent|eur|ier|iker|ikum|iment|iner|iter|ium|land|lein|ler|ling|ner|tum)s$"
-)  # er
+PLUR_ORTH_DE = re.compile(r"Innen|\*innen|\*Innen|-innen|_innen")
 GERUNDIVE_DE = re.compile(r"end(?:e|em|en|er)$")
 PP_DE = re.compile(r"ge.+?t(?:e|em|en|er|es)$")
 COMP_ADJ = re.compile(r"st(e|em|en|es|er)?$")
@@ -29,30 +28,33 @@ ENDING_CHARS_ADJ_DE = ENDING_CHARS_NN_DE.union({"d", "t"})
 ENDING_DE = re.compile(r"(?:e|em|en|er|es)$")
 
 
-def apply_rules(token: str, langcode: Optional[str]) -> Optional[str]:
+def apply_rules(
+    token: str, langcode: Optional[str], greedy: bool = False
+) -> Optional[str]:
     "Apply pre-defined rules for certain languages."
     candidate = None
     if langcode == "de":
-        candidate = apply_de(token)
+        candidate = apply_de(token, greedy)
     elif langcode == "en":
         candidate = apply_en(token)
     return candidate
 
 
-def apply_de(token: str) -> Optional[str]:
+def apply_de(token: str, greedy: bool = False) -> Optional[str]:
     "Apply pre-defined rules for German."
-    if token[0].isupper() and len(token) > 8 and token[-1] in ENDING_CHARS_NN_DE:
+    if token[0].isupper() and len(token) > 7 and token[-1] in ENDING_CHARS_NN_DE:
+        # bypass
+        if token[-2:] == "er":
+            return token
         # plural noun forms
         match = NOUN_ENDINGS_DE.search(token)
-        if match:
-            # -en pattern
-            if match[0].endswith("n"):
-                return token[:-2]
-            # -e pattern
-            return token[:-1]
-        # genitive – too rare?
-        if token[-1] == "s" and GENITIVE_DE.search(token):
-            return token[:-1]
+        if match and len(match[0]) > 2:
+            groups = [g for g in match.groups() if g is not None]
+            # lemma identified
+            if not groups:
+                return token
+            # apply -en/-e/-n/-s patterns
+            return token[: -len(groups[0])]
         # -end
         if GERUNDIVE_DE.search(token):
             return ENDING_DE.sub("er", token)
@@ -64,6 +66,11 @@ def apply_de(token: str) -> Optional[str]:
                 return PLUR_ORTH_DE.sub(":innen", token)
             # normalize without regex
             return token[:-3]
+        # last resort
+        # if greedy:
+        # -s → ø
+        # if token[-1] == "s":
+        #    return token[:-1]
     # adjectives
     elif token[0].islower():  # and token[-1] in ENDING_CHARS_ADJ_DE
         candidate, alternative = None, None
@@ -76,6 +83,12 @@ def apply_de(token: str) -> Optional[str]:
                 alternative = COMP_ADJ.sub("", token)
             elif PP_DE.search(token):
                 alternative = ENDING_DE.sub("", token)
+            # last resort
+            if not alternative and greedy:
+                if token[-4:-2] == "ig":
+                    alternative = token[:-2]
+                elif token[-3:-1] == "ig":
+                    alternative = token[:-1]
         # summing up
         if alternative:
             if not candidate:

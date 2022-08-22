@@ -13,11 +13,25 @@ def test_apply_de():
     # doesn't exist
     assert apply_de("Whatawordicantbelieveit") is None
     # nouns
+    assert apply_de("Abonnenten") == "Abonnent"
     assert apply_de("Pfifferlinge") == "Pfifferling"
+    assert apply_de("Pfifferlingen") == "Pfifferling"
     assert apply_de("Heiterkeiten") == "Heiterkeit"
     assert apply_de("Bahnreisenden") == "Bahnreisender"
-    assert apply_de('Bürgertums') == 'Bürgertum'
-    assert apply_de('Inspekteurinnen') == 'Inspekteurin'
+    assert apply_de("Bürgertums") == "Bürgertum"
+    assert apply_de("Achterls") == "Achterl"
+    assert apply_de("Inspekteurinnen") == "Inspekteurin"
+    assert apply_de("Zwiebelschneider") == "Zwiebelschneider"
+    #assert apply_de("Zwiebelschneidern") == "Zwiebelschneider"
+    assert apply_de("Facetten") == "Facette"
+    assert apply_de("Kazakhstans") == "Kazakhstan"
+    assert apply_de("Hämatome") == "Hämatom"
+    assert apply_de("Hämatomen") == "Hämatom"
+    assert apply_de("Hämatoms") == "Hämatom"
+    assert apply_de("Ökonomen") == "Ökonom"
+    #assert apply_de("Theologien") == "Theologie"
+    #assert apply_de("Zeitschriftenmarken", greedy=True) == "Zeitschriftenmarke"
+    #assert apply_de("Gesundheitsfreaks", greedy=True) == "Gesundheitsfreak"
     # adjectives
     assert apply_de("großartiges") == "großartig"
     assert apply_de("achtsame") == "achtsam"
@@ -27,6 +41,8 @@ def test_apply_de():
     assert apply_de("aufgeblasenes") == "aufgeblasen"
     assert apply_de("geschleunigst") == "geschleunig"
     assert apply_de("zweitrangigster") == "zweitrangig"
+    assert apply_de("zwielichtigen", greedy=True) == "zwielichtig"
+    assert apply_de("freakige", greedy=True) == "freakig"
     # Gendersprache normalization
     assert apply_de("ZuschauerInnen") == "Zuschauer:innen"
     assert apply_de("Zuschauer*innen") == "Zuschauer:innen"
