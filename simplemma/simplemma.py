@@ -139,7 +139,7 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
                 or ":" in columns[1]
             ):
                 # or len(columns[1]) < 2:
-                if silent is False:
+                if not silent:
                     LOGGER.warning("wrong format: %s", line.strip())
                 continue
             # too long
@@ -157,7 +157,7 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
                 #    continue
                 if dist1 == 0 or dist2 < dist1:  # dist1 < 2
                     mydict[columns[1]] = columns[0]
-                elif silent is False:
+                elif not silent:
                     LOGGER.warning(
                         "diverging: %s %s | %s %s",
                         columns[1],
@@ -248,16 +248,12 @@ def _levenshtein_dist(str1: str, str2: str) -> int:
                 r2[j + 1] = r1[j]
             else:
                 a1, a2, a3 = r2[j], r1[j], r1[j + 1]
-                if a1 > a2:
-                    if a2 > a3:
-                        r2[j + 1] = 1 + a3
-                    else:
-                        r2[j + 1] = 1 + a2
+                if a1 > a2 > a3 or a1 <= a2 and a1 > a3:
+                    r2[j + 1] = 1 + a3
+                elif a1 > a2:
+                    r2[j + 1] = 1 + a2
                 else:
-                    if a1 > a3:
-                        r2[j + 1] = 1 + a3
-                    else:
-                        r2[j + 1] = 1 + a1
+                    r2[j + 1] = 1 + a1
         aux = r1
         r1, r2 = r2, aux
     return r1[-1]
@@ -322,10 +318,7 @@ def _decompose(
             if lempart2 is not None:
                 # candidate must be shorter
                 # try original case, then substitute
-                if lempart2[0].isupper():
-                    substitute = part2.lower()
-                else:
-                    substitute = part2.capitalize()
+                substitute = part2.lower() if lempart2[0].isupper() else part2.capitalize()
                 # try other case
                 greedy_candidate = _greedy_search(substitute, datadict)
                 # shorten the second known part of the token
@@ -358,8 +351,7 @@ def _dehyphen(token: str, datadict: Dict[str, str], greedy: bool) -> Optional[st
         subcandidate = "".join([t for t in splitted if t not in HYPHENS]).lower()
         if token[0].isupper():
             subcandidate = subcandidate.capitalize()
-        candidate = datadict.get(subcandidate)
-        if candidate:
+        if candidate := datadict.get(subcandidate):
             return candidate
         # decompose
         last_candidate = _simple_search(splitted[-1], datadict)
@@ -392,9 +384,7 @@ def _suffix_search(token: str, datadict: Dict[str, str]) -> Optional[str]:
         part = _simple_search(token[-count:].capitalize(), datadict)
         if part is not None and len(part) <= len(token[-count:]):
             lastpart, lastcount = part, count
-    if lastcount > 0:
-        return token[:-lastcount] + lastpart.lower()
-    return None
+    return token[:-lastcount] + lastpart.lower() if lastcount > 0 else None
 
 
 def _return_lemma(
@@ -425,15 +415,11 @@ def _return_lemma(
     # greedy subword decomposition: suffix/affix search
     if candidate is None:
         # greedier subword decomposition: suffix search with character in between
-        if lang in LONGER_AFFIXES:
-            maxlen = LONGAFFIXLEN
-        else:
-            maxlen = AFFIXLEN
+        maxlen = LONGAFFIXLEN if lang in LONGER_AFFIXES else AFFIXLEN
         candidate = _affix_search(token, datadict, maxlen)
         # try something else
         if candidate is None:
             candidate = _suffix_search(token, datadict)
-    # try further hops, not sure this is always a good idea
     else:
         candidate = _greedy_search(candidate, datadict)
     return candidate
