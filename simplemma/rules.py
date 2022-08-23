@@ -44,7 +44,7 @@ def apply_de(token: str, greedy: bool = False) -> Optional[str]:
     "Apply pre-defined rules for German."
     if token[0].isupper() and len(token) > 7 and token[-1] in ENDING_CHARS_NN_DE:
         # bypass
-        if token[-2:] == "er":
+        if token.endswith("er"):
             return token
         # plural noun forms
         match = NOUN_ENDINGS_DE.search(token)

@@ -83,8 +83,9 @@ SAFE_LIMIT = {
     "tr",
 }
 BETTER_LOWER = {"bg", "es", "hy", "lt", "lv", "pt", "sk"}
-BUFFER_HACK = {"bg", "es", "et", "fi", "fr", "it", "lt", "pl", "sk"}  # 'da'
-LONGER_AFFIXES = {"et", "fi", "hu", "hy", "lt", "ru"}  # 'pl'
+BUFFER_HACK = {"bg", "es", "et", "fi", "fr", "it", "lt", "pl", "sk"}  # "da"
+LONGER_AFFIXES = {"et", "fi", "hu", "lt"}
+SHORTER_GREEDY = {"bg", "et", "fi"}
 
 HYPHEN_REGEX = re.compile(r"([_-])")
 HYPHENS = {"-", "_"}
@@ -139,7 +140,7 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
                 or ":" in columns[1]
             ):
                 # or len(columns[1]) < 2:
-                if silent is False:
+                if not silent:
                     LOGGER.warning("wrong format: %s", line.strip())
                 continue
             # too long
@@ -157,7 +158,7 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
                 #    continue
                 if dist1 == 0 or dist2 < dist1:  # dist1 < 2
                     mydict[columns[1]] = columns[0]
-                elif silent is False:
+                elif not silent:
                     LOGGER.warning(
                         "diverging: %s %s | %s %s",
                         columns[1],
@@ -261,12 +262,6 @@ def _levenshtein_dist(str1: str, str2: str) -> int:
         aux = r1
         r1, r2 = r2, aux
     return r1[-1]
-
-
-# def _define_greediness(langcode):
-#    if langcode in ('bg', 'es', 'fr', 'ru', 'uk'):
-#        return False
-#    return True
 
 
 def _simple_search(
@@ -420,20 +415,21 @@ def _return_lemma(
         if newcandidate is not None:
             candidate = newcandidate
     # stop here in some cases
-    if len(token) <= 8 or not greedy:
+    if not greedy:
+        return candidate
+    limit = 6 if lang in SHORTER_GREEDY else 8
+    if len(token) <= limit:
         return candidate
     # greedy subword decomposition: suffix/affix search
     if candidate is None:
+        # define parameters
+        maxlen = LONGAFFIXLEN if lang in LONGER_AFFIXES else AFFIXLEN
         # greedier subword decomposition: suffix search with character in between
-        if lang in LONGER_AFFIXES:
-            maxlen = LONGAFFIXLEN
-        else:
-            maxlen = AFFIXLEN
-        candidate = _affix_search(token, datadict, maxlen)
-        # try something else
-        if candidate is None:
-            candidate = _suffix_search(token, datadict)
-    # try further hops, not sure this is always a good idea
+        # then suffixes
+        candidate = _affix_search(token, datadict, maxlen) or _suffix_search(
+            token, datadict
+        )
+    # try further hops, not always a good idea
     else:
         candidate = _greedy_search(candidate, datadict)
     return candidate
