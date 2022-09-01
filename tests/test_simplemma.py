@@ -401,17 +401,17 @@ def test_subwords():
         simplemma.lemmatize("Kapuzenpullis", lang="de", greedy=True) == "Kapuzenpulli"
     )
     assert simplemma.lemmatize("Pharmagrößen", lang="de", greedy=True) == "Pharmagröße"
-    assert simplemma.lemmatize('beständigsten', lang='de', greedy=True) == 'beständig'
-    #assert simplemma.lemmatize('zweitstärkster', lang='de', greedy=True) == 'zweitstärkste'
+    assert simplemma.lemmatize("beständigsten", lang="de", greedy=True) == "beständig"
+    # assert simplemma.lemmatize('zweitstärkster', lang='de', greedy=True) == 'zweitstärkste'
     # assert simplemma.lemmatize('Abholservices', lang='de', greedy=True) == 'Abholservice'
     # assert simplemma.lemmatize('Funktionärsebene', lang='de', greedy=True) == 'Funktionärsebene'
     # assert simplemma.lemmatize('strafbewehrte', lang='de', greedy=True) == 'strafbewehrt'
     # assert simplemma.lemmatize('fälschungssicheren', lang='de', greedy=True) == 'fälschungssicher'
     # assert simplemma.lemmatize('Spargelstangen', lang='de', greedy=True) == 'Spargelstange'
-    #assert (
+    # assert (
     #    simplemma.lemmatize("Bürgerschaftsabgeordneter", lang="de", greedy=True)
     #    == "Bürgerschaftsabgeordnete"
-    #)
+    # )
 
 
 def test_tokenizer():

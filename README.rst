@@ -209,7 +209,7 @@ Code   Language           Words (10³) Acc.  Comments
 ``es`` Spanish            720         0.94  on UD ES-GSD
 ``et`` Estonian           133               low coverage
 ``fa`` Persian            10                low coverage, potential issues
-``fi`` Finnish            2,106       `here <https://github.com/aajanki/finnish-pos-accuracy>`_  alternatives: `voikko <https://voikko.puimula.org/python.html>`_ or `NLP list <https://blogs.helsinki.fi/language-technology/hi-nlp/morphology/>`_
+``fi`` Finnish            2,106             evaluation and alternatives: see `this benchmark <https://github.com/aajanki/finnish-pos-accuracy>`_
 ``fr`` French             217         0.94  on UD FR-GSD
 ``ga`` Irish              383
 ``gd`` Gaelic             48
@@ -257,8 +257,8 @@ Orders of magnitude given for reference only, measured on an old laptop to give 
 Installing the most recent Python version can improve speed.
 
 
-Optional pre-compilation with ``mypyc``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Optional pre-compilation with `mypyc <https://github.com/mypyc/mypyc>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 1. ``pip3 install mypy``
 2. clone or download the source code from the repository

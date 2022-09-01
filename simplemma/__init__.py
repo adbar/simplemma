@@ -4,7 +4,7 @@ __title__ = "simplemma"
 __author__ = "Adrien Barbaresi"
 __email__ = "barbaresi@bbaw.de"
 __license__ = "MIT"
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 
 
 from .simplemma import lemmatize, lemma_iterator, text_lemmatizer, is_known

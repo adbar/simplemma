@@ -22,4 +22,14 @@ def test_detection():
         "Dieser Satz ist auf Deutsch.", lang=("de", "en"), extensive=True
     )
     assert results[0][0] == "de"
-    assert in_target_language("Diese Wörter", lang=("de", "en")) == 1
+    assert lang_detector(
+        '"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.',
+        lang=("cs", "sk"),
+    ) == [("cs", 0.625), ("unk", 0.375), ("sk", 0.125)]
+    # target language
+    assert (
+        in_target_language(
+            "opera post physica posita (τὰ μετὰ τὰ φυσικά)", lang=("la",)
+        )
+        == 0.5
+    )

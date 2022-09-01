@@ -3,6 +3,14 @@ History
 =======
 
 
+0.8.1
+-----
+
+* better rules for English and German
+* inconsistencies fixed for cy, de, en, ga, sv (#16)
+* docs: added language detection and citation info
+
+
 0.8.0
 -----
 
