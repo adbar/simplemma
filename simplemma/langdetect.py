@@ -4,12 +4,21 @@ import re
 
 from collections import Counter
 from operator import itemgetter
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
-from .simplemma import _load_data, _return_lemma
+from .simplemma import LANG_DATA, _control_lang, _load_data, _return_lemma
 
 
 SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
+
+
+def _update_lang_data(lang: Optional[Union[str, Tuple[str]]]) -> None:
+    # convert string
+    lang = _control_lang(lang)
+    # load corresponding data
+    global LANG_DATA
+    if not LANG_DATA or tuple(l.code for l in LANG_DATA) != lang:
+        LANG_DATA = _load_data(lang)
 
 
 def prepare_text(text: str) -> List[str]:
@@ -34,10 +43,10 @@ def in_target_language(text: str, lang: Optional[Tuple[str]] = None) -> float:
     """Determine which proportion of the text is in the target language(s)."""
     total = 0
     in_target = 0
+    _update_lang_data(lang)
     for token in prepare_text(text):
         total += 1
-        langdata = _load_data(lang)
-        for l in langdata:
+        for l in LANG_DATA:
             candidate = _return_lemma(token, l.dict, greedy=True, lang=l.code)
             if candidate is not None:
                 in_target += 1
@@ -60,32 +69,13 @@ def lang_detector(
     if total_tokens == 0:
         return _return_default()
     # iterate
-    langdata = _load_data(lang)
-    for l in langdata:
-        if extensive is False:
-            in_target = len(
-                list(
-                    filter(
-                        None,
-                        (
-                            _return_lemma(t, l.dict, greedy=False, lang=l.code)
-                            for t in tokens
-                        ),
-                    )
-                )
-            )
-        else:
-            in_target = len(
-                list(
-                    filter(
-                        None,
-                        (
-                            _return_lemma(t, l.dict, greedy=True, lang=l.code)
-                            for t in tokens
-                        ),
-                    )
-                )
-            )
+    _update_lang_data(lang)
+    for l in LANG_DATA:
+        in_target = 0
+        for token in tokens:
+            candidate = _return_lemma(token, l.dict, greedy=extensive, lang=l.code)
+            if candidate is not None:
+                in_target += 1
         # compute results
         found_ratio = in_target / total_tokens
         myresults[l.code] = found_ratio
@@ -93,9 +83,12 @@ def lang_detector(
         if myresults.get("unk") is None or unknown < myresults["unk"]:
             myresults["unk"] = unknown
     results = sorted(myresults.items(), key=itemgetter(1), reverse=True)
-    # in case of ex-aequo
-    if extensive is False and results[0][1] == results[1][1]:
-        results = lang_detector(text, lang=lang, extensive=True)
-    if len(results) > 1 and results[0][1] == results[1][1]:
-        return _return_default()
+    # post-processing
+    if len(results) > 1:
+        # in case of ex-aequo
+        if extensive is False and results[0][1] == results[1][1]:
+            results = lang_detector(text, lang=lang, extensive=True)
+        # fallback
+        if len(results) > 1 and results[0][1] == results[1][1]:
+            return _return_default()
     return results

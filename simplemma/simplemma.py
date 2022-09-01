@@ -203,6 +203,16 @@ def _load_pickle(langcode: str) -> Dict[str, str]:
         return pickled_dict
 
 
+def _control_lang(lang: Any) -> Tuple[str]:
+    "Make sure the lang variable is a valid tuple."
+    # convert string
+    if isinstance(lang, str):
+        lang = (lang,)
+    if not isinstance(lang, tuple):
+        raise TypeError("lang argument must be a two-letter language code")
+    return lang  # type: ignore[return-value]
+
+
 def _load_data(langs: Optional[Tuple[str]]) -> List[LangDict]:
     """Decompress und unpickle lemmatization rules.
     Takes one or several ISO 639-1 code language code as input.
@@ -220,10 +230,7 @@ def _load_data(langs: Optional[Tuple[str]]) -> List[LangDict]:
 
 def _update_lang_data(lang: Optional[Union[str, Tuple[str]]]) -> Tuple[str]:
     # convert string
-    if isinstance(lang, str):
-        lang = (lang,)
-    if not isinstance(lang, tuple):
-        raise TypeError("lang argument must be a two-letter language code")
+    lang = _control_lang(lang)
     # load corresponding data
     global LANG_DATA
     if not LANG_DATA or tuple(l.code for l in LANG_DATA) != lang:
@@ -447,7 +454,7 @@ def is_known(token: str, lang: Optional[Union[str, Tuple[str]]] = None) -> bool:
     """Tell if a token is present in one of the loaded dictionaries.
     Case-insensitive, whole word forms only. Returns True or False."""
     _control_input_type(token)
-    _ = _update_lang_data(lang)
+    _ = _update_lang_data(lang)  # ignore returned value
     return any(
         _simple_search(token, language.dict) is not None for language in LANG_DATA
     )
@@ -466,7 +473,7 @@ def lemmatize(
     Returns a string.
     Can raise ValueError by silent=False if no lemma has been found."""
     _control_input_type(token)
-    lang = _update_lang_data(lang)
+    lang = _update_lang_data(lang)  # use returned lang value
     # start
     for i, l in enumerate(LANG_DATA, start=1):
         # determine default greediness
