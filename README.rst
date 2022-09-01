@@ -168,6 +168,25 @@ The greedy algorithm seldom produces invalid forms. It is designed to work best 
 Bug reports over the `issues page <https://github.com/adbar/simplemma/issues>`_ are welcome.
 
 
+Language detection
+~~~~~~~~~~~~~~~~~~
+
+Language detection works by providing a text and a tuple ``lang`` consisting of a series of languages of interest. Scores between 0 and 1 are returned.
+
+The ``lang_detector()`` function returns a list of language codes along with scores and adds "unk" for unknown or out-of-vocabulary words. The latter can also be calculated by using the function ``in_target_language()`` which returns a ratio.
+
+.. code-block:: python
+
+    # import necessary functions
+    >>> from simplemma.langdetect import in_target_language, lang_detector
+    # language detection
+    >>> lang_detector('"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.', lang=("cs", "sk"))
+    [('cs', 0.625), ('unk', 0.375), ('sk', 0.125)]
+    # proportion of known words
+    >>> in_target_language("opera post physica posita (τὰ μετὰ τὰ φυσικά)", lang=("la",))
+    0.5
+
+
 Supported languages
 -------------------
 
@@ -190,7 +209,7 @@ Code   Language           Words (10³) Acc.  Comments
 ``es`` Spanish            720         0.94  on UD ES-GSD
 ``et`` Estonian           133               low coverage
 ``fa`` Persian            10                low coverage, potential issues
-``fi`` Finnish            2,106             alternatives: `voikko <https://voikko.puimula.org/python.html>`_ or `NLP list <https://blogs.helsinki.fi/language-technology/hi-nlp/morphology/>`_
+``fi`` Finnish            2,106       `here <https://github.com/aajanki/finnish-pos-accuracy>`_  alternatives: `voikko <https://voikko.puimula.org/python.html>`_ or `NLP list <https://blogs.helsinki.fi/language-technology/hi-nlp/morphology/>`_
 ``fr`` French             217         0.94  on UD FR-GSD
 ``ga`` Irish              383
 ``gd`` Gaelic             48
@@ -296,10 +315,11 @@ References
    :target: https://doi.org/10.5281/zenodo.4673264
    :alt: Reference DOI: 10.5281/zenodo.4673264
 
-Barbaresi A. (2021). Simplemma: a simple multilingual lemmatizer for Python. Zenodo. http://doi.org/10.5281/zenodo.4673264
+Barbaresi A. (*year*). Simplemma: a simple multilingual lemmatizer for Python [Computer software] (Version *version number*). Berlin, Germany: Berlin-Brandenburg Academy of Sciences. Available from https://github.com/adbar/simplemma DOI: 10.5281/zenodo.4673264
 
 This work draws from lexical analysis algorithms used in:
 
 - Barbaresi, A., & Hein, K. (2017). `Data-driven identification of German phrasal compounds <https://hal.archives-ouvertes.fr/hal-01575651/document>`_. In International Conference on Text, Speech, and Dialogue Springer, pp. 192-200.
+- Barbaresi, A. (2016). `An unsupervised morphological criterion for discriminating similar languages <https://aclanthology.org/W16-4827/>`_. In 3rd Workshop on NLP for Similar Languages, Varieties and Dialects (VarDial 2016), Association for Computational Linguistics, pp. 212-220.
 - Barbaresi, A. (2016). `Bootstrapped OCR error detection for a less-resourced language variant <https://hal.archives-ouvertes.fr/hal-01371689/document>`_. In 13th Conference on Natural Language Processing (KONVENS 2016), pp. 21-26.
 
