@@ -33,3 +33,7 @@ def test_detection():
         )
         == 0.5
     )
+    assert (
+        in_target_language("opera post physica posita (τὰ μετὰ τὰ φυσικά)", lang="la")
+        == 0.5
+    )

@@ -3,6 +3,13 @@ History
 =======
 
 
+0.8.2
+-----
+
+* languages added: Albanian, Hindi, Icelandic, Malay, Middle English, Northern Sámi, Nynorsk, Serbo-Croatian, Swahili, Tagalog
+* fix for slow language detection introduced in 0.7.0
+
+
 0.8.1
 -----
 

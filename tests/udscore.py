@@ -8,7 +8,7 @@ from simplemma import lemmatize
 
 data_files = [
     ("bg", "tests/UD/bg-btb-all.conllu"),
-    #              ('cs', 'tests/UD/cs-pdt-all.conllu'),
+    # ("cs", "tests/UD/cs-pdt-all.conllu"),  # longer to process
     ("da", "tests/UD/da-ddt-all.conllu"),
     ("de", "tests/UD/de-gsd-all.conllu"),
     ("el", "tests/UD/el-gdt-all.conllu"),
@@ -18,6 +18,7 @@ data_files = [
     ("fi", "tests/UD/fi-tdt-all.conllu"),
     ("fr", "tests/UD/fr-gsd-all.conllu"),
     ("ga", "tests/UD/ga-idt-all.conllu"),
+    ("hi", "tests/UD/hi-hdtb-all.conllu"),
     ("hu", "tests/UD/hu-szeged-all.conllu"),
     ("hy", "tests/UD/hy-armtdp-all.conllu"),
     ("id", "tests/UD/id-csui-all.conllu"),
@@ -37,7 +38,6 @@ data_files = [
 # doesn't work: right-to-left?
 # data_files = [
 #              ('he', 'tests/UD/he-htb-all.conllu'),
-#              ('hi', 'tests/UD/hi-hdtb-all.conllu'),
 #              ('ur', 'tests/UD/ur-udtb-all.conllu'),
 # ]
 
