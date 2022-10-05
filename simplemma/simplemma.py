@@ -146,7 +146,8 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
                 len(columns) != 2
                 or len(columns[0]) < leftlimit
                 or line.startswith("-")
-                or re.search(r"[+_]|[^ ]+ [^ ]+ [^ ]+", line)
+                or " " in line
+                or re.search(r"[+_]", line)
                 or ":" in columns[1]
             ):
                 # or len(columns[1]) < 2:
