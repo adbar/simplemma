@@ -27,6 +27,7 @@ def test_detection():
         lang=("cs", "sk"),
     ) == [("cs", 0.625), ("unk", 0.375), ("sk", 0.125)]
     # target language
+    assert in_target_language("", lang="en") == 0
     assert (
         in_target_language(
             "opera post physica posita (τὰ μετὰ τὰ φυσικά)", lang=("la",)

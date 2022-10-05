@@ -51,7 +51,9 @@ def in_target_language(text: str, lang: Optional[Tuple[str]] = None) -> float:
             if candidate is not None:
                 in_target += 1
                 break
-    return in_target / total
+    if total > 0 and in_target > 0:
+        return in_target / total
+    return 0
 
 
 def _return_default() -> List[Tuple[str, float]]:
