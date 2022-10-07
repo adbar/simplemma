@@ -5,7 +5,7 @@ import re
 from typing import Optional
 
 
-RULES_LANGS = {"de", "en"}
+RULES_LANGS = {"de", "en", "fi"}
 
 ADJ_DE = re.compile(
     r"^(.+?)(arm|artig|bar|chig|ell|en|end|erig|ern|esk|fach|fähig|förmig|frei|haft|iert|igt|isch|iv|lich|los|mäßig|reich|rig|sam|sch|schig|selig|voll)(?:er|e?st)?(?:e|em|en|er|es)?$"
@@ -27,6 +27,30 @@ ENDING_CHARS_NN_DE = {"e", "m", "n", "r", "s"}
 ENDING_CHARS_ADJ_DE = ENDING_CHARS_NN_DE.union({"d", "t"})
 ENDING_DE = re.compile(r"(?:e|em|en|er|es)$")
 
+SUFFIX_RULES_FI = {
+    "isille": "inen",
+    "isiksi": "inen",
+    "isemme": "inen",
+    "iseksi": "inen",
+    "iselle": "inen",
+    "isenne": "inen",
+    "isten": "inen",
+    "iseen": "inen",
+    "isien": "inen",
+    "iseni": "inen",
+    "isesi": "inen",
+    "inne": "i",
+    "insa": "i",
+    "isen": "inen",
+    "iset": "inen",
+    "ini": "i",
+    "ain": "a",
+    "eja": "i",
+}
+SUFFIX_RULES_FI_LENGTHS = sorted(
+    {len(suffix) for suffix in SUFFIX_RULES_FI}, reverse=True
+)
+
 
 def apply_rules(
     token: str, langcode: Optional[str], greedy: bool = False
@@ -37,6 +61,8 @@ def apply_rules(
         candidate = apply_de(token, greedy)
     elif langcode == "en":
         candidate = apply_en(token)
+    elif langcode == "fi":
+        candidate = apply_fi(token)
     return candidate
 
 
@@ -136,4 +162,15 @@ def apply_en(token: str) -> Optional[str]:
             return token[:-4] + "fy"
         if token.endswith("ized"):
             return token[:-4] + "ize"
+    return None
+
+
+def apply_fi(token: str) -> Optional[str]:
+    "Apply pre-defined rules for Finnish."
+    for length in SUFFIX_RULES_FI_LENGTHS:
+        if len(token) < length + 2:
+            continue  # token is too short to try suffix rules
+        suffix = token[-length:]
+        if suffix in SUFFIX_RULES_FI:
+            return token[:-length] + SUFFIX_RULES_FI[suffix]
     return None

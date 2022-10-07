@@ -3,7 +3,7 @@
 import logging
 import pytest
 
-from simplemma.rules import apply_rules, apply_de, apply_en
+from simplemma.rules import apply_rules, apply_de, apply_en, apply_fi
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -74,9 +74,24 @@ def test_apply_en():
     # assert apply_en('realised') == 'realise'
 
 
+def test_apply_fi():
+    """Test Finnish rules."""
+    # doesn't exist
+    assert apply_fi("Whatawordicantbelieveit") is None
+    # nouns
+    assert apply_fi("kansalaiseksi") == "kansalainen"
+    assert apply_fi("huokoisten") == "huokoinen"
+    assert apply_fi("kasvatteja") == "kasvatti"
+
+
 def test_apply_rules():
     """Test rules on all available languages."""
     assert apply_rules("Pfifferlinge", "de") == "Pfifferling"
     assert apply_rules("Pfifferlinge", "en") is None
+    assert apply_rules("Pfifferlinge", "fi") is None
     assert apply_rules("atonements", "de") is None
     assert apply_rules("atonements", "en") == "atonement"
+    assert apply_rules("atonements", "fi") is None
+    assert apply_rules("kansalaiseksi", "de") is None
+    assert apply_rules("kansalaiseksi", "en") is None
+    assert apply_rules("kansalaiseksi", "fi") == "kansalainen"
