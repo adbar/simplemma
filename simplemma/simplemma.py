@@ -20,6 +20,7 @@ except ImportError:  # ModuleNotFoundError, Python >= 3.6
 LOGGER = logging.getLogger(__name__)
 
 LANGLIST = [
+    "ast",
     "bg",
     "ca",
     "cs",
