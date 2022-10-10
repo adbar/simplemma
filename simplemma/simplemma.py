@@ -73,7 +73,9 @@ LANGLIST = [
 AFFIXLEN = 2
 LONGAFFIXLEN = 5  # better for some languages
 MINCOMPLEN = 4
-# MAXLENGTH = 14
+MAXLENGTH = 16
+
+VOC_LIMIT = {"fi", "la", "pl", "pt", "sk", "tr"}
 
 SAFE_LIMIT = {
     "cs",
@@ -139,24 +141,26 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
     # load data from list
     with open(filepath, "r", encoding="utf-8") as filehandle:
         for line in filehandle:
+            # skip potentially invalid lines
+            if line.startswith("-") or " " in line or re.search(r"[+_]", line):
+                continue
             columns = line.strip().split("\t")
             # invalid: remove noise
-            # todo: exclude columns with punctuation!
             if (
                 len(columns) != 2
                 or len(columns[0]) < leftlimit
-                or line.startswith("-")
-                or " " in line
-                or re.search(r"[+_]", line)
                 or ":" in columns[1]
+                # todo: exclude columns with punctuation!
             ):
                 # or len(columns[1]) < 2:
                 if not silent:
                     LOGGER.warning("wrong format: %s", line.strip())
                 continue
             # too long
-            # if len(columns[0]) > MAXLENGTH:
-            #    continue
+            if langcode in VOC_LIMIT and (
+                len(columns[0]) > MAXLENGTH or len(columns[1]) > MAXLENGTH
+            ):
+                continue
             # process
             if columns[1] in mydict and mydict[columns[1]] != columns[0]:
                 # prevent mistakes and noise coming from the lists
