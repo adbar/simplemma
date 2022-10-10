@@ -1,7 +1,10 @@
 """Simple rules for unknown tokens."""
 
+import lzma
+import pickle
 import re
 
+from pathlib import Path
 from typing import Optional
 
 
@@ -27,29 +30,7 @@ ENDING_CHARS_NN_DE = {"e", "m", "n", "r", "s"}
 ENDING_CHARS_ADJ_DE = ENDING_CHARS_NN_DE.union({"d", "t"})
 ENDING_DE = re.compile(r"(?:e|em|en|er|es)$")
 
-SUFFIX_RULES_FI = {
-    "isille": "inen",
-    "isiksi": "inen",
-    "isemme": "inen",
-    "iseksi": "inen",
-    "iselle": "inen",
-    "isenne": "inen",
-    "isten": "inen",
-    "iseen": "inen",
-    "isien": "inen",
-    "iseni": "inen",
-    "isesi": "inen",
-    "inne": "i",
-    "insa": "i",
-    "isen": "inen",
-    "iset": "inen",
-    "ini": "i",
-    "ain": "a",
-    "eja": "i",
-}
-SUFFIX_RULES_FI_LENGTHS = sorted(
-    {len(suffix) for suffix in SUFFIX_RULES_FI}, reverse=True
-)
+SUFFIX_RULES_FI = None  # lazy loading when first needed
 
 
 def apply_rules(
@@ -167,7 +148,15 @@ def apply_en(token: str) -> Optional[str]:
 
 def apply_fi(token: str) -> Optional[str]:
     "Apply pre-defined rules for Finnish."
-    for length in SUFFIX_RULES_FI_LENGTHS:
+    global SUFFIX_RULES_FI
+
+    if SUFFIX_RULES_FI is None:
+        filename = "data/fi-rules.plzma"
+        filepath = str(Path(__file__).parent / filename)
+        with lzma.open(filepath, "rb") as filehandle:
+            SUFFIX_RULES_FI = pickle.load(filehandle)
+
+    for length in (6, 5, 4, 3):
         if len(token) < length + 2:
             continue  # token is too short to try suffix rules
         suffix = token[-length:]
