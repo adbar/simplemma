@@ -3,6 +3,14 @@ History
 =======
 
 
+0.9.0
+-----
+
+* smaller data files (especially for fi, la, pl, pt, sk & tr, #19)
+* added support for Asturian (``ast``, #20)
+* bug fixes (#18, #26)
+
+
 0.8.2
 -----
 
