@@ -13,7 +13,8 @@ from typing import Any, Dict, List, Iterator, Optional, Tuple, Union
 try:
     from .rules import apply_rules, RULES_LANGS
     from .tokenizer import simple_tokenizer
-except ImportError:  # ModuleNotFoundError, Python >= 3.6
+# local error, also ModuleNotFoundError for Python >= 3.6
+except ImportError:  # pragma: no cover
     pass
 
 
