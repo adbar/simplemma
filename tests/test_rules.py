@@ -13,6 +13,8 @@ def test_apply_de():
     # doesn't exist
     assert apply_de("Whatawordicantbelieveit") is None
     # nouns
+    assert apply_de("Besorgnis") == "Besorgnis"
+    assert apply_de("Besorgnisse") == "Besorgnis"
     assert apply_de("Abonnenten") == "Abonnent"
     assert apply_de("Pfifferlinge") == "Pfifferling"
     assert apply_de("Pfifferlingen") == "Pfifferling"
@@ -22,14 +24,16 @@ def test_apply_de():
     assert apply_de("Achterls") == "Achterl"
     assert apply_de("Inspekteurinnen") == "Inspekteurin"
     assert apply_de("Zwiebelschneider") == "Zwiebelschneider"
+    assert apply_de("Zwiebelschneiders") == "Zwiebelschneider"
     # assert apply_de("Zwiebelschneidern") == "Zwiebelschneider"
+    assert apply_de("Bedenkens") == "Bedenken"
     assert apply_de("Facetten") == "Facette"
     assert apply_de("Kazakhstans") == "Kazakhstan"
     assert apply_de("Hämatome") == "Hämatom"
     assert apply_de("Hämatomen") == "Hämatom"
     assert apply_de("Hämatoms") == "Hämatom"
     assert apply_de("Ökonomen") == "Ökonom"
-    # assert apply_de("Theologien") == "Theologie"
+    assert apply_de("Theologien") == "Theologie"
     # assert apply_de("Zeitschriftenmarken", greedy=True) == "Zeitschriftenmarke"
     # assert apply_de("Gesundheitsfreaks", greedy=True) == "Gesundheitsfreak"
     # adjectives

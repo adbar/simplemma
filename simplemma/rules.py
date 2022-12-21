@@ -13,9 +13,12 @@ ADJ_DE = re.compile(
 
 NOUN_ENDINGS_DE = re.compile(
     r"(?:and|ant|anz|ent|enz|erei|erie|heit|ik|ion|ist|keit|nom|or|schaft|tät|tion|ung|ur)(en)?$|"
-    r"(?:eur|ich|ier|ling|om|ör|nis)(en?)?$|"
+    r"(?:eur|ich|ier|ling|om|ör)(en?)?$|"
+    r"(?:chen|ent|erl|eur|gramm|iker|iter|land|lein|ler|ling|loge|ment|ner|om|stan|thek|um)(e?s)?$|"  # en|er
     r"(?:ette)(n)?$|"  # ie|er
-    r"(?:chen|ent|erl|eur|gramm|iker|iter|land|lein|ler|ling|loge|ment|ner|om|stan|thek|um)(e?s)?$"  # en|er
+    r"(?:nis)(sen?)?$|"
+    r"(?:ie)(n)$|"
+    r"(?:en|er)(s)$"
 )
 
 PLUR_ORTH_DE = re.compile(r"Innen|\*innen|\*Innen|-innen|_innen")
