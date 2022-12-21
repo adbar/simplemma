@@ -17,8 +17,8 @@ NOUN_ENDINGS_DE = re.compile(
     r"(?:chen|ent|erl|eur|gramm|iker|iter|land|lein|ler|ling|loge|ment|ner|om|stan|thek|um)(e?s)?$|"  # en|er
     r"(?:ette)(n)?$|"  # ie|er
     r"(?:nis)(sen?)?$|"
-    r"(?:ie)(n)$|"
     r"(?:en|er)(s)$"
+    # r"(?:ie)(n)$"
 )
 
 PLUR_ORTH_DE = re.compile(r"Innen|\*innen|\*Innen|-innen|_innen")

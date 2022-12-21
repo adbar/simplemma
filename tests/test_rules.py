@@ -33,7 +33,7 @@ def test_apply_de():
     assert apply_de("Hämatomen") == "Hämatom"
     assert apply_de("Hämatoms") == "Hämatom"
     assert apply_de("Ökonomen") == "Ökonom"
-    assert apply_de("Theologien") == "Theologie"
+    # assert apply_de("Theologien") == "Theologie"
     # assert apply_de("Zeitschriftenmarken", greedy=True) == "Zeitschriftenmarke"
     # assert apply_de("Gesundheitsfreaks", greedy=True) == "Gesundheitsfreak"
     # adjectives
