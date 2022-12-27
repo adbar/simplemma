@@ -8,17 +8,21 @@ from typing import Optional
 RULES_LANGS = {"de", "en"}
 
 ADJ_DE = re.compile(
-    r"^(.+?)(arm|artig|bar|chig|ell|en|end|erig|ern|esk|fach|fähig|förmig|frei|haft|iert|igt|isch|iv|lich|los|mäßig|reich|rig|sam|sch|schig|selig|voll)(?:er|e?st)?(?:e|em|en|er|es)?$"
-)
+    r"^(.+?)(al|and|ant|ar|arm|är|artig|chig|ell|en|end|ent|erig|ern|esk|ex|fach|fähig|förmig|frei|haft|iert|igt|im|isch|iv|lich|los|mäßig|oid|om|on|op|os|ös|phil|phob|reich|rig|sam|sch|schig|selig|voll)(?:er|e?st)?(?:e|em|en|er|es)?$"
+)  # ar
+ADJ_DE_2 = re.compile(r"^(.+?)(ide|ude)(?:re|ste)?(?:[nrs])?$")
+
 
 NOUN_ENDINGS_DE = re.compile(
-    r"(?:and|ant|anz|ent|enz|erei|erie|heit|ik|ion|ist|keit|nom|or|schaft|tät|tion|ung|ur)(en)?$|"
-    r"(?:eur|ich|ier|ling|om|ör)(en?)?$|"
-    r"(?:chen|ent|erl|eur|gramm|iker|iter|land|lein|ler|ling|loge|ment|ner|om|stan|thek|um)(e?s)?$|"  # en|er
-    r"(?:ette)(n)?$|"  # ie|er
-    r"(?:nis)(sen?)?$|"
-    r"(?:en|er)(s)$"
-    # r"(?:ie)(n)$"
+    r"(?:anz|enz|erei|erie|heit|ik|ion|keit|or|schaft|tät|thek|ung|ur)(en)?$|"
+    r"(?:esse|ette|euse|ice|logie)(n)?$|"
+    r"(?:and|ant|ast|at|ent|gramm|ist|land|nom)(e?s|en)?$|"
+    r"(?:är|eur|ich|ier|om|ör)(en?|s)?$|"  # ar
+    r"(?:bold|ling|ment)(e?[ns]?)?$|"
+    r"(?:erl|iker|iter|loge)([ns])?$|"
+    r"(?:ikus|nis)(sen?)?$|"
+    r"(?:ar|en|er|lein|o|stan|um)(s)?$|"  # ler|ner
+    r"(?:igte)(n)?$"
 )
 
 PLUR_ORTH_DE = re.compile(r"Innen|\*innen|\*Innen|-innen|_innen")
@@ -75,10 +79,12 @@ def apply_de(token: str, greedy: bool = False) -> Optional[str]:
         # if token[-1] == "s":
         #    return token[:-1]
     # adjectives
-    elif token[0].islower():  # and token[-1] in ENDING_CHARS_ADJ_DE
+    elif token[0].islower() and len(token) > 4:  # and token[-1] in ENDING_CHARS_ADJ_DE
         candidate, alternative = None, None
         # general search
-        if ADJ_DE.match(token):
+        if ADJ_DE_2.match(token):
+            candidate = ADJ_DE_2.sub(r"\1\2", token)
+        elif ADJ_DE.match(token):
             candidate = ADJ_DE.sub(r"\1\2", token)
         # specific cases
         if token[-1] in ENDING_CHARS_ADJ_DE:
