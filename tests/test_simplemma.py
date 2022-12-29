@@ -126,15 +126,15 @@ def test_logic():
     # missing languages or faulty language codes
     mydata = simplemma.simplemma._load_data(("de", "abc", "en"))
     with pytest.raises(TypeError):
-        simplemma.lemmatize("test", lang=["test"])
+        lemmatize("test", lang=["test"])
     with pytest.raises(TypeError):
         simplemma.simplemma._update_lang_data(["id", "lv"])
 
     # searches
     with pytest.raises(TypeError):
-        assert simplemma.simplemma.lemmatize(None, lang="en") is None
+        assert lemmatize(None, lang="en") is None
     with pytest.raises(ValueError):
-        assert simplemma.simplemma.lemmatize("", lang="en") is None
+        assert lemmatize("", lang="en") is None
     assert simplemma.simplemma._suffix_search("ccc", mydata[0].dict) is None
 
     assert (
@@ -260,156 +260,99 @@ def test_search():
 
 def test_subwords():
     """Test recognition and conversion of subword units."""
-    assert simplemma.lemmatize("OBI", lang="de", greedy=True) == "OBI"
-    assert (
-        simplemma.lemmatize("mRNA-Impfstoffe", lang="de", greedy=False)
-        == "mRNA-Impfstoff"
-    )
-    assert (
-        simplemma.lemmatize("mRNA-impfstoffe", lang="de", greedy=True)
-        == "mRNA-Impfstoff"
-    )
+    assert lemmatize("OBI", lang="de", greedy=True) == "OBI"
+    assert lemmatize("mRNA-Impfstoffe", lang="de", greedy=False) == "mRNA-Impfstoff"
+    assert lemmatize("mRNA-impfstoffe", lang="de", greedy=True) == "mRNA-Impfstoff"
     # greedy subword
     myword = "Impftermine"
-    assert simplemma.lemmatize(myword, lang="de", greedy=False) == "Impftermine"
-    assert simplemma.lemmatize(myword, lang="de", greedy=True) == "Impftermin"
+    assert lemmatize(myword, lang="de", greedy=False) == "Impftermine"
+    assert lemmatize(myword, lang="de", greedy=True) == "Impftermin"
     myword = "Impfbeginn"
-    assert simplemma.lemmatize(myword, lang="de", greedy=False) == "Impfbeginn"
-    assert simplemma.lemmatize(myword, lang="de", greedy=True) == "Impfbeginn"
+    assert lemmatize(myword, lang="de", greedy=False) == "Impfbeginn"
+    assert lemmatize(myword, lang="de", greedy=True) == "Impfbeginn"
     myword = "Hoffnungsmaschinen"
-    assert simplemma.lemmatize(myword, lang="de", greedy=False) == "Hoffnungsmaschinen"
-    assert simplemma.lemmatize(myword, lang="de", greedy=True) == "Hoffnungsmaschine"
+    assert lemmatize(myword, lang="de", greedy=False) == "Hoffnungsmaschinen"
+    assert lemmatize(myword, lang="de", greedy=True) == "Hoffnungsmaschine"
+    assert lemmatize("börsennotierter", lang="de", greedy=True) == "börsennotiert"
+    assert lemmatize("journalistischer", lang="de", greedy=True) == "journalistisch"
     assert (
-        simplemma.lemmatize("börsennotierter", lang="de", greedy=True)
-        == "börsennotiert"
+        lemmatize("Delegiertenstimmen", lang="de", greedy=True) == "Delegiertenstimme"
     )
+    assert lemmatize("Koalitionskreisen", lang="de", greedy=True) == "Koalitionskreis"
+    assert lemmatize("Infektionsfälle", lang="de", greedy=True) == "Infektionsfall"
     assert (
-        simplemma.lemmatize("journalistischer", lang="de", greedy=True)
-        == "journalistisch"
-    )
-    assert (
-        simplemma.lemmatize("Delegiertenstimmen", lang="de", greedy=True)
-        == "Delegiertenstimme"
-    )
-    assert (
-        simplemma.lemmatize("Koalitionskreisen", lang="de", greedy=True)
-        == "Koalitionskreis"
-    )
-    assert (
-        simplemma.lemmatize("Infektionsfälle", lang="de", greedy=True)
-        == "Infektionsfall"
-    )
-    assert (
-        simplemma.lemmatize("Corona-Einsatzstabes", lang="de", greedy=True)
+        lemmatize("Corona-Einsatzstabes", lang="de", greedy=True)
         == "Corona-Einsatzstab"
     )
+    assert lemmatize("Clearinghäusern", lang="de", greedy=True) == "Clearinghaus"
     assert (
-        simplemma.lemmatize("Clearinghäusern", lang="de", greedy=True) == "Clearinghaus"
+        lemmatize("Mittelstreckenjets", lang="de", greedy=True) == "Mittelstreckenjet"
     )
+    assert lemmatize("Länderministerien", lang="de", greedy=True) == "Länderministerium"
     assert (
-        simplemma.lemmatize("Mittelstreckenjets", lang="de", greedy=True)
-        == "Mittelstreckenjet"
-    )
-    assert (
-        simplemma.lemmatize("Länderministerien", lang="de", greedy=True)
-        == "Länderministerium"
-    )
-    assert (
-        simplemma.lemmatize("Gesundheitsschutzkontrollen", lang="de", greedy=True)
+        lemmatize("Gesundheitsschutzkontrollen", lang="de", greedy=True)
         == "Gesundheitsschutzkontrolle"
     )
+    assert lemmatize("Nachkriegsjuristen", lang="de", greedy=True) == "Nachkriegsjurist"
     assert (
-        simplemma.lemmatize("Nachkriegsjuristen", lang="de", greedy=True)
-        == "Nachkriegsjurist"
-    )
-    assert (
-        simplemma.lemmatize("insulinproduzierende", lang="de", greedy=True)
+        lemmatize("insulinproduzierende", lang="de", greedy=True)
         == "insulinproduzierend"
     )
+    assert lemmatize("Urlaubsreisenden", lang="de", greedy=True) == "Urlaubsreisender"
     assert (
-        simplemma.lemmatize("Urlaubsreisenden", lang="de", greedy=True)
-        == "Urlaubsreisender"
+        lemmatize("Grünenvorsitzende", lang="de", greedy=True) == "Grünenvorsitzender"
     )
     assert (
-        simplemma.lemmatize("Grünenvorsitzende", lang="de", greedy=True)
-        == "Grünenvorsitzender"
-    )
-    assert (
-        simplemma.lemmatize("Qualifikationsrunde", lang="de", greedy=True)
+        lemmatize("Qualifikationsrunde", lang="de", greedy=True)
         == "Qualifikationsrunde"
     )
+    assert lemmatize("krisensichere", lang="de", greedy=True) == "krisensicher"
+    assert lemmatize("ironischerweise", lang="de", greedy=True) == "ironischerweise"
     assert (
-        simplemma.lemmatize("krisensichere", lang="de", greedy=True) == "krisensicher"
-    )
-    assert (
-        simplemma.lemmatize("ironischerweise", lang="de", greedy=True)
-        == "ironischerweise"
-    )
-    assert (
-        simplemma.lemmatize("Landespressedienstes", lang="de", greedy=True)
+        lemmatize("Landespressedienstes", lang="de", greedy=True)
         == "Landespressedienst"
     )
+    assert lemmatize("Lehrerverbänden", lang="de", greedy=True) == "Lehrerverband"
     assert (
-        simplemma.lemmatize("Lehrerverbänden", lang="de", greedy=True)
-        == "Lehrerverband"
+        lemmatize("Terminvergaberunden", lang="de", greedy=True) == "Terminvergaberunde"
     )
     assert (
-        simplemma.lemmatize("Terminvergaberunden", lang="de", greedy=True)
-        == "Terminvergaberunde"
+        lemmatize("Gen-Sequenzierungen", lang="de", greedy=True) == "Gen-Sequenzierung"
     )
+    assert lemmatize("wiederverwendbaren", lang="de", greedy=True) == "wiederverwendbar"
+    assert lemmatize("Spitzenposten", lang="de", greedy=True) == "Spitzenposten"
+    assert lemmatize("I-Pace", lang="de", greedy=True) == "I-Pace"
     assert (
-        simplemma.lemmatize("Gen-Sequenzierungen", lang="de", greedy=True)
-        == "Gen-Sequenzierung"
-    )
-    assert (
-        simplemma.lemmatize("wiederverwendbaren", lang="de", greedy=True)
-        == "wiederverwendbar"
-    )
-    assert (
-        simplemma.lemmatize("Spitzenposten", lang="de", greedy=True) == "Spitzenposten"
-    )
-    assert simplemma.lemmatize("I-Pace", lang="de", greedy=True) == "I-Pace"
-    assert (
-        simplemma.lemmatize("PCR-Bestätigungstests", lang="de", greedy=True)
+        lemmatize("PCR-Bestätigungstests", lang="de", greedy=True)
         == "PCR-Bestätigungstest"
     )
     assert (
-        simplemma.lemmatize("standortübergreifend", lang="de", greedy=True)
+        lemmatize("standortübergreifend", lang="de", greedy=True)
         == "standortübergreifend"
     )
-    assert simplemma.lemmatize("obamamäßigsten", lang="de", greedy=True) == "obamamäßig"
-    assert simplemma.lemmatize("obamaartigere", lang="de", greedy=True) == "obamaartig"
+    assert lemmatize("obamamäßigsten", lang="de", greedy=True) == "obamamäßig"
+    assert lemmatize("obamaartigere", lang="de", greedy=True) == "obamaartig"
+    assert lemmatize("durchgestyltes", lang="de", greedy=True) == "durchgestylt"
+    assert lemmatize("durchgeknallte", lang="de", greedy=True) == "durchgeknallt"
+    assert lemmatize("herunterfährt", lang="de", greedy=True) == "herunterfahren"
+    assert lemmatize("Atomdeals", lang="de", greedy=True) == "Atomdeal"
     assert (
-        simplemma.lemmatize("durchgestyltes", lang="de", greedy=True) == "durchgestylt"
-    )
-    assert (
-        simplemma.lemmatize("durchgeknallte", lang="de", greedy=True) == "durchgeknallt"
-    )
-    assert (
-        simplemma.lemmatize("herunterfährt", lang="de", greedy=True) == "herunterfahren"
-    )
-    assert simplemma.lemmatize("Atomdeals", lang="de", greedy=True) == "Atomdeal"
-    assert (
-        simplemma.lemmatize("Anspruchsberechtigten", lang="de", greedy=True)
+        lemmatize("Anspruchsberechtigten", lang="de", greedy=True)
         == "Anspruchsberechtigte"
     )
-    assert (
-        simplemma.lemmatize("Lichtbild-Ausweis", lang="de", greedy=True)
-        == "Lichtbildausweis"
-    )
-    assert (
-        simplemma.lemmatize("Kapuzenpullis", lang="de", greedy=True) == "Kapuzenpulli"
-    )
-    assert simplemma.lemmatize("Pharmagrößen", lang="de", greedy=True) == "Pharmagröße"
-    assert simplemma.lemmatize("beständigsten", lang="de", greedy=True) == "beständig"
-    # assert simplemma.lemmatize('zweitstärkster', lang='de', greedy=True) == 'zweitstärkste'
-    # assert simplemma.lemmatize('Abholservices', lang='de', greedy=True) == 'Abholservice'
-    # assert simplemma.lemmatize('Funktionärsebene', lang='de', greedy=True) == 'Funktionärsebene'
-    # assert simplemma.lemmatize('strafbewehrte', lang='de', greedy=True) == 'strafbewehrt'
-    # assert simplemma.lemmatize('fälschungssicheren', lang='de', greedy=True) == 'fälschungssicher'
-    # assert simplemma.lemmatize('Spargelstangen', lang='de', greedy=True) == 'Spargelstange'
+    assert lemmatize("Lichtbild-Ausweis", lang="de", greedy=True) == "Lichtbildausweis"
+    assert lemmatize("Kapuzenpullis", lang="de", greedy=True) == "Kapuzenpulli"
+    assert lemmatize("Pharmagrößen", lang="de", greedy=True) == "Pharmagröße"
+    assert lemmatize("beständigsten", lang="de", greedy=True) == "beständig"
+    # assert lemmatize('zweitstärkster', lang='de', greedy=True) == 'zweitstärkste'
+    # assert lemmatize('Abholservices', lang='de', greedy=True) == 'Abholservice'
+    # assert lemmatize('Funktionärsebene', lang='de', greedy=True) == 'Funktionärsebene'
+    # assert lemmatize('strafbewehrte', lang='de', greedy=True) == 'strafbewehrt'
+    # assert lemmatize('fälschungssicheren', lang='de', greedy=True) == 'fälschungssicher'
+    # assert lemmatize('Spargelstangen', lang='de', greedy=True) == 'Spargelstange'
+    # assert lemmatize("Bandmitgliedern") == "Bandmitglied"
     # assert (
-    #    simplemma.lemmatize("Bürgerschaftsabgeordneter", lang="de", greedy=True)
+    #    lemmatize("Bürgerschaftsabgeordneter", lang="de", greedy=True)
     #    == "Bürgerschaftsabgeordnete"
     # )
 
@@ -455,14 +398,21 @@ def test_tokenizer():
         "Covid-19-Pandemie",
         "https://example.org/covid-test",
     ]
-    assert simplemma.simple_tokenizer("Test 4:1-Auswärtssieg 2,5€ §52, for $5") == [
+    assert simplemma.simple_tokenizer(
+        "Test 4:1-Auswärtssieg 2,5€ €3.5 $3.5 §52, for $5, 3/5 -1.4"
+    ) == [
         "Test",
         "4:1-Auswärtssieg",
         "2,5€",
+        "€3.5",
+        "$3.5",
         "§52",
         ",",
         "for",
         "$5",
+        ",",
+        "3/5",
+        "-1.4",
     ]
     # problem here: WDR5-„Morgenecho“
     assert simplemma.simple_tokenizer("WDR5-„Morgenecho“") == [
