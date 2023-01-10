@@ -163,6 +163,11 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
                 len(columns[0]) > MAXLENGTH or len(columns[1]) > MAXLENGTH
             ):
                 continue
+            # length difference
+            if len(columns[0]) == 1 and len(columns[1]) > 5:
+                continue
+            if len(columns[0]) > 5 and len(columns[1]) == 1:
+                continue
             # process
             if columns[1] in mydict and mydict[columns[1]] != columns[0]:
                 # prevent mistakes and noise coming from the lists
