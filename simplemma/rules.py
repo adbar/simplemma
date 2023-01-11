@@ -5,34 +5,33 @@ import re
 from typing import Optional
 
 
-RULES_LANGS = {"de", "en"}
-
-ADJ_DE = re.compile(
-    r"^(.+?)(al|and|ant|ar|arm|är|artig|chig|ell|en|end|ent|erig|ern|esk|ex|fach|fähig|förmig|frei|haft|iert|igt|im|isch|iv|lich|los|mäßig|oid|om|on|op|os|ös|phil|phob|reich|rig|sam|sch|schig|selig|voll)(?:er|e?st)?(?:e|em|en|er|es)?$"
-)  # ar
-ADJ_DE_2 = re.compile(r"^(.+?)(ide|ude)(?:re|ste)?(?:[nrs])?$")
-
+RULES_LANGS = {"de", "en", "fi", "nl"}
 
 NOUN_ENDINGS_DE = re.compile(
-    r"(?:anz|enz|erei|erie|heit|ik|ion|keit|or|schaft|tät|thek|ung|ur)(en)?$|"
-    r"(?:esse|ette|euse|ice|logie)(n)?$|"
-    r"(?:and|ant|ast|at|ent|gramm|ist|land|nom)(e?s|en)?$|"
-    r"(?:är|eur|ich|ier|om|ör)(en?|s)?$|"  # ar
-    r"(?:bold|ling|ment)(e?[ns]?)?$|"
-    r"(?:erl|iker|iter|loge)([ns])?$|"
-    r"(?:ikus|nis)(sen?)?$|"
-    r"(?:ar|en|er|lein|o|stan|um)(s)?$|"  # ler|ner
-    r"(?:igte)(n)?$"
+    r"(?:bold|[^kl]ling|ment)(e?[ns]?)?$|"
+    r"(?:ikus)(sen?)?$|"
+    r"(?:erl|iker|[^e]iter)([ns])?$|"
+    r"(?:gramm|nom)(e?s|en)?$|"
+    r"(?:eur)(en?|s)?$|"
+    r"(?:ar|er|lein|o|stan|um)(s)?$"
 )
 
-PLUR_ORTH_DE = re.compile(r"Innen|\*innen|\*Innen|-innen|_innen")
-GERUNDIVE_DE = re.compile(r"end(?:e|em|en|er)$")
-PP_DE = re.compile(r"ge.+?t(?:e|em|en|er|es)$")
-COMP_ADJ = re.compile(r"st(e|em|en|es|er)?$")
+ADJ_ENDINGS_DE = re.compile(
+    r"^(.{4,}?)"
+    r"(arm|artig|bar|chig|[^i]ent|erig|esk|fähig|förmig|frei|[^c]haft|iv|[^fh]los|mäßig|oid|op|phil|phob|[^b]rig|sam|schig|selig|voll)"
+    r"(?:er|e?st)?(?:e|em|en|er|es)$"
+)
+
+PLUR_ORTH_DE = re.compile(r"(?:Innen|\*innen|\*Innen|-innen|_innen)$")
+GERUND_DE = re.compile(r"([elr]nd)(?:e|em|en|er)$")
+GERUNDIVE_DE = re.compile(r"([elr]nd)(?:st)?(?:e|em|en|er|es)$")
+PP_DE = re.compile(r"^.{2,}ge.+?[^aes]t(?:e|em|er|es)$")  # en|
 
 ENDING_CHARS_NN_DE = {"e", "m", "n", "r", "s"}
 ENDING_CHARS_ADJ_DE = ENDING_CHARS_NN_DE.union({"d", "t"})
 ENDING_DE = re.compile(r"(?:e|em|en|er|es)$")
+
+# VOWELS = {"a", "e", "i", "o", "u", "y"}
 
 
 def apply_rules(
@@ -44,67 +43,54 @@ def apply_rules(
         candidate = apply_de(token, greedy)
     elif langcode == "en":
         candidate = apply_en(token)
+    elif langcode == "fi":
+        candidate = apply_fi(token)
+    elif langcode == "nl":
+        candidate = apply_nl(token)
     return candidate
 
 
 def apply_de(token: str, greedy: bool = False) -> Optional[str]:
     "Apply pre-defined rules for German."
-    if token[0].isupper() and len(token) > 7 and token[-1] in ENDING_CHARS_NN_DE:
-        # bypass
-        if token.endswith("er"):
-            return token
-        # plural noun forms
-        match = NOUN_ENDINGS_DE.search(token)
-        if match and len(match[0]) > 2:
-            groups = [g for g in match.groups() if g is not None]
-            # lemma identified
-            if not groups:
-                return token
-            # apply -en/-e/-n/-s patterns
-            return token[: -len(groups[0])]
-        # -end
-        if GERUNDIVE_DE.search(token):
-            return ENDING_DE.sub("er", token)
-        # plural
-        if token.endswith("nnen"):
-            # inclusive speech
-            # + Binnen-I: ArbeitnehmerInnenschutzgesetz?
-            if PLUR_ORTH_DE.search(token):
-                return PLUR_ORTH_DE.sub(":innen", token)
-            # normalize without regex
-            return token[:-3]
-        # last resort
-        # if greedy:
-        # -s → ø
-        # if token[-1] == "s":
-        #    return token[:-1]
-    # adjectives
-    elif token[0].islower() and len(token) > 4:  # and token[-1] in ENDING_CHARS_ADJ_DE
-        candidate, alternative = None, None
+    if len(token) < 7:
+        return None
+    # nouns
+    if token[0].isupper():  # and token.endswith("en"):
+        if token.endswith(("ereien", "heiten", "keiten", "ionen", "schaften", "täten")):
+            return token[:-2]
+        if token.endswith(("eusen", "icen", "logien")):
+            return token[:-1]
+        if token.endswith("ungen") and not (
+            "jungen" in token or "lungen" in token or "zungen" in token
+        ):
+            return token[:-2]
+        # inclusive speech
+        # + Binnen-I: ArbeitnehmerInnenschutzgesetz?
+        if PLUR_ORTH_DE.search(token):
+            return PLUR_ORTH_DE.sub(":innen", token)
+        # greedy search
+        if greedy:
+            # series of noun endings
+            match = NOUN_ENDINGS_DE.search(token)
+            if match and len(match[0]) > 2:
+                groups = [g for g in match.groups() if g is not None]
+                # lemma identified
+                if not groups:
+                    return token
+                # apply -en/-e/-n/-s patterns
+                return token[: -len(groups[0])]
+            # -end and gerunds
+            if GERUND_DE.search(token):
+                return ENDING_DE.sub("e", token)
+    # mostly adjectives and verbs
+    elif token[-1] in ENDING_CHARS_ADJ_DE and greedy:
         # general search
-        if ADJ_DE_2.match(token):
-            candidate = ADJ_DE_2.sub(r"\1\2", token)
-        elif ADJ_DE.match(token):
-            candidate = ADJ_DE.sub(r"\1\2", token)
-        # specific cases
-        if token[-1] in ENDING_CHARS_ADJ_DE:
-            if COMP_ADJ.search(token):
-                alternative = COMP_ADJ.sub("", token)
-            elif PP_DE.search(token):
-                alternative = ENDING_DE.sub("", token)
-            # last resort
-            if not alternative and greedy:
-                if token[-4:-2] == "ig":
-                    alternative = token[:-2]
-                elif token[-3:-1] == "ig":
-                    alternative = token[:-1]
-        # summing up
-        if alternative:
-            if not candidate:
-                return alternative
-            if candidate and len(alternative) < len(candidate):
-                return alternative
-        return candidate
+        if ADJ_ENDINGS_DE.match(token):
+            return ADJ_ENDINGS_DE.sub(r"\1\2", token)
+        if PP_DE.search(token):
+            return ENDING_DE.sub("", token)
+        if GERUNDIVE_DE.search(token):  # -end and gerundives
+            return GERUNDIVE_DE.sub(r"\1", token)
     return None
 
 
@@ -131,18 +117,206 @@ def apply_en(token: str) -> Optional[str]:
             return token[:-5] + "ment"
         if token.endswith("nces"):
             return token[:-4] + "nce"
+        if token.endswith("quies"):
+            return token[:-3] + "y"
         if token.endswith("ships"):
             return token[:-5] + "ship"
         if token.endswith("tions"):
             return token[:-5] + "tion"
+        if token.endswith("trices"):
+            return token[:-3] + "x"
+        if token.endswith("ums"):
+            return token[:-1]
+        # too much noise
+        # if token.endswith("ae"):  # or token.endswith("as")
+        #    return token[:-1]
+        # if token.endswith("oes"):
+        #    return token[:-2]
+        # Pattern rules
+        # if token.endswith("ies") and len(token) > 3 and token[-4] not in VOWELS:
+        #    return token[:-3] + "y"  # complies => comply
+        # if token.endswith(("sses", "shes", "ches", "xes")):
+        #    return token[:-2]  # kisses => kiss
+        # if token.endswith("erves"):
+        #    return token[:-1]
+        # if token.endswith("arves"):
+        #    return token[:-3] + "f"
+
     # verbs
-    elif token.endswith("ed"):
-        if token.endswith("ated"):
-            return token[:-4] + "ate"
-        if token.endswith("ened"):
-            return token[:-4] + "en"
-        if token.endswith("fied"):
-            return token[:-4] + "fy"
-        if token.endswith("ized"):
-            return token[:-4] + "ize"
+    # elif token.endswith("ed"):
+    #    if token.endswith("ated"):
+    #        return token[:-4] + "ate"
+    #    if token.endswith("ened"):
+    #        return token[:-4] + "en"
+    #    if token.endswith("fied"):
+    #        return token[:-4] + "fy"
+    #    if token.endswith("ized"):
+    #        return token[:-4] + "ize"
+    #    # Pattern rules
+    #    if token.endswith("ied"):
+    #        return token[:-3] + "y"  # envied => envy
+    #    # -ed could be added
+    return None
+
+
+def apply_nl(token: str) -> Optional[str]:
+    "Apply pre-defined rules for Dutch."
+    # inspired by:
+    # https://github.com/clips/pattern/blob/master/pattern/text/nl/inflect.py
+    # nouns
+    if len(token) > 6:
+        # achterpagina's => achterpagina
+        if token.endswith("'s"):
+            return token[:-2]
+        # mogelijkheden => mogelijkheid
+        if token.endswith("heden") and not "scheden" in token:
+            return token[:-5] + "heid"
+        # boerderijen => boerderij
+        if token.endswith("ijen"):
+            return token[:-2]
+        # brieven => brief
+        if token.endswith("ieven"):
+            return token[:-3] + "f"
+        # too much noise:
+        # bacteriën => bacterie
+        # if token.endswith("iën"):
+        #    return token[:-2] + "e"
+        # flessen => fles
+        # if token.endswith("essen"):
+        #    return token[:-3]
+        # chinezen => chinees
+        # if token.endswith("ezen") and token[-5] not in VOWELS:
+        #    return token[:-4] + "ees"
+        # if token.endswith("bele"):
+        #    return token[:-1]
+    return None
+
+
+def apply_fi(token: str) -> Optional[str]:
+    "Apply pre-defined rules for Finnish."
+    if len(token) < 10:
+        return None
+    ## -inen nouns
+    # liikenaisen → liikenainen
+    if token.endswith("isen"):
+        return token[:-3] + "nen"
+    # liikenaiset → liikenainen
+    if token.endswith("iset"):
+        return token[:-3] + "nen"
+    # liikenaisia → liikenainen
+    if token.endswith("isia"):
+        return token[:-3] + "nen"
+    # liikenaisissa → liikenainen
+    if token.endswith("isissa"):
+        return token[:-5] + "nen"
+    # liikenaisista → liikenainen
+    if token.endswith("isista"):
+        return token[:-5] + "nen"
+    # liikenaiseksi → liikenainen
+    if token.endswith("iseksi"):
+        return token[:-5] + "nen"
+    # liikenaiseen → liikenainen
+    if token.endswith("iseen"):
+        return token[:-4] + "nen"
+    # liikenaisella → liikenainen
+    if token.endswith("isella"):
+        return token[:-5] + "nen"
+    # liikenaiselle → liikenainen
+    if token.endswith("iselle"):
+        return token[:-5] + "nen"
+    # liikenaiselta → liikenainen
+    if token.endswith("iselta"):
+        return token[:-5] + "nen"
+    # liikenaiseni → liikenainen
+    if token.endswith("iseni"):
+        return token[:-4] + "nen"
+    # liikenaisensa → liikenainen
+    if token.endswith("isensa"):
+        return token[:-5] + "nen"
+    # liikenaisesi → liikenainen
+    if token.endswith("isesi"):
+        return token[:-4] + "nen"
+    # liikenaisessa → liikenainen
+    if token.endswith("isessa"):
+        return token[:-5] + "nen"
+    # liikenaisesta → liikenainen
+    if token.endswith("isesta"):
+        return token[:-5] + "nen"
+    # liikenaisien → liikenainen
+    if token.endswith("isien"):
+        return token[:-4] + "nen"
+    # liikenaisiksi → liikenainen
+    if token.endswith("isiksi"):
+        return token[:-5] + "nen"
+    # liikenaisilla → liikenainen
+    if token.endswith("isilla"):
+        return token[:-5] + "nen"
+    # liikenaisilta → liikenainen
+    if token.endswith("isilta"):
+        return token[:-5] + "nen"
+    # liikenaisille → liikenainen
+    if token.endswith("isille"):
+        return token[:-5] + "nen"
+    # liikenaisin → liikenainen
+    if token.endswith("isin"):
+        return token[:-3] + "nen"
+    # liikenaisina → liikenainen
+    if token.endswith("isina"):
+        return token[:-4] + "nen"
+    # liikenaisineen → liikenainen
+    if token.endswith("isineen"):
+        return token[:-6] + "nen"
+    # liikenaisitta → liikenainen
+    if token.endswith("isitta"):
+        return token[:-5] + "nen"
+    # liikenaisten → liikenainen
+    if token.endswith("isten"):
+        return token[:-4] + "nen"
+    # liikenaisemme → liikenainen
+    if token.endswith("isemme"):
+        return token[:-5] + "nen"
+    # liikenaisenne → liikenainen
+    if token.endswith("isenne"):
+        return token[:-5] + "nen"
+    # liikenaisille → liikenainen
+    if token.endswith("isille"):
+        return token[:-5] + "nen"
+    # liikenaiselta → liikenainen
+    if token.endswith("iselta"):
+        return token[:-5] + "nen"
+    # liikenaisetta → liikenainen
+    if token.endswith("isetta"):
+        return token[:-5] + "nen"
+    # liikenaisten → liikenainen
+    if token.endswith("isten"):
+        return token[:-4] + "nen"
+    ## others
+    if token.endswith("tteja"):
+        return token[:-3] + "i"
+    ## too much noise
+    # liikenaista  → liikenainen
+    # if token.endswith("ista"):
+    #    return token[:-3] + "nen"
+    # if token.endswith("isiin"):
+    #    return token[:-4] + "nen"
+    # if token.endswith("ain"):
+    #    return token[:-2]
+    # if token.endswith("ini"):
+    #    return token[:-2]
+    # if token.endswith("inne"):
+    #    return token[:-3]
+    # if token.endswith("insa"):
+    #    return token[:-3]
+    # if token.endswith("ässä"):
+    #    return token[:-3]
+    # if token.endswith("olla"):
+    #    return token[:-3]
+    # if token.endswith("ossa"):
+    #    return token[:-3]
+    # if token.endswith("eja"):
+    #    return token[:-3] + "i"
+    ## too rare
+    # äyskäisen → äyskäistä
+    # if token.endswith("äisen"):
+    #    return token[:-4]
     return None
