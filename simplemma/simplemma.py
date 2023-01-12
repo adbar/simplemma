@@ -1,6 +1,5 @@
 """Main module."""
 
-
 import lzma
 import logging
 import pickle
@@ -15,7 +14,8 @@ try:
     from .tokenizer import simple_tokenizer
 # local error, also ModuleNotFoundError for Python >= 3.6
 except ImportError:  # pragma: no cover
-    pass
+    from rules import apply_rules, RULES_LANGS  # type: ignore
+    from tokenizer import simple_tokenizer  # type: ignore
 
 
 LOGGER = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ SAFE_LIMIT = {
     "tr",
 }
 BETTER_LOWER = {"bg", "es", "hy", "lt", "lv", "pt", "sk"}
-BUFFER_HACK = {"bg", "es", "et", "fi", "fr", "it", "lt", "pl", "sk"}  # "da"
+BUFFER_HACK = {"bg", "es", "et", "fi", "fr", "it", "lt", "pl", "sk"}  # "da", "nl"
 LONGER_AFFIXES = {"et", "fi", "hu", "lt"}
 SHORTER_GREEDY = {"bg", "et", "fi"}
 
@@ -164,10 +164,17 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
             ):
                 continue
             # length difference
-            if len(columns[0]) == 1 and len(columns[1]) > 5:
+            if len(columns[0]) == 1 and len(columns[1]) > 6:
                 continue
-            if len(columns[0]) > 5 and len(columns[1]) == 1:
+            if len(columns[0]) > 6 and len(columns[1]) == 1:
                 continue
+            # tackled by rules
+            if len(columns[1]) > 6:  # columns[1] != columns[0]
+                rule = apply_rules(columns[1], langcode)
+                if rule == columns[0]:
+                    continue
+                elif rule is not None and rule != columns[1]:
+                    print(columns[1], columns[0], apply_rules(columns[1], langcode))
             # process
             if columns[1] in mydict and mydict[columns[1]] != columns[0]:
                 # prevent mistakes and noise coming from the lists

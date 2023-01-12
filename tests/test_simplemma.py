@@ -299,9 +299,7 @@ def test_subwords():
         == "insulinproduzierend"
     )
     assert lemmatize("Urlaubsreisenden", lang="de", greedy=True) == "Urlaubsreisende"
-    assert (
-        lemmatize("Grünenvorsitzende", lang="de", greedy=True) == "Grünenvorsitzende"
-    )
+    assert lemmatize("Grünenvorsitzende", lang="de", greedy=True) == "Grünenvorsitzende"
     assert (
         lemmatize("Qualifikationsrunde", lang="de", greedy=True)
         == "Qualifikationsrunde"
@@ -319,17 +317,17 @@ def test_subwords():
     assert (
         lemmatize("Gen-Sequenzierungen", lang="de", greedy=True) == "Gen-Sequenzierung"
     )
-    # assert lemmatize("wiederverwendbaren", lang="de", greedy=True) == "wiederverwendbar"
+    assert lemmatize("wiederverwendbaren", lang="de", greedy=True) == "wiederverwendbar"
     assert lemmatize("Spitzenposten", lang="de", greedy=True) == "Spitzenposten"
     assert lemmatize("I-Pace", lang="de", greedy=True) == "I-Pace"
     assert (
         lemmatize("PCR-Bestätigungstests", lang="de", greedy=True)
         == "PCR-Bestätigungstest"
     )
-    #assert (
+    # assert (
     #    lemmatize("standortübergreifend", lang="de", greedy=True)
     #    == "standortübergreifend"
-    #)
+    # )
     assert lemmatize("obamamäßigsten", lang="de", greedy=True) == "obamamäßig"
     assert lemmatize("obamaartigere", lang="de", greedy=True) == "obamaartig"
     assert lemmatize("durchgestyltes", lang="de", greedy=True) == "durchgestylt"
@@ -356,7 +354,6 @@ def test_subwords():
     # assert lemmatize('fälschungssicheren', lang='de', greedy=True) == 'fälschungssicher'
     # assert lemmatize('Spargelstangen', lang='de', greedy=True) == 'Spargelstange'
     # assert lemmatize("Bandmitgliedern", lang="de", greedy=True) == "Bandmitglied"
-
 
 
 def test_tokenizer():

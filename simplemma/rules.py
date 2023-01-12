@@ -192,130 +192,148 @@ def apply_nl(token: str) -> Optional[str]:
     return None
 
 
+FINNISH_ENDINGS = {
+    # -minen nouns, ä/ö/y + a/o/u
+    # https://en.wiktionary.org/wiki/-minen
+    "miset": "minen",
+    "misen": "minen",
+    "misten": "minen",
+    "miseen": "minen",
+    "misia": "minen",
+    "misiä": "minen",
+    "misiin": "minen",
+    "misin": "minen",
+    # -inen nouns
+    "isissa": "inen",  # liikenaisissa → liikenainen
+    "isissä": "inen",
+    "isista": "inen",  # liikenaisista → liikenainen
+    "isistä": "inen",
+    "iseksi": "inen",  # liikenaiseksi → liikenainen
+    "iseen": "inen",  # liikenaiseen → liikenainen
+    "isella": "inen",  # liikenaisella → liikenainen
+    "isellä": "inen",
+    "iselle": "inen",  # liikenaiselle → liikenainen
+    "iselta": "inen",  # liikenaiselta → liikenainen
+    "iseltä": "inen",
+    "iseni": "inen",  # liikenaiseni → liikenainen
+    "isensa": "inen",  # liikenaisensa → liikenainen
+    "isensä": "inen",
+    "isesi": "inen",  # liikenaisesi → liikenainen
+    "isessa": "inen",  # liikenaisessa → liikenainen
+    "isessä": "inen",
+    "isesta": "inen",  # liikenaisesta → liikenainen
+    "isestä": "inen",
+    "isien": "inen",  # liikenaisien → liikenainen
+    "isiksi": "inen",  # liikenaisiksi → liikenainen
+    "isilla": "inen",  # liikenaisilla → liikenainen
+    "isillä": "inen",
+    "isilta": "inen",  # liikenaisilta → liikenainen
+    "isiltä": "inen",
+    "isille": "inen",  # liikenaisille → liikenainen
+    "isina": "inen",  # liikenaisina → liikenainen
+    "isinä": "inen",
+    "isineen": "inen",  # liikenaisineen → liikenainen
+    "isitta": "inen",  # liikenaisitta → liikenainen
+    "isittä": "inen",
+    "isemme": "inen",  # liikenaisemme → liikenainen
+    "isenne": "inen",  # liikenaisenne → liikenainen
+    "isille": "inen",  # liikenaisille → liikenainen
+    "iselta": "inen",  # liikenaiselta → liikenainen
+    "iseltä": "inen",
+    "isetta": "inen",  # liikenaisetta → liikenainen
+    "isettä": "inen",
+    # -ainen for more precision
+    "aisen": "ainen",  # liikenaisen → liikenainen
+    "aiset": "ainen",  # liikenaiset → liikenainen
+    "aisia": "ainen",  # liikenaisia → liikenainen
+    # -uus nouns: https://en.wiktionary.org/wiki/nerokkuus
+    "uudet": "uus",
+    "uuden": "uus",
+    "uuksien": "uus",
+    "uuksiin": "uus",
+    "uuksia": "uus",
+    "uudessa": "uus",
+    "uuksissa": "uus",
+    "uuteen": "uus",
+    "uudella": "uus",
+    "uuksilla": "uus",
+    "uudelta": "uus",
+    "uuksilta": "uus",
+    "uudelle": "uus",
+    "uuksille": "uus",
+    "uutena": "uus",
+    "uuksina": "uus",
+    "uudeksi": "uus",
+    "uuksiksi": "uus",
+    "uuksin": "uus",
+    "uudetta": "uus",
+    "uuksitta": "uus",
+    "uuksineen": "uus",
+    "uuteni": "uus",
+    "uutemme": "uus",
+    "uutesi": "uus",
+    "uutenne": "uus",
+    "uutensa": "uus",
+    # -tti: https://en.wiktionary.org/wiki/luotti
+    "ttien": "tti",
+    "ttia": "tti",
+    "ttiä": "tti",
+    "tteja": "tti",
+    "ttejä": "tti",
+    "tissä": "tti",
+    "tiltä": "tti",
+    "ttina": "tti",
+    "ttinä": "tti",
+    "tteinä": "tti",
+    "tittä": "tti",
+    "ttini": "tti",
+    "ttimme": "tti",
+    "ttisi": "tti",
+    "ttinne": "tti",
+    "ttinsa": "tti",
+    "ttinsä": "tti",
+    # too much noise
+    # "mista": "minen",
+    # "mistä": "minen",
+    # "isten": "inen",  # liikenaisten → liikenainen
+    # "aisin": "ainen",  # liikenaisin → liikenainen
+    # "aista": "ainen",  # liikenaista  → liikenainen
+    # "uutta": "uus",
+    # "ttiin": "tti",
+    # "teille": "tti",
+    # "teiksi": "tti",
+    # "teista": "tti",
+    # "teilla": "tti",
+    # "teilta": "tti",
+    # "teillä": "tti",
+    # "teiltä": "tti",
+    # "teitta": "tti",
+    # "teittä": "tti",
+    # "teissa": "tti",
+    # "teissä": "tti",
+    # "tille": "tti",
+    # "tiksi": "tti",
+    # "tissa": "tti",
+    # "titta": "tti",
+    # "tilta": "tti",
+    # "teistä": "tti",
+    # "tteineen": "tti",
+    # "tteihin": "tti",
+    # "tteina": "tti",
+}
+
+
 def apply_fi(token: str) -> Optional[str]:
     "Apply pre-defined rules for Finnish."
-    if len(token) < 10:
+    if len(token) < 10 or token[0].isupper():
         return None
-    ## -inen nouns
-    # liikenaisen → liikenainen
-    if token.endswith("isen"):
-        return token[:-3] + "nen"
-    # liikenaiset → liikenainen
-    if token.endswith("iset"):
-        return token[:-3] + "nen"
-    # liikenaisia → liikenainen
-    if token.endswith("isia"):
-        return token[:-3] + "nen"
-    # liikenaisissa → liikenainen
-    if token.endswith("isissa"):
-        return token[:-5] + "nen"
-    # liikenaisista → liikenainen
-    if token.endswith("isista"):
-        return token[:-5] + "nen"
-    # liikenaiseksi → liikenainen
-    if token.endswith("iseksi"):
-        return token[:-5] + "nen"
-    # liikenaiseen → liikenainen
-    if token.endswith("iseen"):
-        return token[:-4] + "nen"
-    # liikenaisella → liikenainen
-    if token.endswith("isella"):
-        return token[:-5] + "nen"
-    # liikenaiselle → liikenainen
-    if token.endswith("iselle"):
-        return token[:-5] + "nen"
-    # liikenaiselta → liikenainen
-    if token.endswith("iselta"):
-        return token[:-5] + "nen"
-    # liikenaiseni → liikenainen
-    if token.endswith("iseni"):
-        return token[:-4] + "nen"
-    # liikenaisensa → liikenainen
-    if token.endswith("isensa"):
-        return token[:-5] + "nen"
-    # liikenaisesi → liikenainen
-    if token.endswith("isesi"):
-        return token[:-4] + "nen"
-    # liikenaisessa → liikenainen
-    if token.endswith("isessa"):
-        return token[:-5] + "nen"
-    # liikenaisesta → liikenainen
-    if token.endswith("isesta"):
-        return token[:-5] + "nen"
-    # liikenaisien → liikenainen
-    if token.endswith("isien"):
-        return token[:-4] + "nen"
-    # liikenaisiksi → liikenainen
-    if token.endswith("isiksi"):
-        return token[:-5] + "nen"
-    # liikenaisilla → liikenainen
-    if token.endswith("isilla"):
-        return token[:-5] + "nen"
-    # liikenaisilta → liikenainen
-    if token.endswith("isilta"):
-        return token[:-5] + "nen"
-    # liikenaisille → liikenainen
-    if token.endswith("isille"):
-        return token[:-5] + "nen"
-    # liikenaisin → liikenainen
-    if token.endswith("isin"):
-        return token[:-3] + "nen"
-    # liikenaisina → liikenainen
-    if token.endswith("isina"):
-        return token[:-4] + "nen"
-    # liikenaisineen → liikenainen
-    if token.endswith("isineen"):
-        return token[:-6] + "nen"
-    # liikenaisitta → liikenainen
-    if token.endswith("isitta"):
-        return token[:-5] + "nen"
-    # liikenaisten → liikenainen
-    if token.endswith("isten"):
-        return token[:-4] + "nen"
-    # liikenaisemme → liikenainen
-    if token.endswith("isemme"):
-        return token[:-5] + "nen"
-    # liikenaisenne → liikenainen
-    if token.endswith("isenne"):
-        return token[:-5] + "nen"
-    # liikenaisille → liikenainen
-    if token.endswith("isille"):
-        return token[:-5] + "nen"
-    # liikenaiselta → liikenainen
-    if token.endswith("iselta"):
-        return token[:-5] + "nen"
-    # liikenaisetta → liikenainen
-    if token.endswith("isetta"):
-        return token[:-5] + "nen"
-    # liikenaisten → liikenainen
-    if token.endswith("isten"):
-        return token[:-4] + "nen"
-    ## others
-    if token.endswith("tteja"):
-        return token[:-3] + "i"
-    ## too much noise
-    # liikenaista  → liikenainen
-    # if token.endswith("ista"):
-    #    return token[:-3] + "nen"
-    # if token.endswith("isiin"):
-    #    return token[:-4] + "nen"
-    # if token.endswith("ain"):
-    #    return token[:-2]
-    # if token.endswith("ini"):
-    #    return token[:-2]
-    # if token.endswith("inne"):
-    #    return token[:-3]
-    # if token.endswith("insa"):
-    #    return token[:-3]
-    # if token.endswith("ässä"):
-    #    return token[:-3]
-    # if token.endswith("olla"):
-    #    return token[:-3]
-    # if token.endswith("ossa"):
-    #    return token[:-3]
-    # if token.endswith("eja"):
-    #    return token[:-3] + "i"
-    ## too rare
+    for ending, base in FINNISH_ENDINGS.items():
+        if token.endswith(ending):
+            return token[: -len(ending)] + base
+    ## others: but not yritteineen/yrite
+    # if token.endswith("eineen") and token[-7] != token[-8]:
+    #    return token[:-6] + "i"
+    ## too rare?
     # äyskäisen → äyskäistä
     # if token.endswith("äisen"):
     #    return token[:-4]

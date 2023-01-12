@@ -140,11 +140,9 @@ def test_apply_fi():
     assert apply_fi("liikenaisilla") == "liikenainen"
     assert apply_fi("liikenaisilta") == "liikenainen"
     assert apply_fi("liikenaisille") == "liikenainen"
-    assert apply_fi("liikenaisin") == "liikenainen"
     assert apply_fi("liikenaisina") == "liikenainen"
     assert apply_fi("liikenaisineen") == "liikenainen"
     assert apply_fi("liikenaisitta") == "liikenainen"
-    assert apply_fi("liikenaisten") == "liikenainen"
     assert apply_fi("liikenaisemme") == "liikenainen"
     assert apply_fi("liikenaisenne") == "liikenainen"
     assert apply_fi("liikenaisille") == "liikenainen"
@@ -161,3 +159,4 @@ def test_apply_rules():
     assert apply_rules("atonements", "de") is None
     assert apply_rules("atonements", "en") == "atonement"
     assert apply_rules("brieven", "nl") == "brief"
+    assert apply_rules("liikenaisessa", "fi") == "liikenainen"
