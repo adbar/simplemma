@@ -47,6 +47,8 @@ def apply_rules(
         candidate = apply_fi(token)
     elif langcode == "nl":
         candidate = apply_nl(token)
+    elif langcode == "pl":
+        candidate = apply_pl(token)
     return candidate
 
 
@@ -337,4 +339,69 @@ def apply_fi(token: str) -> Optional[str]:
     # äyskäisen → äyskäistä
     # if token.endswith("äisen"):
     #    return token[:-4]
+    return None
+
+
+POLISH_ENDINGS = {
+    # -ość
+    "ościach": "ość",
+    "ościami": "ość",
+    "ościom": "ość",
+    # "ością": "ość",
+    # "ości": "ość",
+    # -ować
+    "owałem": "ować",
+    "owałam": "ować",
+    "owaliśmy": "ować",
+    "owałeś": "ować",
+    "owałaś": "ować",
+    "owaliście": "ować",
+    # "ował": "ować",
+    # "owała": "ować",
+    # "owało": "ować",
+    # "owali": "ować",
+    # "owały": "ować",
+    "owałbym": "ować",
+    "owałabym": "ować",
+    "owalibyśmy": "ować",
+    "owałbyś": "ować",
+    "owałabyś": "ować",
+    "owalibyście": "ować",
+    "owałby": "ować",
+    "owałaby": "ować",
+    "owałoby": "ować",
+    "owaliby": "ować",
+    "owałyby": "ować",
+    "owanie": "ować",
+    # -ski
+    # "skie": "ski",
+    # "skiego": "ski",
+    # "skiemu": "ski",
+    # "skiej": "ski",
+    # "skich": "ski",
+    # "skim": "ski",
+    # "skimi": "ski",
+    # "ską": "ski",
+    # "scy": "ski",
+    # others, -ać/-eć/-ić/-yć
+    "alibyście": "ać",
+    "alibyśmy": "ać",
+    "iłybyście": "ić",
+    "ilibyście": "ić",
+    "ilibyśmy": "ić",
+    "iłybyśmy": "ić",
+    "yłybyście": "yć",
+    "ylibyście": "yć",
+    "ylibyśmy": "yć",
+    "yłybyśmy": "yć",
+}
+
+
+def apply_pl(token: str) -> Optional[str]:
+    "Apply pre-defined rules for Polish."
+    if len(token) < 10 or token[0].isupper():
+        return None
+    for ending, base in POLISH_ENDINGS.items():
+        if token.endswith(ending):
+            return token[: -len(ending)] + base
     return None

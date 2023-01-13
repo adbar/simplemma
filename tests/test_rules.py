@@ -160,3 +160,4 @@ def test_apply_rules():
     assert apply_rules("atonements", "en") == "atonement"
     assert apply_rules("brieven", "nl") == "brief"
     assert apply_rules("liikenaisessa", "fi") == "liikenainen"
+    assert apply_rules("pracowaliście", "pl") == "pracować"
