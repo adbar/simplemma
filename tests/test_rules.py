@@ -161,3 +161,4 @@ def test_apply_rules():
     assert apply_rules("brieven", "nl") == "brief"
     assert apply_rules("liikenaisessa", "fi") == "liikenainen"
     assert apply_rules("pracowaliście", "pl") == "pracować"
+    assert apply_rules("безгра́мотностью", "ru") == "безгра́мотность"

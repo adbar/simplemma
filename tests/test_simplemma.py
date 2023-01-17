@@ -171,6 +171,17 @@ def test_logic():
         == "getestet"
     )
 
+    # prefixes
+    mydata = simplemma.simplemma._load_data(("de", "ru"))
+    assert (
+        simplemma.simplemma._prefix_search("zerlemmatisiertes", "de", mydata[0].dict)
+        == "zerlemmatisiert"
+    )
+    assert (
+        simplemma.simplemma._prefix_search("зафиксированные", "ru", mydata[1].dict)
+        == "зафиксированный"
+    )
+
 
 def test_convenience():
     """Test convenience functions."""
@@ -354,6 +365,12 @@ def test_subwords():
     # assert lemmatize('fälschungssicheren', lang='de', greedy=True) == 'fälschungssicher'
     # assert lemmatize('Spargelstangen', lang='de', greedy=True) == 'Spargelstange'
     # assert lemmatize("Bandmitgliedern", lang="de", greedy=True) == "Bandmitglied"
+
+    # prefixes
+    assert lemmatize("lemmatisiertes", lang="de") == "lemmatisiert"
+    assert lemmatize("zerlemmatisiertes", lang="de") == "zerlemmatisiert"
+    assert lemmatize("фиксированные", lang="ru") == "фиксированный"
+    assert lemmatize("зафиксированные", lang="ru") == "зафиксированный"
 
 
 def test_tokenizer():

@@ -5,7 +5,30 @@ import re
 from typing import Optional
 
 
-RULES_LANGS = {"de", "en", "fi", "nl"}
+RULES_LANGS = {"de", "en", "fi", "nl", "pl", "ru"}
+
+# VOWELS = {"a", "e", "i", "o", "u", "y"}
+
+
+def apply_rules(
+    token: str, langcode: Optional[str], greedy: bool = False
+) -> Optional[str]:
+    "Apply pre-defined rules for certain languages."
+    candidate = None
+    if langcode == "de":
+        candidate = apply_de(token, greedy)
+    elif langcode == "en":
+        candidate = apply_en(token)
+    elif langcode == "fi":
+        candidate = apply_fi(token)
+    elif langcode == "nl":
+        candidate = apply_nl(token)
+    elif langcode == "pl":
+        candidate = apply_pl(token)
+    elif langcode == "ru":
+        candidate = apply_ru(token)
+    return candidate
+
 
 NOUN_ENDINGS_DE = re.compile(
     r"(?:bold|[^kl]ling|ment)(e?[ns]?)?$|"
@@ -31,25 +54,62 @@ ENDING_CHARS_NN_DE = {"e", "m", "n", "r", "s"}
 ENDING_CHARS_ADJ_DE = ENDING_CHARS_NN_DE.union({"d", "t"})
 ENDING_DE = re.compile(r"(?:e|em|en|er|es)$")
 
-# VOWELS = {"a", "e", "i", "o", "u", "y"}
-
-
-def apply_rules(
-    token: str, langcode: Optional[str], greedy: bool = False
-) -> Optional[str]:
-    "Apply pre-defined rules for certain languages."
-    candidate = None
-    if langcode == "de":
-        candidate = apply_de(token, greedy)
-    elif langcode == "en":
-        candidate = apply_en(token)
-    elif langcode == "fi":
-        candidate = apply_fi(token)
-    elif langcode == "nl":
-        candidate = apply_nl(token)
-    elif langcode == "pl":
-        candidate = apply_pl(token)
-    return candidate
+# 2-letter prefixes are theoretically already accounted for by the current AFFIXLEN parameter
+GERMAN_PREFIXES = {
+    "ab",
+    "an",
+    "auf",
+    "aus",
+    "be",
+    "bei",
+    "da",
+    "dar",
+    "durch",
+    "ein",
+    "ent",
+    "er",
+    "gegen",
+    "her",
+    "heran",
+    "herab",
+    "herauf",
+    "heraus",
+    "herein",
+    "herum",
+    "herunter",
+    "hervor",
+    "hin",
+    "hinauf",
+    "hinaus",
+    "hinein",
+    "hinter",
+    "hinunter",
+    "hinweg",
+    "hinzu",
+    "los",
+    "miss",
+    "mit",
+    "nach",
+    "neben",
+    "ran",
+    "raus",
+    "rein",
+    "rum",
+    "runter",
+    "über",
+    "unter",
+    "ver",
+    "vor",
+    "voran",
+    "voraus",
+    "vorbei",
+    "vorher",
+    "vorüber",
+    "weg",
+    "weiter",
+    "wieder",
+    "zer",
+}
 
 
 def apply_de(token: str, greedy: bool = False) -> Optional[str]:
@@ -402,6 +462,42 @@ def apply_pl(token: str) -> Optional[str]:
     if len(token) < 10 or token[0].isupper():
         return None
     for ending, base in POLISH_ENDINGS.items():
+        if token.endswith(ending):
+            return token[: -len(ending)] + base
+    return None
+
+
+RUSSIAN_PREFIXES = {"за", "много", "недо", "пере", "пред", "само"}
+
+RUSSIAN_ENDINGS = {
+    # -ость
+    "ости": "ость",
+    "остью": "ость",
+    "остию": "ость",
+    "остьи": "ость",
+    "остии": "ость",
+    "остьхъ": "ость",
+    "остьма": "ость",
+    "остьмъ": "ость",
+    "остиѭ": "ость",
+    "остьми": "ость",
+    # -ство
+    "ства": "ство",
+    "ств": "ство",
+    "ству": "ство",
+    "ствам": "ство",
+    "ством": "ство",
+    "ствами": "ство",
+    "стве": "ство",
+    "ствах": "ство",
+}
+
+
+def apply_ru(token: str) -> Optional[str]:
+    "Apply pre-defined rules for Russian."
+    if len(token) < 10 or token[0].isupper() or "-" in token:
+        return None
+    for ending, base in RUSSIAN_ENDINGS.items():
         if token.endswith(ending):
             return token[: -len(ending)] + base
     return None

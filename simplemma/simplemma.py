@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Iterator, Optional, Tuple, Union
 
 try:
-    from .rules import apply_rules, RULES_LANGS
+    from .rules import apply_rules, GERMAN_PREFIXES, RULES_LANGS, RUSSIAN_PREFIXES
     from .tokenizer import simple_tokenizer
 # local error, also ModuleNotFoundError for Python >= 3.6
 except ImportError:  # pragma: no cover
@@ -98,8 +98,11 @@ SAFE_LIMIT = {
 }
 BETTER_LOWER = {"bg", "es", "hy", "lt", "lv", "pt", "sk"}
 BUFFER_HACK = {"bg", "es", "et", "fi", "fr", "it", "lt", "pl", "sk"}  # "da", "nl"
+
+# TODO: This custom behavior has to be simplified before it becomes unmaintainable
 LONGER_AFFIXES = {"et", "fi", "hu", "lt"}
 SHORTER_GREEDY = {"bg", "et", "fi"}
+AFFIX_LANGS = {"bg", "et", "fi", "hu", "lt", "lv", "nb", "pl", "ru", "sk", "tr"}
 
 HYPHEN_REGEX = re.compile(r"([_-])")
 HYPHENS = {"-", "_"}
@@ -174,7 +177,7 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
                 if rule == columns[0]:
                     continue
                 elif rule is not None and rule != columns[1]:
-                    print(columns[1], columns[0], apply_rules(columns[1], langcode))
+                    print(columns[1], columns[0], rule)
             # process
             if columns[1] in mydict and mydict[columns[1]] != columns[0]:
                 # prevent mistakes and noise coming from the lists
@@ -417,6 +420,29 @@ def _affix_search(
     return candidate
 
 
+def _prefix_search(token: str, lang: str, datadict: Dict[str, str]) -> Optional[str]:
+    # load prefixes
+    if lang == "de":
+        preflist = GERMAN_PREFIXES
+    elif lang == "ru":
+        preflist = RUSSIAN_PREFIXES
+    else:
+        return None
+    # apply
+    prefix = None
+    for p in preflist:
+        if token.startswith(p):
+            prefix = p
+            break
+    # decompose according to predefined prefix
+    if prefix is not None:
+        subword = _simple_search(token[len(prefix) :], datadict)
+        if subword is not None:
+            if lang != "de" or token[len(prefix) : len(prefix) + 2] != "zu":
+                return prefix + subword.lower()
+    return None
+
+
 def _suffix_search(token: str, datadict: Dict[str, str]) -> Optional[str]:
     lastcount = 0
     for count in range(MINCOMPLEN, len(token) - MINCOMPLEN + 1):
@@ -451,13 +477,16 @@ def _return_lemma(
         if newcandidate is not None:
             candidate = newcandidate
     # stop here in some cases
-    if not greedy:
-        return candidate
+    # if not greedy:
+    #    return candidate
     limit = 6 if lang in SHORTER_GREEDY else 8
     if len(token) <= limit:
         return candidate
-    # greedy subword decomposition: suffix/affix search
+    # subword decomposition: predefined prefixes (absent from vocabulary if they are not words)
     if candidate is None:
+        candidate = _prefix_search(token, lang, datadict)  # type: ignore[arg-type]
+    # unsupervised suffix/affix search: not productive for all languages
+    if candidate is None and (greedy or lang in AFFIX_LANGS):
         # define parameters
         maxlen = LONGAFFIXLEN if lang in LONGER_AFFIXES else AFFIXLEN
         # greedier subword decomposition: suffix search with character in between
@@ -465,8 +494,8 @@ def _return_lemma(
         candidate = _affix_search(token, datadict, maxlen) or _suffix_search(
             token, datadict
         )
-    # try further hops, not always a good idea
-    else:
+    # greedy mode: try further hops, not always a good idea
+    if candidate is not None and greedy:
         candidate = _greedy_search(candidate, datadict)
     return candidate
 
