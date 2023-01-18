@@ -4,7 +4,6 @@ import re
 
 from typing import Iterator, List, Match, Union
 
-
 TOKREGEX = re.compile(
     r"(?:"
     r"(?:[€$￥£+-]?[0-9][0-9.,:%/-]*|St\.)[\w_€-]+|"
