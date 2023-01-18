@@ -467,20 +467,35 @@ def apply_pl(token: str) -> Optional[str]:
     return None
 
 
-RUSSIAN_PREFIXES = {"за", "много", "недо", "пере", "пред", "само"}
+RUSSIAN_PREFIXES = {
+    "гидро",
+    "за",
+    "контр",
+    "много",
+    "микро",
+    "недо",
+    "пере",
+    "под",
+    "пред",
+    "при",
+    "про",
+    "радио",
+    "раз",
+    "рас",
+    "само",
+    "экстра",
+    "электро",
+}
+
 
 RUSSIAN_ENDINGS = {
     # -ость
     "ости": "ость",
     "остью": "ость",
-    "остию": "ость",
-    "остьи": "ость",
-    "остии": "ость",
-    "остьхъ": "ость",
-    "остьма": "ость",
-    "остьмъ": "ость",
-    "остиѭ": "ость",
-    "остьми": "ость",
+    "остей": "ость",
+    "остям": "ость",
+    "остями": "ость",
+    "остях": "ость",
     # -ство
     "ства": "ство",
     "ств": "ство",
@@ -495,8 +510,13 @@ RUSSIAN_ENDINGS = {
 
 def apply_ru(token: str) -> Optional[str]:
     "Apply pre-defined rules for Russian."
+    if token.endswith("ё"):
+        return token.replace("ё", "е")
     if len(token) < 10 or token[0].isupper() or "-" in token:
         return None
+    # token = token.replace("а́", "a")
+    # token = token.replace("о́", "o")
+    # token = token.replace("и́", "и")
     for ending, base in RUSSIAN_ENDINGS.items():
         if token.endswith(ending):
             return token[: -len(ending)] + base
