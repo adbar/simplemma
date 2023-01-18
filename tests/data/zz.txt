@@ -7,3 +7,5 @@ closeone	closeones
 closeon	closeones
 n	muchtoolong
 muchtoolong	n
+-invalid	invalid
+invalid.	invalid\/item

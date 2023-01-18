@@ -96,13 +96,31 @@ SAFE_LIMIT = {
     "sk",
     "tr",
 }
-BETTER_LOWER = {"bg", "es", "hy", "lt", "lv", "pt", "sk"}
-BUFFER_HACK = {"bg", "es", "et", "fi", "fr", "it", "lt", "pl", "sk"}  # "da", "nl"
+BETTER_LOWER = {"bg", "es", "hy", "lt", "lv", "pt", "sk", "uk"}
+BUFFER_HACK = {"bg", "es", "et", "fi", "fr", "it", "lt", "pl", "sk", "uk"}  # "da", "nl"
 
 # TODO: This custom behavior has to be simplified before it becomes unmaintainable
 LONGER_AFFIXES = {"et", "fi", "hu", "lt"}
 SHORTER_GREEDY = {"bg", "et", "fi"}
-AFFIX_LANGS = {"bg", "et", "fi", "hu", "lt", "lv", "nb", "pl", "ru", "sk", "tr"}
+AFFIX_LANGS = {
+    "bg",
+    "cs",
+    "el",
+    "et",
+    "fi",
+    "hu",
+    "hy",
+    "lt",
+    "lv",
+    "nb",
+    "pl",
+    "ru",
+    "sk",
+    "tr",
+    "uk",
+}
+
+INPUT_PUNCT = re.compile(r"[,:*/\+_]|^-|-\t")
 
 HYPHEN_REGEX = re.compile(r"([_-])")
 HYPHENS = {"-", "_"}
@@ -146,17 +164,12 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
     # load data from list
     with open(filepath, "r", encoding="utf-8") as filehandle:
         for line in filehandle:
-            # skip potentially invalid lines
-            if line.startswith("-") or " " in line or re.search(r"[+_]", line):
+            # skip potentially invalid lines, e.g. with punctuation
+            if " " in line or INPUT_PUNCT.search(line):
                 continue
             columns = line.strip().split("\t")
             # invalid: remove noise
-            if (
-                len(columns) != 2
-                or len(columns[0]) < leftlimit
-                or ":" in columns[1]
-                # todo: exclude columns with punctuation!
-            ):
+            if len(columns) != 2 or len(columns[0]) < leftlimit:
                 # or len(columns[1]) < 2:
                 if not silent:
                     LOGGER.warning("wrong format: %s", line.strip())
