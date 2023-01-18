@@ -11,6 +11,7 @@ from .constants import LANGLIST
 
 LOGGER = logging.getLogger(__name__)
 
+
 class LangDict:
     "Class to store word pairs and relevant information for a single language."
     __slots__ = ("code", "dict")
@@ -38,28 +39,24 @@ def _load_pickle(langcode: str) -> Dict[str, str]:
         assert isinstance(pickled_dict, dict)
         return pickled_dict
 
-def _load_data(langs: Optional[Tuple[str]]) -> List[LangDict]:
-    """Decompress und unpickle lemmatization rules.
-    Takes one or several ISO 639-1 code language code as input.
-    Returns a list of dictionaries."""
-    langlist = []
-    assert isinstance(langs, tuple)
-    for lang in langs:
-        if lang not in LANGLIST:
-            LOGGER.error("language not supported: %s", lang)
-            continue
-        LOGGER.debug("loading %s", lang)
-        langlist.append(LangDict(lang, _load_pickle(lang)))
-    return langlist
 
 class DictionaryCache:
-    def __init__(self):
+    def __init__(self, cache_max_size: int = 1048576):
         self.data: List[LangDict] = []
+        self._load_pickle = lru_cache(maxsize=cache_max_size)(_load_pickle)
 
-    def update_lang_data(self, lang: Optional[Union[str, Tuple[str]]]) -> Tuple[str]:
+    def update_lang_data(self, langs: Optional[Union[str, Tuple[str]]]) -> Tuple[str]:
         # convert string
-        lang = _control_lang(lang)
-        if not self.data or tuple(l.code for l in self.data) != lang:
-            self.data = _load_data(lang)
-            # TODO lemmatize.cache_clear()
-        return lang
+        langs = _control_lang(langs)
+        if self.data and tuple(l.code for l in self.data) == langs:
+            return langs
+
+        self.data = []
+        assert isinstance(langs, tuple)
+        for lang in langs:
+            if lang not in LANGLIST:
+                LOGGER.error("language not supported: %s", lang)
+                continue
+            LOGGER.debug("loading %s", lang)
+            self.data.append(LangDict(lang, self._load_pickle(lang)))
+        return langs

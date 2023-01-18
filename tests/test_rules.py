@@ -1,7 +1,6 @@
 """Tests for rule-based behavior of the `simplemma` package."""
 
 import logging
-import pytest
 
 from simplemma.rules import apply_rules, apply_de, apply_en, apply_fi, apply_nl
 

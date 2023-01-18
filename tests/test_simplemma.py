@@ -124,49 +124,51 @@ def test_logic():
     simplemma.dictionary_pickler._pickle_dict("zz", listpath, temp_outputfile)
 
     # missing languages or faulty language codes
-    mydata = simplemma.dictionaries._load_data(("de", "abc", "en"))
+    cache = simplemma.dictionaries.DictionaryCache()
+    cache.update_lang_data(("de", "abc", "en"))
+    deDict = cache.data[0].dict
     with pytest.raises(TypeError):
         lemmatize("test", lang=["test"])
     with pytest.raises(TypeError):
-        simplemma.dictionaries.DictionaryCache().update_lang_data(["id", "lv"])
+        cache.update_lang_data(["id", "lv"])
 
     # searches
     with pytest.raises(TypeError):
         assert lemmatize(None, lang="en") is None
     with pytest.raises(ValueError):
         assert lemmatize("", lang="en") is None
-    assert simplemma.simplemma._suffix_search("ccc", mydata[0].dict) is None
+    assert simplemma.simplemma._suffix_search("ccc",deDict) is None
 
     assert (
-        simplemma.simplemma._return_lemma("Gender-Sternchens", mydata[0].dict)
+        simplemma.simplemma._return_lemma("Gender-Sternchens",deDict)
         == "Gendersternchen"
     )
     assert (
-        simplemma.simplemma._return_lemma("an-gespieltes", mydata[0].dict)
+        simplemma.simplemma._return_lemma("an-gespieltes",deDict)
         == "anspielen"
     )
 
     assert (
         simplemma.simplemma._greedy_search(
-            "getesteten", mydata[0].dict, steps=0, distance=20
+            "getesteten",deDict, steps=0, distance=20
         )
         == "getestet"
     )
     assert (
         simplemma.simplemma._greedy_search(
-            "getesteten", mydata[0].dict, steps=1, distance=20
+            "getesteten",deDict, steps=1, distance=20
         )
         == "getestet"
     )
     assert (
         simplemma.simplemma._greedy_search(
-            "getesteten", mydata[0].dict, steps=2, distance=20
+            "getesteten",deDict, steps=2, distance=20
         )
         == "testen"
     )
     assert (
         simplemma.simplemma._greedy_search(
-            "getesteten", mydata[0].dict, steps=2, distance=2
+            "getesteten",deDict, steps=2, distance=2
         )
         == "getestet"
     )
@@ -248,23 +250,26 @@ def test_convenience():
 
 def test_search():
     """Test simple and greedy dict search."""
-    data = simplemma.dictionaries._load_data(("en",))[0]
-    assert simplemma.simplemma._simple_search("ignorant", data.dict) == "ignorant"
-    assert simplemma.simplemma._simple_search("Ignorant", data.dict) == "ignorant"
+    cache = simplemma.dictionaries.DictionaryCache()
+    cache.update_lang_data(("en",))
+    enDict = cache.data[0].dict
+    assert simplemma.simplemma._simple_search("ignorant", enDict) == "ignorant"
+    assert simplemma.simplemma._simple_search("Ignorant", enDict) == "ignorant"
     assert (
-        simplemma.simplemma._dehyphen("magni-ficent", data.dict, False) == "magnificent"
+        simplemma.simplemma._dehyphen("magni-ficent", enDict, False) == "magnificent"
     )
-    assert simplemma.simplemma._dehyphen("magni-ficents", data.dict, False) is None
-    # assert simplemma.simplemma._greedy_search('Ignorance-Tests', datadict) == 'Ignorance-Test'
+    assert simplemma.simplemma._dehyphen("magni-ficents", enDict, False) is None
+    # assert simplemma.simplemma._greedy_search('Ignorance-Tests', enDict) == 'Ignorance-Test'
     # don't lemmatize numbers
-    assert simplemma.simplemma._return_lemma("01234", data.dict) == "01234"
+    assert simplemma.simplemma._return_lemma("01234", enDict) == "01234"
     # initial or not
-    data = simplemma.dictionaries._load_data(("de",))[0]
+    cache.update_lang_data(("de",))
+    deDict = cache.data[0].dict
     assert (
-        simplemma.simplemma._simple_search("Dritte", data.dict, initial=True) == "dritt"
+        simplemma.simplemma._simple_search("Dritte", deDict, initial=True) == "dritt"
     )
     assert (
-        simplemma.simplemma._simple_search("Dritte", data.dict, initial=False)
+        simplemma.simplemma._simple_search("Dritte", deDict, initial=False)
         == "Dritter"
     )
 
