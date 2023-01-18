@@ -1,13 +1,13 @@
 """Main module."""
 
-import lzma
 import logging
-import pickle
 import re
 
 from functools import lru_cache
-from pathlib import Path
 from typing import Any, Dict, List, Iterator, Optional, Tuple, Union
+
+from .dictionaries import DictionaryCache
+from .utils import levenshtein_dist
 
 try:
     from .rules import apply_rules, GERMAN_PREFIXES, RULES_LANGS, RUSSIAN_PREFIXES
@@ -18,86 +18,15 @@ except ImportError:  # pragma: no cover
     from tokenizer import simple_tokenizer  # type: ignore
 
 
-LOGGER = logging.getLogger(__name__)
+cache = DictionaryCache()
 
-LANGLIST = [
-    "ast",
-    "bg",
-    "ca",
-    "cs",
-    "cy",
-    "da",
-    "de",
-    "el",
-    "en",
-    "enm",
-    "es",
-    "et",
-    "fa",
-    "fi",
-    "fr",
-    "ga",
-    "gd",
-    "gl",
-    "gv",
-    "hbs",
-    "hi",
-    "hu",
-    "hy",
-    "id",
-    "is",
-    "it",
-    "ka",
-    "la",
-    "lb",
-    "lt",
-    "lv",
-    "mk",
-    "ms",
-    "nb",
-    "nl",
-    "nn",
-    "pl",
-    "pt",
-    "ro",
-    "ru",
-    "se",
-    "sk",
-    "sl",
-    "sq",
-    "sv",
-    "sw",
-    "tl",
-    "tr",
-    "uk",
-]
+LOGGER = logging.getLogger(__name__)
 
 AFFIXLEN = 2
 LONGAFFIXLEN = 5  # better for some languages
 MINCOMPLEN = 4
-MAXLENGTH = 16
 
-VOC_LIMIT = {"fi", "la", "pl", "pt", "sk", "tr"}
-
-SAFE_LIMIT = {
-    "cs",
-    "da",
-    "el",
-    "en",
-    "es",
-    "fi",
-    "fr",
-    "ga",
-    "hu",
-    "it",
-    "pl",
-    "pt",
-    "ru",
-    "sk",
-    "tr",
-}
 BETTER_LOWER = {"bg", "es", "hy", "lt", "lv", "pt", "sk", "uk"}
-BUFFER_HACK = {"bg", "es", "et", "fi", "fr", "it", "lt", "pl", "sk", "uk"}  # "da", "nl"
 
 # TODO: This custom behavior has to be simplified before it becomes unmaintainable
 LONGER_AFFIXES = {"et", "fi", "hu", "lt"}
@@ -120,200 +49,9 @@ AFFIX_LANGS = {
     "uk",
 }
 
-INPUT_PUNCT = re.compile(r"[,:*/\+_]|^-|-\t")
-
 HYPHEN_REGEX = re.compile(r"([_-])")
 HYPHENS = {"-", "_"}
 PUNCTUATION = {".", "?", "!", "…", "¿", "¡"}
-
-LANG_DATA = []  # type: List[LangDict]
-
-# class LangData:
-#    "Class to store word pairs and relevant information."
-#    __slots__ = ('dictionaries', 'languages')
-#
-#    def __init__(self):
-#        self.languages = []
-#        self.dictionaries = LangDict()
-
-
-class LangDict:
-    "Class to store word pairs and relevant information for a single language."
-    __slots__ = ("code", "dict")
-
-    def __init__(self, langcode: str, langdict: Dict[str, str]):
-        self.code: str = langcode
-        self.dict: Dict[str, str] = langdict
-
-
-def _determine_path(listpath: str, langcode: str) -> str:
-    filename = f"{listpath}/{langcode}.txt"
-    return str(Path(__file__).parent / filename)
-
-
-def _load_dict(
-    langcode: str, listpath: str = "lists", silent: bool = True
-) -> Dict[str, str]:
-    filepath = _determine_path(listpath, langcode)
-    return _read_dict(filepath, langcode, silent)
-
-
-def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
-    mydict, myadditions, i = {}, [], 0  # type: Dict[str, str], List[str], int
-    leftlimit = 1 if langcode in SAFE_LIMIT else 2
-    # load data from list
-    with open(filepath, "r", encoding="utf-8") as filehandle:
-        for line in filehandle:
-            # skip potentially invalid lines, e.g. with punctuation
-            if " " in line or INPUT_PUNCT.search(line):
-                continue
-            columns = line.strip().split("\t")
-            # invalid: remove noise
-            if len(columns) != 2 or len(columns[0]) < leftlimit:
-                # or len(columns[1]) < 2:
-                if not silent:
-                    LOGGER.warning("wrong format: %s", line.strip())
-                continue
-            # too long
-            if langcode in VOC_LIMIT and (
-                len(columns[0]) > MAXLENGTH or len(columns[1]) > MAXLENGTH
-            ):
-                continue
-            # length difference
-            if len(columns[0]) == 1 and len(columns[1]) > 6:
-                continue
-            if len(columns[0]) > 6 and len(columns[1]) == 1:
-                continue
-            # tackled by rules
-            if len(columns[1]) > 6:  # columns[1] != columns[0]
-                rule = apply_rules(columns[1], langcode)
-                if rule == columns[0]:
-                    continue
-                elif rule is not None and rule != columns[1]:
-                    print(columns[1], columns[0], rule)
-            # process
-            if columns[1] in mydict and mydict[columns[1]] != columns[0]:
-                # prevent mistakes and noise coming from the lists
-                dist1, dist2 = _levenshtein_dist(
-                    columns[1], mydict[columns[1]]
-                ), _levenshtein_dist(columns[1], columns[0])
-                # fail-safe: delete potential false entry
-                # if dist1 >= len(columns[1]) and dist2 >= len(columns[1]):
-                #    del mydict[columns[1]]
-                #    continue
-                if dist1 == 0 or dist2 < dist1:  # dist1 < 2
-                    mydict[columns[1]] = columns[0]
-                elif not silent:
-                    LOGGER.warning(
-                        "diverging: %s %s | %s %s",
-                        columns[1],
-                        mydict[columns[1]],
-                        columns[1],
-                        columns[0],
-                    )
-                    LOGGER.debug("distances: %s %s", dist1, dist2)
-            else:
-                mydict[columns[1]] = columns[0]
-                # deal with verbal forms (mostly)
-                if langcode in BUFFER_HACK:
-                    myadditions.append(columns[0])
-                elif columns[0] not in mydict:
-                    mydict[columns[0]] = columns[0]
-                i += 1
-    # overwrite
-    for word in myadditions:
-        mydict[word] = word
-    LOGGER.debug("%s %s", langcode, i)
-    return dict(sorted(mydict.items()))
-
-
-def _pickle_dict(
-    langcode: str, listpath: str = "lists", filepath: Optional[str] = None
-) -> None:
-    mydict = _load_dict(langcode, listpath)
-    if filepath is None:
-        filename = f"data/{langcode}.plzma"
-        filepath = str(Path(__file__).parent / filename)
-    with lzma.open(filepath, "wb") as filehandle:  # , filters=my_filters, preset=9
-        pickle.dump(mydict, filehandle, protocol=4)
-    LOGGER.debug("%s %s", langcode, len(mydict))
-
-
-def _load_pickle(langcode: str) -> Dict[str, str]:
-    filename = f"data/{langcode}.plzma"
-    filepath = str(Path(__file__).parent / filename)
-    with lzma.open(filepath, "rb") as filehandle:
-        pickled_dict = pickle.load(filehandle)
-        assert isinstance(pickled_dict, dict)
-        return pickled_dict
-
-
-def _control_lang(lang: Any) -> Tuple[str]:
-    "Make sure the lang variable is a valid tuple."
-    # convert string
-    if isinstance(lang, str):
-        lang = (lang,)
-    if not isinstance(lang, tuple):
-        raise TypeError("lang argument must be a two-letter language code")
-    return lang  # type: ignore[return-value]
-
-
-def _load_data(langs: Optional[Tuple[str]]) -> List[LangDict]:
-    """Decompress und unpickle lemmatization rules.
-    Takes one or several ISO 639-1 code language code as input.
-    Returns a list of dictionaries."""
-    langlist = []
-    assert isinstance(langs, tuple)
-    for lang in langs:
-        if lang not in LANGLIST:
-            LOGGER.error("language not supported: %s", lang)
-            continue
-        LOGGER.debug("loading %s", lang)
-        langlist.append(LangDict(lang, _load_pickle(lang)))
-    return langlist
-
-
-def _update_lang_data(lang: Optional[Union[str, Tuple[str]]]) -> Tuple[str]:
-    # convert string
-    lang = _control_lang(lang)
-    # load corresponding data
-    global LANG_DATA
-    if not LANG_DATA or tuple(l.code for l in LANG_DATA) != lang:
-        LANG_DATA = _load_data(lang)
-        lemmatize.cache_clear()
-    return lang
-
-
-@lru_cache(maxsize=65536)
-def _levenshtein_dist(str1: str, str2: str) -> int:
-    # inspired by this noticeably faster code:
-    # https://gist.github.com/p-hash/9e0f9904ce7947c133308fbe48fe032b
-    if str1 == str2:
-        return 0
-    if len(str1) > len(str2):
-        str1, str2 = str2, str1
-    r1 = list(range(len(str2) + 1))
-    r2 = [0] * len(r1)
-    for i, c1 in enumerate(str1):
-        r2[0] = i + 1
-        for j, c2 in enumerate(str2):
-            if c1 == c2:
-                r2[j + 1] = r1[j]
-            else:
-                a1, a2, a3 = r2[j], r1[j], r1[j + 1]
-                if a1 > a2:
-                    if a2 > a3:
-                        r2[j + 1] = 1 + a3
-                    else:
-                        r2[j + 1] = 1 + a2
-                else:
-                    if a1 > a3:
-                        r2[j + 1] = 1 + a3
-                    else:
-                        r2[j + 1] = 1 + a1
-        aux = r1
-        r1, r2 = r2, aux
-    return r1[-1]
 
 
 def _simple_search(
@@ -338,7 +76,7 @@ def _greedy_search(
     i = 0
     while candidate in datadict and (
         len(datadict[candidate]) < len(candidate)
-        and _levenshtein_dist(datadict[candidate], candidate) <= distance
+        and levenshtein_dist(datadict[candidate], candidate) <= distance
     ):
         candidate = datadict[candidate]
         i += 1
@@ -525,9 +263,9 @@ def is_known(token: str, lang: Optional[Union[str, Tuple[str]]] = None) -> bool:
     """Tell if a token is present in one of the loaded dictionaries.
     Case-insensitive, whole word forms only. Returns True or False."""
     _control_input_type(token)
-    _ = _update_lang_data(lang)  # ignore returned value
+    _ = cache.update_lang_data(lang)  # ignore returned value
     return any(
-        _simple_search(token, language.dict) is not None for language in LANG_DATA
+        _simple_search(token, language.dict) is not None for language in cache.data
     )
 
 
@@ -544,9 +282,9 @@ def lemmatize(
     Returns a string.
     Can raise ValueError by silent=False if no lemma has been found."""
     _control_input_type(token)
-    lang = _update_lang_data(lang)  # use returned lang value
+    lang = cache.update_lang_data(lang)  # use returned lang value
     # start
-    for i, l in enumerate(LANG_DATA, start=1):
+    for i, l in enumerate(cache.data, start=1):
         # determine default greediness
         # if greedy is None:
         #    greedy = _define_greediness(language)
@@ -605,9 +343,3 @@ def lemma_iterator(
         yield lemmatize(
             match[0], lang=lang, greedy=greedy, silent=silent, initial=initial
         )
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    for listcode in LANGLIST:
-        _pickle_dict(listcode)

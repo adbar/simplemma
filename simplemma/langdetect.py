@@ -4,21 +4,13 @@ import re
 
 from collections import Counter
 from operator import itemgetter
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
-from .simplemma import LANG_DATA, _control_lang, _load_data, _return_lemma
+from .simplemma import _return_lemma
+from .dictionaries import DictionaryCache
 
-
+cache = DictionaryCache()
 SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
-
-
-def _update_lang_data(lang: Optional[Union[str, Tuple[str]]]) -> None:
-    # convert string
-    lang = _control_lang(lang)
-    # load corresponding data
-    global LANG_DATA
-    if not LANG_DATA or tuple(l.code for l in LANG_DATA) != lang:
-        LANG_DATA = _load_data(lang)
 
 
 def prepare_text(text: str) -> List[str]:
@@ -43,10 +35,10 @@ def in_target_language(text: str, lang: Optional[Tuple[str]] = None) -> float:
     """Determine which proportion of the text is in the target language(s)."""
     total = 0
     in_target = 0
-    _update_lang_data(lang)
+    cache.update_lang_data(lang)
     for token in prepare_text(text):
         total += 1
-        for l in LANG_DATA:
+        for l in cache.data:
             candidate = _return_lemma(token, l.dict, greedy=True, lang=l.code)
             if candidate is not None:
                 in_target += 1
@@ -71,8 +63,8 @@ def lang_detector(
     if total_tokens == 0:
         return _return_default()
     # iterate
-    _update_lang_data(lang)
-    for l in LANG_DATA:
+    cache.update_lang_data(lang)
+    for l in cache.data:
         in_target = 0
         for token in tokens:
             candidate = _return_lemma(token, l.dict, greedy=extensive, lang=l.code)

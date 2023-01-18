@@ -96,39 +96,39 @@ def test_logic():
     # dict generation
     testfile = os.path.join(TEST_DIR, "data/zz.txt")
     # simple generation, silent mode
-    mydict = simplemma.simplemma._read_dict(testfile, "zz", silent=True)
+    mydict = simplemma.dictionary_pickler._read_dict(testfile, "zz", silent=True)
     assert len(mydict) == 3
-    mydict = simplemma.simplemma._load_dict(
+    mydict = simplemma.dictionary_pickler._load_dict(
         "zz", listpath=os.path.join(TEST_DIR, "data"), silent=True
     )
     assert len(mydict) == 3
     # log warning
-    mydict = simplemma.simplemma._read_dict(testfile, "zz", silent=False)
+    mydict = simplemma.dictionary_pickler._read_dict(testfile, "zz", silent=False)
     assert len(mydict) == 3
     # different length
-    mydict = simplemma.simplemma._read_dict(testfile, "en", silent=True)
+    mydict = simplemma.dictionary_pickler._read_dict(testfile, "en", silent=True)
     assert len(mydict) == 5
     # different order
-    mydict = simplemma.simplemma._read_dict(testfile, "es", silent=True)
+    mydict = simplemma.dictionary_pickler._read_dict(testfile, "es", silent=True)
     assert len(mydict) == 5
     assert mydict["closeones"] == "closeone"
     item = sorted(mydict.keys(), reverse=True)[0]
     assert item == "valid-word"
 
     # file I/O
-    assert simplemma.simplemma._determine_path("lists", "de").endswith("de.txt")
+    assert simplemma.dictionary_pickler._determine_path("lists", "de").endswith("de.txt")
 
     # dict pickling
     listpath = os.path.join(TEST_DIR, "data")
     os_handle, temp_outputfile = tempfile.mkstemp(suffix=".pkl", text=True)
-    simplemma.simplemma._pickle_dict("zz", listpath, temp_outputfile)
+    simplemma.dictionary_pickler._pickle_dict("zz", listpath, temp_outputfile)
 
     # missing languages or faulty language codes
-    mydata = simplemma.simplemma._load_data(("de", "abc", "en"))
+    mydata = simplemma.dictionaries._load_data(("de", "abc", "en"))
     with pytest.raises(TypeError):
         lemmatize("test", lang=["test"])
     with pytest.raises(TypeError):
-        simplemma.simplemma._update_lang_data(["id", "lv"])
+        simplemma.dictionaries.DictionaryCache().update_lang_data(["id", "lv"])
 
     # searches
     with pytest.raises(TypeError):
@@ -172,7 +172,7 @@ def test_logic():
     )
 
     # prefixes
-    mydata = simplemma.simplemma._load_data(("de", "ru"))
+    mydata = simplemma.dictionaries._load_data(("de", "ru"))
     assert (
         simplemma.simplemma._prefix_search("zerlemmatisiertes", "de", mydata[0].dict)
         == "zerlemmatisiert"
@@ -248,7 +248,7 @@ def test_convenience():
 
 def test_search():
     """Test simple and greedy dict search."""
-    data = simplemma.simplemma._load_data(("en",))[0]
+    data = simplemma.dictionaries._load_data(("en",))[0]
     assert simplemma.simplemma._simple_search("ignorant", data.dict) == "ignorant"
     assert simplemma.simplemma._simple_search("Ignorant", data.dict) == "ignorant"
     assert (
@@ -259,7 +259,7 @@ def test_search():
     # don't lemmatize numbers
     assert simplemma.simplemma._return_lemma("01234", data.dict) == "01234"
     # initial or not
-    data = simplemma.simplemma._load_data(("de",))[0]
+    data = simplemma.dictionaries._load_data(("de",))[0]
     assert (
         simplemma.simplemma._simple_search("Dritte", data.dict, initial=True) == "dritt"
     )
