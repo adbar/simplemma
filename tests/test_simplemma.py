@@ -139,50 +139,52 @@ def test_logic():
         assert lemmatizer.lemmatize(None, lang="en") is None
     with pytest.raises(ValueError):
         assert lemmatizer.lemmatize("", lang="en") is None
-    assert simplemma.simplemma._suffix_search("ccc",deDict) is None
+    assert lemmatizer._suffix_search("ccc",deDict) is None
 
     assert (
-        simplemma.simplemma._return_lemma("Gender-Sternchens",deDict)
+        lemmatizer._return_lemma("Gender-Sternchens",deDict)
         == "Gendersternchen"
     )
     assert (
-        simplemma.simplemma._return_lemma("an-gespieltes",deDict)
+        lemmatizer._return_lemma("an-gespieltes",deDict)
         == "anspielen"
     )
 
     assert (
-        simplemma.simplemma._greedy_search(
+        lemmatizer._greedy_search(
             "getesteten",deDict, steps=0, distance=20
         )
         == "getestet"
     )
     assert (
-        simplemma.simplemma._greedy_search(
+        lemmatizer._greedy_search(
             "getesteten",deDict, steps=1, distance=20
         )
         == "getestet"
     )
     assert (
-        simplemma.simplemma._greedy_search(
+        lemmatizer._greedy_search(
             "getesteten",deDict, steps=2, distance=20
         )
         == "testen"
     )
     assert (
-        simplemma.simplemma._greedy_search(
+        lemmatizer._greedy_search(
             "getesteten",deDict, steps=2, distance=2
         )
         == "getestet"
     )
 
     # prefixes
-    mydata = simplemma.dictionaries._load_data(("de", "ru"))
+    dictionaryCache.update_lang_data(("de", "ru"))
+    deDict = dictionaryCache.data[0].dict
+    ruDict = dictionaryCache.data[1].dict
     assert (
-        simplemma.simplemma._prefix_search("zerlemmatisiertes", "de", mydata[0].dict)
+        lemmatizer._prefix_search("zerlemmatisiertes", "de", deDict)
         == "zerlemmatisiert"
     )
     assert (
-        simplemma.simplemma._prefix_search("зафиксированные", "ru", mydata[1].dict)
+        lemmatizer._prefix_search("зафиксированные", "ru", ruDict)
         == "зафиксированный"
     )
 
@@ -257,23 +259,23 @@ def test_search():
     dictionaryCache.update_lang_data(("en",))
     enDict = dictionaryCache.data[0].dict
     lemmatizer = Lemmatizer(dictionaryCache)
-    assert simplemma.simplemma._simple_search("ignorant", enDict) == "ignorant"
-    assert simplemma.simplemma._simple_search("Ignorant", enDict) == "ignorant"
+    assert lemmatizer._simple_search("ignorant", enDict) == "ignorant"
+    assert lemmatizer._simple_search("Ignorant", enDict) == "ignorant"
     assert (
-        simplemma.simplemma._dehyphen("magni-ficent", enDict, False) == "magnificent"
+        lemmatizer._dehyphen("magni-ficent", enDict, False) == "magnificent"
     )
-    assert simplemma.simplemma._dehyphen("magni-ficents", enDict, False) is None
-    # assert simplemma.simplemma._greedy_search('Ignorance-Tests', enDict) == 'Ignorance-Test'
+    assert lemmatizer._dehyphen("magni-ficents", enDict, False) is None
+    # assert lemmatizer._greedy_search('Ignorance-Tests', enDict) == 'Ignorance-Test'
     # don't lemmatize numbers
-    assert simplemma.simplemma._return_lemma("01234", enDict) == "01234"
+    assert lemmatizer._return_lemma("01234", enDict) == "01234"
     # initial or not
     dictionaryCache.update_lang_data(("de",))
     deDict = dictionaryCache.data[0].dict
     assert (
-        simplemma.simplemma._simple_search("Dritte", deDict, initial=True) == "dritt"
+        lemmatizer._simple_search("Dritte", deDict, initial=True) == "dritt"
     )
     assert (
-        simplemma.simplemma._simple_search("Dritte", deDict, initial=False)
+        lemmatizer._simple_search("Dritte", deDict, initial=False)
         == "Dritter"
     )
 
@@ -346,7 +348,7 @@ def test_subwords():
         == "PCR-Bestätigungstest"
     )
     # assert (
-    #    lemmatize("standortübergreifend", lang="de", greedy=True)
+    #    lemmatizer.lemmatize("standortübergreifend", lang="de", greedy=True)
     #    == "standortübergreifend"
     # )
     assert lemmatizer.lemmatize("obamamäßigsten", lang="de", greedy=True) == "obamamäßig"
@@ -377,10 +379,10 @@ def test_subwords():
     # assert lemmatizer.lemmatize("Bandmitgliedern", lang="de", greedy=True) == "Bandmitglied"
 
     # prefixes
-    assert lemmatize("lemmatisiertes", lang="de") == "lemmatisiert"
-    assert lemmatize("zerlemmatisiertes", lang="de") == "zerlemmatisiert"
-    assert lemmatize("фиксированные", lang="ru") == "фиксированный"
-    assert lemmatize("зафиксированные", lang="ru") == "зафиксированный"
+    assert lemmatizer.lemmatize("lemmatisiertes", lang="de") == "lemmatisiert"
+    assert lemmatizer.lemmatize("zerlemmatisiertes", lang="de") == "zerlemmatisiert"
+    assert lemmatizer.lemmatize("фиксированные", lang="ru") == "фиксированный"
+    assert lemmatizer.lemmatize("зафиксированные", lang="ru") == "зафиксированный"
 
 
 def test_tokenizer():

@@ -6,7 +6,7 @@ from collections import Counter
 from operator import itemgetter
 from typing import List, Optional, Tuple
 
-from .simplemma import _return_lemma
+from .simplemma import Lemmatizer
 from .dictionaries import DictionaryCache
 
 SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
@@ -41,6 +41,7 @@ class LaguageDetector:
             dictionaryCache = DictionaryCache()
         assert isinstance(dictionaryCache, DictionaryCache)
         self.dictionaryCache: DictionaryCache = dictionaryCache
+        self.lemmatizer = Lemmatizer(self.dictionaryCache)
 
     def in_target_language(
         self, text: str, lang: Optional[Tuple[str]] = None, sample_size: int = 1000
@@ -52,7 +53,9 @@ class LaguageDetector:
         for token in prepare_text(text, sample_size):
             total += 1
             for l in self.dictionaryCache.data:
-                candidate = _return_lemma(token, l.dict, greedy=True, lang=l.code)
+                candidate = self.lemmatizer._return_lemma(
+                    token, l.dict, greedy=True, lang=l.code
+                )
                 if candidate is not None:
                     in_target += 1
                     break
@@ -78,7 +81,9 @@ class LaguageDetector:
         for l in self.dictionaryCache.data:
             in_target = 0
             for token in tokens:
-                candidate = _return_lemma(token, l.dict, greedy=extensive, lang=l.code)
+                candidate = self.lemmatizer._return_lemma(
+                    token, l.dict, greedy=extensive, lang=l.code
+                )
                 if candidate is not None:
                     in_target += 1
             # compute results

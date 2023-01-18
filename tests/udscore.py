@@ -3,7 +3,7 @@ import time
 from collections import Counter
 
 from conllu import parse_incr
-from simplemma import lemmatize
+from simplemma import Lemmatizer
 
 
 data_files = [
@@ -73,10 +73,11 @@ for filedata in data_files:
             else:
                 initial = False
 
-            greedy_candidate = lemmatize(
+            lemmatizer = Lemmatizer()
+            greedy_candidate = lemmatizer.lemmatize(
                 token["form"], lang=language, greedy=True, initial=initial
             )
-            candidate = lemmatize(
+            candidate = lemmatizer.lemmatize(
                 token["form"], lang=language, greedy=False, initial=initial
             )
 

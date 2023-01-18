@@ -1,7 +1,3 @@
-from functools import lru_cache
-
-
-@lru_cache(maxsize=65536)
 def levenshtein_dist(str1: str, str2: str) -> int:
     # inspired by this noticeably faster code:
     # https://gist.github.com/p-hash/9e0f9904ce7947c133308fbe48fe032b

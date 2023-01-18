@@ -8,7 +8,15 @@ from pathlib import Path
 from typing import List, Dict, Optional
 
 from .constants import LANGLIST
-from .utils import levenshtein_dist
+from .utils import levenshtein_dist as raw_levenshtein_dist
+
+from functools import lru_cache
+
+
+@lru_cache(maxsize=65536)
+def levenshtein_dist(str1: str, str2: str) -> int:
+    return raw_levenshtein_dist(str1, str2)
+
 
 try:
     from .rules import apply_rules
