@@ -2,7 +2,7 @@
 
 import logging
 
-from simplemma.langdetect import LanguageDetector
+from simplemma.language_detector import LanguageDetector
 
 logging.basicConfig(level=logging.DEBUG)
 

@@ -6,7 +6,7 @@ from collections import Counter
 from operator import itemgetter
 from typing import List, Optional, Tuple
 
-from .simplemma import Lemmatizer
+from .lemmatizer import Lemmatizer
 from .dictionaries import DictionaryCache
 
 SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")

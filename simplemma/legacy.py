@@ -1,5 +1,5 @@
-from .simplemma import Lemmatizer
-from .langdetect import LanguageDetector
+from .lemmatizer import Lemmatizer
+from .language_detector import LanguageDetector
 
 _lemmatizer = Lemmatizer()
 is_known = _lemmatizer.is_known
