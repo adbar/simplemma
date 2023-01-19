@@ -35,7 +35,7 @@ def _return_default() -> List[Tuple[str, float]]:
     return [("unk", 1)]
 
 
-class LaguageDetector:
+class LanguageDetector:
     def __init__(self, dictionaryCache: Optional[DictionaryCache] = None) -> None:
         if dictionaryCache == None:
             dictionaryCache = DictionaryCache()

@@ -28,7 +28,9 @@ def test_readme():
         ".",
     ]
     # greediness
-    assert lemmatizer.lemmatize("angekündigten", lang="de", greedy=False) == "angekündigt"
+    assert (
+        lemmatizer.lemmatize("angekündigten", lang="de", greedy=False) == "angekündigt"
+    )
     assert lemmatizer.lemmatize("angekündigten", lang="de", greedy=True) == "ankündigen"
     # chaining
     assert [lemmatizer.lemmatize(t, lang=("de", "en")) for t in mytokens] == [
@@ -41,7 +43,10 @@ def test_readme():
     assert lemmatizer.lemmatize("spaghettini", lang="it") == "spaghettini"
     assert lemmatizer.lemmatize("spaghettis", lang=("it", "fr")) == "spaghetti"
     assert lemmatizer.lemmatize("spaghetti", lang=("it", "fr")) == "spaghetto"
-    assert lemmatizer.lemmatize("spaghettis", lang=("it", "fr"), greedy=True) == "spaghetto"
+    assert (
+        lemmatizer.lemmatize("spaghettis", lang=("it", "fr"), greedy=True)
+        == "spaghetto"
+    )
     # tokenization and chaining
     assert simplemma.simple_tokenizer(
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
@@ -117,7 +122,9 @@ def test_logic():
     assert item == "valid-word"
 
     # file I/O
-    assert simplemma.dictionary_pickler._determine_path("lists", "de").endswith("de.txt")
+    assert simplemma.dictionary_pickler._determine_path("lists", "de").endswith(
+        "de.txt"
+    )
 
     # dict pickling
     listpath = os.path.join(TEST_DIR, "data")
@@ -139,39 +146,25 @@ def test_logic():
         assert lemmatizer.lemmatize(None, lang="en") is None
     with pytest.raises(ValueError):
         assert lemmatizer.lemmatize("", lang="en") is None
-    assert lemmatizer._suffix_search("ccc",deDict) is None
+    assert lemmatizer._suffix_search("ccc", deDict) is None
+
+    assert lemmatizer._return_lemma("Gender-Sternchens", deDict) == "Gendersternchen"
+    assert lemmatizer._return_lemma("an-gespieltes", deDict) == "anspielen"
 
     assert (
-        lemmatizer._return_lemma("Gender-Sternchens",deDict)
-        == "Gendersternchen"
-    )
-    assert (
-        lemmatizer._return_lemma("an-gespieltes",deDict)
-        == "anspielen"
-    )
-
-    assert (
-        lemmatizer._greedy_search(
-            "getesteten",deDict, steps=0, distance=20
-        )
+        lemmatizer._greedy_search("getesteten", deDict, steps=0, distance=20)
         == "getestet"
     )
     assert (
-        lemmatizer._greedy_search(
-            "getesteten",deDict, steps=1, distance=20
-        )
+        lemmatizer._greedy_search("getesteten", deDict, steps=1, distance=20)
         == "getestet"
     )
     assert (
-        lemmatizer._greedy_search(
-            "getesteten",deDict, steps=2, distance=20
-        )
+        lemmatizer._greedy_search("getesteten", deDict, steps=2, distance=20)
         == "testen"
     )
     assert (
-        lemmatizer._greedy_search(
-            "getesteten",deDict, steps=2, distance=2
-        )
+        lemmatizer._greedy_search("getesteten", deDict, steps=2, distance=2)
         == "getestet"
     )
 
@@ -184,8 +177,7 @@ def test_logic():
         == "zerlemmatisiert"
     )
     assert (
-        lemmatizer._prefix_search("зафиксированные", "ru", ruDict)
-        == "зафиксированный"
+        lemmatizer._prefix_search("зафиксированные", "ru", ruDict) == "зафиксированный"
     )
 
 
@@ -261,9 +253,7 @@ def test_search():
     lemmatizer = Lemmatizer(dictionaryCache)
     assert lemmatizer._simple_search("ignorant", enDict) == "ignorant"
     assert lemmatizer._simple_search("Ignorant", enDict) == "ignorant"
-    assert (
-        lemmatizer._dehyphen("magni-ficent", enDict, False) == "magnificent"
-    )
+    assert lemmatizer._dehyphen("magni-ficent", enDict, False) == "magnificent"
     assert lemmatizer._dehyphen("magni-ficents", enDict, False) is None
     # assert lemmatizer._greedy_search('Ignorance-Tests', enDict) == 'Ignorance-Test'
     # don't lemmatize numbers
@@ -271,21 +261,22 @@ def test_search():
     # initial or not
     dictionaryCache.update_lang_data(("de",))
     deDict = dictionaryCache.data[0].dict
-    assert (
-        lemmatizer._simple_search("Dritte", deDict, initial=True) == "dritt"
-    )
-    assert (
-        lemmatizer._simple_search("Dritte", deDict, initial=False)
-        == "Dritter"
-    )
+    assert lemmatizer._simple_search("Dritte", deDict, initial=True) == "dritt"
+    assert lemmatizer._simple_search("Dritte", deDict, initial=False) == "Dritter"
 
 
 def test_subwords():
     lemmatizer = Lemmatizer()
     """Test recognition and conversion of subword units."""
     assert lemmatizer.lemmatize("OBI", lang="de", greedy=True) == "OBI"
-    assert lemmatizer.lemmatize("mRNA-Impfstoffe", lang="de", greedy=False) == "mRNA-Impfstoff"
-    assert lemmatizer.lemmatize("mRNA-impfstoffe", lang="de", greedy=True) == "mRNA-Impfstoff"
+    assert (
+        lemmatizer.lemmatize("mRNA-Impfstoffe", lang="de", greedy=False)
+        == "mRNA-Impfstoff"
+    )
+    assert (
+        lemmatizer.lemmatize("mRNA-impfstoffe", lang="de", greedy=True)
+        == "mRNA-Impfstoff"
+    )
     # greedy subword
     myword = "Impftermine"
     assert lemmatizer.lemmatize(myword, lang="de", greedy=False) == "Impftermine"
@@ -296,52 +287,96 @@ def test_subwords():
     myword = "Hoffnungsmaschinen"
     assert lemmatizer.lemmatize(myword, lang="de", greedy=False) == "Hoffnungsmaschinen"
     assert lemmatizer.lemmatize(myword, lang="de", greedy=True) == "Hoffnungsmaschine"
-    assert lemmatizer.lemmatize("börsennotierter", lang="de", greedy=True) == "börsennotiert"
-    assert lemmatizer.lemmatize("journalistischer", lang="de", greedy=True) == "journalistisch"
     assert (
-        lemmatizer.lemmatize("Delegiertenstimmen", lang="de", greedy=True) == "Delegiertenstimme"
+        lemmatizer.lemmatize("börsennotierter", lang="de", greedy=True)
+        == "börsennotiert"
     )
-    assert lemmatizer.lemmatize("Koalitionskreisen", lang="de", greedy=True) == "Koalitionskreis"
-    assert lemmatizer.lemmatize("Infektionsfälle", lang="de", greedy=True) == "Infektionsfall"
+    assert (
+        lemmatizer.lemmatize("journalistischer", lang="de", greedy=True)
+        == "journalistisch"
+    )
+    assert (
+        lemmatizer.lemmatize("Delegiertenstimmen", lang="de", greedy=True)
+        == "Delegiertenstimme"
+    )
+    assert (
+        lemmatizer.lemmatize("Koalitionskreisen", lang="de", greedy=True)
+        == "Koalitionskreis"
+    )
+    assert (
+        lemmatizer.lemmatize("Infektionsfälle", lang="de", greedy=True)
+        == "Infektionsfall"
+    )
     assert (
         lemmatizer.lemmatize("Corona-Einsatzstabes", lang="de", greedy=True)
         == "Corona-Einsatzstab"
     )
-    assert lemmatizer.lemmatize("Clearinghäusern", lang="de", greedy=True) == "Clearinghaus"
     assert (
-        lemmatizer.lemmatize("Mittelstreckenjets", lang="de", greedy=True) == "Mittelstreckenjet"
+        lemmatizer.lemmatize("Clearinghäusern", lang="de", greedy=True)
+        == "Clearinghaus"
     )
-    assert lemmatizer.lemmatize("Länderministerien", lang="de", greedy=True) == "Länderministerium"
+    assert (
+        lemmatizer.lemmatize("Mittelstreckenjets", lang="de", greedy=True)
+        == "Mittelstreckenjet"
+    )
+    assert (
+        lemmatizer.lemmatize("Länderministerien", lang="de", greedy=True)
+        == "Länderministerium"
+    )
     assert (
         lemmatizer.lemmatize("Gesundheitsschutzkontrollen", lang="de", greedy=True)
         == "Gesundheitsschutzkontrolle"
     )
-    assert lemmatizer.lemmatize("Nachkriegsjuristen", lang="de", greedy=True) == "Nachkriegsjurist"
+    assert (
+        lemmatizer.lemmatize("Nachkriegsjuristen", lang="de", greedy=True)
+        == "Nachkriegsjurist"
+    )
     assert (
         lemmatizer.lemmatize("insulinproduzierende", lang="de", greedy=True)
         == "insulinproduzierend"
     )
-    assert lemmatizer.lemmatize("Urlaubsreisenden", lang="de", greedy=True) == "Urlaubsreisende"
-    assert lemmatizer.lemmatize("Grünenvorsitzende", lang="de", greedy=True) == "Grünenvorsitzende"
+    assert (
+        lemmatizer.lemmatize("Urlaubsreisenden", lang="de", greedy=True)
+        == "Urlaubsreisende"
+    )
+    assert (
+        lemmatizer.lemmatize("Grünenvorsitzende", lang="de", greedy=True)
+        == "Grünenvorsitzende"
+    )
     assert (
         lemmatizer.lemmatize("Qualifikationsrunde", lang="de", greedy=True)
         == "Qualifikationsrunde"
     )
-    assert lemmatizer.lemmatize("krisensichere", lang="de", greedy=True) == "krisensicher"
-    assert lemmatizer.lemmatize("ironischerweise", lang="de", greedy=True) == "ironischerweise"
+    assert (
+        lemmatizer.lemmatize("krisensichere", lang="de", greedy=True) == "krisensicher"
+    )
+    assert (
+        lemmatizer.lemmatize("ironischerweise", lang="de", greedy=True)
+        == "ironischerweise"
+    )
     assert (
         lemmatizer.lemmatize("Landespressedienstes", lang="de", greedy=True)
         == "Landespressedienst"
     )
-    assert lemmatizer.lemmatize("Lehrerverbänden", lang="de", greedy=True) == "Lehrerverband"
     assert (
-        lemmatizer.lemmatize("Terminvergaberunden", lang="de", greedy=True) == "Terminvergaberunde"
+        lemmatizer.lemmatize("Lehrerverbänden", lang="de", greedy=True)
+        == "Lehrerverband"
     )
     assert (
-        lemmatizer.lemmatize("Gen-Sequenzierungen", lang="de", greedy=True) == "Gen-Sequenzierung"
+        lemmatizer.lemmatize("Terminvergaberunden", lang="de", greedy=True)
+        == "Terminvergaberunde"
     )
-    assert lemmatizer.lemmatize("wiederverwendbaren", lang="de", greedy=True) == "wiederverwendbar"
-    assert lemmatizer.lemmatize("Spitzenposten", lang="de", greedy=True) == "Spitzenposten"
+    assert (
+        lemmatizer.lemmatize("Gen-Sequenzierungen", lang="de", greedy=True)
+        == "Gen-Sequenzierung"
+    )
+    assert (
+        lemmatizer.lemmatize("wiederverwendbaren", lang="de", greedy=True)
+        == "wiederverwendbar"
+    )
+    assert (
+        lemmatizer.lemmatize("Spitzenposten", lang="de", greedy=True) == "Spitzenposten"
+    )
     assert lemmatizer.lemmatize("I-Pace", lang="de", greedy=True) == "I-Pace"
     assert (
         lemmatizer.lemmatize("PCR-Bestätigungstests", lang="de", greedy=True)
@@ -351,11 +386,21 @@ def test_subwords():
     #    lemmatizer.lemmatize("standortübergreifend", lang="de", greedy=True)
     #    == "standortübergreifend"
     # )
-    assert lemmatizer.lemmatize("obamamäßigsten", lang="de", greedy=True) == "obamamäßig"
+    assert (
+        lemmatizer.lemmatize("obamamäßigsten", lang="de", greedy=True) == "obamamäßig"
+    )
     assert lemmatizer.lemmatize("obamaartigere", lang="de", greedy=True) == "obamaartig"
-    assert lemmatizer.lemmatize("durchgestyltes", lang="de", greedy=True) == "durchgestylt"
-    assert lemmatizer.lemmatize("durchgeknallte", lang="de", greedy=True) == "durchgeknallt"
-    assert lemmatizer.lemmatize("herunterfährt", lang="de", greedy=True) == "herunterfahren"
+    assert (
+        lemmatizer.lemmatize("durchgestyltes", lang="de", greedy=True) == "durchgestylt"
+    )
+    assert (
+        lemmatizer.lemmatize("durchgeknallte", lang="de", greedy=True)
+        == "durchgeknallt"
+    )
+    assert (
+        lemmatizer.lemmatize("herunterfährt", lang="de", greedy=True)
+        == "herunterfahren"
+    )
     assert lemmatizer.lemmatize("Atomdeals", lang="de", greedy=True) == "Atomdeal"
     assert (
         lemmatizer.lemmatize("Anspruchsberechtigten", lang="de", greedy=True)
@@ -365,8 +410,13 @@ def test_subwords():
         lemmatizer.lemmatize("Bürgerschaftsabgeordneter", lang="de", greedy=True)
         == "Bürgerschaftsabgeordnete"
     )
-    assert lemmatizer.lemmatize("Lichtbild-Ausweis", lang="de", greedy=True) == "Lichtbildausweis"
-    assert lemmatizer.lemmatize("Kapuzenpullis", lang="de", greedy=True) == "Kapuzenpulli"
+    assert (
+        lemmatizer.lemmatize("Lichtbild-Ausweis", lang="de", greedy=True)
+        == "Lichtbildausweis"
+    )
+    assert (
+        lemmatizer.lemmatize("Kapuzenpullis", lang="de", greedy=True) == "Kapuzenpulli"
+    )
     assert lemmatizer.lemmatize("Pharmagrößen", lang="de", greedy=True) == "Pharmagröße"
 
     # assert lemmatizer.lemmatize("beständigsten", lang="de", greedy=True) == "beständig"
