@@ -41,7 +41,7 @@ def _load_pickle(langcode: str) -> Dict[str, str]:
 
 
 class DictionaryCache:
-    def __init__(self, cache_max_size: int = 1048576):
+    def __init__(self, cache_max_size: int = 5):
         self.data: List[LangDict] = []
         self._load_pickle = lru_cache(maxsize=cache_max_size)(_load_pickle)
 
