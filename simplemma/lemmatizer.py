@@ -63,7 +63,7 @@ class Lemmatizer:
     def __init__(
         self,
         dictionaryFactory: Optional[DictionaryFactory] = None,
-        lemmatization_distance_cache_max_size=1048576,
+        lemmatized_tokens_cache_max_size=1048576,
         levenshtein_distance_cache_max_size=1048576,
     ) -> None:
         if dictionaryFactory == None:
@@ -71,7 +71,7 @@ class Lemmatizer:
         assert isinstance(dictionaryFactory, DictionaryFactory)
         self.dictionaryFactory: DictionaryFactory = dictionaryFactory
         self.tokenizer = Tokenizer()
-        self.lemmatize_token = lru_cache(maxsize=lemmatization_distance_cache_max_size)(
+        self.lemmatize_token = lru_cache(maxsize=lemmatized_tokens_cache_max_size)(
             self._lemmatize_token
         )
         self.levenshtein_dist = lru_cache(maxsize=levenshtein_distance_cache_max_size)(
@@ -343,7 +343,7 @@ class Lemmatizer:
         """Convenience function to lemmatize a text using a simple tokenizer.
         Returns a list of tokens and lemmata."""
         last = "."  # beginning is initial
-        for match in self.tokenizer.simple_tokenizer(text, iterate=True):
+        for match in self.tokenizer.tokenize(text, iterate=True):
             yield self.lemmatize_token(
                 match[0],
                 lang=lang,

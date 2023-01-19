@@ -15,7 +15,7 @@ TOKREGEX = re.compile(
 
 
 class Tokenizer:
-    def simple_tokenizer(
+    def tokenize(
         self, text: str, iterate: bool = False
     ) -> Union[Iterator[Match[str]], List[str]]:
         """Simple regular expression.
