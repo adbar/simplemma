@@ -54,7 +54,7 @@ The current library is written in pure Python with no dependencies:
 
 Simplemma uses dictionaries to lemmatize words. Such dictionaries are provided with the libraries and must be loaded to memory before they can be used.
 
-The `DictionaryFactory` uses a LRU cache for dictionaries. The user can configure the size of that cache when instantiating the class using the `cache_max_size` option (defaults to 65536 bytes).
+The `DictionaryFactory` uses a lru_cache for dictionaries. The user can configure the size of that cache when instantiating the class using the `cache_max_size` option (defaults to 65536).
 
 Once instantiated, the `get_dictionaries` method provides a dictionary of languages and their associated dictionaries
 
@@ -88,10 +88,10 @@ It uses the `Tokenizer` to tokenize text and lemmatize all of its tokens.
 
 #### Instantiation
 
-`Lemmatizer^ accepts several arguments:
+`Lemmatizer`` accepts several arguments:
 * `dictionaryFactory` can be used to control caching of the dictionaries in memory
-* `lemmatized_tokens_cache_max_size` defines the LRU cache size for calculated lemmas (defaults to 1048576 bytes)
-* `levenshtein_distance_cache_max_size` defines the LRU cache size for calculated levenshtein distances (defaults to 1048576 bytes)
+* `lemmatized_tokens_cache_max_size` defines the lru_cache size for calculated lemmas (defaults to 1048576)
+* `levenshtein_distance_cache_max_size` defines the lru_cache size for calculated levenshtein distances (defaults to 1048576)
 
 ```python
 	# Create dictionary factory
