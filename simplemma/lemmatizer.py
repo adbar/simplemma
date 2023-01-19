@@ -6,16 +6,16 @@ import re
 from functools import lru_cache
 from typing import Any, Dict, List, Iterator, Optional, Tuple, Union
 
-from .dictionaries import DictionaryCache
+from .dictionary_factory import DictionaryFactory
 from .utils import levenshtein_dist
 
 try:
     from .rules import apply_rules, GERMAN_PREFIXES, RULES_LANGS, RUSSIAN_PREFIXES
-    from .tokenizer import simple_tokenizer
+    from .tokenizer import Tokenizer
 # local error, also ModuleNotFoundError for Python >= 3.6
 except ImportError:  # pragma: no cover
     from rules import apply_rules, RULES_LANGS  # type: ignore
-    from tokenizer import simple_tokenizer  # type: ignore
+    from tokenizer import Tokenizer  # type: ignore
 
 LOGGER = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ HYPHENS = {"-", "_"}
 PUNCTUATION = {".", "?", "!", "…", "¿", "¡"}
 
 
-def _control_input_type(token: Any) -> None:
+def _validate_input_type(token: str) -> None:
     "Make sure the input is a string of length > 0."
     if not isinstance(token, str):
         raise TypeError(f"Wrong input type, expected string, got {type(token)}")
@@ -62,16 +62,17 @@ def _control_input_type(token: Any) -> None:
 class Lemmatizer:
     def __init__(
         self,
-        dictionaryCache: Optional[DictionaryCache] = None,
+        dictionaryFactory: Optional[DictionaryFactory] = None,
         lemmatization_distance_cache_max_size=1048576,
         levenshtein_distance_cache_max_size=1048576,
     ) -> None:
-        if dictionaryCache == None:
-            dictionaryCache = DictionaryCache()
-        assert isinstance(dictionaryCache, DictionaryCache)
-        self.dictionaryCache: DictionaryCache = dictionaryCache
-        self.lemmatize = lru_cache(maxsize=lemmatization_distance_cache_max_size)(
-            self._lemmatize
+        if dictionaryFactory == None:
+            dictionaryFactory = DictionaryFactory()
+        assert isinstance(dictionaryFactory, DictionaryFactory)
+        self.dictionaryFactory: DictionaryFactory = dictionaryFactory
+        self.tokenizer = Tokenizer()
+        self.lemmatize_token = lru_cache(maxsize=lemmatization_distance_cache_max_size)(
+            self._lemmatize_token
         )
         self.levenshtein_dist = lru_cache(maxsize=levenshtein_distance_cache_max_size)(
             levenshtein_dist
@@ -275,19 +276,19 @@ class Lemmatizer:
             candidate = self._greedy_search(candidate, datadict)
         return candidate
 
-    def is_known(
+    def is_token_known(
         self, token: str, lang: Optional[Union[str, Tuple[str]]] = None
     ) -> bool:
         """Tell if a token is present in one of the loaded dictionaries.
         Case-insensitive, whole word forms only. Returns True or False."""
-        _control_input_type(token)
-        _ = self.dictionaryCache.update_lang_data(lang)  # ignore returned value
+        _validate_input_type(token)
+        dictionaries = self.dictionaryFactory.get_dictionaries(lang)
         return any(
-            self._simple_search(token, language.dict) is not None
-            for language in self.dictionaryCache.data
+            self._simple_search(token, dictionary) is not None
+            for dictionary in dictionaries.values()
         )
 
-    def _lemmatize(
+    def _lemmatize_token(
         self,
         token: str,
         lang: Optional[Union[str, Tuple[str]]] = None,
@@ -299,27 +300,29 @@ class Lemmatizer:
         language list passed as input.
         Returns a string.
         Can raise ValueError by silent=False if no lemma has been found."""
-        _control_input_type(token)
-        lang = self.dictionaryCache.update_lang_data(lang)  # use returned lang value
+        _validate_input_type(token)
+        dictionaries = self.dictionaryFactory.get_dictionaries(
+            lang
+        )  # use returned lang value
         # start
-        for i, l in enumerate(self.dictionaryCache.data, start=1):
+        for i, (lang_code, dictionary) in enumerate(dictionaries.items(), start=1):
             # determine default greediness
             # if greedy is None:
             #    greedy = _define_greediness(language)
             # determine lemma
             candidate = self._return_lemma(
-                token, l.dict, greedy=greedy, lang=l.code, initial=initial
+                token, dictionary, greedy=greedy, lang=lang_code, initial=initial
             )
             if candidate is not None:
                 if i != 1:
-                    LOGGER.debug("%s found in %s", token, l.code)
+                    LOGGER.debug("%s found in %s", token, lang_code)
                 return candidate
         if not silent:
             raise ValueError(f"Token not found: {token}")
         # try to simply lowercase # and len(token) < 10 ?
-        return token.lower() if lang[0] in BETTER_LOWER else token
+        return token.lower() if list(dictionaries.keys())[0] in BETTER_LOWER else token
 
-    def text_lemmatizer(
+    def lemmatize_text(
         self,
         text: str,
         lang: Optional[Union[str, Tuple[str]]] = None,
@@ -328,23 +331,9 @@ class Lemmatizer:
     ) -> List[str]:
         """Convenience function to lemmatize a text using a simple tokenizer.
         Returns a list of tokens and lemmata."""
-        lemmata = []
-        last = "."  # beginning is initial
-        for match in simple_tokenizer(text, iterate=True):
-            # lemmatize, simple heuristic for sentence boundary
-            lemmata.append(
-                self.lemmatize(
-                    match[0],
-                    lang=lang,
-                    greedy=greedy,
-                    silent=silent,
-                    initial=last in PUNCTUATION,
-                )
-            )
-            last = match[0]
-        return lemmata
+        return list(self.lemmatize_text_iterator(text, lang, greedy, silent))
 
-    def lemma_iterator(
+    def lemmatize_text_iterator(
         self,
         text: str,
         lang: Optional[Union[str, Tuple[str]]] = None,
@@ -354,10 +343,12 @@ class Lemmatizer:
         """Convenience function to lemmatize a text using a simple tokenizer.
         Returns a list of tokens and lemmata."""
         last = "."  # beginning is initial
-        for match in simple_tokenizer(text, iterate=True):
-            # lemmatize
-            initial = last in PUNCTUATION
-            last = match[0]
-            yield self.lemmatize(
-                match[0], lang=lang, greedy=greedy, silent=silent, initial=initial
+        for match in self.tokenizer.simple_tokenizer(text, iterate=True):
+            yield self.lemmatize_token(
+                match[0],
+                lang=lang,
+                greedy=greedy,
+                silent=silent,
+                initial=last in PUNCTUATION,
             )
+            last = match[0]

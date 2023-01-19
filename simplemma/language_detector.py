@@ -6,8 +6,8 @@ from collections import Counter
 from operator import itemgetter
 from typing import List, Optional, Tuple
 
-from .simplemma import Lemmatizer
-from .dictionaries import DictionaryCache
+from .lemmatizer import Lemmatizer
+from .dictionary_factory import DictionaryFactory
 
 SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
 
@@ -36,25 +36,25 @@ def _return_default() -> List[Tuple[str, float]]:
 
 
 class LaguageDetector:
-    def __init__(self, dictionaryCache: Optional[DictionaryCache] = None) -> None:
-        if dictionaryCache == None:
-            dictionaryCache = DictionaryCache()
-        assert isinstance(dictionaryCache, DictionaryCache)
-        self.dictionaryCache: DictionaryCache = dictionaryCache
-        self.lemmatizer = Lemmatizer(self.dictionaryCache)
+    def __init__(self, dictionaryFactory: Optional[DictionaryFactory] = None) -> None:
+        if dictionaryFactory == None:
+            dictionaryFactory = DictionaryFactory()
+        assert isinstance(dictionaryFactory, DictionaryFactory)
+        self.dictionaryFactory: DictionaryFactory = dictionaryFactory
+        self.lemmatizer = Lemmatizer(self.dictionaryFactory)
 
-    def in_target_language(
+    def detect_coverage_of_languages(
         self, text: str, lang: Optional[Tuple[str]] = None, sample_size: int = 1000
     ) -> float:
         """Determine which proportion of the text is in the target language(s)."""
         total = 0
         in_target = 0
-        self.dictionaryCache.update_lang_data(lang)
+        dictionaries = self.dictionaryFactory.get_dictionaries(lang)
         for token in prepare_text(text, sample_size):
             total += 1
-            for l in self.dictionaryCache.data:
+            for lang_code, dictionary in dictionaries.items():
                 candidate = self.lemmatizer._return_lemma(
-                    token, l.dict, greedy=True, lang=l.code
+                    token, dictionary, greedy=True, lang=lang_code
                 )
                 if candidate is not None:
                     in_target += 1
@@ -63,7 +63,7 @@ class LaguageDetector:
             return in_target / total
         return 0
 
-    def lang_detector(
+    def detect_languages(
         self,
         text: str,
         lang: Optional[Tuple[str]] = None,
@@ -77,18 +77,18 @@ class LaguageDetector:
         if total_tokens == 0:
             return _return_default()
         # iterate
-        self.dictionaryCache.update_lang_data(lang)
-        for l in self.dictionaryCache.data:
+        dictionaries = self.dictionaryFactory.get_dictionaries(lang)
+        for lang_code, dictionary in dictionaries.items():
             in_target = 0
             for token in tokens:
                 candidate = self.lemmatizer._return_lemma(
-                    token, l.dict, greedy=extensive, lang=l.code
+                    token, dictionary, greedy=extensive, lang=lang_code
                 )
                 if candidate is not None:
                     in_target += 1
             # compute results
             found_ratio = in_target / total_tokens
-            myresults[l.code] = found_ratio
+            myresults[lang_code] = found_ratio
             unknown = 1 - found_ratio or 0.0
             if myresults.get("unk") is None or unknown < myresults["unk"]:
                 myresults["unk"] = unknown
@@ -97,7 +97,7 @@ class LaguageDetector:
         if len(results) > 1:
             # in case of ex-aequo
             if extensive is False and results[0][1] == results[1][1]:
-                results = self.lang_detector(text, lang=lang, extensive=True)
+                results = self.detect_languages(text, lang=lang, extensive=True)
             # fallback
             if len(results) > 1 and results[0][1] == results[1][1]:
                 return _return_default()

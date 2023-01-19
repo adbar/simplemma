@@ -74,10 +74,10 @@ for filedata in data_files:
                 initial = False
 
             lemmatizer = Lemmatizer()
-            greedy_candidate = lemmatizer.lemmatize(
+            greedy_candidate = lemmatizer.lemmatize_token(
                 token["form"], lang=language, greedy=True, initial=initial
             )
-            candidate = lemmatizer.lemmatize(
+            candidate = lemmatizer.lemmatize_token(
                 token["form"], lang=language, greedy=False, initial=initial
             )
 

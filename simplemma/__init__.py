@@ -7,8 +7,9 @@ __license__ = "MIT"
 __version__ = "0.9.0"
 
 
-from .langdetect import LaguageDetector
-from .simplemma import Lemmatizer
-from .tokenizer import simple_tokenizer
-from .dictionaries import DictionaryCache
+from .dictionary_factory import DictionaryFactory
+from .tokenizer import Tokenizer
+from .lemmatizer import Lemmatizer
+from .language_detector import LaguageDetector
+
 from .dictionary_pickler import *
