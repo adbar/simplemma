@@ -194,7 +194,7 @@ The ``lang_detector()`` function returns a list of language codes along with sco
 Supported languages
 -------------------
 
-The following languages are available using their `ISO 639-1 code <https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes>`_:
+The following languages are available using their `BCP 47 language tag <https://en.wikipedia.org/wiki/IETF_language_tag>`_, which is usually the `ISO 639-1 code <https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes>`_ but if no such code exists, a `ISO 639-3 code <https://en.wikipedia.org/wiki/List_of_ISO_639-3_codes>`_ is used instead:
 
 
 ======= ==================== =========== ===== ========================================================================
