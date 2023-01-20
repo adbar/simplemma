@@ -3,6 +3,17 @@ History
 =======
 
 
+0.9.1
+-----
+
+* smaller language data footprint with smallest possible impact on performance, using a combination of rules, upper limit on word length, and better data cleaning (#31)
+* unsupervised approach to affixes activated by default for some languages
+* reviewed rules for English and German (less greedy)
+* added rules for Dutch, Finnish, Polish and Russian
+* improved Russian and Ukrainian language data (#3)
+* improved tokenizer
+
+
 0.9.0
 -----
 
