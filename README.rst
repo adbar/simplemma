@@ -39,7 +39,7 @@ In modern natural language processing (NLP), this task is often indirectly tackl
 
 With its comparatively small footprint it is especially useful when speed and simplicity matter, in low-resource contexts, for educational purposes, or as a baseline system for lemmatization and morphological analysis.
 
-Currently, 48 languages are partly or fully supported (see table below).
+Currently, 49 languages are partly or fully supported (see table below).
 
 
 Installation
@@ -97,26 +97,28 @@ Chaining several languages can improve coverage, they are used in sequence:
     'spaghetto'
 
 
-There are cases in which a greedier decomposition and lemmatization algorithm is better. It is deactivated by default:
+For certain languages a greedier decomposition is activated by default as it can be beneficial, mostly due to a certain capacity to address affixes in an unsupervised way. This can be triggered manually by setting the ``greedy`` parameter to ``True``. This option also triggers a stronger reduction through a further iteration of the search algorithm, e.g. "angekündigten" → "angekündigt" (standard) → "ankündigen" (greedy). In some cases it may be closer to stemming than to lemmatization.
+
 
 .. code-block:: python
 
     # same example as before, comes to this result in one step
     >>> simplemma.lemmatize('spaghettis', lang=('it', 'fr'), greedy=True)
     'spaghetto'
-    # a German case
-    >>> simplemma.lemmatize('angekündigten', lang='de')
-    'ankündigen' # infinitive verb
+    # German case described above
+    >>> simplemma.lemmatize('angekündigten', lang='de', greedy=True)
+    'ankündigen' # 2 steps: reduction to infinitive verb
     >>> simplemma.lemmatize('angekündigten', lang='de', greedy=False)
-    'angekündigt' # past participle
+    'angekündigt' # 1 step: reduction to past participle
 
 
-Additional functions:
+Additional function: ``is_known()`` checks if a given word is present in the language data:
 
 .. code-block:: python
 
-    # same example as before, comes to this result in one step
-    >>> simplemma.is_known('spaghetti', lang='it')
+    >>> from simplemma import is_known
+    >>> is_known('spaghetti', lang='it')
+    True
 
 
 Tokenization
@@ -138,11 +140,13 @@ The functions ``text_lemmatizer()`` and ``lemma_iterator()`` chain tokenization 
 .. code-block:: python
 
     >>> from simplemma import text_lemmatizer
-    >>> text_lemmatizer('Sou o intervalo entre o que desejo ser e os outros me fizeram.', lang='pt')
+    >>> sentence = 'Sou o intervalo entre o que desejo ser e os outros me fizeram.'
+    >>> text_lemmatizer(sentence, lang='pt')
     # caveat: desejo is also a noun, should be desejar here
     ['ser', 'o', 'intervalo', 'entre', 'o', 'que', 'desejo', 'ser', 'e', 'o', 'outro', 'me', 'fazer', '.']
-    # same principle, returns an iterator and not a list
+    # same principle, returns a generator and not a list
     >>> from simplemma import lemma_iterator
+    >>> lemma_iterator(sentence, lang='pt')
 
 
 Caveats
@@ -198,53 +202,54 @@ Available languages (2022-09-05)
 -----------------------------------------------------------------------------------------------------------------------
 Code    Language             Forms (10³) Acc.  Comments
 ======= ==================== =========== ===== ========================================================================
-``bg``  Bulgarian            213
+``ast`` Asturian             124
+``bg``  Bulgarian            204
 ``ca``  Catalan              579
-``cs``  Czech                187         0.88  on UD CS-PDT
+``cs``  Czech                187         0.89  on UD CS-PDT
 ``cy``  Welsh                360
 ``da``  Danish               554         0.92  on UD DA-DDT, alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
 ``de``  German               682         0.95  on UD DE-GSD, see also `German-NLP list <https://github.com/adbar/German-NLP#Lemmatization>`_
-``el``  Greek                183         0.88  on UD EL-GDT
+``el``  Greek                182         0.88  on UD EL-GDT
 ``en``  English              136         0.94  on UD EN-GUM, alternative: `LemmInflect <https://github.com/bjascob/LemmInflect>`_
 ``enm`` Middle English       38
-``es``  Spanish              720         0.94  on UD ES-GSD
-``et``  Estonian             133               low coverage
-``fa``  Persian              10                experimental
-``fi``  Finnish              2,106             evaluation and alternatives: see `this benchmark <https://github.com/aajanki/finnish-pos-accuracy>`_
+``es``  Spanish              665         0.95  on UD ES-GSD
+``et``  Estonian             119               low coverage
+``fa``  Persian              9                 experimental
+``fi``  Finnish              3,546             evaluation and alternatives: see `this benchmark <https://github.com/aajanki/finnish-pos-accuracy>`_
 ``fr``  French               217         0.94  on UD FR-GSD
-``ga``  Irish                383
+``ga``  Irish                372
 ``gd``  Gaelic               48
 ``gl``  Galician             384
 ``gv``  Manx                 62
-``hbs`` Serbo-Croatian       838               Croatian and Serbian lists to be added later
+``hbs`` Serbo-Croatian       656               Croatian and Serbian lists to be added later
 ``hi``  Hindi                58                experimental
 ``hu``  Hungarian            458
-``hy``  Armenian             323
+``hy``  Armenian             246
 ``id``  Indonesian           17          0.91  on UD ID-CSUI
-``is``  Icelandic            175
+``is``  Icelandic            174
 ``it``  Italian              333         0.93  on UD IT-ISDT
 ``ka``  Georgian             65
-``la``  Latin                850
+``la``  Latin                843
 ``lb``  Luxembourgish        305
 ``lt``  Lithuanian           247
-``lv``  Latvian              168
-``mk``  Macedonian           57
+``lv``  Latvian              164
+``mk``  Macedonian           56
 ``ms``  Malay                14
 ``nb``  Norwegian (Bokmål)   617
-``nl``  Dutch                254         0.91  on UD-NL-Alpino
-``nn``  Norwegian (Nynorsk)
-``pl``  Polish               3,733       0.91  on UD-PL-PDB
-``pt``  Portuguese           933         0.92  on UD-PT-GSD
+``nl``  Dutch                254         0.92  on UD-NL-Alpino
+``nn``  Norwegian (Nynorsk)  56
+``pl``  Polish               3,427       0.91  on UD-PL-PDB
+``pt``  Portuguese           924         0.92  on UD-PT-GSD
 ``ro``  Romanian             311
 ``ru``  Russian              607               alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
 ``se``  Northern Sámi        113               experimental
-``sk``  Slovak               846         0.92  on UD SK-SNK
+``sk``  Slovak               818         0.92  on UD SK-SNK
 ``sl``  Slovene              136
 ``sq``  Albanian             35
 ``sv``  Swedish              658               alternative: `lemmy <https://github.com/sorenlind/lemmy>`_
 ``sw``  Swahili              10                experimental
 ``tl``  Tagalog              33                experimental
-``tr``  Turkish              1,333       0.88  on UD-TR-Boun
+``tr``  Turkish              1,232       0.89  on UD-TR-Boun
 ``uk``  Ukrainian            190               alternative: `pymorphy2 <https://github.com/kmike/pymorphy2/>`_
 ======= ==================== =========== ===== ========================================================================
 
@@ -305,9 +310,11 @@ The surface lookups (non-greedy mode) use lemmatization lists derived from vario
 Contributions
 -------------
 
+See this `list of contributors <https://github.com/adbar/simplemma/graphs/contributors>`_ to the repository.
+
 Feel free to contribute, notably by `filing issues <https://github.com/adbar/simplemma/issues/>`_ for feedback, bug reports, or links to further lemmatization lists, rules and tests.
 
-You can also contribute to this `lemmatization list repository <https://github.com/michmech/lemmatization-lists>`_.
+Contributions by pull requests ought to follow the following conventions: code style with `black <https://github.com/psf/black>`_, type hinting with `mypy <https://github.com/python/mypy>`_, included tests with `pytest <https://pytest.org>`_.
 
 
 Other solutions
@@ -320,6 +327,8 @@ For a more complex and universal approach in Python see `universal-lemmatizer <h
 
 References
 ----------
+
+To cite this software:
 
 .. image:: https://img.shields.io/badge/DOI-10.5281%2Fzenodo.4673264-brightgreen
    :target: https://doi.org/10.5281/zenodo.4673264
