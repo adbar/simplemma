@@ -1,14 +1,18 @@
 import time
+import csv
+import os
 
 from collections import Counter
 
 from conllu import parse_incr
 from simplemma import lemmatize
 
+if not os.path.exists("csv"):
+    os.makedirs("csv")
 
 data_files = [
     ("bg", "tests/UD/bg-btb-all.conllu"),
-    # ("cs", "tests/UD/cs-pdt-all.conllu"),  # longer to process
+    ("cs", "tests/UD/cs-pdt-all.conllu"),  # longer to process
     ("da", "tests/UD/da-ddt-all.conllu"),
     ("de", "tests/UD/de-gsd-all.conllu"),
     ("el", "tests/UD/el-gdt-all.conllu"),
@@ -64,6 +68,7 @@ for filedata in data_files:
     print("==", filedata, "==")
     for tokenlist in parse_incr(data_file):
         for token in tokenlist:
+            error = False
             if token["lemma"] == "_":  #  or token['upos'] in ('PUNCT', 'SYM')
                 #    flag = True
                 continue
@@ -88,20 +93,30 @@ for filedata in data_files:
                     nonpro += 1
                 if candidate == token["lemma"]:
                     nongreedynonpro += 1
-                    # if len(token['lemma']) < 3:
-                    #    print(token['form'], token['lemma'], greedy_candidate)
-                # else:
-                #    errors.append((token['form'], token['lemma'], candidate))
             total += 1
             if token["form"] == token["lemma"]:
                 zero += 1
             if greedy_candidate == token["lemma"]:
                 greedy += 1
+            else:
+                error = True
             if candidate == token["lemma"]:
                 nongreedy += 1
             else:
-                errors.append((token["form"], token["lemma"], candidate))
+                error = True
+            if error:
+                errors.append(
+                    (token["form"], token["lemma"], candidate, greedy_candidate)
+                )
+    with open(
+        f'csv/{os.path.basename(filedata[1]).replace("conllu","csv")}', "w"
+    ) as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(("form", "lemma", "candidate", "greedy_candidate"))
+        writer.writerows(errors)
+
     print("exec time:\t %.3f" % (time.time() - start))
+    print("Token count:\t", total)
     print("greedy:\t\t %.3f" % (greedy / total))
     print("non-greedy:\t %.3f" % (nongreedy / total))
     print("baseline:\t %.3f" % (zero / total))
