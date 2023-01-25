@@ -2,10 +2,9 @@ import lzma
 import logging
 import pickle
 import re
-import logging
 
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
 from .constants import LANGLIST
 from .utils import levenshtein_dist
@@ -79,7 +78,7 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
                 rule = apply_rules(columns[1], langcode)
                 if rule == columns[0]:
                     continue
-                elif rule is not None and rule != columns[1]:
+                if rule is not None and rule != columns[1]:
                     print(columns[1], columns[0], rule)
             # process
             if columns[1] in mydict and mydict[columns[1]] != columns[0]:

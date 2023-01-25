@@ -291,7 +291,6 @@ FINNISH_ENDINGS = {
     "isillä": "inen",
     "isilta": "inen",  # liikenaisilta → liikenainen
     "isiltä": "inen",
-    "isille": "inen",  # liikenaisille → liikenainen
     "isina": "inen",  # liikenaisina → liikenainen
     "isinä": "inen",
     "isineen": "inen",  # liikenaisineen → liikenainen
@@ -300,8 +299,6 @@ FINNISH_ENDINGS = {
     "isemme": "inen",  # liikenaisemme → liikenainen
     "isenne": "inen",  # liikenaisenne → liikenainen
     "isille": "inen",  # liikenaisille → liikenainen
-    "iselta": "inen",  # liikenaiselta → liikenainen
-    "iseltä": "inen",
     "isetta": "inen",  # liikenaisetta → liikenainen
     "isettä": "inen",
     # -ainen for more precision
