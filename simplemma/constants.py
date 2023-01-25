@@ -49,3 +49,5 @@ LANGLIST = [
     "tr",
     "uk",
 ]
+
+CACHE_SIZE = 1048576

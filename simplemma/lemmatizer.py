@@ -6,6 +6,7 @@ import re
 from functools import lru_cache
 from typing import Any, Dict, List, Iterator, Optional, Tuple, Union
 
+from .constants import CACHE_SIZE
 from .dictionaries import update_lang_data
 from .utils import levenshtein_dist
 
@@ -267,8 +268,7 @@ def is_known(token: str, lang: Optional[Union[str, Tuple[str]]] = None) -> bool:
     )
 
 
-@lru_cache(maxsize=1048576)
-def lemmatize(
+def _lemmatize(
     token: str,
     lang: Optional[Union[str, Tuple[str]]] = None,
     greedy: bool = False,
@@ -298,6 +298,10 @@ def lemmatize(
         raise ValueError(f"Token not found: {token}")
     # try to simply lowercase # and len(token) < 10 ?
     return token.lower() if dictionaries[0].code in BETTER_LOWER else token
+
+
+# provide drop-in replacement for previously decorated function
+lemmatize = lru_cache(maxsize=CACHE_SIZE)(_lemmatize)
 
 
 def text_lemmatizer(
