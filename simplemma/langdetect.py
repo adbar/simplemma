@@ -4,7 +4,7 @@ import re
 
 from collections import Counter
 from operator import itemgetter
-from typing import List, Optional, Tuple
+from typing import List, Optional, Pattern, Tuple
 
 from .lemmatizer import _return_lemma
 from .dictionaries import update_lang_data
@@ -12,12 +12,12 @@ from .dictionaries import update_lang_data
 SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
 
 
-def prepare_text(text: str) -> List[str]:
+def prepare_text(text: str, splitting_regex: Pattern[str] = SPLIT_INPUT) -> List[str]:
     """Extract potential words, scramble them, extract the most frequent,
     some of the rest, and return at most 1000 tokens."""
     # generator expression to split the text
     counter = Counter(
-        match[0] for match in SPLIT_INPUT.finditer(text) if not match[0].isupper()
+        match[0] for match in splitting_regex.finditer(text) if not match[0].isupper()
     )
     # total = sum(counter.values())
     # if total > 100:

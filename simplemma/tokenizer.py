@@ -2,7 +2,7 @@
 
 import re
 
-from typing import Iterator, List, Match, Union
+from typing import Iterator, List, Match, Pattern, Union
 
 
 TOKREGEX = re.compile(
@@ -16,11 +16,11 @@ TOKREGEX = re.compile(
 
 
 def simple_tokenizer(
-    text: str, iterate: bool = False
+    text: str, iterate: bool = False, splitting_regex: Pattern[str] = TOKREGEX
 ) -> Union[Iterator[Match[str]], List[str]]:
     """Simple regular expression.
     Takes a string as input and returns a list of tokens.
     Provided for convenience and educational purposes."""
     if iterate is False:
-        return TOKREGEX.findall(text)
-    return TOKREGEX.finditer(text)
+        return splitting_regex.findall(text)
+    return splitting_regex.finditer(text)
