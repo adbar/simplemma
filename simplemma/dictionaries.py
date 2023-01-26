@@ -4,7 +4,7 @@ import logging
 import pickle
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from .constants import LANGLIST
 
@@ -54,17 +54,35 @@ def _load_data(langs: Optional[Tuple[str]]) -> List[LangDict]:
     return langlist
 
 
-IM_MEMORY_DICTIONARIES: List[LangDict] = []
+IN_MEMORY_DICTIONARIES: List[LangDict] = []
+
+
+def _unload_data(unloading_list: Set[str]) -> List[LangDict]:
+    global IN_MEMORY_DICTIONARIES
+    # not especially efficient computationally speaking
+    for l in IN_MEMORY_DICTIONARIES:
+        if l.code in unloading_list:
+            print(l.code)
+            IN_MEMORY_DICTIONARIES.remove(l)
+    return IN_MEMORY_DICTIONARIES
 
 
 def update_lang_data(lang: Optional[Union[str, Tuple[str]]]) -> List[LangDict]:
     # convert string
     lang = _control_lang(lang)
-    global IM_MEMORY_DICTIONARIES
-    if (
-        not IM_MEMORY_DICTIONARIES
-        or tuple(l.code for l in IM_MEMORY_DICTIONARIES) != lang
-    ):
-        IM_MEMORY_DICTIONARIES = _load_data(lang)
+    global IN_MEMORY_DICTIONARIES
+    if not IN_MEMORY_DICTIONARIES:
+        IN_MEMORY_DICTIONARIES = _load_data(lang)
+    else:
+        prev_lang = tuple(l.code for l in IN_MEMORY_DICTIONARIES)
+        if prev_lang != lang:
+            # make lists of languages to load or unload
+            # could also use set union/difference
+            loading_list = tuple(l for l in lang if l not in prev_lang)
+            unloading_list = set(l for l in prev_lang if l not in lang)
+            # unload
+            IN_MEMORY_DICTIONARIES = _unload_data(unloading_list)
+            # load
+            IN_MEMORY_DICTIONARIES.extend(_load_data(loading_list))  # type: ignore[arg-type]
         # TODO lemmatize.cache_clear()
-    return IM_MEMORY_DICTIONARIES
+    return IN_MEMORY_DICTIONARIES
