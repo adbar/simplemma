@@ -54,17 +54,14 @@ def _load_data(langs: Optional[Tuple[str]]) -> List[LangDict]:
     return langlist
 
 
-IN_MEMORY_DICTIONARIES: List[LangDict] = []
-
-
-def _unload_data(unloading_list: Set[str]) -> List[LangDict]:
-    global IN_MEMORY_DICTIONARIES
+def _unload_data(langdict: List[LangDict], unloading_list: Set[str]) -> List[LangDict]:
     # not especially efficient computationally speaking
-    for l in IN_MEMORY_DICTIONARIES:
-        if l.code in unloading_list:
-            print(l.code)
-            IN_MEMORY_DICTIONARIES.remove(l)
-    return IN_MEMORY_DICTIONARIES
+    for item in [l for l in langdict if l.code in unloading_list]:
+        langdict.remove(item)
+    return langdict
+
+
+IN_MEMORY_DICTIONARIES: List[LangDict] = []
 
 
 def update_lang_data(lang: Optional[Union[str, Tuple[str]]]) -> List[LangDict]:
@@ -81,7 +78,9 @@ def update_lang_data(lang: Optional[Union[str, Tuple[str]]]) -> List[LangDict]:
             loading_list = tuple(l for l in lang if l not in prev_lang)
             unloading_list = set(l for l in prev_lang if l not in lang)
             # unload
-            IN_MEMORY_DICTIONARIES = _unload_data(unloading_list)
+            IN_MEMORY_DICTIONARIES = _unload_data(
+                IN_MEMORY_DICTIONARIES, unloading_list
+            )
             # load
             IN_MEMORY_DICTIONARIES.extend(_load_data(loading_list))  # type: ignore[arg-type]
         # TODO lemmatize.cache_clear()
