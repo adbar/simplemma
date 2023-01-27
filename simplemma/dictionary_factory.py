@@ -33,7 +33,7 @@ def _load_dictionary_from_disk(langcode: str) -> Dict[str, str]:
 
 
 class DictionaryFactory:
-    def __init__(self, cache_max_size: Optional[int] = 4):
+    def __init__(self, cache_max_size: Optional[int] = 8):
         self._data: Dict[str, Dict[str, str]] = {}
         self._load_dictionary_from_disk = lru_cache(maxsize=cache_max_size)(
             _load_dictionary_from_disk
@@ -48,7 +48,10 @@ class DictionaryFactory:
             return self._data
 
         self._data = {}
-        for lang in langs:
+        for lang in [lang for lang in self._data if lang not in langs]:
+            self._data.pop(lang)
+
+        for lang in [lang for lang in langs if lang not in self._data]:
             if lang not in LANGLIST:
                 LOGGER.error("language not supported: %s", lang)
                 continue
