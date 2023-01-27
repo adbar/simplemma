@@ -33,7 +33,7 @@ def _load_dictionary_from_disk(langcode: str) -> Dict[str, str]:
 
 
 class DictionaryFactory:
-    def __init__(self, cache_max_size: Optional[int] = 5):
+    def __init__(self, cache_max_size: Optional[int] = 4):
         self._data: Dict[str, Dict[str, str]] = {}
         self._load_dictionary_from_disk = lru_cache(maxsize=cache_max_size)(
             _load_dictionary_from_disk
