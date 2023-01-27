@@ -2,12 +2,23 @@
 
 import logging
 import pytest
-
+from typing import Optional, Tuple, Union
 
 import simplemma
-from simplemma import lemmatize
+from simplemma import lemmatize, DictionaryFactory
 
 logging.basicConfig(level=logging.DEBUG)
+
+
+def test_custom_dictionary_factory():
+    class CustomDictionaryFactory:
+        def get_dictionaries(self, langs: Optional[Union[str, Tuple[str]]]):
+            return {"en": {"testing": "the test works!!"}}
+
+    assert (
+        lemmatize("testing", lang="en", dictionaryFactory=CustomDictionaryFactory())
+        == "the test works!!"
+    )
 
 
 def test_readme():
@@ -62,61 +73,53 @@ def test_readme():
 def test_logic():
     """Test if certain code parts correspond to the intended logic."""
     # missing languages or faulty language codes
-    mydata = simplemma.dictionaries._load_data(("de", "abc", "en"))
+    dictionaryFactory = DictionaryFactory()
+    dictionaries = dictionaryFactory.get_dictionaries(("de", "abc", "en"))
     with pytest.raises(TypeError):
         lemmatize("test", lang=["test"])
-    with pytest.raises(TypeError):
-        simplemma.dictionaries.update_lang_data(["id", "lv"])
+
+    deDict = dictionaries["de"]
 
     # searches
     with pytest.raises(TypeError):
         assert lemmatize(None, lang="en") is None
     with pytest.raises(ValueError):
         assert lemmatize("", lang="en") is None
-    assert simplemma.lemmatizer._suffix_search("ccc", mydata[0].dict) is None
+    assert simplemma.lemmatizer._suffix_search("ccc", deDict) is None
 
     assert (
-        simplemma.lemmatizer._return_lemma("Gender-Sternchens", mydata[0].dict)
+        simplemma.lemmatizer._return_lemma("Gender-Sternchens", deDict)
         == "Gendersternchen"
     )
-    assert (
-        simplemma.lemmatizer._return_lemma("an-gespieltes", mydata[0].dict)
-        == "anspielen"
-    )
+    assert simplemma.lemmatizer._return_lemma("an-gespieltes", deDict) == "anspielen"
 
     assert (
-        simplemma.lemmatizer._greedy_search(
-            "getesteten", mydata[0].dict, steps=0, distance=20
-        )
+        simplemma.lemmatizer._greedy_search("getesteten", deDict, steps=0, distance=20)
         == "getestet"
     )
     assert (
-        simplemma.lemmatizer._greedy_search(
-            "getesteten", mydata[0].dict, steps=1, distance=20
-        )
+        simplemma.lemmatizer._greedy_search("getesteten", deDict, steps=1, distance=20)
         == "getestet"
     )
     assert (
-        simplemma.lemmatizer._greedy_search(
-            "getesteten", mydata[0].dict, steps=2, distance=20
-        )
+        simplemma.lemmatizer._greedy_search("getesteten", deDict, steps=2, distance=20)
         == "testen"
     )
     assert (
-        simplemma.lemmatizer._greedy_search(
-            "getesteten", mydata[0].dict, steps=2, distance=2
-        )
+        simplemma.lemmatizer._greedy_search("getesteten", deDict, steps=2, distance=2)
         == "getestet"
     )
 
     # prefixes
-    mydata = simplemma.dictionaries._load_data(("de", "ru"))
+    dictionaries = dictionaryFactory.get_dictionaries(("de", "ru"))
+    deDict = dictionaries["de"]
     assert (
-        simplemma.lemmatizer._prefix_search("zerlemmatisiertes", "de", mydata[0].dict)
+        simplemma.lemmatizer._prefix_search("zerlemmatisiertes", "de", deDict)
         == "zerlemmatisiert"
     )
+    ruDict = dictionaries["ru"]
     assert (
-        simplemma.lemmatizer._prefix_search("зафиксированные", "ru", mydata[1].dict)
+        simplemma.lemmatizer._prefix_search("зафиксированные", "ru", ruDict)
         == "зафиксированный"
     )
 
@@ -186,23 +189,26 @@ def test_convenience():
 
 def test_search():
     """Test simple and greedy dict search."""
-    data = simplemma.dictionaries._load_data(("en",))[0]
-    assert simplemma.lemmatizer._simple_search("ignorant", data.dict) == "ignorant"
-    assert simplemma.lemmatizer._simple_search("Ignorant", data.dict) == "ignorant"
+    dictionaryFactory = DictionaryFactory()
+    dictionaries = dictionaryFactory.get_dictionaries(("en",))
+    enDict = dictionaries["en"]
+    assert simplemma.lemmatizer._simple_search("ignorant", enDict) == "ignorant"
+    assert simplemma.lemmatizer._simple_search("Ignorant", enDict) == "ignorant"
     assert (
-        simplemma.lemmatizer._dehyphen("magni-ficent", data.dict, False) == "magnificent"
+        simplemma.lemmatizer._dehyphen("magni-ficent", enDict, False) == "magnificent"
     )
-    assert simplemma.lemmatizer._dehyphen("magni-ficents", data.dict, False) is None
-    # assert simplemma.simplemma._greedy_search('Ignorance-Tests', datadict) == 'Ignorance-Test'
+    assert simplemma.lemmatizer._dehyphen("magni-ficents", enDict, False) is None
+    # assert simplemma.simplemma._greedy_search('Ignorance-Tests', enDict) == 'Ignorance-Test'
     # don't lemmatize numbers
-    assert simplemma.lemmatizer._return_lemma("01234", data.dict) == "01234"
+    assert simplemma.lemmatizer._return_lemma("01234", enDict) == "01234"
     # initial or not
-    data = simplemma.dictionaries._load_data(("de",))[0]
+    dictionaries = dictionaryFactory.get_dictionaries(("de",))
+    deDict = dictionaries["de"]
     assert (
-        simplemma.lemmatizer._simple_search("Dritte", data.dict, initial=True) == "dritt"
+        simplemma.lemmatizer._simple_search("Dritte", deDict, initial=True) == "dritt"
     )
     assert (
-        simplemma.lemmatizer._simple_search("Dritte", data.dict, initial=False)
+        simplemma.lemmatizer._simple_search("Dritte", deDict, initial=False)
         == "Dritter"
     )
 
