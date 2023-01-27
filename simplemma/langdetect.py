@@ -33,12 +33,12 @@ def prepare_text(text: str, splitting_regex: Pattern[str] = SPLIT_INPUT) -> List
 def in_target_language(
     text: str,
     lang: Optional[Tuple[str]] = None,
-    dictionaryFactory: DictionaryFactory = DictionaryFactory(),
+    dictionary_factory: DictionaryFactory = DictionaryFactory(),
 ) -> float:
     """Determine which proportion of the text is in the target language(s)."""
     total = 0
     in_target = 0
-    dictionaries = dictionaryFactory.get_dictionaries(lang)
+    dictionaries = dictionary_factory.get_dictionaries(lang)
     for token in prepare_text(text):
         total += 1
         for lang_code, lang_dictionary in dictionaries.items():
@@ -62,7 +62,7 @@ def lang_detector(
     text: str,
     lang: Optional[Tuple[str]] = None,
     extensive: bool = False,
-    dictionaryFactory: DictionaryFactory = DictionaryFactory(),
+    dictionary_factory: DictionaryFactory = DictionaryFactory(),
 ) -> List[Tuple[str, float]]:
     """Determine which proportion of the text is in the target language(s)."""
     myresults = {}  # Dict[str, float]
@@ -71,7 +71,7 @@ def lang_detector(
     if total_tokens == 0:
         return _return_default()
     # iterate
-    dictionaries = dictionaryFactory.get_dictionaries(lang)
+    dictionaries = dictionary_factory.get_dictionaries(lang)
     for lang_code, lang_dictionary in dictionaries.items():
         in_target = 0
         for token in tokens:

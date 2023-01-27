@@ -261,12 +261,12 @@ def _control_input_type(token: Any) -> None:
 def is_known(
     token: str,
     lang: Optional[Union[str, Tuple[str]]] = None,
-    dictionaryFactory: DictionaryFactory = DictionaryFactory(),
+    dictionary_factory: DictionaryFactory = DictionaryFactory(),
 ) -> bool:
     """Tell if a token is present in one of the loaded dictionaries.
     Case-insensitive, whole word forms only. Returns True or False."""
     _control_input_type(token)
-    dictionaries = dictionaryFactory.get_dictionaries(lang)  # ignore returned value
+    dictionaries = dictionary_factory.get_dictionaries(lang)  # ignore returned value
     return any(
         _simple_search(token, language_dictionary) is not None
         for language_dictionary in dictionaries.values()
@@ -279,14 +279,14 @@ def _lemmatize(
     greedy: bool = False,
     silent: bool = True,
     initial: bool = False,
-    dictionaryFactory: DictionaryFactory = DictionaryFactory(),
+    dictionary_factory: DictionaryFactory = DictionaryFactory(),
 ) -> str:
     """Try to reduce a token to its lemma form according to the
     language list passed as input.
     Returns a string.
     Can raise ValueError by silent=False if no lemma has been found."""
     _control_input_type(token)
-    dictionaries = dictionaryFactory.get_dictionaries(lang)  # use returned lang value
+    dictionaries = dictionary_factory.get_dictionaries(lang)  # use returned lang value
     # start
     for i, l in enumerate(dictionaries.items(), start=1):
         (lang_code, lang_dictionary) = l

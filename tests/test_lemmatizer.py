@@ -16,7 +16,7 @@ def test_custom_dictionary_factory():
             return {"en": {"testing": "the test works!!"}}
 
     assert (
-        lemmatize("testing", lang="en", dictionaryFactory=CustomDictionaryFactory())
+        lemmatize("testing", lang="en", dictionary_factory=CustomDictionaryFactory())
         == "the test works!!"
     )
 
@@ -73,8 +73,8 @@ def test_readme():
 def test_logic():
     """Test if certain code parts correspond to the intended logic."""
     # missing languages or faulty language codes
-    dictionaryFactory = DictionaryFactory()
-    dictionaries = dictionaryFactory.get_dictionaries(("de", "abc", "en"))
+    dictionary_factory = DictionaryFactory()
+    dictionaries = dictionary_factory.get_dictionaries(("de", "abc", "en"))
     with pytest.raises(TypeError):
         lemmatize("test", lang=["test"])
 
@@ -111,7 +111,7 @@ def test_logic():
     )
 
     # prefixes
-    dictionaries = dictionaryFactory.get_dictionaries(("de", "ru"))
+    dictionaries = dictionary_factory.get_dictionaries(("de", "ru"))
     deDict = dictionaries["de"]
     assert (
         simplemma.lemmatizer._prefix_search("zerlemmatisiertes", "de", deDict)
@@ -189,8 +189,8 @@ def test_convenience():
 
 def test_search():
     """Test simple and greedy dict search."""
-    dictionaryFactory = DictionaryFactory()
-    dictionaries = dictionaryFactory.get_dictionaries(("en",))
+    dictionary_factory = DictionaryFactory()
+    dictionaries = dictionary_factory.get_dictionaries(("en",))
     enDict = dictionaries["en"]
     assert simplemma.lemmatizer._simple_search("ignorant", enDict) == "ignorant"
     assert simplemma.lemmatizer._simple_search("Ignorant", enDict) == "ignorant"
@@ -202,7 +202,7 @@ def test_search():
     # don't lemmatize numbers
     assert simplemma.lemmatizer._return_lemma("01234", enDict) == "01234"
     # initial or not
-    dictionaries = dictionaryFactory.get_dictionaries(("de",))
+    dictionaries = dictionary_factory.get_dictionaries(("de",))
     deDict = dictionaries["de"]
     assert (
         simplemma.lemmatizer._simple_search("Dritte", deDict, initial=True) == "dritt"
