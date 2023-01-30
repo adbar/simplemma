@@ -7,7 +7,7 @@ from functools import lru_cache
 from typing import Any, Dict, List, Iterator, Optional, Tuple, Union
 
 from .constants import CACHE_SIZE
-from .dictionaries import update_lang_data
+from .dictionary_factory import DictionaryFactory
 from .utils import levenshtein_dist
 
 try:
@@ -258,13 +258,18 @@ def _control_input_type(token: Any) -> None:
         raise ValueError("Wrong input type: empty string")
 
 
-def is_known(token: str, lang: Optional[Union[str, Tuple[str]]] = None) -> bool:
+def is_known(
+    token: str,
+    lang: Optional[Union[str, Tuple[str]]] = None,
+    dictionary_factory: DictionaryFactory = DictionaryFactory(),
+) -> bool:
     """Tell if a token is present in one of the loaded dictionaries.
     Case-insensitive, whole word forms only. Returns True or False."""
     _control_input_type(token)
-    dictionaries = update_lang_data(lang)  # ignore returned value
+    dictionaries = dictionary_factory.get_dictionaries(lang)  # ignore returned value
     return any(
-        _simple_search(token, language.dict) is not None for language in dictionaries
+        _simple_search(token, language_dictionary) is not None
+        for language_dictionary in dictionaries.values()
     )
 
 
@@ -274,30 +279,32 @@ def _lemmatize(
     greedy: bool = False,
     silent: bool = True,
     initial: bool = False,
+    dictionary_factory: DictionaryFactory = DictionaryFactory(),
 ) -> str:
     """Try to reduce a token to its lemma form according to the
     language list passed as input.
     Returns a string.
     Can raise ValueError by silent=False if no lemma has been found."""
     _control_input_type(token)
-    dictionaries = update_lang_data(lang)  # use returned lang value
+    dictionaries = dictionary_factory.get_dictionaries(lang)  # use returned lang value
     # start
-    for i, l in enumerate(dictionaries, start=1):
+    for i, l in enumerate(dictionaries.items(), start=1):
+        (lang_code, lang_dictionary) = l
         # determine default greediness
         # if greedy is None:
         #    greedy = _define_greediness(language)
         # determine lemma
         candidate = _return_lemma(
-            token, l.dict, greedy=greedy, lang=l.code, initial=initial
+            token, lang_dictionary, greedy=greedy, lang=lang_code, initial=initial
         )
         if candidate is not None:
             if i != 1:
-                LOGGER.debug("%s found in %s", token, l.code)
+                LOGGER.debug("%s found in %s", token, lang_code)
             return candidate
     if not silent:
         raise ValueError(f"Token not found: {token}")
     # try to simply lowercase # and len(token) < 10 ?
-    return token.lower() if dictionaries[0].code in BETTER_LOWER else token
+    return token.lower() if list(dictionaries.keys())[0] in BETTER_LOWER else token
 
 
 # provide drop-in replacement for previously decorated function

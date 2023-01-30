@@ -1,10 +1,10 @@
-
 import os
 import tempfile
 
 from simplemma import dictionary_pickler
 
 TEST_DIR = os.path.abspath(os.path.dirname(__file__))
+
 
 def test_logic():
     """Test if certain code parts correspond to the intended logic."""

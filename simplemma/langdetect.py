@@ -7,7 +7,7 @@ from operator import itemgetter
 from typing import List, Optional, Pattern, Tuple
 
 from .lemmatizer import _return_lemma
-from .dictionaries import update_lang_data
+from .dictionary_factory import DictionaryFactory
 
 SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
 
@@ -30,15 +30,21 @@ def prepare_text(text: str, splitting_regex: Pattern[str] = SPLIT_INPUT) -> List
     return [item[0] for item in counter.most_common(1000)]
 
 
-def in_target_language(text: str, lang: Optional[Tuple[str]] = None) -> float:
+def in_target_language(
+    text: str,
+    lang: Optional[Tuple[str]] = None,
+    dictionary_factory: DictionaryFactory = DictionaryFactory(),
+) -> float:
     """Determine which proportion of the text is in the target language(s)."""
     total = 0
     in_target = 0
-    dictionaries = update_lang_data(lang)
+    dictionaries = dictionary_factory.get_dictionaries(lang)
     for token in prepare_text(text):
         total += 1
-        for l in dictionaries:
-            candidate = _return_lemma(token, l.dict, greedy=True, lang=l.code)
+        for lang_code, lang_dictionary in dictionaries.items():
+            candidate = _return_lemma(
+                token, lang_dictionary, greedy=True, lang=lang_code
+            )
             if candidate is not None:
                 in_target += 1
                 break
@@ -53,7 +59,10 @@ def _return_default() -> List[Tuple[str, float]]:
 
 
 def lang_detector(
-    text: str, lang: Optional[Tuple[str]] = None, extensive: bool = False
+    text: str,
+    lang: Optional[Tuple[str]] = None,
+    extensive: bool = False,
+    dictionary_factory: DictionaryFactory = DictionaryFactory(),
 ) -> List[Tuple[str, float]]:
     """Determine which proportion of the text is in the target language(s)."""
     myresults = {}  # Dict[str, float]
@@ -62,16 +71,18 @@ def lang_detector(
     if total_tokens == 0:
         return _return_default()
     # iterate
-    dictionaries = update_lang_data(lang)
-    for l in dictionaries:
+    dictionaries = dictionary_factory.get_dictionaries(lang)
+    for lang_code, lang_dictionary in dictionaries.items():
         in_target = 0
         for token in tokens:
-            candidate = _return_lemma(token, l.dict, greedy=extensive, lang=l.code)
+            candidate = _return_lemma(
+                token, lang_dictionary, greedy=extensive, lang=lang_code
+            )
             if candidate is not None:
                 in_target += 1
         # compute results
         found_ratio = in_target / total_tokens
-        myresults[l.code] = found_ratio
+        myresults[lang_code] = found_ratio
         unknown = 1 - found_ratio or 0.0
         if myresults.get("unk") is None or unknown < myresults["unk"]:
             myresults["unk"] = unknown
