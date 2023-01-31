@@ -51,7 +51,7 @@ data_files = [
 
 
 for filedata in data_files:
-    total, nonprototal, greedy, nongreedy, zero, zerononpro, nonpro, nongreedynonpro = (
+    total, focus_total, greedy, nongreedy, zero, focus_zero, focus, focus_nongreedy = (
         0,
         0,
         0,
@@ -70,8 +70,8 @@ for filedata in data_files:
     for tokenlist in parse_incr(data_file):
         for token in tokenlist:
             error_flag = False
-            if token["lemma"] == "_":  #  or token['upos'] in ('PUNCT', 'SYM')
-                #    flag = True
+            if token["lemma"] == "_":  # or token['upos'] in ('PUNCT', 'SYM')
+                # flag = True
                 continue
 
             initial = bool(token["id"] == 1)
