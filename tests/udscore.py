@@ -1,14 +1,14 @@
-import time
 import csv
-import os
+import time
 
 from collections import Counter
+from os import makedirs, path
 
 from conllu import parse_incr
 from simplemma import lemmatize
 
-if not os.path.exists("csv"):
-    os.makedirs("csv")
+if not path.exists("csv"):
+    makedirs("csv")
 
 data_files = [
     ("bg", "tests/UD/bg-btb-all.conllu"),
@@ -62,21 +62,19 @@ for filedata in data_files:
         0,
     )
     errors, flag = [], False
-    language = filedata[0]
-    data_file = open(filedata[1], "r", encoding="utf-8")
+    language, filename = filedata[0], filedata[1]
+    with open(filename, "r", encoding="utf-8") as myfile:
+        data_file = myfile.read()
     start = time.time()
     print("==", filedata, "==")
     for tokenlist in parse_incr(data_file):
         for token in tokenlist:
-            error = False
+            error_flag = False
             if token["lemma"] == "_":  #  or token['upos'] in ('PUNCT', 'SYM')
                 #    flag = True
                 continue
 
-            if token["id"] == 1:
-                initial = True
-            else:
-                initial = False
+            initial = bool(token["id"] == 1)
 
             greedy_candidate = lemmatize(
                 token["form"], lang=language, greedy=True, initial=initial
@@ -86,42 +84,42 @@ for filedata in data_files:
             )
 
             if token["upos"] in ("ADJ", "NOUN"):
-                nonprototal += 1
+                focus_total += 1
                 if token["form"] == token["lemma"]:
-                    zerononpro += 1
+                    focus_zero += 1
                 if greedy_candidate == token["lemma"]:
-                    nonpro += 1
+                    focus += 1
                 if candidate == token["lemma"]:
-                    nongreedynonpro += 1
+                    focus_nongreedy += 1
             total += 1
             if token["form"] == token["lemma"]:
                 zero += 1
             if greedy_candidate == token["lemma"]:
                 greedy += 1
             else:
-                error = True
+                error_flag = True
             if candidate == token["lemma"]:
                 nongreedy += 1
             else:
-                error = True
-            if error:
+                error_flag = True
+            if error_flag:
                 errors.append(
                     (token["form"], token["lemma"], candidate, greedy_candidate)
                 )
     with open(
-        f'csv/{os.path.basename(filedata[1]).replace("conllu","csv")}', "w"
+        f'csv/{path.basename(filename).replace("conllu","csv")}', "w", encoding="utf-8"
     ) as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(("form", "lemma", "candidate", "greedy_candidate"))
         writer.writerows(errors)
 
     print("exec time:\t %.3f" % (time.time() - start))
-    print("Token count:\t", total)
+    print("token count:\t", total)
     print("greedy:\t\t %.3f" % (greedy / total))
     print("non-greedy:\t %.3f" % (nongreedy / total))
     print("baseline:\t %.3f" % (zero / total))
-    print("-PRO greedy:\t\t %.3f" % (nonpro / nonprototal))
-    print("-PRO non-greedy:\t %.3f" % (nongreedynonpro / nonprototal))
-    print("-PRO baseline:\t\t %.3f" % (zerononpro / nonprototal))
+    print("ADJ+NOUN greedy:\t\t %.3f" % (focus / focus_total))
+    print("ADJ+NOUN non-greedy:\t\t %.3f" % (focus_nongreedy / focus_total))
+    print("ADJ+NOUN baseline:\t\t %.3f" % (focus_zero / focus_total))
     mycounter = Counter(errors)
     print(mycounter.most_common(20))
