@@ -2,7 +2,7 @@ import time
 
 from collections import Counter
 
-from conllu import parse_incr
+from conllu import parse_incr  # type: ignore
 from simplemma import lemmatize
 
 

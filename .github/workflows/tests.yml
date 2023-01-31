@@ -77,7 +77,7 @@ jobs:
     - name: Code format with black
       run: |
         python -m pip install --upgrade black
-        black --check --diff simplemma
+        black --check --diff simplemma tests
 
     - name: Install dependencies
       run: python -m pip install -e "."
@@ -85,7 +85,7 @@ jobs:
     - name: Type checking with mypy
       run: |
         python -m pip install --upgrade mypy
-        mypy -p simplemma
+        mypy -p simplemma -p tests
 
     - name: Test with pytest
       run: |
