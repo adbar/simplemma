@@ -6,14 +6,15 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from .constants import LANGLIST
-from .utils import levenshtein_dist
-
 try:
+    from .constants import LANGLIST
     from .rules import apply_rules
+    from .utils import levenshtein_dist
 # local error, also ModuleNotFoundError for Python >= 3.6
 except ImportError:  # pragma: no cover
+    from constants import LANGLIST  # type: ignore
     from rules import apply_rules  # type: ignore
+    from utils import levenshtein_dist  # type: ignore
 
 LOGGER = logging.getLogger(__name__)
 
@@ -127,6 +128,8 @@ def _pickle_dict(
     langcode: str, listpath: str = "lists", filepath: Optional[str] = None
 ) -> None:
     mydict = _load_dict(langcode, listpath)
+    # sort dictionary to help saving space during compression
+    mydict = {k: v for k, v in sorted(mydict.items(), key=lambda item: item[1])}
     if filepath is None:
         filename = f"data/{langcode}.plzma"
         filepath = str(Path(__file__).parent / filename)
