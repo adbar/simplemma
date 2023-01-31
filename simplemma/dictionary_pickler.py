@@ -6,14 +6,15 @@ import re
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from .constants import LANGLIST
-from .utils import levenshtein_dist
-
 try:
+    from .constants import LANGLIST
     from .rules import apply_rules
+    from .utils import levenshtein_dist
 # local error, also ModuleNotFoundError for Python >= 3.6
 except ImportError:  # pragma: no cover
+    from constants import LANGLIST  # type: ignore
     from rules import apply_rules  # type: ignore
+    from utils import levenshtein_dist  # type: ignore
 
 LOGGER = logging.getLogger(__name__)
 
