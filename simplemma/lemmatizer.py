@@ -319,21 +319,7 @@ def text_lemmatizer(
 ) -> List[str]:
     """Convenience function to lemmatize a text using a simple tokenizer.
     Returns a list of tokens and lemmata."""
-    lemmata = []
-    last = "."  # beginning is initial
-    for match in simple_tokenizer(text, iterate=True):
-        # lemmatize, simple heuristic for sentence boundary
-        lemmata.append(
-            lemmatize(
-                match[0],
-                lang=lang,
-                greedy=greedy,
-                silent=silent,
-                initial=last in PUNCTUATION,
-            )
-        )
-        last = match[0]
-    return lemmata
+    return list(lemma_iterator(text, lang, greedy, silent))
 
 
 def lemma_iterator(
@@ -344,11 +330,7 @@ def lemma_iterator(
 ) -> Iterator[str]:
     """Convenience function to lemmatize a text using a simple tokenizer.
     Returns a list of tokens and lemmata."""
-    last = "."  # beginning is initial
-    for match in simple_tokenizer(text, iterate=True):
-        # lemmatize
-        initial = last in PUNCTUATION
-        last = match[0]
-        yield lemmatize(
-            match[0], lang=lang, greedy=greedy, silent=silent, initial=initial
-        )
+    initial = True
+    for token in simple_tokenizer(text):
+        yield lemmatize(token, lang, greedy, silent, initial)
+        initial = token in PUNCTUATION
