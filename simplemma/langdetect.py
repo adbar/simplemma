@@ -12,34 +12,34 @@ from .dictionary_factory import DictionaryFactory
 SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
 
 
-def prepare_text(text: str, splitting_regex: Pattern[str] = SPLIT_INPUT) -> List[str]:
-    """Extract potential words, scramble them, extract the most frequent,
-    some of the rest, and return at most 1000 tokens."""
-    # generator expression to split the text
-    counter = Counter(
-        match[0] for match in splitting_regex.finditer(text) if not match[0].isupper()
-    )
-    # total = sum(counter.values())
-    # if total > 100:
-    #    # take about 10% of the tokens
-    #    limit = int(sum(counter.values())/10)
-    # else:
-    #    limit = total
-    # most_frequent_short = [item[0] for item in counter.most_common(10)]
-    # rest = [t for t in set(tokens) if len(t) > 4 and t not in most_frequent][:990]
-    return [item[0] for item in counter.most_common(1000)]
+class TokenSampler:
+    def __init__(self) -> None:
+        self.splitting_regex: Pattern[str] = SPLIT_INPUT
+
+    def sample_tokens(self, text: str) -> List[str]:
+        """Extract potential words, scramble them, extract the most frequent,
+        some of the rest, and return at most 1000 tokens."""
+        # generator expression to split the text
+        counter = Counter(
+            match[0]
+            for match in self.splitting_regex.finditer(text)
+            if not match[0].isupper()
+        )
+
+        return [item[0] for item in counter.most_common(1000)]
 
 
 def in_target_language(
     text: str,
     lang: Optional[Tuple[str]] = None,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
+    token_sampler: TokenSampler = TokenSampler(),
 ) -> float:
     """Determine which proportion of the text is in the target language(s)."""
     total = 0
     in_target = 0
     dictionaries = dictionary_factory.get_dictionaries(lang)
-    for token in prepare_text(text):
+    for token in token_sampler.sample_tokens(text):
         total += 1
         for lang_code, lang_dictionary in dictionaries.items():
             candidate = _return_lemma(
@@ -63,10 +63,11 @@ def lang_detector(
     lang: Optional[Tuple[str]] = None,
     extensive: bool = False,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
+    token_sampler: TokenSampler = TokenSampler(),
 ) -> List[Tuple[str, float]]:
     """Determine which proportion of the text is in the target language(s)."""
     myresults = {}  # Dict[str, float]
-    tokens = prepare_text(text)
+    tokens = token_sampler.sample_tokens(text)
     total_tokens = len(tokens)
     if total_tokens == 0:
         return _return_default()
