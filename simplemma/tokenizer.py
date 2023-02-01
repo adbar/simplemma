@@ -21,4 +21,12 @@ def simple_tokenizer(
     """Simple regular expression.
     Takes a string as input and returns a list of tokens.
     Provided for convenience and educational purposes."""
-    return (match[0] for match in splitting_regex.finditer(text))
+    return Tokenizer(splitting_regex).get_tokens(text)
+
+
+class Tokenizer:
+    def __init__(self, splitting_regex: Pattern[str] = TOKREGEX) -> None:
+        self.splitting_regex = splitting_regex
+
+    def get_tokens(self, text: str) -> Iterator[str]:
+        return (match[0] for match in self.splitting_regex.finditer(text))

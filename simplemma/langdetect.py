@@ -8,22 +8,21 @@ from typing import List, Optional, Pattern, Tuple
 
 from .lemmatizer import _return_lemma
 from .dictionary_factory import DictionaryFactory
+from .tokenizer import Tokenizer
 
 SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
 
 
 class TokenSampler:
-    def __init__(self) -> None:
-        self.splitting_regex: Pattern[str] = SPLIT_INPUT
+    def __init__(self, tokenizer: Tokenizer = Tokenizer(SPLIT_INPUT)) -> None:
+        self.tokenizer = tokenizer
 
     def sample_tokens(self, text: str) -> List[str]:
         """Extract potential words, scramble them, extract the most frequent,
         some of the rest, and return at most 1000 tokens."""
         # generator expression to split the text
         counter = Counter(
-            match[0]
-            for match in self.splitting_regex.finditer(text)
-            if not match[0].isupper()
+            token for token in self.tokenizer.get_tokens(text) if not token.isupper()
         )
 
         return [item[0] for item in counter.most_common(1000)]

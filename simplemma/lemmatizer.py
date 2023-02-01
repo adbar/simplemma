@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Iterator, Optional, Tuple, Union
 
 from .constants import CACHE_SIZE
 from .dictionary_factory import DictionaryFactory
+from .tokenizer import Tokenizer
 from .utils import levenshtein_dist
 
 try:
@@ -327,10 +328,11 @@ def lemma_iterator(
     lang: Optional[Union[str, Tuple[str]]] = None,
     greedy: bool = False,
     silent: bool = True,
+    tokenizer: Tokenizer = Tokenizer(),
 ) -> Iterator[str]:
     """Convenience function to lemmatize a text using a simple tokenizer.
     Returns a list of tokens and lemmata."""
     initial = True
-    for token in simple_tokenizer(text):
+    for token in tokenizer.get_tokens(text):
         yield lemmatize(token, lang, greedy, silent, initial)
         initial = token in PUNCTUATION
