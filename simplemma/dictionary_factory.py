@@ -48,10 +48,7 @@ class DictionaryFactory:
             return self._data
 
         self._data = {}
-        for lang in [lang for lang in self._data if lang not in langs]:
-            self._data.pop(lang)
-
-        for lang in [lang for lang in langs if lang not in self._data]:
+        for lang in langs:
             if lang not in LANGLIST:
                 LOGGER.error("language not supported: %s", lang)
                 continue
