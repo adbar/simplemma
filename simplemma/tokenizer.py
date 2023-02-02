@@ -2,7 +2,7 @@
 
 import re
 
-from typing import Iterator, List, Match, Pattern, Union
+from typing import Iterator, List, Pattern
 
 
 TOKREGEX = re.compile(

@@ -13,11 +13,9 @@ from .utils import levenshtein_dist
 
 try:
     from .rules import apply_rules, GERMAN_PREFIXES, RULES_LANGS, RUSSIAN_PREFIXES
-    from .tokenizer import simple_tokenizer
 # local error, also ModuleNotFoundError for Python >= 3.6
 except ImportError:  # pragma: no cover
     from rules import apply_rules, RULES_LANGS  # type: ignore
-    from tokenizer import simple_tokenizer  # type: ignore
 
 
 LOGGER = logging.getLogger(__name__)

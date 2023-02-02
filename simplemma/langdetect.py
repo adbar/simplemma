@@ -4,7 +4,7 @@ import re
 
 from collections import Counter
 from operator import itemgetter
-from typing import List, Optional, Pattern, Tuple
+from typing import List, Optional, Tuple
 
 from .lemmatizer import _return_lemma
 from .dictionary_factory import DictionaryFactory
