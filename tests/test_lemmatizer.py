@@ -10,9 +10,9 @@ from simplemma import lemmatize, DictionaryFactory
 logging.basicConfig(level=logging.DEBUG)
 
 
-def test_custom_dictionary_factory():
+def test_custom_dictionary_factory() -> None:
     class CustomDictionaryFactory:
-        def get_dictionaries(self, langs: Optional[Union[str, Tuple[str]]]):
+        def get_dictionaries(self, langs: Optional[Union[str, Tuple[str]]]) -> None:
             return {"en": {"testing": "the test works!!"}}
 
     assert (
@@ -21,7 +21,7 @@ def test_custom_dictionary_factory():
     )
 
 
-def test_readme():
+def test_readme() -> None:
     """Test function to verify readme examples."""
     myword = "masks"
     assert lemmatize(myword, lang="en") == "mask"
@@ -70,7 +70,7 @@ def test_readme():
         lemmatize("スパゲッティ", lang="pt", silent=False)
 
 
-def test_logic():
+def test_logic() -> None:
     """Test if certain code parts correspond to the intended logic."""
     # missing languages or faulty language codes
     dictionary_factory = DictionaryFactory()
@@ -124,7 +124,7 @@ def test_logic():
     )
 
 
-def test_convenience():
+def test_convenience() -> None:
     """Test convenience functions."""
     # logic
     with pytest.raises(TypeError):
@@ -188,7 +188,7 @@ def test_convenience():
     ]
 
 
-def test_search():
+def test_search() -> None:
     """Test simple and greedy dict search."""
     dictionary_factory = DictionaryFactory()
     dictionaries = dictionary_factory.get_dictionaries(("en",))
@@ -214,7 +214,7 @@ def test_search():
     )
 
 
-def test_subwords():
+def test_subwords() -> None:
     """Test recognition and conversion of subword units."""
     assert lemmatize("OBI", lang="de", greedy=True) == "OBI"
     assert lemmatize("mRNA-Impfstoffe", lang="de", greedy=False) == "mRNA-Impfstoff"

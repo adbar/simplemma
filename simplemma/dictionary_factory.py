@@ -40,11 +40,12 @@ class DictionaryFactory:
         )
 
     def get_dictionaries(
-        self, langs: Optional[Union[str, Tuple[str]]]
+        self,
+        langs: Optional[Union[str, Tuple[str, ...]]] = None,
     ) -> Dict[str, Dict[str, str]]:
         langs = _control_lang(langs)
 
-        if self._data and tuple(sorted(self._data.keys())) == sorted(langs):
+        if self._data and sorted(self._data.keys()) == sorted(langs):
             return self._data
 
         self._data = {}

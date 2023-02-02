@@ -260,7 +260,7 @@ def _control_input_type(token: Any) -> None:
 
 def is_known(
     token: str,
-    lang: Optional[Union[str, Tuple[str]]] = None,
+    lang: Optional[Union[str, Tuple[str, ...]]] = None,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
 ) -> bool:
     """Tell if a token is present in one of the loaded dictionaries.
@@ -275,7 +275,7 @@ def is_known(
 
 def _lemmatize(
     token: str,
-    lang: Optional[Union[str, Tuple[str]]] = None,
+    lang: Optional[Union[str, Tuple[str, ...]]] = None,
     greedy: bool = False,
     silent: bool = True,
     initial: bool = False,
@@ -313,7 +313,7 @@ lemmatize = lru_cache(maxsize=CACHE_SIZE)(_lemmatize)
 
 def text_lemmatizer(
     text: str,
-    lang: Optional[Union[str, Tuple[str]]] = None,
+    lang: Optional[Union[str, Tuple[str, ...]]] = None,
     greedy: bool = False,
     silent: bool = True,
 ) -> List[str]:
@@ -324,7 +324,7 @@ def text_lemmatizer(
 
 def lemma_iterator(
     text: str,
-    lang: Optional[Union[str, Tuple[str]]] = None,
+    lang: Optional[Union[str, Tuple[str, ...]]] = None,
     greedy: bool = False,
     silent: bool = True,
     tokenizer: Tokenizer = Tokenizer(),

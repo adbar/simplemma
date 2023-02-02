@@ -1,7 +1,7 @@
 from simplemma.dictionary_factory import DictionaryFactory
 
 
-def test_dictionary_cache():
+def test_dictionary_cache() -> None:
     iterations = 10
     dictionaries = DictionaryFactory()
     for _ in range(iterations):

@@ -4,7 +4,7 @@ import re
 
 from collections import Counter
 from operator import itemgetter
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from .lemmatizer import _return_lemma
 from .dictionary_factory import DictionaryFactory
@@ -30,7 +30,7 @@ class TokenSampler:
 
 def in_target_language(
     text: str,
-    lang: Optional[Tuple[str]] = None,
+    lang: Optional[Union[str, Tuple[str, ...]]] = None,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
     token_sampler: TokenSampler = TokenSampler(),
 ) -> float:
@@ -59,7 +59,7 @@ def _return_default() -> List[Tuple[str, float]]:
 
 def lang_detector(
     text: str,
-    lang: Optional[Tuple[str]] = None,
+    lang: Optional[Union[str, Tuple[str, ...]]] = None,
     extensive: bool = False,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
     token_sampler: TokenSampler = TokenSampler(),

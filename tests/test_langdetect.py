@@ -17,7 +17,7 @@ class CustomTokenSampler(TokenSampler):
         return list(self.tokenizer.split_text(text))[self.skip_tokens :]
 
 
-def test_detection():
+def test_detection() -> None:
     # sanity checks
     assert lang_detector(" aa ", lang=("de", "en"), extensive=True) == [("unk", 1)]
     text = "Test test"
@@ -44,7 +44,7 @@ def test_detection():
     ) == [("en", 1.0), ("cs", 0.0), ("unk", 0.0)]
 
 
-def test_in_target_language():
+def test_in_target_language() -> None:
     assert in_target_language("", lang="en") == 0
     assert (
         in_target_language(

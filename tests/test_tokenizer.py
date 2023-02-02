@@ -1,7 +1,7 @@
 from simplemma import simple_tokenizer
 
 
-def test_tokenizer():
+def test_tokenizer() -> None:
     # tokenization and chaining
     assert simple_tokenizer(
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
