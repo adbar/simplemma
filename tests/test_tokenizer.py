@@ -31,9 +31,6 @@ def test_tokenizer():
     ]
     text = "Sent1. Sent2\r\nSent3"
     assert simple_tokenizer(text) == ["Sent1", ".", "Sent2", "Sent3"]
-    assert simple_tokenizer(text) == [
-        m[0] for m in simple_tokenizer(text, iterate=True)
-    ]
     assert simple_tokenizer(
         "200er-Inzidenz 1.000er-Inzidenz 5%-Hürde 5-%-Hürde FFP2-Masken St.-Martini-Gemeinde, Lebens-, Liebes- und Arbeitsbedingungen"
     ) == [

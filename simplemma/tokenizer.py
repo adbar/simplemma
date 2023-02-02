@@ -2,7 +2,7 @@
 
 import re
 
-from typing import Iterator, List, Match, Pattern, Union
+from typing import Iterator, List, Pattern
 
 
 TOKREGEX = re.compile(
@@ -15,12 +15,16 @@ TOKREGEX = re.compile(
 )
 
 
-def simple_tokenizer(
-    text: str, iterate: bool = False, splitting_regex: Pattern[str] = TOKREGEX
-) -> Union[Iterator[Match[str]], List[str]]:
+def simple_tokenizer(text: str, splitting_regex: Pattern[str] = TOKREGEX) -> List[str]:
     """Simple regular expression.
     Takes a string as input and returns a list of tokens.
     Provided for convenience and educational purposes."""
-    if iterate is False:
-        return splitting_regex.findall(text)
-    return splitting_regex.finditer(text)
+    return splitting_regex.findall(text)
+
+
+class Tokenizer:
+    def __init__(self, splitting_regex: Pattern[str] = TOKREGEX) -> None:
+        self.splitting_regex = splitting_regex
+
+    def split_text(self, text: str) -> Iterator[str]:
+        return (match[0] for match in self.splitting_regex.finditer(text))

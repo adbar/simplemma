@@ -8,15 +8,14 @@ from typing import Any, Dict, List, Iterator, Optional, Tuple, Union
 
 from .constants import CACHE_SIZE
 from .dictionary_factory import DictionaryFactory
+from .tokenizer import Tokenizer
 from .utils import levenshtein_dist
 
 try:
     from .rules import apply_rules, GERMAN_PREFIXES, RULES_LANGS, RUSSIAN_PREFIXES
-    from .tokenizer import simple_tokenizer
 # local error, also ModuleNotFoundError for Python >= 3.6
 except ImportError:  # pragma: no cover
     from rules import apply_rules, RULES_LANGS  # type: ignore
-    from tokenizer import simple_tokenizer  # type: ignore
 
 
 LOGGER = logging.getLogger(__name__)
@@ -319,21 +318,7 @@ def text_lemmatizer(
 ) -> List[str]:
     """Convenience function to lemmatize a text using a simple tokenizer.
     Returns a list of tokens and lemmata."""
-    lemmata = []
-    last = "."  # beginning is initial
-    for match in simple_tokenizer(text, iterate=True):
-        # lemmatize, simple heuristic for sentence boundary
-        lemmata.append(
-            lemmatize(
-                match[0],
-                lang=lang,
-                greedy=greedy,
-                silent=silent,
-                initial=last in PUNCTUATION,
-            )
-        )
-        last = match[0]
-    return lemmata
+    return list(lemma_iterator(text, lang, greedy, silent))
 
 
 def lemma_iterator(
@@ -341,14 +326,11 @@ def lemma_iterator(
     lang: Optional[Union[str, Tuple[str]]] = None,
     greedy: bool = False,
     silent: bool = True,
+    tokenizer: Tokenizer = Tokenizer(),
 ) -> Iterator[str]:
     """Convenience function to lemmatize a text using a simple tokenizer.
     Returns a list of tokens and lemmata."""
-    last = "."  # beginning is initial
-    for match in simple_tokenizer(text, iterate=True):
-        # lemmatize
-        initial = last in PUNCTUATION
-        last = match[0]
-        yield lemmatize(
-            match[0], lang=lang, greedy=greedy, silent=silent, initial=initial
-        )
+    initial = True
+    for token in tokenizer.split_text(text):
+        yield lemmatize(token, lang, greedy, silent, initial)
+        initial = token in PUNCTUATION
