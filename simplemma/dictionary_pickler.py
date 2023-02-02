@@ -49,7 +49,9 @@ def _determine_path(listpath: str, langcode: str) -> str:
 
 
 def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
-    mydict, myadditions, i = {}, [], 0  # type: Dict[str, str], List[str], int
+    mydict: Dict[str, str] = {}
+    myadditions: List[str] = []
+    i: int = 0
     leftlimit = 1 if langcode in SAFE_LIMIT else 2
     # load data from list
     with open(filepath, "r", encoding="utf-8") as filehandle:
