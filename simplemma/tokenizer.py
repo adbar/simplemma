@@ -15,18 +15,16 @@ TOKREGEX = re.compile(
 )
 
 
-def simple_tokenizer(
-    text: str, splitting_regex: Pattern[str] = TOKREGEX
-) -> Iterator[str]:
+def simple_tokenizer(text: str, splitting_regex: Pattern[str] = TOKREGEX) -> List[str]:
     """Simple regular expression.
     Takes a string as input and returns a list of tokens.
     Provided for convenience and educational purposes."""
-    return Tokenizer(splitting_regex).tokenize(text)
+    return splitting_regex.findall(text)
 
 
 class Tokenizer:
     def __init__(self, splitting_regex: Pattern[str] = TOKREGEX) -> None:
         self.splitting_regex = splitting_regex
 
-    def tokenize(self, text: str) -> Iterator[str]:
+    def split_text(self, text: str) -> Iterator[str]:
         return (match[0] for match in self.splitting_regex.finditer(text))

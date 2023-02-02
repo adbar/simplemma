@@ -14,7 +14,7 @@ class CustomTokenSampler(TokenSampler):
         self.skip_tokens: int = skip_tokens
 
     def sample_tokens(self, text: str) -> List[str]:
-        return list(self.tokenizer.tokenize(text))[self.skip_tokens :]
+        return list(self.tokenizer.split_text(text))[self.skip_tokens :]
 
 
 def test_detection():
