@@ -22,7 +22,7 @@ class TokenSampler:
         some of the rest, and return at most 1000 tokens."""
         # generator expression to split the text
         counter = Counter(
-            token for token in self.tokenizer.get_tokens(text) if not token.isupper()
+            token for token in self.tokenizer.tokenize(text) if not token.isupper()
         )
 
         return [item[0] for item in counter.most_common(1000)]

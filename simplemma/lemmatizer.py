@@ -333,6 +333,6 @@ def lemma_iterator(
     """Convenience function to lemmatize a text using a simple tokenizer.
     Returns a list of tokens and lemmata."""
     initial = True
-    for token in tokenizer.get_tokens(text):
+    for token in tokenizer.tokenize(text):
         yield lemmatize(token, lang, greedy, silent, initial)
         initial = token in PUNCTUATION
