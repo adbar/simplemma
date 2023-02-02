@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.DEBUG)
 def test_custom_dictionary_factory() -> None:
     class CustomDictionaryFactory:
         def get_dictionaries(self, langs: Optional[Union[str, Tuple[str]]]) -> None:
-            return {"en": {"testing": "the test works!!"}}
+            return {"en": {"testing": "the test works!!"}}  # type: ignore
 
     assert (
         lemmatize("testing", lang="en", dictionary_factory=CustomDictionaryFactory())
@@ -76,7 +76,7 @@ def test_logic() -> None:
     dictionary_factory = DictionaryFactory()
     dictionaries = dictionary_factory.get_dictionaries(("de", "abc", "en"))
     with pytest.raises(TypeError):
-        lemmatize("test", lang=["test"])
+        lemmatize("test", lang=["test"])  # type: ignore[arg-type]
 
     deDict = dictionaries["de"]
 
@@ -128,7 +128,7 @@ def test_convenience() -> None:
     """Test convenience functions."""
     # logic
     with pytest.raises(TypeError):
-        assert simplemma.lemmatizer.is_known(None, lang="en") is None
+        assert simplemma.lemmatizer.is_known(None, lang="en") is None  # type: ignore[arg-type]
     with pytest.raises(ValueError):
         assert simplemma.lemmatizer.is_known("", lang="en") is None
     assert simplemma.is_known("FanCY", lang="en") is True
