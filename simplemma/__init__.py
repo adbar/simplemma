@@ -7,7 +7,7 @@ __license__ = "MIT"
 __version__ = "0.9.1"
 
 
-from .langdetect import in_target_language, lang_detector
+from .language_detector import in_target_language, lang_detector
 from .lemmatizer import lemmatize, lemma_iterator, text_lemmatizer, is_known
 from .tokenizer import simple_tokenizer
 from .dictionary_factory import DictionaryFactory

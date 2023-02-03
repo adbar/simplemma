@@ -3,7 +3,7 @@
 import logging
 from typing import List
 
-from simplemma.langdetect import in_target_language, lang_detector, TokenSampler
+from simplemma.language_detector import in_target_language, lang_detector, TokenSampler
 
 logging.basicConfig(level=logging.DEBUG)
 

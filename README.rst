@@ -184,10 +184,10 @@ The ``lang_detector()`` function returns a list of language codes along with sco
 .. code-block:: python
 
     # import necessary functions
-    >>> from simplemma.langdetect import in_target_language, lang_detector
+    >>> from simplemma import in_target_language, lang_detector
     # language detection
-    >>> lang_detector('"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.', lang=("cs", "sk"))
-    [('cs', 0.625), ('unk', 0.375), ('sk', 0.125)]
+    >>> lang_detector('"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."', lang=("cs", "sk"))
+    [("cs", 0.75), ("unk", 0.25), ("sk", 0.125)]
     # proportion of known words
     >>> in_target_language("opera post physica posita (τὰ μετὰ τὰ φυσικά)", lang="la")
     0.5
