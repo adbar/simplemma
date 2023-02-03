@@ -288,8 +288,7 @@ def _lemmatize(
     _control_input_type(token)
     dictionaries = dictionary_factory.get_dictionaries(lang)  # use returned lang value
     # start
-    for i, l in enumerate(dictionaries.items(), start=1):
-        (lang_code, lang_dictionary) = l
+    for i, (lang_code, lang_dictionary) in enumerate(dictionaries.items(), start=1):
         # determine default greediness
         # if greedy is None:
         #    greedy = _define_greediness(language)
@@ -304,7 +303,7 @@ def _lemmatize(
     if not silent:
         raise ValueError(f"Token not found: {token}")
     # try to simply lowercase # and len(token) < 10 ?
-    return token.lower() if list(dictionaries.keys())[0] in BETTER_LOWER else token
+    return token.lower() if next(iter(dictionaries)) in BETTER_LOWER else token
 
 
 # provide drop-in replacement for previously decorated function

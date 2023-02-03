@@ -49,7 +49,7 @@ class DictionaryFactory:
         langs = _control_lang(langs)
 
         # check if the languages already loaded can be re-used
-        if sorted(self._data.keys()) == sorted(langs):
+        if sorted(self._data) == sorted(langs):
             return self._data
 
         # (re)load data
