@@ -33,6 +33,8 @@ def _load_dictionary_from_disk(langcode: str) -> Dict[str, str]:
 
 
 class DictionaryFactory:
+    __slots__ = ["_data", "_load_dictionary_from_disk"]
+
     def __init__(self, cache_max_size: Optional[int] = 8):
         self._data: Dict[str, Dict[str, str]] = {}
         self._load_dictionary_from_disk = lru_cache(maxsize=cache_max_size)(
@@ -43,11 +45,14 @@ class DictionaryFactory:
         self,
         langs: Optional[Union[str, Tuple[str, ...]]] = None,
     ) -> Dict[str, Dict[str, str]]:
+        # check validity of input
         langs = _control_lang(langs)
 
-        if self._data and sorted(self._data.keys()) == sorted(langs):
+        # check if the languages already loaded can be re-used
+        if sorted(self._data.keys()) == sorted(langs):
             return self._data
 
+        # (re)load data
         self._data = {}
         for lang in langs:
             if lang not in LANGLIST:
