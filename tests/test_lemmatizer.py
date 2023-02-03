@@ -112,19 +112,6 @@ def test_logic() -> None:
         == "getestet"
     )
 
-    # prefixes
-    dictionaries = dictionary_factory.get_dictionaries(("de", "ru"))
-    deDict = dictionaries["de"]
-    assert (
-        simplemma.lemmatizer._prefix_search("zerlemmatisiertes", "de", deDict)
-        == "zerlemmatisiert"
-    )
-    ruDict = dictionaries["ru"]
-    assert (
-        simplemma.lemmatizer._prefix_search("зафиксированные", "ru", ruDict)
-        == "зафиксированный"
-    )
-
 
 def test_convenience() -> None:
     """Test convenience functions."""

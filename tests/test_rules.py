@@ -2,9 +2,21 @@
 
 import logging
 
-from simplemma.rules import apply_rules, apply_de, apply_en, apply_fi, apply_nl
+from simplemma.rules import (
+    apply_de,
+    apply_en,
+    apply_fi,
+    apply_nl,
+    APPLY_RULES,
+    FIND_PREFIXES,
+)
 
 logging.basicConfig(level=logging.DEBUG)
+
+
+def test_test_prefixes_de():
+    assert FIND_PREFIXES["de"]("zerlemmatisiertes") == "zer"
+    assert FIND_PREFIXES["de"]("abzugshaube") == None
 
 
 def test_apply_de() -> None:
@@ -151,13 +163,17 @@ def test_apply_fi() -> None:
     assert apply_fi("zzzzztteja") == "zzzzztti"
 
 
+def test_test_prefixes_ru():
+    assert FIND_PREFIXES["ru"]("зафиксированные") == "за"
+
+
 def test_apply_rules() -> None:
     """Test rules on all available languages."""
-    assert apply_rules("Pfifferlinge", "de", greedy=True) == "Pfifferling"
-    assert apply_rules("Pfifferlinge", "en", greedy=True) is None
-    assert apply_rules("atonements", "de") is None
-    assert apply_rules("atonements", "en") == "atonement"
-    assert apply_rules("brieven", "nl") == "brief"
-    assert apply_rules("liikenaisessa", "fi") == "liikenainen"
-    assert apply_rules("pracowaliście", "pl") == "pracować"
-    assert apply_rules("безгра́мотностью", "ru") == "безгра́мотность"
+    assert APPLY_RULES["de"]("Pfifferlinge", True) == "Pfifferling"
+    assert APPLY_RULES["en"]("Pfifferlinge", True) is None
+    assert APPLY_RULES["de"]("atonements", False) is None
+    assert APPLY_RULES["en"]("atonements", False) == "atonement"
+    assert APPLY_RULES["nl"]("brieven", False) == "brief"
+    assert APPLY_RULES["fi"]("liikenaisessa", False) == "liikenainen"
+    assert APPLY_RULES["pl"]("pracowaliście", False) == "pracować"
+    assert APPLY_RULES["ru"]("безгра́мотностью", False) == "безгра́мотность"

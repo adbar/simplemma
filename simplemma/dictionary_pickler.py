@@ -8,12 +8,12 @@ from typing import Dict, List, Optional
 
 try:
     from .constants import LANGLIST
-    from .rules import apply_rules
+    from .rules import APPLY_RULES
     from .utils import levenshtein_dist
 # local error, also ModuleNotFoundError for Python >= 3.6
 except ImportError:  # pragma: no cover
     from constants import LANGLIST  # type: ignore
-    from rules import apply_rules  # type: ignore
+    from rules import APPLY_RULES  # type: ignore
     from utils import levenshtein_dist  # type: ignore
 
 LOGGER = logging.getLogger(__name__)
@@ -77,8 +77,10 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
             if len(columns[0]) > 6 and len(columns[1]) == 1:
                 continue
             # tackled by rules
-            if len(columns[1]) > 6:  # columns[1] != columns[0]
-                rule = apply_rules(columns[1], langcode)
+            if (
+                len(columns[1]) > 6 and langcode in APPLY_RULES
+            ):  # columns[1] != columns[0]
+                rule = APPLY_RULES[langcode](columns[1], False)
                 if rule == columns[0]:
                     continue
                 if rule is not None and rule != columns[1]:

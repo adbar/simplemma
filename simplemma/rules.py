@@ -2,32 +2,9 @@
 
 import re
 
-from typing import Optional
-
-
-RULES_LANGS = {"de", "en", "fi", "nl", "pl", "ru"}
+from typing import Callable, Dict, Optional
 
 # VOWELS = {"a", "e", "i", "o", "u", "y"}
-
-
-def apply_rules(
-    token: str, langcode: Optional[str], greedy: bool = False
-) -> Optional[str]:
-    "Apply pre-defined rules for certain languages."
-    candidate = None
-    if langcode == "de":
-        candidate = apply_de(token, greedy)
-    elif langcode == "en":
-        candidate = apply_en(token)
-    elif langcode == "fi":
-        candidate = apply_fi(token)
-    elif langcode == "nl":
-        candidate = apply_nl(token)
-    elif langcode == "pl":
-        candidate = apply_pl(token)
-    elif langcode == "ru":
-        candidate = apply_ru(token)
-    return candidate
 
 
 NOUN_ENDINGS_DE = re.compile(
@@ -112,6 +89,14 @@ GERMAN_PREFIXES = {
 }
 
 
+def apply_prefixes_de(token: str):
+    prefix = next((p for p in GERMAN_PREFIXES if token.startswith(p)), None)
+    if prefix is None or token[len(prefix) : len(prefix) + 2] == "zu":
+        return None
+
+    return prefix
+
+
 def apply_de(token: str, greedy: bool = False) -> Optional[str]:
     "Apply pre-defined rules for German."
     if len(token) < 7:
@@ -160,7 +145,7 @@ ENGLISH_IES_ENDING = re.compile(r"(c|r|t|q)ies")
 ENGLISH_S_ENDING = re.compile(r"(dom|ism|ist|ment|nce|ship|tion|um)s$")
 
 
-def apply_en(token: str) -> Optional[str]:
+def apply_en(token: str, greedy: bool = False) -> Optional[str]:
     "Apply pre-defined rules for English."
     # nouns
     if len(token) > 7 and ENGLISH_IES_ENDING.search(token):
@@ -202,7 +187,7 @@ def apply_en(token: str) -> Optional[str]:
     return None
 
 
-def apply_nl(token: str) -> Optional[str]:
+def apply_nl(token: str, greedy: bool = False) -> Optional[str]:
     "Apply pre-defined rules for Dutch."
     # inspired by:
     # https://github.com/clips/pattern/blob/master/pattern/text/nl/inflect.py
@@ -363,7 +348,7 @@ FINNISH_ENDINGS = {
 }
 
 
-def apply_fi(token: str) -> Optional[str]:
+def apply_fi(token: str, greedy: bool = False) -> Optional[str]:
     "Apply pre-defined rules for Finnish."
     if len(token) < 10 or token[0].isupper():
         return None
@@ -435,7 +420,7 @@ POLISH_ENDINGS = {
 }
 
 
-def apply_pl(token: str) -> Optional[str]:
+def apply_pl(token: str, greedy: bool = False) -> Optional[str]:
     "Apply pre-defined rules for Polish."
     if len(token) < 10 or token[0].isupper():
         return None
@@ -486,7 +471,11 @@ RUSSIAN_ENDINGS = {
 }
 
 
-def apply_ru(token: str) -> Optional[str]:
+def apply_prefixes_ru(token: str):
+    return next((p for p in RUSSIAN_PREFIXES if token.startswith(p)), None)
+
+
+def apply_ru(token: str, greedy: bool = False) -> Optional[str]:
     "Apply pre-defined rules for Russian."
     if token.endswith("ё"):
         return token.replace("ё", "е")
@@ -499,3 +488,18 @@ def apply_ru(token: str) -> Optional[str]:
         if token.endswith(ending):
             return token[: -len(ending)] + base
     return None
+
+
+FIND_PREFIXES: Dict[str, Callable[[str], Optional[str]]] = {
+    "de": apply_prefixes_de,
+    "ru": apply_prefixes_ru,
+}
+
+APPLY_RULES: Dict[str, Callable[[str, bool], Optional[str]]] = {
+    "de": apply_de,
+    "en": apply_en,
+    "fi": apply_fi,
+    "nl": apply_nl,
+    "pl": apply_pl,
+    "ru": apply_ru,
+}
