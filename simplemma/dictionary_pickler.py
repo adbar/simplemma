@@ -49,7 +49,9 @@ def _determine_path(listpath: str, langcode: str) -> str:
 
 
 def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
-    mydict, myadditions, i = {}, [], 0  # type: Dict[str, str], List[str], int
+    mydict: Dict[str, str] = {}
+    myadditions: List[str] = []
+    i: int = 0
     leftlimit = 1 if langcode in SAFE_LIMIT else 2
     # load data from list
     with open(filepath, "r", encoding="utf-8") as filehandle:
@@ -129,7 +131,7 @@ def _pickle_dict(
 ) -> None:
     mydict = _load_dict(langcode, listpath)
     # sort dictionary to help saving space during compression
-    mydict = {k: v for k, v in sorted(mydict.items(), key=lambda item: item[1])}
+    mydict = dict(sorted(mydict.items(), key=lambda item: item[1]))
     if filepath is None:
         filename = f"data/{langcode}.plzma"
         filepath = str(Path(__file__).parent / filename)

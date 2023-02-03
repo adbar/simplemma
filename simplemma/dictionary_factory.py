@@ -13,7 +13,7 @@ from .constants import LANGLIST
 LOGGER = logging.getLogger(__name__)
 
 
-def _control_lang(lang: Any) -> Tuple[str]:
+def _validate_lang_input(lang: Any) -> Tuple[str]:
     "Make sure the lang variable is a valid tuple."
     # convert string
     if isinstance(lang, str):
@@ -33,6 +33,8 @@ def _load_dictionary_from_disk(langcode: str) -> Dict[str, str]:
 
 
 class DictionaryFactory:
+    __slots__ = ["_data", "_load_dictionary_from_disk"]
+
     def __init__(self, cache_max_size: Optional[int] = 8):
         self._data: Dict[str, Dict[str, str]] = {}
         self._load_dictionary_from_disk = lru_cache(maxsize=cache_max_size)(
@@ -40,11 +42,12 @@ class DictionaryFactory:
         )
 
     def get_dictionaries(
-        self, langs: Optional[Union[str, Tuple[str]]]
+        self,
+        langs: Optional[Union[str, Tuple[str, ...]]] = None,
     ) -> Dict[str, Dict[str, str]]:
-        langs = _control_lang(langs)
+        langs = _validate_lang_input(langs)
 
-        if self._data and tuple(sorted(self._data.keys())) == sorted(langs):
+        if sorted(self._data) == sorted(langs):
             return self._data
 
         self._data = {}

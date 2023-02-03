@@ -1,14 +1,13 @@
 """Tests for rule-based behavior of the `simplemma` package."""
 
 import logging
-import pytest
 
 from simplemma.rules import apply_rules, apply_de, apply_en, apply_fi, apply_nl
 
 logging.basicConfig(level=logging.DEBUG)
 
 
-def test_apply_de():
+def test_apply_de() -> None:
     """Test German rules."""
     # doesn't exist
     assert apply_de("Whatawordicantbelieveit") is None
@@ -80,7 +79,7 @@ def test_apply_de():
     assert apply_de("Zuschauer_innen") == "Zuschauer:innen"
 
 
-def test_apply_en():
+def test_apply_en() -> None:
     """Test English rules."""
     # doesn't exist
     assert apply_en("Whatawordicantbelieveit") is None
@@ -111,7 +110,7 @@ def test_apply_en():
     # assert apply_en('realised') == 'realise'
 
 
-def test_apply_nl():
+def test_apply_nl() -> None:
     """Test Dutch rules."""
     assert apply_nl("achterpagina's") == "achterpagina"
     assert apply_nl("mogelijkheden") == "mogelijkheid"
@@ -119,7 +118,7 @@ def test_apply_nl():
     assert apply_nl("brieven") == "brief"
 
 
-def test_apply_fi():
+def test_apply_fi() -> None:
     """Test Finnish rules."""
     # common -inen cases
     assert apply_fi("liikenaisen") == "liikenainen"
@@ -152,7 +151,7 @@ def test_apply_fi():
     assert apply_fi("zzzzztteja") == "zzzzztti"
 
 
-def test_apply_rules():
+def test_apply_rules() -> None:
     """Test rules on all available languages."""
     assert apply_rules("Pfifferlinge", "de", greedy=True) == "Pfifferling"
     assert apply_rules("Pfifferlinge", "en", greedy=True) is None

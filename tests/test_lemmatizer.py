@@ -10,10 +10,12 @@ from simplemma import lemmatize, DictionaryFactory
 logging.basicConfig(level=logging.DEBUG)
 
 
-def test_custom_dictionary_factory():
+def test_custom_dictionary_factory() -> None:
     class CustomDictionaryFactory:
-        def get_dictionaries(self, langs: Optional[Union[str, Tuple[str]]]):
-            return {"en": {"testing": "the test works!!"}}
+        def get_dictionaries(
+            self, langs: Optional[Union[str, Tuple[str, ...]]]
+        ) -> None:
+            return {"en": {"testing": "the test works!!"}}  # type: ignore
 
     assert (
         lemmatize("testing", lang="en", dictionary_factory=CustomDictionaryFactory())
@@ -21,7 +23,7 @@ def test_custom_dictionary_factory():
     )
 
 
-def test_readme():
+def test_readme() -> None:
     """Test function to verify readme examples."""
     myword = "masks"
     assert lemmatize(myword, lang="en") == "mask"
@@ -70,13 +72,13 @@ def test_readme():
         lemmatize("スパゲッティ", lang="pt", silent=False)
 
 
-def test_logic():
+def test_logic() -> None:
     """Test if certain code parts correspond to the intended logic."""
     # missing languages or faulty language codes
     dictionary_factory = DictionaryFactory()
     dictionaries = dictionary_factory.get_dictionaries(("de", "abc", "en"))
     with pytest.raises(TypeError):
-        lemmatize("test", lang=["test"])
+        lemmatize("test", lang=["test"])  # type: ignore[arg-type]
 
     deDict = dictionaries["de"]
 
@@ -124,11 +126,11 @@ def test_logic():
     )
 
 
-def test_convenience():
+def test_convenience() -> None:
     """Test convenience functions."""
     # logic
     with pytest.raises(TypeError):
-        assert simplemma.lemmatizer.is_known(None, lang="en") is None
+        assert simplemma.lemmatizer.is_known(None, lang="en") is None  # type: ignore[arg-type]
     with pytest.raises(ValueError):
         assert simplemma.lemmatizer.is_known("", lang="en") is None
     assert simplemma.is_known("FanCY", lang="en") is True
@@ -148,7 +150,8 @@ def test_convenience():
     ]
     text = "Nous déciderons une fois arrivées. Voilà."
     assert [
-        l for l in simplemma.lemmatizer.lemma_iterator(text, lang="fr", greedy=False)
+        lemma
+        for lemma in simplemma.lemmatizer.lemma_iterator(text, lang="fr", greedy=False)
     ] == simplemma.text_lemmatizer(text, lang="fr", greedy=False)
     text = "Pepa e Iván son una pareja sentimental, ambos dedicados al doblaje de películas."
     assert (simplemma.text_lemmatizer(text, lang="es", greedy=False)) == [
@@ -187,7 +190,7 @@ def test_convenience():
     ]
 
 
-def test_search():
+def test_search() -> None:
     """Test simple and greedy dict search."""
     dictionary_factory = DictionaryFactory()
     dictionaries = dictionary_factory.get_dictionaries(("en",))
@@ -213,7 +216,7 @@ def test_search():
     )
 
 
-def test_subwords():
+def test_subwords() -> None:
     """Test recognition and conversion of subword units."""
     assert lemmatize("OBI", lang="de", greedy=True) == "OBI"
     assert lemmatize("mRNA-Impfstoffe", lang="de", greedy=False) == "mRNA-Impfstoff"

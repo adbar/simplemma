@@ -145,7 +145,7 @@ def apply_de(token: str, greedy: bool = False) -> Optional[str]:
             if GERUND_DE.search(token):
                 return ENDING_DE.sub("e", token)
     # mostly adjectives and verbs
-    elif token[-1] in ENDING_CHARS_ADJ_DE and greedy:
+    elif greedy and token[-1] in ENDING_CHARS_ADJ_DE:
         # general search
         if ADJ_ENDINGS_DE.match(token):
             return ADJ_ENDINGS_DE.sub(r"\1\2", token)
@@ -212,7 +212,7 @@ def apply_nl(token: str) -> Optional[str]:
         if token.endswith("'s"):
             return token[:-2]
         # mogelijkheden => mogelijkheid
-        if token.endswith("heden") and not "scheden" in token:
+        if token.endswith("heden") and "scheden" not in token:
             return token[:-5] + "heid"
         # boerderijen => boerderij
         if token.endswith("ijen"):

@@ -6,7 +6,7 @@ from simplemma import dictionary_pickler
 TEST_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
-def test_logic():
+def test_logic() -> None:
     """Test if certain code parts correspond to the intended logic."""
     # dict generation
     testfile = os.path.join(TEST_DIR, "data/zz.txt")

@@ -4,7 +4,7 @@ import re
 
 from collections import Counter
 from operator import itemgetter
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from .lemmatizer import _return_lemma
 from .dictionary_factory import DictionaryFactory
@@ -14,6 +14,8 @@ SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
 
 
 class TokenSampler:
+    __slots__ = ["tokenizer"]
+
     def __init__(self, tokenizer: Tokenizer = Tokenizer(SPLIT_INPUT)) -> None:
         self.tokenizer = tokenizer
 
@@ -22,7 +24,7 @@ class TokenSampler:
         some of the rest, and return at most 1000 tokens."""
         # generator expression to split the text
         counter = Counter(
-            token for token in self.tokenizer.split_text(text) if not token.isupper()
+            token for token in self.tokenizer.split_text(text) if not token[0].isupper()
         )
 
         return [item[0] for item in counter.most_common(1000)]
@@ -30,7 +32,7 @@ class TokenSampler:
 
 def in_target_language(
     text: str,
-    lang: Optional[Tuple[str]] = None,
+    lang: Optional[Union[str, Tuple[str, ...]]] = None,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
     token_sampler: TokenSampler = TokenSampler(),
 ) -> float:
@@ -59,7 +61,7 @@ def _return_default() -> List[Tuple[str, float]]:
 
 def lang_detector(
     text: str,
-    lang: Optional[Tuple[str]] = None,
+    lang: Optional[Union[str, Tuple[str, ...]]] = None,
     extensive: bool = False,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
     token_sampler: TokenSampler = TokenSampler(),

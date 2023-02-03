@@ -23,6 +23,8 @@ def simple_tokenizer(text: str, splitting_regex: Pattern[str] = TOKREGEX) -> Lis
 
 
 class Tokenizer:
+    __slots__ = ["splitting_regex"]
+
     def __init__(self, splitting_regex: Pattern[str] = TOKREGEX) -> None:
         self.splitting_regex = splitting_regex
 
