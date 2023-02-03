@@ -13,7 +13,7 @@ from .constants import LANGLIST
 LOGGER = logging.getLogger(__name__)
 
 
-def _control_lang(lang: Any) -> Tuple[str]:
+def _validate_lang_input(lang: Any) -> Tuple[str]:
     "Make sure the lang variable is a valid tuple."
     # convert string
     if isinstance(lang, str):
@@ -45,14 +45,11 @@ class DictionaryFactory:
         self,
         langs: Optional[Union[str, Tuple[str, ...]]] = None,
     ) -> Dict[str, Dict[str, str]]:
-        # check validity of input
-        langs = _control_lang(langs)
+        langs = _validate_lang_input(langs)
 
-        # check if the languages already loaded can be re-used
         if sorted(self._data) == sorted(langs):
             return self._data
 
-        # (re)load data
         self._data = {}
         for lang in langs:
             if lang not in LANGLIST:
