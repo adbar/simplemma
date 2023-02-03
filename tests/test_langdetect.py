@@ -17,6 +17,13 @@ class CustomTokenSampler(TokenSampler):
         return list(self.tokenizer.split_text(text))[self.skip_tokens :]
 
 
+def test_token_sampler():
+    sampler = TokenSampler()
+    assert sampler.sample_tokens("ABCD Efgh ijkl mn") == ["ijkl"]
+    custom = CustomTokenSampler(3)
+    assert custom.sample_tokens("ABCD Efgh ijkl mn") == []
+
+
 def test_detection() -> None:
     # sanity checks
     assert lang_detector(" aa ", lang=("de", "en"), extensive=True) == [("unk", 1)]
@@ -32,10 +39,11 @@ def test_detection() -> None:
         "Dieser Satz ist auf Deutsch.", lang=("de", "en"), extensive=True
     )
     assert results[0][0] == "de"
+
     assert lang_detector(
-        '"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.',
+        '"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."',
         lang=("cs", "sk"),
-    ) == [("cs", 0.625), ("unk", 0.375), ("sk", 0.125)]
+    ) == [("cs", 0.75), ("unk", 0.25), ("sk", 0.125)]
 
     assert lang_detector(
         '"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.',

@@ -14,6 +14,8 @@ SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
 
 
 class TokenSampler:
+    __slots__ = ["tokenizer"]
+
     def __init__(self, tokenizer: Tokenizer = Tokenizer(SPLIT_INPUT)) -> None:
         self.tokenizer = tokenizer
 
@@ -22,7 +24,7 @@ class TokenSampler:
         some of the rest, and return at most 1000 tokens."""
         # generator expression to split the text
         counter = Counter(
-            token for token in self.tokenizer.split_text(text) if not token.isupper()
+            token for token in self.tokenizer.split_text(text) if not token[0].isupper()
         )
 
         return [item[0] for item in counter.most_common(1000)]
