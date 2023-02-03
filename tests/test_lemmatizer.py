@@ -12,7 +12,9 @@ logging.basicConfig(level=logging.DEBUG)
 
 def test_custom_dictionary_factory() -> None:
     class CustomDictionaryFactory:
-        def get_dictionaries(self, langs: Optional[Union[str, Tuple[str]]]) -> None:
+        def get_dictionaries(
+            self, langs: Optional[Union[str, Tuple[str, ...]]]
+        ) -> None:
             return {"en": {"testing": "the test works!!"}}  # type: ignore
 
     assert (
