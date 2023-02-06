@@ -33,6 +33,15 @@ class TokenSampler:
         return [item[0] for item in counter.most_common(1000)]
 
 
+class RelaxedTokenSampler(TokenSampler):
+    def __init__(self) -> None:
+        super().__init__()
+        self.tokenizer = Tokenizer(re.compile(r"[\w-]{3,}"))
+
+    def sample_tokens(self, text: str) -> List[str]:
+        return list(self.tokenizer.split_text(text))
+
+
 def in_target_language(
     text: str,
     lang: Optional[Union[str, Tuple[str, ...]]] = None,
@@ -94,12 +103,13 @@ def lang_detector(
     results = sorted(myresults.items(), key=itemgetter(1), reverse=True)
     # post-processing
     if len(results) > 1:
+        # switch unknown first item to the end
         if results[0][0] == "unk":
-            results.pop(0)
-        # in case of ex-aequo
+            pair = results.pop(0)
+            results.append(pair)
+        # in case of ex-aequo use other token sampling to discriminate
         if extensive is False and results[0][1] == results[1][1]:
-            results = lang_detector(text, lang=lang, extensive=True)
-        # fallback
-        if len(results) > 1 and results[0][1] == results[1][1]:
-            return _return_default()
+            results = lang_detector(
+                text, lang=lang, extensive=True, token_sampler=RelaxedTokenSampler()
+            )
     return results

@@ -3,7 +3,12 @@
 import logging
 from typing import List
 
-from simplemma.language_detector import in_target_language, lang_detector, TokenSampler
+from simplemma.language_detector import (
+    in_target_language,
+    lang_detector,
+    RelaxedTokenSampler,
+    TokenSampler,
+)
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -21,6 +26,8 @@ def test_token_sampler():
     sampler = TokenSampler()
     assert sampler.sample_tokens("ABCD Efgh ijkl mn") == ["ijkl"]
     assert sampler.sample_tokens("Abcd_E Abcde") == ["Abcd", "Abcde"]
+    relaxed = RelaxedTokenSampler()
+    assert relaxed.sample_tokens("ABCD Efgh ijkl mn") == ["ABCD", "Efgh", "ijkl"]
     custom = CustomTokenSampler(3)
     assert custom.sample_tokens("ABCD Efgh ijkl mn") == []
 
@@ -29,8 +36,17 @@ def test_detection() -> None:
     # sanity checks
     assert lang_detector(" aa ", lang=("de", "en"), extensive=True) == [("unk", 1)]
     text = "Test test"
-    assert lang_detector(text, lang=("de", "en"), extensive=False) == [("unk", 1)]
-    assert lang_detector(text, lang=("de", "en"), extensive=True) == [("unk", 1)]
+    assert lang_detector(text, lang=("de", "en"), extensive=False) == [
+        ("de", 1.0),
+        ("en", 1.0),
+        ("unk", 0.0),
+    ]
+    assert lang_detector(text, lang=("de", "en"), extensive=True) == [
+        ("de", 1.0),
+        ("en", 1.0),
+        ("unk", 0.0),
+    ]
+
     # language detection
     results = lang_detector(
         "Dieser Satz ist auf Deutsch.", lang=("de", "en"), extensive=False
@@ -45,7 +61,7 @@ def test_detection() -> None:
         lang=("de", "en"),
         extensive=False,
     )
-    assert results[0][0] == "de"
+    assert results == [("de", 0.4), ("en", 0.0), ("unk", 0.6)]
 
     assert lang_detector(
         '"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."',
