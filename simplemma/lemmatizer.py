@@ -9,13 +9,8 @@ from typing import Any, Dict, List, Iterator, Optional, Tuple, Union
 from .constants import CACHE_SIZE
 from .dictionary_factory import DictionaryFactory
 from .tokenizer import Tokenizer
+from .rules import APPLY_RULES, FIND_PREFIXES
 from .utils import levenshtein_dist
-
-try:
-    from .rules import apply_rules, GERMAN_PREFIXES, RULES_LANGS, RUSSIAN_PREFIXES
-# local error, also ModuleNotFoundError for Python >= 3.6
-except ImportError:  # pragma: no cover
-    from rules import apply_rules, RULES_LANGS  # type: ignore
 
 
 LOGGER = logging.getLogger(__name__)
@@ -167,30 +162,6 @@ def _affix_search(
     return candidate or plan_b
 
 
-def _prefix_search(token: str, lang: str, datadict: Dict[str, str]) -> Optional[str]:
-    # load prefixes
-    if lang == "de":
-        preflist = GERMAN_PREFIXES
-    elif lang == "ru":
-        preflist = RUSSIAN_PREFIXES
-    else:
-        return None
-    # apply
-    prefix = next((p for p in preflist if token.startswith(p)), None)
-    # decompose according to predefined prefix
-    if prefix is None:
-        return None
-
-    subword = _simple_search(token[len(prefix) :], datadict)
-    if subword is None:
-        return None
-
-    if lang != "de" or token[len(prefix) : len(prefix) + 2] != "zu":
-        return prefix + subword.lower()
-
-    return None
-
-
 def _suffix_search(token: str, datadict: Dict[str, str]) -> Optional[str]:
     lastcount = 0
     for count in range(MINCOMPLEN, len(token) - MINCOMPLEN + 1):
@@ -217,8 +188,8 @@ def _return_lemma(
     # dictionary search
     candidate = _simple_search(token, datadict, initial=initial)
     # simple rules
-    if candidate is None and lang in RULES_LANGS:
-        candidate = apply_rules(token, lang, greedy)
+    if candidate is None and lang is not None and lang in APPLY_RULES:
+        candidate = APPLY_RULES[lang](token, greedy)
     # decomposition
     if candidate is None:  # and greedy is True
         candidate = _dehyphen(token, datadict, greedy)
@@ -233,8 +204,12 @@ def _return_lemma(
     if len(token) <= limit:
         return candidate
     # subword decomposition: predefined prefixes (absent from vocabulary if they are not words)
-    if candidate is None:
-        candidate = _prefix_search(token, lang, datadict)  # type: ignore[arg-type]
+    if candidate is None and lang in FIND_PREFIXES:
+        prefix = FIND_PREFIXES[lang](token)
+        if prefix is not None:
+            subword = _simple_search(token[len(prefix) :], datadict)
+            if subword is not None:
+                candidate = prefix + subword.lower()
     # unsupervised suffix/affix search: not productive for all languages
     if candidate is None and (greedy or lang in AFFIX_LANGS):
         # define parameters
