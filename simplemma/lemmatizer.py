@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Iterator, Optional, Tuple, Union
 from .constants import CACHE_SIZE
 from .dictionary_factory import DictionaryFactory
 from .tokenizer import Tokenizer
-from .rules import APPLY_RULES, FIND_PREFIXES
+from .rules import APPLY_RULES, FIND_KNOWN_PREFIXES
 from .utils import levenshtein_dist
 
 
@@ -204,8 +204,8 @@ def _return_lemma(
     if len(token) <= limit:
         return candidate
     # subword decomposition: predefined prefixes (absent from vocabulary if they are not words)
-    if candidate is None and lang in FIND_PREFIXES:
-        prefix = FIND_PREFIXES[lang](token)
+    if candidate is None and lang in FIND_KNOWN_PREFIXES:
+        prefix = FIND_KNOWN_PREFIXES[lang](token)
         if prefix is not None:
             subword = _simple_search(token[len(prefix) :], datadict)
             if subword is not None:

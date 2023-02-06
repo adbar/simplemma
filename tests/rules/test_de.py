@@ -1,0 +1,78 @@
+from simplemma.rules import APPLY_RULES, FIND_KNOWN_PREFIXES
+
+
+def test_test_prefixes_de():
+    assert FIND_KNOWN_PREFIXES["de"]("zerlemmatisiertes") == "zer"
+    assert FIND_KNOWN_PREFIXES["de"]("abzugshaube") == None
+
+
+def test_apply_de() -> None:
+    """Test German rules."""
+    # doesn't exist
+    assert APPLY_RULES["de"]("Whatawordicantbelieveit", False) is None
+    # nouns
+    # assert APPLY_RULES["de"]("Besorgnis", True) == "Besorgnis"
+    # assert APPLY_RULES["de"]("Besorgnisse", True) == "Besorgnis"
+    # assert APPLY_RULES["de"]("Abonnenten", True) == "Abonnent"
+    assert APPLY_RULES["de"]("Pfifferlinge", True) == "Pfifferling"
+    assert APPLY_RULES["de"]("Pfifferlingen", True) == "Pfifferling"
+    assert APPLY_RULES["de"]("Heiterkeiten", True) == "Heiterkeit"
+    assert APPLY_RULES["de"]("Bahnreisenden", True) == "Bahnreisende"
+    assert APPLY_RULES["de"]("Bürgertums", True) == "Bürgertum"
+    assert APPLY_RULES["de"]("Achterls", True) == "Achterl"
+    # assert APPLY_RULES["de"]("Inspekteurinnen", True) == "Inspekteurin"
+    # assert APPLY_RULES["de"]("Zwiebelschneider", True) == "Zwiebelschneider"
+    assert APPLY_RULES["de"]("Zwiebelschneiders", True) == "Zwiebelschneider"
+    # assert APPLY_RULES["de"]("Schneidern", True) == "Schneider"
+    # assert APPLY_RULES["de"]("Bedenkens", True) == "Bedenken"
+    # assert APPLY_RULES["de"]("Facetten", True) == "Facette"
+    assert APPLY_RULES["de"]("Kazakhstans", True) == "Kazakhstan"
+    # assert APPLY_RULES["de"]("Hämatome", True) == "Hämatom"
+    # assert APPLY_RULES["de"]("Hämatomen", True) == "Hämatom"
+    # assert APPLY_RULES["de"]("Hämatoms", True) == "Hämatom"
+    assert APPLY_RULES["de"]("Ökonomen", True) == "Ökonom"
+    assert APPLY_RULES["de"]("Chauffeusen", True) == "Chauffeuse"
+    # assert APPLY_RULES["de"]("Bibliotheken", True) == "Bibliothek"
+    assert APPLY_RULES["de"]("Kazakhstans", True) == "Kazakhstan"
+    # assert APPLY_RULES["de"]("Gymnasiasten", True) == "Gymnasiast"
+    # assert APPLY_RULES["de"]("Dezernates", True) == "Dezernat"
+    assert APPLY_RULES["de"]("Luftikussen", True) == "Luftikus"
+    assert APPLY_RULES["de"]("Trunkenbolde", True) == "Trunkenbold"
+    assert APPLY_RULES["de"]("Theologien", True) == "Theologie"
+    # assert APPLY_RULES["de"]("Geschädigten", True) == "Geschädigte"
+    # assert APPLY_RULES["de"]("Zeitschriftenmarken", True) == "Zeitschriftenmarke"
+    # assert APPLY_RULES["de"]("Gesundheitsfreaks", True) == "Gesundheitsfreak"
+    # adjectives
+    assert APPLY_RULES["de"]("großartiges", True) == "großartig"
+    assert APPLY_RULES["de"]("achtsame", True) == "achtsam"
+    # assert APPLY_RULES["de"]("aufgemachtes", True) == "aufgemacht"
+    # assert APPLY_RULES["de"]("schnellster", True) == "schnell"
+    # assert APPLY_RULES["de"]("geächteten", True) == "geächtet"
+    # assert APPLY_RULES["de"]("aufgeblasenes", True) == "aufgeblasen"
+    # assert APPLY_RULES["de"]("viszerale", True) == "viszeral"
+    # assert APPLY_RULES["de"]("kurioses", True) == "kurios"
+    # assert APPLY_RULES["de"]("adipösen", True) == "adipös"
+    assert APPLY_RULES["de"]("isotropen", True) == "isotrop"
+    # assert APPLY_RULES["de"]("kulanten", True) == "kulant"
+    # assert APPLY_RULES["de"]("konvexes", True) == "konvex"
+    # assert APPLY_RULES["de"]("myope", True) == "myop"
+    # assert APPLY_RULES["de"]("geschleunigst", True) == "geschleunig"
+    # assert APPLY_RULES["de"]("zweitrangigster", True) == "zweitrangig"
+    assert APPLY_RULES["de"]("kompetenteste", True) == "kompetent"
+    # assert APPLY_RULES["de"]("leiwandste", True) == "leiwand"
+    # assert APPLY_RULES["de"]("gescheitesten", True) == "gescheit"
+    # assert APPLY_RULES["de"]("luzidesten", True) == "luzide"  # luzid?
+    # assert APPLY_RULES["de"]("frigides", True) == "frigide"
+    # assert APPLY_RULES["de"]("frigideren", True) == "frigide"
+    # assert APPLY_RULES["de"]("kruden", True) == "krude"
+    # assert APPLY_RULES["de"]("krudesten", True) == "krude"
+    # assert APPLY_RULES["de"]("zwielichtigen", True) == "zwielichtig"
+    # assert APPLY_RULES["de"]("freakige", True) == "freakig"
+    # assert APPLY_RULES["de"]("plausibles", True) == "plausibel"
+    # assert APPLY_RULES["de"]("propres", True) == "proper"
+    assert APPLY_RULES["de"]("perlende", True) == "perlend"
+    assert APPLY_RULES["de"]("wuchernder", True) == "wuchernd"
+    # Gendersprache normalization
+    assert APPLY_RULES["de"]("ZuschauerInnen", False) == "Zuschauer:innen"
+    assert APPLY_RULES["de"]("Zuschauer*innen", False) == "Zuschauer:innen"
+    assert APPLY_RULES["de"]("Zuschauer_innen", False) == "Zuschauer:innen"
