@@ -22,10 +22,13 @@ class TokenSampler:
     def sample_tokens(self, text: str) -> List[str]:
         """Extract potential words, scramble them, extract the most frequent,
         some of the rest, and return at most 1000 tokens."""
-        # generator expression to split the text
-        counter = Counter(
-            token for token in self.tokenizer.split_text(text) if not token[0].isupper()
-        )
+
+        counter = Counter(token for token in self.tokenizer.split_text(text))
+
+        deletions = [token for token in counter if token[0].isupper()]
+        if len(deletions) < 0.8 * len(counter):
+            for token in deletions:
+                del counter[token]
 
         return [item[0] for item in counter.most_common(1000)]
 
@@ -91,6 +94,8 @@ def lang_detector(
     results = sorted(myresults.items(), key=itemgetter(1), reverse=True)
     # post-processing
     if len(results) > 1:
+        if results[0][0] == "unk":
+            results.pop(0)
         # in case of ex-aequo
         if extensive is False and results[0][1] == results[1][1]:
             results = lang_detector(text, lang=lang, extensive=True)

@@ -20,6 +20,7 @@ class CustomTokenSampler(TokenSampler):
 def test_token_sampler():
     sampler = TokenSampler()
     assert sampler.sample_tokens("ABCD Efgh ijkl mn") == ["ijkl"]
+    assert sampler.sample_tokens("Abcd_E Abcde") == ["Abcd", "Abcde"]
     custom = CustomTokenSampler(3)
     assert custom.sample_tokens("ABCD Efgh ijkl mn") == []
 
@@ -37,6 +38,12 @@ def test_detection() -> None:
     assert results[0][0] == "de"
     results = lang_detector(
         "Dieser Satz ist auf Deutsch.", lang=("de", "en"), extensive=True
+    )
+    assert results[0][0] == "de"
+    results = lang_detector(
+        "Nztruedg nsüplke deutsches weiter bgfnki gtrpinadsc.",
+        lang=("de", "en"),
+        extensive=False,
     )
     assert results[0][0] == "de"
 
