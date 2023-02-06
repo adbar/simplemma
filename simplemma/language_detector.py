@@ -10,14 +10,23 @@ from .lemmatizer import _return_lemma
 from .dictionary_factory import DictionaryFactory
 from .tokenizer import Tokenizer
 
+
 SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
+RELAXED_SPLIT_INPUT = re.compile(r"[\w-]{3,}")
 
 
 class TokenSampler:
-    __slots__ = ["tokenizer"]
+    __slots__ = ["capitalized_threshold", "max_tokens", "tokenizer"]
 
-    def __init__(self, tokenizer: Tokenizer = Tokenizer(SPLIT_INPUT)) -> None:
+    def __init__(
+        self,
+        tokenizer: Tokenizer = Tokenizer(SPLIT_INPUT),
+        max_tokens: int = 1000,
+        capitalized_threshold: float = 0.8,
+    ) -> None:
         self.tokenizer = tokenizer
+        self.max_tokens = max_tokens
+        self.capitalized_threshold = capitalized_threshold
 
     def sample_tokens(self, text: str) -> List[str]:
         """Extract potential words, scramble them, extract the most frequent,
@@ -26,17 +35,16 @@ class TokenSampler:
         counter = Counter(token for token in self.tokenizer.split_text(text))
 
         deletions = [token for token in counter if token[0].isupper()]
-        if len(deletions) < 0.8 * len(counter):
+        if len(deletions) < self.capitalized_threshold * len(counter):
             for token in deletions:
                 del counter[token]
 
-        return [item[0] for item in counter.most_common(1000)]
+        return [item[0] for item in counter.most_common(self.max_tokens)]
 
 
 class RelaxedTokenSampler(TokenSampler):
     def __init__(self) -> None:
-        super().__init__()
-        self.tokenizer = Tokenizer(re.compile(r"[\w-]{3,}"))
+        self.tokenizer = Tokenizer(RELAXED_SPLIT_INPUT)
 
     def sample_tokens(self, text: str) -> List[str]:
         return list(self.tokenizer.split_text(text))
