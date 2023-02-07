@@ -62,7 +62,7 @@ def _return_default() -> List[Tuple[str, float]]:
 def lang_detector(
     text: str,
     lang: Optional[Union[str, Tuple[str, ...]]] = None,
-    extensive: bool = False,
+    greedy: bool = False,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
     token_sampler: TokenSampler = TokenSampler(),
 ) -> List[Tuple[str, float]]:
@@ -78,7 +78,7 @@ def lang_detector(
         in_target = 0
         for token in tokens:
             candidate = _return_lemma(
-                token, lang_dictionary, greedy=extensive, lang=lang_code
+                token, lang_dictionary, greedy=greedy, lang=lang_code
             )
             if candidate is not None:
                 in_target += 1
@@ -92,8 +92,8 @@ def lang_detector(
     # post-processing
     if len(results) > 1:
         # in case of ex-aequo
-        if extensive is False and results[0][1] == results[1][1]:
-            results = lang_detector(text, lang=lang, extensive=True)
+        if greedy is False and results[0][1] == results[1][1]:
+            results = lang_detector(text, lang=lang, greedy=True)
         # fallback
         if len(results) > 1 and results[0][1] == results[1][1]:
             return _return_default()
