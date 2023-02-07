@@ -60,7 +60,7 @@ def test_detection() -> None:
     results = lang_detector(
         "Nztruedg nsüplke deutsches weiter bgfnki gtrpinadsc.",
         lang=("de", "en"),
-        extensive=False,
+        greedy=False,
     )
     assert results == [("de", 0.4), ("en", 0.0), ("unk", 0.6)]
 

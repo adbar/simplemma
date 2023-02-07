@@ -116,7 +116,7 @@ def lang_detector(
             pair = results.pop(0)
             results.append(pair)
         # in case of ex-aequo use other token sampling to discriminate
-        if extensive is False and results[0][1] == results[1][1]:
+        if not greedy and results[0][1] == results[1][1]:
             results = lang_detector(
                 text, lang=lang, greedy=True, token_sampler=RelaxedTokenSampler()
             )
