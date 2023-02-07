@@ -34,14 +34,15 @@ def test_token_sampler():
 
 def test_detection() -> None:
     # sanity checks
-    assert lang_detector(" aa ", lang=("de", "en"), extensive=True) == [("unk", 1)]
+    assert lang_detector(" aa ", lang=("de", "en"), greedy=True) == [("unk", 1)]
     text = "Test test"
-    assert lang_detector(text, lang=("de", "en"), extensive=False) == [
+
+    assert lang_detector(text, lang=("de", "en"), greedy=False) == [
         ("de", 1.0),
         ("en", 1.0),
         ("unk", 0.0),
     ]
-    assert lang_detector(text, lang=("de", "en"), extensive=True) == [
+    assert lang_detector(text, lang=("de", "en"), greedy=True) == [
         ("de", 1.0),
         ("en", 1.0),
         ("unk", 0.0),
@@ -49,11 +50,11 @@ def test_detection() -> None:
 
     # language detection
     results = lang_detector(
-        "Dieser Satz ist auf Deutsch.", lang=("de", "en"), extensive=False
+        "Dieser Satz ist auf Deutsch.", lang=("de", "en"), greedy=False
     )
     assert results[0][0] == "de"
     results = lang_detector(
-        "Dieser Satz ist auf Deutsch.", lang=("de", "en"), extensive=True
+        "Dieser Satz ist auf Deutsch.", lang=("de", "en"), greedy=True
     )
     assert results[0][0] == "de"
     results = lang_detector(

@@ -81,6 +81,9 @@ Simplemma is used by selecting a language of interest and then applying the data
     ['hier', 'sein', 'Vaccines']
 
 
+Chaining languages
+~~~~~~~~~~~~~~~~~~
+
 Chaining several languages can improve coverage, they are used in sequence:
 
 
@@ -96,6 +99,9 @@ Chaining several languages can improve coverage, they are used in sequence:
     >>> lemmatize('spaghetti', lang=('it', 'fr'))
     'spaghetto'
 
+
+Greedier decomposition
+~~~~~~~~~~~~~~~~~~~~~~
 
 For certain languages a greedier decomposition is activated by default as it can be beneficial, mostly due to a certain capacity to address affixes in an unsupervised way. This can be triggered manually by setting the ``greedy`` parameter to ``True``.
 
@@ -113,6 +119,9 @@ This option also triggers a stronger reduction through a further iteration of th
     >>> simplemma.lemmatize('angekündigten', lang='de', greedy=False)
     'angekündigt' # 1 step: reduction to past participle
 
+
+is_known()
+~~~~~~~~~~
 
 The additional function ``is_known()`` checks if a given word is present in the language data:
 
@@ -191,6 +200,9 @@ The ``lang_detector()`` function returns a list of language codes along with sco
     # proportion of known words
     >>> in_target_language("opera post physica posita (τὰ μετὰ τὰ φυσικά)", lang="la")
     0.5
+
+
+The ``greedy`` argument (``extensive`` in past software versions) triggers use of the greedier decomposition algorithm described above, thus extending word coverage and recall of detection at the potential cost of a lesser accuracy.
 
 
 Supported languages
