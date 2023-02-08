@@ -115,10 +115,11 @@ def lang_detector(
     results = sorted(myresults.items(), key=itemgetter(1), reverse=True)
     # post-processing
     if len(results) > 1:
-        # switch unknown first item to the end
-        if results[0][0] == "unk":
-            pair = results.pop(0)
-            results.append(pair)
+        # switch unknown to the end
+        for i, item in enumerate(results):
+            if item[0] == "unk":
+                pair = results.pop(i)
+                results.append(pair)
         # in case of ex-aequo use other token sampling to discriminate
         if not greedy and results[0][1] == results[1][1]:
             results = lang_detector(

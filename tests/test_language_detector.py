@@ -74,7 +74,7 @@ def test_detection() -> None:
     assert lang_detector(
         '"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."',
         lang=("cs", "sk"),
-    ) == [("cs", 0.75), ("unk", 0.25), ("sk", 0.125)]
+    ) == [("cs", 0.75), ("sk", 0.125), ("unk", 0.25)]
 
     assert lang_detector(
         '"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.',
