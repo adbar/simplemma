@@ -26,6 +26,13 @@ def test_token_sampler():
     sampler = TokenSampler()
     assert sampler.sample_tokens("ABCD Efgh ijkl mn") == ["ijkl"]
     assert sampler.sample_tokens("Abcd_E Abcde") == ["Abcd", "Abcde"]
+
+    sampler = TokenSampler(capitalized_threshold=0)
+    assert sampler.sample_tokens("ABCD Efgh ijkl mn") == ["ABCD", "Efgh", "ijkl"]
+
+    sampler = TokenSampler(capitalized_threshold=0, max_tokens=1)
+    assert sampler.sample_tokens("Efgh Efgh ijkl mn") == ["Efgh"]
+
     relaxed = RelaxedTokenSampler()
     assert relaxed.sample_tokens("ABCD Efgh ijkl mn") == ["ABCD", "Efgh", "ijkl"]
     custom = CustomTokenSampler(3)

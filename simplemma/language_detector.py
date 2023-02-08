@@ -29,25 +29,27 @@ class TokenSampler:
         self.capitalized_threshold = capitalized_threshold
 
     def sample_tokens(self, text: str) -> List[str]:
-        """Extract potential words, scramble them, extract the most frequent,
-        some of the rest, and return at most 1000 tokens."""
+        """Extract potential tokens, scramble them, potentially get rid of capitalized
+        ones, and return the most frequent."""
 
         counter = Counter(token for token in self.tokenizer.split_text(text))
 
-        deletions = [token for token in counter if token[0].isupper()]
-        if len(deletions) < self.capitalized_threshold * len(counter):
-            for token in deletions:
-                del counter[token]
+        if self.capitalized_threshold > 0:
+            deletions = [token for token in counter if token[0].isupper()]
+            if len(deletions) < self.capitalized_threshold * len(counter):
+                for token in deletions:
+                    del counter[token]
 
         return [item[0] for item in counter.most_common(self.max_tokens)]
 
 
 class RelaxedTokenSampler(TokenSampler):
     def __init__(self) -> None:
-        self.tokenizer = Tokenizer(RELAXED_SPLIT_INPUT)
-
-    def sample_tokens(self, text: str) -> List[str]:
-        return list(self.tokenizer.split_text(text))
+        super().__init__(
+            tokenizer=Tokenizer(RELAXED_SPLIT_INPUT),
+            max_tokens=1000,
+            capitalized_threshold=0,
+        )
 
 
 def in_target_language(
@@ -85,8 +87,10 @@ def lang_detector(
     greedy: bool = False,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
     token_sampler: TokenSampler = TokenSampler(),
+    backup_sampler: TokenSampler = RelaxedTokenSampler(),
 ) -> List[Tuple[str, float]]:
-    """Determine which proportion of the text is in the target language(s)."""
+    """Determine which proportion of the text is in the target language(s).
+    Perform a first run and further discriminate between the results if necessary."""
     myresults = {}  # Dict[str, float]
     tokens = token_sampler.sample_tokens(text)
     total_tokens = len(tokens)
@@ -118,6 +122,6 @@ def lang_detector(
         # in case of ex-aequo use other token sampling to discriminate
         if not greedy and results[0][1] == results[1][1]:
             results = lang_detector(
-                text, lang=lang, greedy=True, token_sampler=RelaxedTokenSampler()
+                text, lang=lang, greedy=True, token_sampler=backup_sampler
             )
     return results
