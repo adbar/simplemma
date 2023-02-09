@@ -51,9 +51,9 @@ def in_target_language(
     token_sampler: TokenSampler = TokenSampler(),
 ) -> float:
     """Determine which proportion of the text is in the target language(s)."""
-    return LanguageDetector(dictionary_factory, token_sampler).in_target_language(
-        text, lang, greedy
-    )
+    return LanguageDetector(
+        dictionary_factory, token_sampler
+    ).get_text_percentage_in_all_languages(text, lang, greedy)
 
 
 def _convert_results_to_sorted_list(
@@ -83,25 +83,25 @@ def lang_detector(
     ),
 ) -> List[Tuple[str, float]]:
     """Determine which proportion of the text is in the target language(s)."""
-    results = LanguageDetector(dictionary_factory, token_sampler).lang_detector(
-        text, lang, greedy
-    )
+    results = LanguageDetector(
+        dictionary_factory, token_sampler
+    ).get_text_percentage_in_each_languages(text, lang, greedy)
     # post-processing
     if len(results) == 1:
         return _convert_results_to_sorted_list(results)
     # in case of ex-aequo
     list_results = _convert_results_to_sorted_list(results)
     if greedy is False and list_results[0][1] == list_results[1][1]:
-        results = LanguageDetector(dictionary_factory, token_sampler).lang_detector(
-            text, lang, greedy=True
-        )
+        results = LanguageDetector(
+            dictionary_factory, token_sampler
+        ).get_text_percentage_in_each_languages(text, lang, greedy=True)
 
     list_results = _convert_results_to_sorted_list(results)
     # in case of ex-aequo use other token sampling to discriminate
     if not greedy and list_results[0][1] == list_results[1][1]:
-        results = LanguageDetector(dictionary_factory, backup_sampler).lang_detector(
-            text, lang, greedy=True
-        )
+        results = LanguageDetector(
+            dictionary_factory, backup_sampler
+        ).get_text_percentage_in_each_languages(text, lang, greedy=True)
 
     list_results = _convert_results_to_sorted_list(results)
     return list_results
@@ -116,7 +116,7 @@ class LanguageDetector:
         self.dictionary_factory = dictionary_factory
         self.token_sampler = token_sampler
 
-    def lang_detector(
+    def get_text_percentage_in_each_languages(
         self,
         text: str,
         lang: Optional[Union[str, Tuple[str, ...]]] = None,
@@ -152,7 +152,7 @@ class LanguageDetector:
         results["unk"] = unknown_tokens_count / total_tokens
         return results
 
-    def in_target_language(
+    def get_text_percentage_in_all_languages(
         self,
         text: str,
         lang: Optional[Union[str, Tuple[str, ...]]] = None,
@@ -160,4 +160,4 @@ class LanguageDetector:
     ) -> float:
         """Determine which proportion of the text is in the target language(s)."""
 
-        return 1 - self.lang_detector(text, lang, greedy)["unk"]
+        return 1 - self.get_text_percentage_in_each_languages(text, lang, greedy)["unk"]
