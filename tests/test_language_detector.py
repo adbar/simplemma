@@ -6,6 +6,7 @@ from typing import List
 from simplemma.language_detector import (
     in_target_language,
     lang_detector,
+    langdetect,
     RelaxedTokenSampler,
     TokenSampler,
 )
@@ -56,13 +57,12 @@ def test_detection() -> None:
     ]
 
     # language detection
-    results = lang_detector(
-        "Dieser Satz ist auf Deutsch.", lang=("de", "en"), greedy=False
-    )
+    text = "Dieser Satz ist auf Deutsch."
+    results = lang_detector(text, lang=("de", "en"), greedy=False)
     assert results[0][0] == "de"
-    results = lang_detector(
-        "Dieser Satz ist auf Deutsch.", lang=("de", "en"), greedy=True
-    )
+    results = langdetect(text, lang=("de", "en"))
+    assert results[0][0] == "de"
+    results = lang_detector(text, lang=("de", "en"), greedy=True)
     assert results[0][0] == "de"
     results = lang_detector(
         "Nztruedg nsüplke deutsches weiter bgfnki gtrpinadsc.",

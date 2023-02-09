@@ -1,6 +1,7 @@
 """Experimental language detection."""
 
 import re
+import warnings
 
 from collections import Counter
 from operator import itemgetter
@@ -126,3 +127,16 @@ def lang_detector(
                 text, lang=lang, greedy=True, token_sampler=backup_sampler
             )
     return results
+
+
+def langdetect(
+    text: str,
+    lang: Optional[Union[str, Tuple[str, ...]]] = None,
+    extensive: bool = False,
+) -> List[Tuple[str, float]]:
+    "Legacy function with deprecation warning."
+    warnings.warn(
+        "The langdetect() function will be deprecated, use lang_detector() instead.",
+        PendingDeprecationWarning,
+    )
+    return lang_detector(text=text, lang=lang, greedy=extensive)
