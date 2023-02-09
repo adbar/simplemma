@@ -10,24 +10,46 @@ from .lemmatizer import _return_lemma
 from .dictionary_factory import DictionaryFactory
 from .tokenizer import Tokenizer
 
+
 SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
+RELAXED_SPLIT_INPUT = re.compile(r"[\w-]{3,}")
 
 
 class TokenSampler:
-    __slots__ = ["tokenizer"]
+    __slots__ = ["capitalized_threshold", "max_tokens", "tokenizer"]
 
-    def __init__(self, tokenizer: Tokenizer = Tokenizer(SPLIT_INPUT)) -> None:
+    def __init__(
+        self,
+        tokenizer: Tokenizer = Tokenizer(SPLIT_INPUT),
+        max_tokens: int = 100,
+        capitalized_threshold: float = 0.8,
+    ) -> None:
         self.tokenizer = tokenizer
+        self.max_tokens = max_tokens
+        self.capitalized_threshold = capitalized_threshold
 
     def sample_tokens(self, text: str) -> List[str]:
-        """Extract potential words, scramble them, extract the most frequent,
-        some of the rest, and return at most 1000 tokens."""
-        # generator expression to split the text
-        counter = Counter(
-            token for token in self.tokenizer.split_text(text) if not token[0].isupper()
-        )
+        """Extract potential tokens, scramble them, potentially get rid of capitalized
+        ones, and return the most frequent."""
 
-        return [item[0] for item in counter.most_common(1000)]
+        counter = Counter(token for token in self.tokenizer.split_text(text))
+
+        if self.capitalized_threshold > 0:
+            deletions = [token for token in counter if token[0].isupper()]
+            if len(deletions) < self.capitalized_threshold * len(counter):
+                for token in deletions:
+                    del counter[token]
+
+        return [item[0] for item in counter.most_common(self.max_tokens)]
+
+
+class RelaxedTokenSampler(TokenSampler):
+    def __init__(self) -> None:
+        super().__init__(
+            tokenizer=Tokenizer(RELAXED_SPLIT_INPUT),
+            max_tokens=1000,
+            capitalized_threshold=0,
+        )
 
 
 def in_target_language(
@@ -65,8 +87,10 @@ def lang_detector(
     greedy: bool = False,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
     token_sampler: TokenSampler = TokenSampler(),
+    backup_sampler: TokenSampler = RelaxedTokenSampler(),
 ) -> List[Tuple[str, float]]:
-    """Determine which proportion of the text is in the target language(s)."""
+    """Determine which proportion of the text is in the target language(s).
+    Perform a first run and further discriminate between the results if necessary."""
     myresults = {}  # Dict[str, float]
     tokens = token_sampler.sample_tokens(text)
     total_tokens = len(tokens)
@@ -91,10 +115,14 @@ def lang_detector(
     results = sorted(myresults.items(), key=itemgetter(1), reverse=True)
     # post-processing
     if len(results) > 1:
-        # in case of ex-aequo
-        if greedy is False and results[0][1] == results[1][1]:
-            results = lang_detector(text, lang=lang, greedy=True)
-        # fallback
-        if len(results) > 1 and results[0][1] == results[1][1]:
-            return _return_default()
+        # switch unknown to the end
+        for i, item in enumerate(results):
+            if item[0] == "unk":
+                pair = results.pop(i)
+                results.append(pair)
+        # in case of ex-aequo use other token sampling to discriminate
+        if not greedy and results[0][1] == results[1][1]:
+            results = lang_detector(
+                text, lang=lang, greedy=True, token_sampler=backup_sampler
+            )
     return results

@@ -3,7 +3,12 @@
 import logging
 from typing import List
 
-from simplemma.language_detector import in_target_language, lang_detector, TokenSampler
+from simplemma.language_detector import (
+    in_target_language,
+    lang_detector,
+    RelaxedTokenSampler,
+    TokenSampler,
+)
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -20,6 +25,16 @@ class CustomTokenSampler(TokenSampler):
 def test_token_sampler():
     sampler = TokenSampler()
     assert sampler.sample_tokens("ABCD Efgh ijkl mn") == ["ijkl"]
+    assert sampler.sample_tokens("Abcd_E Abcde") == ["Abcd", "Abcde"]
+
+    sampler = TokenSampler(capitalized_threshold=0)
+    assert sampler.sample_tokens("ABCD Efgh ijkl mn") == ["ABCD", "Efgh", "ijkl"]
+
+    sampler = TokenSampler(capitalized_threshold=0, max_tokens=1)
+    assert sampler.sample_tokens("Efgh Efgh ijkl mn") == ["Efgh"]
+
+    relaxed = RelaxedTokenSampler()
+    assert relaxed.sample_tokens("ABCD Efgh ijkl mn") == ["ABCD", "Efgh", "ijkl"]
     custom = CustomTokenSampler(3)
     assert custom.sample_tokens("ABCD Efgh ijkl mn") == []
 
@@ -28,8 +43,18 @@ def test_detection() -> None:
     # sanity checks
     assert lang_detector(" aa ", lang=("de", "en"), greedy=True) == [("unk", 1)]
     text = "Test test"
-    assert lang_detector(text, lang=("de", "en"), greedy=False) == [("unk", 1)]
-    assert lang_detector(text, lang=("de", "en"), greedy=True) == [("unk", 1)]
+
+    assert lang_detector(text, lang=("de", "en"), greedy=False) == [
+        ("de", 1.0),
+        ("en", 1.0),
+        ("unk", 0.0),
+    ]
+    assert lang_detector(text, lang=("de", "en"), greedy=True) == [
+        ("de", 1.0),
+        ("en", 1.0),
+        ("unk", 0.0),
+    ]
+
     # language detection
     results = lang_detector(
         "Dieser Satz ist auf Deutsch.", lang=("de", "en"), greedy=False
@@ -39,11 +64,17 @@ def test_detection() -> None:
         "Dieser Satz ist auf Deutsch.", lang=("de", "en"), greedy=True
     )
     assert results[0][0] == "de"
+    results = lang_detector(
+        "Nztruedg nsüplke deutsches weiter bgfnki gtrpinadsc.",
+        lang=("de", "en"),
+        greedy=False,
+    )
+    assert results == [("de", 0.4), ("en", 0.0), ("unk", 0.6)]
 
     assert lang_detector(
         '"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."',
         lang=("cs", "sk"),
-    ) == [("cs", 0.75), ("unk", 0.25), ("sk", 0.125)]
+    ) == [("cs", 0.75), ("sk", 0.125), ("unk", 0.25)]
 
     assert lang_detector(
         '"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.',
