@@ -2,9 +2,10 @@ import re
 
 from typing import Optional
 
+
 NOUN_ENDINGS_DE = re.compile(
     r"(?:bold|[^kl]ling|ment)(e?[ns]?)?$|"
-    r"(?:ikus)(sen?)?$|"
+    r"ikus(sen?)?$|"
     r"(?:erl|iker|[^e]iter)([ns])?$|"
     r"(?:gramm|nom)(e?s|en)?$|"
     r"(?:eur)(en?|s)?$|"
@@ -12,8 +13,8 @@ NOUN_ENDINGS_DE = re.compile(
 )
 
 ADJ_ENDINGS_DE = re.compile(
-    r"^(.{4,}?)"
-    r"(arm|artig|bar|chig|[^i]ent|erig|esk|fähig|förmig|frei|[^c]haft|iv|[^fh]los|mäßig|oid|op|phil|phob|[^b]rig|sam|schig|selig|voll)"
+    r"^(.{4,}?)(?<!zu)"
+    r"(arm|artig|bar|chig|[^i]ent|erig|esk|fähig|förmig|frei|[^c]haft|iv|[^fh]los|mäßig|oid|op|phil|phob|sam|schig|selig|voll)"  # [^b]rig|
     r"(?:er|e?st)?(?:e|em|en|er|es)$"
 )
 
@@ -110,20 +111,17 @@ def apply_de(token: str, greedy: bool = False) -> Optional[str]:
         # + Binnen-I: ArbeitnehmerInnenschutzgesetz?
         if PLUR_ORTH_DE.search(token):
             return PLUR_ORTH_DE.sub(":innen", token)
-        # greedy search
-        if greedy:
-            # series of noun endings
-            match = NOUN_ENDINGS_DE.search(token)
-            if match and len(match[0]) > 2:
-                groups = [g for g in match.groups() if g is not None]
-                # lemma identified
-                if not groups:
-                    return token
-                # apply -en/-e/-n/-s patterns
-                return token[: -len(groups[0])]
-            # -end and gerunds
-            if GERUND_DE.search(token):
-                return ENDING_DE.sub("e", token)
+        # noun endings/suffixes: regex search
+        # series of noun endings
+        match = NOUN_ENDINGS_DE.search(token)
+        if match:
+            # lemma identified
+            if not match[1]:
+                return token
+            return token[:-len(match[1])]
+        # -end and gerunds
+        if greedy and GERUND_DE.search(token):
+            return ENDING_DE.sub("e", token)
     # mostly adjectives and verbs
     elif greedy and token[-1] in ENDING_CHARS_ADJ_DE:
         # general search
