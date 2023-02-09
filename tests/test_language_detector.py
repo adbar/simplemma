@@ -3,11 +3,13 @@
 import logging
 from typing import List
 
+from simplemma.tokenizer import Tokenizer
+
 from simplemma.language_detector import (
     in_target_language,
     lang_detector,
-    RelaxedTokenSampler,
     TokenSampler,
+    RELAXED_SPLIT_INPUT,
 )
 
 logging.basicConfig(level=logging.DEBUG)
@@ -33,8 +35,13 @@ def test_token_sampler():
     sampler = TokenSampler(capitalized_threshold=0, max_tokens=1)
     assert sampler.sample_tokens("Efgh Efgh ijkl mn") == ["Efgh"]
 
-    relaxed = RelaxedTokenSampler()
+    relaxed = TokenSampler(
+        tokenizer=Tokenizer(splitting_regex=RELAXED_SPLIT_INPUT),
+        max_tokens=1000,
+        capitalized_threshold=0,
+    )
     assert relaxed.sample_tokens("ABCD Efgh ijkl mn") == ["ABCD", "Efgh", "ijkl"]
+
     custom = CustomTokenSampler(3)
     assert custom.sample_tokens("ABCD Efgh ijkl mn") == []
 

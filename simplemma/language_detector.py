@@ -43,15 +43,6 @@ class TokenSampler:
         return [item[0] for item in counter.most_common(self.max_tokens)]
 
 
-class RelaxedTokenSampler(TokenSampler):
-    def __init__(self) -> None:
-        super().__init__(
-            tokenizer=Tokenizer(RELAXED_SPLIT_INPUT),
-            max_tokens=1000,
-            capitalized_threshold=0,
-        )
-
-
 def in_target_language(
     text: str,
     lang: Optional[Union[str, Tuple[str, ...]]] = None,
@@ -85,7 +76,11 @@ def lang_detector(
     greedy: bool = False,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
     token_sampler: TokenSampler = TokenSampler(),
-    backup_sampler: TokenSampler = RelaxedTokenSampler(),
+    backup_sampler: TokenSampler = TokenSampler(
+        tokenizer=Tokenizer(RELAXED_SPLIT_INPUT),
+        max_tokens=1000,
+        capitalized_threshold=0,
+    ),
 ) -> List[Tuple[str, float]]:
     """Determine which proportion of the text is in the target language(s)."""
     results = LanguageDetector(dictionary_factory, token_sampler).lang_detector(
