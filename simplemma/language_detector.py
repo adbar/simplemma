@@ -163,4 +163,15 @@ class LanguageDetector:
     ) -> float:
         """Determine which proportion of the text is in the target language(s)."""
 
-        return 1 - self.get_text_percentage_in_each_languages(text, lang, greedy)["unk"]
+        return sum(
+            [
+                percentage
+                for (
+                    lang_code,
+                    percentage,
+                ) in self.get_text_percentage_in_each_languages(
+                    text, lang, greedy
+                ).items()
+                if lang_code != "unk"
+            ]
+        )
