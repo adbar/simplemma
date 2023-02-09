@@ -125,7 +125,8 @@ class LanguageDetector:
         greedy: bool = False,
     ) -> Dict[str, float]:
         """Determine which proportion of the text is in the target language(s).
-        Perform a first run and further discriminate between the results if necessary."""
+        Perform a first run and further discriminate between the results if necessary.
+        """
 
         tokens = self.token_sampler.sample_tokens(text)
         total_tokens = len(tokens)
