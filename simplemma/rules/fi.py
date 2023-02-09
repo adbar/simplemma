@@ -2,6 +2,9 @@ import re
 
 from typing import Optional
 
+from .generic import apply_rules
+
+
 DEFAULT_RULES = {
     # -minen nouns, ä/ö/y + a/o/u
     # https://en.wiktionary.org/wiki/-minen
@@ -36,9 +39,6 @@ def apply_fi(token: str, greedy: bool = False) -> Optional[str]:
     if len(token) < 10 or token[0].isupper():
         return None
 
-    for rule, substitution in DEFAULT_RULES.items():
-        if rule.search(token):
-            return rule.sub(substitution, token)
     ## others: but not yritteineen/yrite
     # if token.endswith("eineen") and token[-7] != token[-8]:
     #    return token[:-6] + "i"
@@ -46,4 +46,5 @@ def apply_fi(token: str, greedy: bool = False) -> Optional[str]:
     # äyskäisen → äyskäistä
     # if token.endswith("äisen"):
     #    return token[:-4]
-    return None
+
+    return apply_rules(token, DEFAULT_RULES)
