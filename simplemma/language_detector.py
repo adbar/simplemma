@@ -108,6 +108,8 @@ def lang_detector(
 
 
 class LanguageDetector:
+    __slots__ = ["dictionary_factory", "token_sampler"]
+
     def __init__(
         self,
         dictionary_factory: DictionaryFactory = DictionaryFactory(),
