@@ -4,7 +4,7 @@ import re
 
 from collections import Counter
 from operator import itemgetter
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from .lemmatizer import _return_lemma
 from .dictionary_factory import DictionaryFactory
@@ -55,30 +55,28 @@ class RelaxedTokenSampler(TokenSampler):
 def in_target_language(
     text: str,
     lang: Optional[Union[str, Tuple[str, ...]]] = None,
+    greedy: bool = False,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
     token_sampler: TokenSampler = TokenSampler(),
 ) -> float:
     """Determine which proportion of the text is in the target language(s)."""
-    total = 0
-    in_target = 0
-    dictionaries = dictionary_factory.get_dictionaries(lang)
-    for token in token_sampler.sample_tokens(text):
-        total += 1
-        for lang_code, lang_dictionary in dictionaries.items():
-            candidate = _return_lemma(
-                token, lang_dictionary, greedy=True, lang=lang_code
-            )
-            if candidate is not None:
-                in_target += 1
-                break
-    if total > 0 and in_target > 0:
-        return in_target / total
-    return 0
+    return LanguageDetector(dictionary_factory, token_sampler).in_target_language(
+        text, lang, greedy
+    )
 
 
-def _return_default() -> List[Tuple[str, float]]:
-    # todo: None if 'unk'?
-    return [("unk", 1)]
+def _convert_results_to_sorted_list(
+    results: Dict[str, float]
+) -> List[Tuple[str, float]]:
+    list_results: List[Tuple[str, float]] = sorted(
+        results.items(), key=itemgetter(1), reverse=True
+    )
+    # switch unknown to the end
+    for i, item in enumerate(list_results):
+        if item[0] == "unk":
+            pair = list_results.pop(i)
+            list_results.append(pair)
+    return list_results
 
 
 def lang_detector(
@@ -89,40 +87,82 @@ def lang_detector(
     token_sampler: TokenSampler = TokenSampler(),
     backup_sampler: TokenSampler = RelaxedTokenSampler(),
 ) -> List[Tuple[str, float]]:
-    """Determine which proportion of the text is in the target language(s).
-    Perform a first run and further discriminate between the results if necessary."""
-    myresults = {}  # Dict[str, float]
-    tokens = token_sampler.sample_tokens(text)
-    total_tokens = len(tokens)
-    if total_tokens == 0:
-        return _return_default()
-    # iterate
-    dictionaries = dictionary_factory.get_dictionaries(lang)
-    for lang_code, lang_dictionary in dictionaries.items():
-        in_target = 0
-        for token in tokens:
-            candidate = _return_lemma(
-                token, lang_dictionary, greedy=greedy, lang=lang_code
-            )
-            if candidate is not None:
-                in_target += 1
-        # compute results
-        found_ratio = in_target / total_tokens
-        myresults[lang_code] = found_ratio
-        unknown = 1 - found_ratio or 0.0
-        if myresults.get("unk") is None or unknown < myresults["unk"]:
-            myresults["unk"] = unknown
-    results = sorted(myresults.items(), key=itemgetter(1), reverse=True)
+    """Determine which proportion of the text is in the target language(s)."""
+    results = LanguageDetector(dictionary_factory, token_sampler).lang_detector(
+        text, lang, greedy
+    )
     # post-processing
-    if len(results) > 1:
-        # switch unknown to the end
-        for i, item in enumerate(results):
-            if item[0] == "unk":
-                pair = results.pop(i)
-                results.append(pair)
-        # in case of ex-aequo use other token sampling to discriminate
-        if not greedy and results[0][1] == results[1][1]:
-            results = lang_detector(
-                text, lang=lang, greedy=True, token_sampler=backup_sampler
-            )
-    return results
+    if len(results) == 1:
+        return _convert_results_to_sorted_list(results)
+    # in case of ex-aequo
+    list_results = _convert_results_to_sorted_list(results)
+    if greedy is False and list_results[0][1] == list_results[1][1]:
+        results = LanguageDetector(dictionary_factory, token_sampler).lang_detector(
+            text, lang, greedy=True
+        )
+
+    list_results = _convert_results_to_sorted_list(results)
+    # in case of ex-aequo use other token sampling to discriminate
+    if not greedy and list_results[0][1] == list_results[1][1]:
+        results = LanguageDetector(dictionary_factory, backup_sampler).lang_detector(
+            text, lang, greedy=True
+        )
+
+    list_results = _convert_results_to_sorted_list(results)
+    return list_results
+
+
+class LanguageDetector:
+    def __init__(
+        self,
+        dictionary_factory: DictionaryFactory = DictionaryFactory(),
+        token_sampler: TokenSampler = TokenSampler(),
+    ) -> None:
+        self.dictionary_factory = dictionary_factory
+        self.token_sampler = token_sampler
+
+    def lang_detector(
+        self,
+        text: str,
+        lang: Optional[Union[str, Tuple[str, ...]]] = None,
+        greedy: bool = False,
+    ) -> Dict[str, float]:
+        """Determine which proportion of the text is in the target language(s).
+        Perform a first run and further discriminate between the results if necessary."""
+
+        tokens = self.token_sampler.sample_tokens(text)
+        total_tokens = len(tokens)
+        if total_tokens == 0:
+            return {"unk": 1}
+        # iterate
+        dictionaries = self.dictionary_factory.get_dictionaries(lang)
+        known_tokens_count = dict.fromkeys(dictionaries, 0)
+        unknown_tokens_count = 0
+        for token in tokens:
+            token_found = False
+            for lang_code, lang_dictionary in dictionaries.items():
+                candidate = _return_lemma(
+                    token, lang_dictionary, greedy=greedy, lang=lang_code
+                )
+                if candidate is not None:
+                    known_tokens_count[lang_code] += 1
+                    token_found = True
+            if not token_found:
+                unknown_tokens_count += 1
+
+        results: Dict[str, float] = dict(
+            (lang_code, token_count / total_tokens)
+            for (lang_code, token_count) in known_tokens_count.items()
+        )
+        results["unk"] = unknown_tokens_count / total_tokens
+        return results
+
+    def in_target_language(
+        self,
+        text: str,
+        lang: Optional[Union[str, Tuple[str, ...]]] = None,
+        greedy: bool = False,
+    ) -> float:
+        """Determine which proportion of the text is in the target language(s)."""
+
+        return 1 - self.lang_detector(text, lang, greedy)["unk"]
