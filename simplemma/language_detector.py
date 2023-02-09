@@ -21,7 +21,7 @@ class TokenSampler:
     def __init__(
         self,
         tokenizer: Tokenizer = Tokenizer(SPLIT_INPUT),
-        max_tokens: int = 1000,
+        max_tokens: int = 100,
         capitalized_threshold: float = 0.8,
     ) -> None:
         self.tokenizer = tokenizer
