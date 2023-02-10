@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Iterator, Optional, Tuple, Union
 from .constants import CACHE_SIZE
 from .dictionary_factory import DictionaryFactory
 from .tokenizer import Tokenizer
-from .rules import APPLY_RULES, FIND_KNOWN_PREFIXES
+from .rules import apply_rules, FIND_KNOWN_PREFIXES
 from .utils import levenshtein_dist
 
 
@@ -151,6 +151,17 @@ def _dehyphen(token: str, datadict: Dict[str, str], greedy: bool) -> Optional[st
     return "".join(splitted)
 
 
+def _find_prefixes(token: str, lang: Optional[str], datadict: Dict[str, str]) -> Optional[str]:
+    "Subword decomposition: pre-defined prefixes (often absent from vocabulary if they are not words)."
+    if lang in FIND_KNOWN_PREFIXES:
+        prefix = FIND_KNOWN_PREFIXES[lang](token)
+        if prefix is not None:
+            subword = _simple_search(token[len(prefix) :], datadict)
+            if subword is not None:
+                return prefix + subword.lower()
+    return None
+
+
 def _affix_search(
     wordform: str, datadict: Dict[str, str], maxlen: int = AFFIXLEN
 ) -> Optional[str]:
@@ -185,31 +196,21 @@ def _return_lemma(
     # filters
     if token.isnumeric():
         return token
-    # dictionary search
-    candidate = _simple_search(token, datadict, initial=initial)
-    # simple rules
-    if candidate is None and lang is not None and lang in APPLY_RULES:
-        candidate = APPLY_RULES[lang](token, greedy)
-    # decomposition
-    if candidate is None:  # and greedy is True
-        candidate = _dehyphen(token, datadict, greedy)
-    else:
-        newcandidate = _dehyphen(candidate, datadict, greedy)
-        if newcandidate is not None:
-            candidate = newcandidate
+
+    candidate = (
+        _dehyphen(token, datadict, greedy)
+        or _simple_search(token, datadict, initial=initial)
+        or apply_rules(token, greedy, lang)
+        or _find_prefixes(token, lang, datadict)
+    )
+
     # stop here in some cases
     # if not greedy:
     #    return candidate
     limit = 6 if lang in SHORTER_GREEDY else 8
     if len(token) <= limit:
         return candidate
-    # subword decomposition: predefined prefixes (absent from vocabulary if they are not words)
-    if candidate is None and lang in FIND_KNOWN_PREFIXES:
-        prefix = FIND_KNOWN_PREFIXES[lang](token)
-        if prefix is not None:
-            subword = _simple_search(token[len(prefix) :], datadict)
-            if subword is not None:
-                candidate = prefix + subword.lower()
+
     # unsupervised suffix/affix search: not productive for all languages
     if candidate is None and (greedy or lang in AFFIX_LANGS):
         # define parameters
@@ -219,9 +220,11 @@ def _return_lemma(
         candidate = _affix_search(token, datadict, maxlen) or _suffix_search(
             token, datadict
         )
+
     # greedy mode: try further hops, not always a good idea
     if candidate is not None and greedy:
         candidate = _greedy_search(candidate, datadict)
+
     return candidate
 
 

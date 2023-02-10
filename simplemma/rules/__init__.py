@@ -1,11 +1,21 @@
-"""Simple rules for unknown tokens."""
+"""Rule-based lemmatization of unknown tokens."""
+
 from typing import Callable, Dict, Optional
+
 from .de import apply_de, fix_known_prefix_de
 from .en import apply_en
 from .fi import apply_fi
 from .nl import apply_nl
 from .pl import apply_pl
 from .ru import apply_ru, fix_known_prefix_ru
+
+
+def apply_rules(token: str, greedy: bool, lang: Optional[str]) -> Optional[str]:
+    "Apply simple rules to out-of-vocabulary words."
+    if lang in APPLY_RULES:
+        return APPLY_RULES[lang](token, greedy)
+    return None
+
 
 FIND_KNOWN_PREFIXES: Dict[str, Callable[[str], Optional[str]]] = {
     "de": fix_known_prefix_de,
