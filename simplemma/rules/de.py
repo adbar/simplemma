@@ -4,13 +4,17 @@ from typing import Optional
 
 
 NOUN_ENDINGS_DE = re.compile(
-    r"(?:bold|[^kl]ling|ment)(e?[ns]?)?$|"
-    r"ikus(sen?)?$|"
+    r"(?:erei|heit|keit|ion|schaft|tät|[^jlz]ung)(en)?$|"
+    r"(?:euse|icen|logie)(n)?$|"
+    r"(?:bold|[^hkl]ling|ment)(e?[ns]?)?$|"
+    r"(?:ikus)(sen?)?$|"
     r"(?:erl|iker|[^e]iter)([ns])?$|"
-    r"(?:gramm|nom)(e?s|en)?$|"
+    r"(?:gramm|[^ä]nom)(e?s|en)?$|"
     r"(?:eur)(en?|s)?$|"
-    r"(?:ar|er|lein|o|stan|um)(s)?$"
+    r"(?:ar|lein|stan|um)(s)?$",
+    re.I,
 )
+
 
 ADJ_ENDINGS_DE = re.compile(
     r"^(.{4,}?)(?<!zu)"
@@ -19,8 +23,6 @@ ADJ_ENDINGS_DE = re.compile(
 )
 
 PLUR_ORTH_DE = re.compile(r"(?:Innen|\*innen|\*Innen|-innen|_innen)$")
-GERUND_DE = re.compile(r"([elr]nd)(?:e|em|en|er)$")
-GERUNDIVE_DE = re.compile(r"([elr]nd)(?:st)?(?:e|em|en|er|es)$")
 PP_DE = re.compile(r"^.{2,}ge.+?[^aes]t(?:e|em|er|es)$")  # en|
 
 ENDING_CHARS_NN_DE = {"e", "m", "n", "r", "s"}
@@ -37,33 +39,41 @@ GERMAN_PREFIXES = {
     "bei",
     "da",
     "dar",
+    "darin",
+    "davor",
     "durch",
     "ein",
     "ent",
+    "entgegen",
     "er",
     "gegen",
     "her",
-    "heran",
     "herab",
+    "heran",
     "herauf",
     "heraus",
+    "herbei",
     "herein",
     "herum",
     "herunter",
     "hervor",
     "hin",
+    "hinab",
     "hinauf",
     "hinaus",
     "hinein",
+    "hinten",
     "hinter",
     "hinunter",
     "hinweg",
     "hinzu",
+    "innen",
     "los",
     "miss",
     "mit",
     "nach",
     "neben",
+    "nieder",
     "ran",
     "raus",
     "rein",
@@ -98,30 +108,20 @@ def apply_de(token: str, greedy: bool = False) -> Optional[str]:
     if len(token) < 7:
         return None
     # nouns
-    if token[0].isupper():  # and token.endswith("en"):
-        if token.endswith(("ereien", "heiten", "keiten", "ionen", "schaften", "täten")):
-            return token[:-2]
-        if token.endswith(("eusen", "icen", "logien")):
-            return token[:-1]
-        if token.endswith("ungen") and not (
-            "jungen" in token or "lungen" in token or "zungen" in token
-        ):
-            return token[:-2]
-        # inclusive speech
-        # + Binnen-I: ArbeitnehmerInnenschutzgesetz?
-        if PLUR_ORTH_DE.search(token):
-            return PLUR_ORTH_DE.sub(":innen", token)
+    if token[0].isupper():
         # noun endings/suffixes: regex search
-        # series of noun endings
         match = NOUN_ENDINGS_DE.search(token)
         if match:
+            # apply pattern
+            ending = next((g for g in match.groups() if g is not None), None)
+            if ending:
+                return token[: -len(ending)]
             # lemma identified
-            if not match[1]:
-                return token
-            return token[:-len(match[1])]
-        # -end and gerunds
-        if greedy and GERUND_DE.search(token):
-            return ENDING_DE.sub("e", token)
+            return token
+        # inclusive speech
+        # Binnen-I: ArbeitnehmerInnenschutzgesetz?
+        if PLUR_ORTH_DE.search(token):
+            return PLUR_ORTH_DE.sub(":innen", token)
     # mostly adjectives and verbs
     elif greedy and token[-1] in ENDING_CHARS_ADJ_DE:
         # general search
@@ -129,6 +129,4 @@ def apply_de(token: str, greedy: bool = False) -> Optional[str]:
             return ADJ_ENDINGS_DE.sub(r"\1\2", token)
         if PP_DE.search(token):
             return ENDING_DE.sub("", token)
-        if GERUNDIVE_DE.search(token):  # -end and gerundives
-            return GERUNDIVE_DE.sub(r"\1", token)
     return None
