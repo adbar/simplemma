@@ -155,7 +155,7 @@ def _find_prefixes(token: str, lang: Optional[str], datadict: Dict[str, str]) ->
     "Subword decomposition: pre-defined prefixes (often absent from vocabulary if they are not words)."
     if lang in FIND_KNOWN_PREFIXES:
         prefix = FIND_KNOWN_PREFIXES[lang](token)
-        if prefix is not None:
+        if prefix is not None and len(prefix) < len(token):
             subword = _simple_search(token[len(prefix) :], datadict)
             if subword is not None:
                 return prefix + subword.lower()
