@@ -2,6 +2,9 @@ import re
 
 from typing import Optional
 
+from .generic import apply_rules
+
+
 DEFAULT_RULES = {
     re.compile(r"(?:ościach|ościami|ościom)$"): "ość",  # removed: "ością", "ości"
     re.compile(
@@ -20,8 +23,4 @@ def apply_pl(token: str, greedy: bool = False) -> Optional[str]:
     if len(token) < 10 or token[0].isupper():
         return None
 
-    for rule, substitution in DEFAULT_RULES.items():
-        if rule.search(token):
-            return rule.sub(substitution, token)
-
-    return None
+    return apply_rules(token, DEFAULT_RULES)
