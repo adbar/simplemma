@@ -151,7 +151,9 @@ def _dehyphen(token: str, datadict: Dict[str, str], greedy: bool) -> Optional[st
     return "".join(splitted)
 
 
-def _find_prefixes(token: str, lang: Optional[str], datadict: Dict[str, str]) -> Optional[str]:
+def _find_prefixes(
+    token: str, lang: Optional[str], datadict: Dict[str, str]
+) -> Optional[str]:
     "Subword decomposition: pre-defined prefixes (often absent from vocabulary if they are not words)."
     if lang in FIND_KNOWN_PREFIXES:
         prefix = FIND_KNOWN_PREFIXES[lang](token)
