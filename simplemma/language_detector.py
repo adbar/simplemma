@@ -86,24 +86,23 @@ def lang_detector(
     results = LanguageDetector(
         dictionary_factory, token_sampler
     ).get_text_percentage_in_each_language(text, lang, greedy)
-    # post-processing
-    if len(results) == 1:
-        return _convert_results_to_sorted_list(results)
-    # in case of ex-aequo
     list_results = _convert_results_to_sorted_list(results)
+
+    # post-processing
+    if len(list_results) == 1:
+        return list_results
+    # in case of ex-aequo
     if greedy is False and list_results[0][1] == list_results[1][1]:
         results = LanguageDetector(
             dictionary_factory, token_sampler
         ).get_text_percentage_in_each_language(text, lang, greedy=True)
-
-    list_results = _convert_results_to_sorted_list(results)
+        list_results = _convert_results_to_sorted_list(results)
     # in case of ex-aequo use other token sampling to discriminate
     if not greedy and list_results[0][1] == list_results[1][1]:
         results = LanguageDetector(
             dictionary_factory, backup_sampler
         ).get_text_percentage_in_each_language(text, lang, greedy=True)
-
-    list_results = _convert_results_to_sorted_list(results)
+        list_results = _convert_results_to_sorted_list(results)
     return list_results
 
 
