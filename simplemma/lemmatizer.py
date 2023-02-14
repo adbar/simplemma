@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Iterator, Optional, Tuple, Union
 from .constants import CACHE_SIZE
 from .dictionary_factory import DictionaryFactory
 from .tokenizer import Tokenizer
-from .rules import apply_rules, FIND_KNOWN_PREFIXES
+from .rules import apply_rules, _find_prefix
 from .utils import levenshtein_dist
 
 
@@ -151,17 +151,18 @@ def _dehyphen(token: str, datadict: Dict[str, str], greedy: bool) -> Optional[st
     return "".join(splitted)
 
 
-def _find_prefixes(
+def _prefix_search(
     token: str, lang: Optional[str], datadict: Dict[str, str]
 ) -> Optional[str]:
-    "Subword decomposition: pre-defined prefixes (often absent from vocabulary if they are not words)."
-    if lang in FIND_KNOWN_PREFIXES:
-        prefix = FIND_KNOWN_PREFIXES[lang](token)
-        if prefix is not None and len(prefix) < len(token):
-            subword = _simple_search(token[len(prefix) :], datadict)
-            if subword is not None:
-                return prefix + subword.lower()
-    return None
+    prefix = _find_prefix(token, lang)
+    if prefix is None:
+        return None
+
+    subword = _simple_search(token[len(prefix) :], datadict)
+    if subword is None:
+        return None
+
+    return prefix + subword.lower()
 
 
 def _affix_search(
@@ -203,7 +204,7 @@ def _return_lemma(
         _dehyphen(token, datadict, greedy)
         or _simple_search(token, datadict, initial=initial)
         or apply_rules(token, greedy, lang)
-        or _find_prefixes(token, lang, datadict)
+        or _prefix_search(token, lang, datadict)
     )
 
     # stop here in some cases
