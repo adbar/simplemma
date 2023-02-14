@@ -2,76 +2,128 @@
 
 import logging
 
-from simplemma.language_detector import (
-    in_target_language,
-    langdetect,
-)
+from simplemma.language_detector import in_target_language, langdetect, LanguageDetector
 
 from .test_token_sampler import CustomTokenSampler
 
 logging.basicConfig(level=logging.DEBUG)
 
 
-def test_detection() -> None:
+def test_proportion_in_each_language() -> None:
     # sanity checks
+    assert LanguageDetector(lang=("de", "en"), greedy=True).proportion_in_each_language(
+        " aa "
+    ) == {"unk": 1}
     assert langdetect(" aa ", lang=("de", "en"), greedy=True) == [("unk", 1)]
-    text = "Test test"
 
+    text = "Test test"
+    assert LanguageDetector(
+        lang=("de", "en"), greedy=False
+    ).proportion_in_each_language(text) == {"de": 1.0, "en": 1.0, "unk": 0.0}
     assert langdetect(text, lang=("de", "en"), greedy=False) == [
         ("de", 1.0),
         ("en", 1.0),
         ("unk", 0.0),
     ]
+    assert LanguageDetector(lang=("de", "en"), greedy=True).proportion_in_each_language(
+        text
+    ) == {"de": 1.0, "en": 1.0, "unk": 0.0}
     assert langdetect(text, lang=("de", "en"), greedy=True) == [
         ("de", 1.0),
         ("en", 1.0),
         ("unk", 0.0),
     ]
 
-    # language detection
-    results = langdetect(
-        "Dieser Satz ist auf Deutsch.", lang=("de", "en"), greedy=False
-    )
-    assert results[0][0] == "de"
-    results = langdetect("Dieser Satz ist auf Deutsch.", lang=("de", "en"), greedy=True)
-    assert results[0][0] == "de"
-    results = langdetect(
-        "Nztruedg nsüplke deutsches weiter bgfnki gtrpinadsc.",
-        lang=("de", "en"),
+    lang = ("de", "en")
+    text = "Nztruedg nsüplke deutsches weiter bgfnki gtrpinadsc."
+    assert LanguageDetector(lang=lang, greedy=False).proportion_in_each_language(
+        text
+    ) == {
+        "de": 0.4,
+        "en": 0.0,
+        "unk": 0.6,
+    }
+    assert langdetect(
+        text,
+        lang=lang,
         greedy=False,
-    )
-    assert results == [("de", 0.4), ("en", 0.0), ("unk", 0.6)]
+    ) == [("de", 0.4), ("en", 0.0), ("unk", 0.6)]
 
-    assert langdetect(
-        '"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."',
-        lang=("cs", "sk"),
-    ) == [("cs", 0.75), ("sk", 0.125), ("unk", 0.25)]
+    lang = ("cs", "sk")
+    text = '"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."'
+    assert LanguageDetector(lang=lang).proportion_in_each_language(text) == {
+        "cs": 0.75,
+        "sk": 0.125,
+        "unk": 0.25,
+    }
+    assert langdetect(text, lang=lang) == [("cs", 0.75), ("sk", 0.125), ("unk", 0.25)]
 
+    lang = ("cs", "en")
+    text = '"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.'
+    assert LanguageDetector(lang=lang).proportion_in_each_language(
+        text, token_sampler=CustomTokenSampler(6)
+    ) == {
+        "en": 1.0,
+        "cs": 0.0,
+        "unk": 0.0,
+    }
     assert langdetect(
-        '"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.',
-        lang=("cs", "en"),
+        text,
+        lang=lang,
         token_samplers=[CustomTokenSampler(6)],
     ) == [("en", 1.0), ("cs", 0.0), ("unk", 0.0)]
 
 
 def test_in_target_language() -> None:
-    assert in_target_language("", lang="en") == 0
+    lang = "en"
+    text = ""
     assert (
-        in_target_language(
-            "opera post physica posita (τὰ μετὰ τὰ φυσικά)", lang=("la",)
-        )
-        == 0.5
+        LanguageDetector(lang=(lang,)).proportion_in_target_languages(text)
+        == in_target_language(text, lang="en")
+        == 0
     )
+
+    lang = "la"
+    text = "opera post physica posita (τὰ μετὰ τὰ φυσικά)"
     assert (
-        in_target_language("opera post physica posita (τὰ μετὰ τὰ φυσικά)", lang="la")
+        LanguageDetector(lang=(lang,)).proportion_in_target_languages(text)
+        == in_target_language(text, lang=(lang,))
         == 0.5
     )
 
     assert (
-        in_target_language(
-            '"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.',
-            lang="en",
+        LanguageDetector(lang=lang).proportion_in_target_languages(text)
+        == in_target_language(text, lang=lang)
+        == 0.5
+    )
+
+    lang = "en"
+    text = '"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.'
+    assert (
+        LanguageDetector(lang=lang).proportion_in_target_languages(
+            text, token_sampler=CustomTokenSampler(6)
+        )
+        == in_target_language(
+            text,
+            lang=lang,
             token_sampler=CustomTokenSampler(6),
         )
         == 1.0
+    )
+
+
+def test_main_language():
+    # language detection
+    text = "Dieser Satz ist auf Deutsch."
+    lang = ("de", "en")
+    assert (
+        LanguageDetector(lang=lang, greedy=False).main_language(text)
+        == langdetect(text, lang=lang, greedy=False)[0][0]
+        == "de"
+    )
+
+    assert (
+        LanguageDetector(lang=lang, greedy=True).main_language(text)
+        == langdetect(text, lang=lang, greedy=False)[0][0]
+        == "de"
     )
