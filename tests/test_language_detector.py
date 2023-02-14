@@ -7,7 +7,7 @@ from simplemma.tokenizer import Tokenizer
 
 from simplemma.language_detector import (
     in_target_language,
-    lang_detector,
+    langdetect,
     TokenSampler,
     RELAXED_SPLIT_INPUT,
 )
@@ -48,42 +48,40 @@ def test_token_sampler():
 
 def test_detection() -> None:
     # sanity checks
-    assert lang_detector(" aa ", lang=("de", "en"), greedy=True) == [("unk", 1)]
+    assert langdetect(" aa ", lang=("de", "en"), greedy=True) == [("unk", 1)]
     text = "Test test"
 
-    assert lang_detector(text, lang=("de", "en"), greedy=False) == [
+    assert langdetect(text, lang=("de", "en"), greedy=False) == [
         ("de", 1.0),
         ("en", 1.0),
         ("unk", 0.0),
     ]
-    assert lang_detector(text, lang=("de", "en"), greedy=True) == [
+    assert langdetect(text, lang=("de", "en"), greedy=True) == [
         ("de", 1.0),
         ("en", 1.0),
         ("unk", 0.0),
     ]
 
     # language detection
-    results = lang_detector(
+    results = langdetect(
         "Dieser Satz ist auf Deutsch.", lang=("de", "en"), greedy=False
     )
     assert results[0][0] == "de"
-    results = lang_detector(
-        "Dieser Satz ist auf Deutsch.", lang=("de", "en"), greedy=True
-    )
+    results = langdetect("Dieser Satz ist auf Deutsch.", lang=("de", "en"), greedy=True)
     assert results[0][0] == "de"
-    results = lang_detector(
+    results = langdetect(
         "Nztruedg nsüplke deutsches weiter bgfnki gtrpinadsc.",
         lang=("de", "en"),
         greedy=False,
     )
     assert results == [("de", 0.4), ("en", 0.0), ("unk", 0.6)]
 
-    assert lang_detector(
+    assert langdetect(
         '"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."',
         lang=("cs", "sk"),
     ) == [("cs", 0.75), ("sk", 0.125), ("unk", 0.25)]
 
-    assert lang_detector(
+    assert langdetect(
         '"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.',
         lang=("cs", "en"),
         token_samplers=[CustomTokenSampler(6)],

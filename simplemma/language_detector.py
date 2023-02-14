@@ -36,7 +36,7 @@ def _convert_results_to_sorted_list(
     return list_results
 
 
-def lang_detector(
+def langdetect(
     text: str,
     lang: Optional[Union[str, Tuple[str, ...]]] = None,
     greedy: bool = False,
@@ -157,7 +157,9 @@ class LanguageDetector:
         token_samplers: List[TokenSampler] = [TokenSampler()],
     ) -> str:
         for token_sampler in token_samplers:
-            result = self.detect_tokens_main_language(token_sampler.sample_tokens(text), lang, greedy)
+            result = self.detect_tokens_main_language(
+                token_sampler.sample_tokens(text), lang, greedy
+            )
             if result != "unk":
                 return result
 
