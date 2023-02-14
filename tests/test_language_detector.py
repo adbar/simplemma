@@ -86,7 +86,7 @@ def test_detection() -> None:
     assert lang_detector(
         '"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.',
         lang=("cs", "en"),
-        token_sampler=CustomTokenSampler(6),
+        token_samplers=[CustomTokenSampler(6)],
     ) == [("en", 1.0), ("cs", 0.0), ("unk", 0.0)]
 
 
