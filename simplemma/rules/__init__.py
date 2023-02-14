@@ -33,9 +33,7 @@ def apply_rules(token: str, greedy: bool, lang: Optional[str]) -> Optional[str]:
     return None
 
 
-def _find_prefix(
-    token: str, lang: Optional[str]
-) -> Optional[str]:
+def _find_prefix(token: str, lang: Optional[str]) -> Optional[str]:
     "Subword decomposition: pre-defined prefixes (often absent from vocabulary if they are not words)."
     if lang not in FIND_KNOWN_PREFIXES:
         return None
