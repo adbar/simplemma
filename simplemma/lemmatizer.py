@@ -64,6 +64,7 @@ def _simple_search(
 def _greedy_search(
     candidate: str, datadict: Dict[str, str], steps: int = 1, distance: int = 5
 ) -> str:
+    "Greedy mode: try further hops, not always a good idea."
     i = 0
     while candidate in datadict and (
         len(datadict[candidate]) < len(candidate)
@@ -189,6 +190,23 @@ def _suffix_search(token: str, datadict: Dict[str, str]) -> Optional[str]:
     return token[:-lastcount] + lastpart.lower()
 
 
+def _affix_searches(
+    token: str, greedy: bool, lang: Optional[str], datadict: Dict[str, str]
+):
+    "Unsupervised suffix/affix search, not productive for all languages."
+    if not greedy and not lang in AFFIX_LANGS:
+        return None
+
+    # define parameters
+    maxlen = LONGAFFIXLEN if lang in LONGER_AFFIXES else AFFIXLEN
+    # greedier subword decomposition: suffix search with character in between
+    # then suffixes
+    candidate = _affix_search(token, datadict, maxlen) or _suffix_search(
+        token, datadict
+    )
+    return candidate
+
+
 def _return_lemma(
     token: str,
     datadict: Dict[str, str],
@@ -200,6 +218,7 @@ def _return_lemma(
     if token.isnumeric():
         return token
 
+    # supervised searches
     candidate = (
         _dehyphen(token, datadict, greedy)
         or _simple_search(token, datadict, initial=initial)
@@ -208,24 +227,16 @@ def _return_lemma(
     )
 
     # stop here in some cases
-    # if not greedy:
-    #    return candidate
     limit = 6 if lang in SHORTER_GREEDY else 8
     if len(token) <= limit:
         return candidate
 
-    # unsupervised suffix/affix search: not productive for all languages
-    if candidate is None and (greedy or lang in AFFIX_LANGS):
-        # define parameters
-        maxlen = LONGAFFIXLEN if lang in LONGER_AFFIXES else AFFIXLEN
-        # greedier subword decomposition: suffix search with character in between
-        # then suffixes
-        candidate = _affix_search(token, datadict, maxlen) or _suffix_search(
-            token, datadict
-        )
+    # weakly supervised / greedier searches
+    if candidate is None:
+        candidate = _affix_searches(token, greedy, lang, datadict)
 
-    # greedy mode: try further hops, not always a good idea
-    if candidate is not None and greedy:
+    # additional round
+    if greedy and candidate is not None:
         candidate = _greedy_search(candidate, datadict)
 
     return candidate
