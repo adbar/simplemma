@@ -3,6 +3,7 @@ import logging
 import pickle
 import re
 
+from operator import itemgetter
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -133,7 +134,8 @@ def _pickle_dict(
 ) -> None:
     mydict = _load_dict(langcode, listpath)
     # sort dictionary to help saving space during compression
-    mydict = dict(sorted(mydict.items(), key=lambda item: item[1]))
+    if langcode not in ("lt", "sw"):
+        mydict = dict(sorted(mydict.items(), key=itemgetter(1)))
     if filepath is None:
         filename = f"data/{langcode}.plzma"
         filepath = str(Path(__file__).parent / filename)

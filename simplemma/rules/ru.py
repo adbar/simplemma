@@ -2,6 +2,9 @@ import re
 
 from typing import Optional
 
+from .generic import apply_rules
+
+
 RUSSIAN_PREFIXES = {
     "гидро",
     "за",
@@ -28,7 +31,7 @@ DEFAULT_RULES = {
 }
 
 
-def fix_known_prefix_ru(token: str):
+def fix_known_prefix_ru(token: str) -> Optional[str]:
     return next((p for p in RUSSIAN_PREFIXES if token.startswith(p)), None)
 
 
@@ -40,9 +43,6 @@ def apply_ru(token: str, greedy: bool = False) -> Optional[str]:
     if len(token) < 10 or token[0].isupper() or "-" in token:
         return None
 
-    for rule, substitution in DEFAULT_RULES.items():
-        if rule.search(token):
-            return rule.sub(substitution, token)
     # token = token.replace("а́", "a")
     # token = token.replace("о́", "o")
     # token = token.replace("и́", "и")
@@ -50,4 +50,5 @@ def apply_ru(token: str, greedy: bool = False) -> Optional[str]:
     #     return RUSSIAN_ENDINGS_OCTB.sub("ость", token)
     # if RUSSIAN_ENDINGS_CTBO.search(token):
     #     return RUSSIAN_ENDINGS_CTBO.sub("ство", token)
-    return None
+
+    return apply_rules(token, DEFAULT_RULES)
