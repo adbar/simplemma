@@ -93,7 +93,7 @@ def test_logic() -> None:
         simplemma.lemmatizer._return_lemma("Gender-Sternchens", deDict)
         == "Gendersternchen"
     )
-    # assert simplemma.lemmatizer._return_lemma("an-gespieltes", deDict) == "anspielen"
+    assert simplemma.lemmatizer._return_lemma("vor-bereitetes", deDict) == "vorbereitet"
 
     assert (
         simplemma.lemmatizer._greedy_search("getesteten", deDict, steps=0, distance=20)
