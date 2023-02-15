@@ -187,7 +187,7 @@ def _suffix_search(token: str, datadict: Dict[str, str]) -> Optional[str]:
 
 def _affix_searches(
     token: str, greedy: bool, limit: int, lang: Optional[str], datadict: Dict[str, str]
-):
+) -> Optional[str]:
     "Unsupervised suffix/affix search, not productive for all languages."
     if (not greedy and not lang in AFFIX_LANGS) or len(token) <= limit:
         return None

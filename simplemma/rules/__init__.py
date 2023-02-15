@@ -10,7 +10,7 @@ from .pl import apply_pl
 from .ru import apply_ru, fix_known_prefix_ru
 
 
-APPLY_RULES: Dict[str, Callable[[str, bool], Optional[str]]] = {
+APPLY_RULES: Dict[str, Callable[[str], Optional[str]]] = {
     "de": apply_de,
     "en": apply_en,
     "fi": apply_fi,
