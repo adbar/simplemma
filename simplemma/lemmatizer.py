@@ -191,10 +191,10 @@ def _suffix_search(token: str, datadict: Dict[str, str]) -> Optional[str]:
 
 
 def _affix_searches(
-    token: str, greedy: bool, lang: Optional[str], datadict: Dict[str, str]
+    token: str, greedy: bool, limit: int, lang: Optional[str], datadict: Dict[str, str]
 ):
     "Unsupervised suffix/affix search, not productive for all languages."
-    if not greedy and not lang in AFFIX_LANGS:
+    if (not greedy and not lang in AFFIX_LANGS) or len(token) <= limit:
         return None
 
     # define parameters
@@ -218,25 +218,20 @@ def _return_lemma(
     if token.isnumeric():
         return token
 
-    # supervised searches
+    limit = 6 if lang in SHORTER_GREEDY else 8
+
     candidate = (
+        # supervised searches
         _dehyphen(token, datadict, greedy)
         or _simple_search(token, datadict, initial=initial)
         or apply_rules(token, greedy, lang)
         or _prefix_search(token, lang, datadict)
+        # weakly supervised / greedier searches
+        or _affix_searches(token, greedy, limit, lang, datadict)
     )
 
-    # stop here in some cases
-    limit = 6 if lang in SHORTER_GREEDY else 8
-    if len(token) <= limit:
-        return candidate
-
-    # weakly supervised / greedier searches
-    if candidate is None:
-        candidate = _affix_searches(token, greedy, lang, datadict)
-
     # additional round
-    if greedy and candidate is not None:
+    if greedy and len(token) > limit and candidate is not None:
         candidate = _greedy_search(candidate, datadict)
 
     return candidate
