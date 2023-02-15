@@ -17,17 +17,16 @@ NOUN_ENDINGS_DE = re.compile(
 
 
 ADJ_ENDINGS_DE = re.compile(
-    r"^(.{4,}?)(?<!zu)"
-    r"(arm|artig|bar|chig|[^i]ent|erig|esk|fähig|förmig|frei|[^c]haft|iv|[^fh]los|mäßig|oid|op|phil|phob|sam|schig|selig|voll)"  # [^b]rig|
+    r"^(.{4,})(?<!zu)"
+    r"(arm|artig|esk|oid|op|phil|phob|selig)"
     r"(?:er|e?st)?(?:e|em|en|er|es)$"
 )
 
 PLUR_ORTH_DE = re.compile(r"(?:Innen|\*innen|\*Innen|-innen|_innen)$")
-PP_DE = re.compile(r"^.{2,}ge.+?[^aes]t(?:e|em|er|es)$")  # en|
+PP_DE = re.compile(r"^.{2,}ge.+?[^aes]t(?:e|em|er|es)$")
 
-ENDING_CHARS_NN_DE = {"e", "m", "n", "r", "s"}
-ENDING_CHARS_ADJ_DE = ENDING_CHARS_NN_DE.union({"d", "t"})
-ENDING_DE = re.compile(r"(?:e|em|en|er|es)$")
+ENDING_CHARS_DE = {"e", "m", "n", "r", "s"}
+ENDING_DE = re.compile(r"(?:e|em|er|es)$")
 
 # 2-letter prefixes are theoretically already accounted for by the current AFFIXLEN parameter
 GERMAN_PREFIXES = {
@@ -47,6 +46,7 @@ GERMAN_PREFIXES = {
     "entgegen",
     "er",
     "gegen",
+    "heim",
     "her",
     "herab",
     "heran",
@@ -80,6 +80,7 @@ GERMAN_PREFIXES = {
     "rum",
     "runter",
     "über",
+    "um",
     "unter",
     "ver",
     "vor",
@@ -92,10 +93,12 @@ GERMAN_PREFIXES = {
     "weiter",
     "wieder",
     "zer",
+    "zu",
 }
 
 
 def fix_known_prefix_de(token: str):
+    "Determine if the word starts with a known prefix."
     prefix = next((p for p in GERMAN_PREFIXES if token.startswith(p)), None)
     if prefix is None or token[len(prefix) : len(prefix) + 2] == "zu":
         return None
@@ -107,6 +110,7 @@ def apply_de(token: str, greedy: bool = False) -> Optional[str]:
     "Apply pre-defined rules for German."
     if len(token) < 7:
         return None
+
     # nouns
     if token[0].isupper():
         # noun endings/suffixes: regex search
@@ -122,11 +126,12 @@ def apply_de(token: str, greedy: bool = False) -> Optional[str]:
         # Binnen-I: ArbeitnehmerInnenschutzgesetz?
         if PLUR_ORTH_DE.search(token):
             return PLUR_ORTH_DE.sub(":innen", token)
+
     # mostly adjectives and verbs
-    elif greedy and token[-1] in ENDING_CHARS_ADJ_DE:
-        # general search
+    elif token[-1] in ENDING_CHARS_DE:
         if ADJ_ENDINGS_DE.match(token):
-            return ADJ_ENDINGS_DE.sub(r"\1\2", token)
+            return ADJ_ENDINGS_DE.sub(r"\1\2", token).lower()
         if PP_DE.search(token):
-            return ENDING_DE.sub("", token)
+            return ENDING_DE.sub("", token).lower()
+
     return None

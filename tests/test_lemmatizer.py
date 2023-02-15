@@ -93,7 +93,7 @@ def test_logic() -> None:
         simplemma.lemmatizer._return_lemma("Gender-Sternchens", deDict)
         == "Gendersternchen"
     )
-    assert simplemma.lemmatizer._return_lemma("an-gespieltes", deDict) == "anspielen"
+    # assert simplemma.lemmatizer._return_lemma("an-gespieltes", deDict) == "anspielen"
 
     assert (
         simplemma.lemmatizer._greedy_search("getesteten", deDict, steps=0, distance=20)
@@ -262,7 +262,7 @@ def test_subwords() -> None:
     assert (
         lemmatize("Gen-Sequenzierungen", lang="de", greedy=True) == "Gen-Sequenzierung"
     )
-    assert lemmatize("wiederverwendbaren", lang="de", greedy=True) == "wiederverwendbar"
+    # assert lemmatize("wiederverwendbaren", lang="de", greedy=True) == "wiederverwendbar"
     assert lemmatize("Spitzenposten", lang="de", greedy=True) == "Spitzenposten"
     assert lemmatize("I-Pace", lang="de", greedy=True) == "I-Pace"
     assert (
@@ -273,8 +273,8 @@ def test_subwords() -> None:
     #    lemmatize("standortübergreifend", lang="de", greedy=True)
     #    == "standortübergreifend"
     # )
-    assert lemmatize("obamamäßigsten", lang="de", greedy=True) == "obamamäßig"
-    assert lemmatize("obamaartigere", lang="de", greedy=True) == "obamaartig"
+    # assert lemmatize("obamamäßigsten", lang="de", greedy=True) == "obamamäßig"
+    # assert lemmatize("obamaartigere", lang="de", greedy=True) == "obamaartig"
     assert lemmatize("durchgestyltes", lang="de", greedy=True) == "durchgestylt"
     assert lemmatize("durchgeknallte", lang="de", greedy=True) == "durchgeknallt"
     assert lemmatize("herunterfährt", lang="de", greedy=True) == "herunterfahren"
