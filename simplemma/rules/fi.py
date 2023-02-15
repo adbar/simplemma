@@ -34,7 +34,7 @@ DEFAULT_RULES = {
 }
 
 
-def apply_fi(token: str, greedy: bool = False) -> Optional[str]:
+def apply_fi(token: str) -> Optional[str]:
     "Apply pre-defined rules for Finnish."
     if len(token) < 10 or token[0].isupper():
         return None

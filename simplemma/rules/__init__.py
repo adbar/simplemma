@@ -26,10 +26,10 @@ FIND_KNOWN_PREFIXES: Dict[str, Callable[[str], Optional[str]]] = {
 }
 
 
-def apply_rules(token: str, greedy: bool, lang: Optional[str]) -> Optional[str]:
+def apply_rules(token: str, lang: Optional[str]) -> Optional[str]:
     "Apply simple rules to out-of-vocabulary words."
     if lang in APPLY_RULES:
-        return APPLY_RULES[lang](token, greedy)
+        return APPLY_RULES[lang](token)
     return None
 
 

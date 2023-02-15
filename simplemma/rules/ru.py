@@ -35,7 +35,7 @@ def fix_known_prefix_ru(token: str) -> Optional[str]:
     return next((p for p in RUSSIAN_PREFIXES if token.startswith(p)), None)
 
 
-def apply_ru(token: str, greedy: bool = False) -> Optional[str]:
+def apply_ru(token: str) -> Optional[str]:
     "Apply pre-defined rules for Russian."
     if token.endswith("ё"):
         return token.replace("ё", "е")

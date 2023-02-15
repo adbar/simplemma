@@ -106,7 +106,7 @@ def fix_known_prefix_de(token: str):
     return prefix
 
 
-def apply_de(token: str, greedy: bool = False) -> Optional[str]:
+def apply_de(token: str) -> Optional[str]:
     "Apply pre-defined rules for German."
     if len(token) < 7:
         return None

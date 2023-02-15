@@ -219,7 +219,7 @@ def _return_lemma(
         # supervised searches
         _simple_search(token, datadict, initial=initial)
         or _dehyphen(token, datadict)
-        or apply_rules(token, greedy, lang)
+        or apply_rules(token, lang)
         or _prefix_search(token, lang, datadict)
         # weakly supervised / greedier searches
         or _affix_searches(token, greedy, limit, lang, datadict)
