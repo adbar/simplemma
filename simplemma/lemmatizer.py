@@ -53,9 +53,8 @@ def _simple_search(
     # beginning of sentence, reverse case
     if initial:
         token = token.lower()
-    candidate = datadict.get(token)
-    if candidate is not None:
-        return candidate
+    if token in datadict:
+        return datadict[token]
     # try upper or lowercase
     token = token.lower() if token[0].isupper() else token.capitalize()
     return datadict.get(token)
@@ -128,7 +127,7 @@ def _decompose(
     return candidate, plan_b
 
 
-def _dehyphen(token: str, datadict: Dict[str, str], greedy: bool) -> Optional[str]:
+def _dehyphen(token: str, datadict: Dict[str, str]) -> Optional[str]:
     splitted = HYPHEN_REGEX.split(token)
     if len(splitted) <= 1 or not splitted[-1]:
         return None
@@ -136,14 +135,10 @@ def _dehyphen(token: str, datadict: Dict[str, str], greedy: bool) -> Optional[st
     subcandidate = "".join([t for t in splitted if t not in HYPHENS]).lower()
     if token[0].isupper():
         subcandidate = subcandidate.capitalize()
-    candidate = datadict.get(subcandidate)
-    if candidate:
-        return candidate
+    if subcandidate in datadict:
+        return datadict[subcandidate]
     # decompose
     last_candidate = _simple_search(splitted[-1], datadict)
-    # search further
-    if last_candidate is None and greedy:
-        last_candidate = _affix_search(splitted[-1], datadict)
     # return
     if last_candidate is None:
         return None
@@ -222,8 +217,8 @@ def _return_lemma(
 
     candidate = (
         # supervised searches
-        _dehyphen(token, datadict, greedy)
-        or _simple_search(token, datadict, initial=initial)
+        _simple_search(token, datadict, initial=initial)
+        or _dehyphen(token, datadict)
         or apply_rules(token, greedy, lang)
         or _prefix_search(token, lang, datadict)
         # weakly supervised / greedier searches
