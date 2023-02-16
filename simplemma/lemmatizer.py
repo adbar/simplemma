@@ -134,20 +134,22 @@ def _dehyphen(token: str, datadict: Dict[str, str]) -> Optional[str]:
     splitted = HYPHEN_REGEX.split(token)
     if len(splitted) <= 1 or not splitted[-1]:
         return None
+
     # try to find a word form without hyphen
-    subcandidate = "".join([t for t in splitted if t not in HYPHENS]).lower()
+    subcandidate = "".join(t for t in splitted if t not in HYPHENS).lower()
     if token[0].isupper():
         subcandidate = subcandidate.capitalize()
-    if subcandidate in datadict:
-        return datadict[subcandidate]
+    subcandidate_lemma = _simple_search(subcandidate, datadict)
+    if subcandidate_lemma is not None:
+        return subcandidate_lemma
+
     # decompose
     last_candidate = _simple_search(splitted[-1], datadict)
+    if last_candidate is not None:
+        splitted[-1] = last_candidate
+        return "".join(splitted)
 
-    # return
-    if last_candidate is None:
-        return None
-    splitted[-1] = last_candidate
-    return "".join(splitted)
+    return None
 
 
 def _apply_rules(token: str, lang: Optional[str]) -> Optional[str]:
