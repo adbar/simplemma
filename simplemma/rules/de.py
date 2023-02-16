@@ -97,7 +97,7 @@ GERMAN_PREFIXES = {
 }
 
 
-def fix_known_prefix_de(token: str):
+def fix_known_prefix_de(token: str) -> Optional[str]:
     "Determine if the word starts with a known prefix."
     prefix = next((p for p in GERMAN_PREFIXES if token.startswith(p)), None)
     if prefix is None or token[len(prefix) : len(prefix) + 2] == "zu":
@@ -106,7 +106,7 @@ def fix_known_prefix_de(token: str):
     return prefix
 
 
-def apply_de(token: str, greedy: bool = False) -> Optional[str]:
+def apply_de(token: str) -> Optional[str]:
     "Apply pre-defined rules for German."
     if len(token) < 7:
         return None

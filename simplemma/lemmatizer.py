@@ -50,12 +50,12 @@ PUNCTUATION = {".", "?", "!", "…", "¿", "¡"}
 def _simple_search(
     token: str, datadict: Dict[str, str], initial: bool = False
 ) -> Optional[str]:
+    "Search the language data, reverse case to extend coverage."
     # beginning of sentence, reverse case
     if initial:
         token = token.lower()
-    candidate = datadict.get(token)
-    if candidate is not None:
-        return candidate
+    if token in datadict:
+        return datadict[token]
     # try upper or lowercase
     token = token.lower() if token[0].isupper() else token.capitalize()
     return datadict.get(token)
@@ -64,6 +64,7 @@ def _simple_search(
 def _greedy_search(
     candidate: str, datadict: Dict[str, str], steps: int = 1, distance: int = 5
 ) -> str:
+    "Greedy mode: try further hops, not always a good idea."
     i = 0
     while candidate in datadict and (
         len(datadict[candidate]) < len(candidate)
@@ -79,6 +80,7 @@ def _greedy_search(
 def _decompose(
     token: str, datadict: Dict[str, str], affixlen: int = 0
 ) -> Tuple[Optional[str], Optional[str]]:
+    "Split token into known two known parts and lemmatize the second one."
     candidate, plan_b = None, None
     # this only makes sense for languages written from left to right
     # AFFIXLEN or MINCOMPLEN can spare time for some languages
@@ -127,7 +129,8 @@ def _decompose(
     return candidate, plan_b
 
 
-def _dehyphen(token: str, datadict: Dict[str, str], greedy: bool) -> Optional[str]:
+def _dehyphen(token: str, datadict: Dict[str, str]) -> Optional[str]:
+    "Remove hyphens to see if a dictionary form can be found."
     splitted = HYPHEN_REGEX.split(token)
     if len(splitted) <= 1 or not splitted[-1]:
         return None
@@ -135,20 +138,41 @@ def _dehyphen(token: str, datadict: Dict[str, str], greedy: bool) -> Optional[st
     subcandidate = "".join([t for t in splitted if t not in HYPHENS]).lower()
     if token[0].isupper():
         subcandidate = subcandidate.capitalize()
-    candidate = datadict.get(subcandidate)
-    if candidate:
-        return candidate
+    if subcandidate in datadict:
+        return datadict[subcandidate]
     # decompose
     last_candidate = _simple_search(splitted[-1], datadict)
-    # search further
-    if last_candidate is None and greedy:
-        last_candidate = _affix_search(splitted[-1], datadict)
+
     # return
     if last_candidate is None:
         return None
-
     splitted[-1] = last_candidate
     return "".join(splitted)
+
+
+def _apply_rules(token: str, lang: Optional[str]) -> Optional[str]:
+    "Apply simple rules to out-of-vocabulary words."
+    if lang in APPLY_RULES:
+        return APPLY_RULES[lang](token)
+    return None
+
+
+def _prefix_search(
+    token: str, lang: Optional[str], datadict: Dict[str, str]
+) -> Optional[str]:
+    "Subword decomposition using pre-defined prefixes (often absent from vocabulary if they are not words)."
+    if lang not in FIND_KNOWN_PREFIXES:
+        return None
+
+    prefix = FIND_KNOWN_PREFIXES[lang](token)
+    if prefix is None or len(prefix) >= len(token):
+        return None
+
+    subword = _simple_search(token[len(prefix) :], datadict)
+    if subword is None:
+        return None
+
+    return prefix + subword.lower()
 
 
 def _affix_search(
@@ -175,6 +199,23 @@ def _suffix_search(token: str, datadict: Dict[str, str]) -> Optional[str]:
     return token[:-lastcount] + lastpart.lower()
 
 
+def _affix_searches(
+    token: str, greedy: bool, limit: int, lang: Optional[str], datadict: Dict[str, str]
+) -> Optional[str]:
+    "Unsupervised suffix/affix search, not productive for all languages."
+    if (not greedy and not lang in AFFIX_LANGS) or len(token) <= limit:
+        return None
+
+    # define parameters
+    maxlen = LONGAFFIXLEN if lang in LONGER_AFFIXES else AFFIXLEN
+    # greedier subword decomposition: suffix search with character in between
+    # then suffixes
+    candidate = _affix_search(token, datadict, maxlen) or _suffix_search(
+        token, datadict
+    )
+    return candidate
+
+
 def _return_lemma(
     token: str,
     datadict: Dict[str, str],
@@ -182,46 +223,27 @@ def _return_lemma(
     lang: Optional[str] = None,
     initial: bool = False,
 ) -> Optional[str]:
+    "Apply a cascade of functions on a token to look for a candidate lemma."
     # filters
     if token.isnumeric():
         return token
-    # dictionary search
-    candidate = _simple_search(token, datadict, initial=initial)
-    # simple rules
-    if candidate is None and lang is not None and lang in APPLY_RULES:
-        candidate = APPLY_RULES[lang](token, greedy)
-    # decomposition
-    if candidate is None:  # and greedy is True
-        candidate = _dehyphen(token, datadict, greedy)
-    else:
-        newcandidate = _dehyphen(candidate, datadict, greedy)
-        if newcandidate is not None:
-            candidate = newcandidate
-    # stop here in some cases
-    # if not greedy:
-    #    return candidate
+
     limit = 6 if lang in SHORTER_GREEDY else 8
-    if len(token) <= limit:
-        return candidate
-    # subword decomposition: predefined prefixes (absent from vocabulary if they are not words)
-    if candidate is None and lang in FIND_KNOWN_PREFIXES:
-        prefix = FIND_KNOWN_PREFIXES[lang](token)
-        if prefix is not None:
-            subword = _simple_search(token[len(prefix) :], datadict)
-            if subword is not None:
-                candidate = prefix + subword.lower()
-    # unsupervised suffix/affix search: not productive for all languages
-    if candidate is None and (greedy or lang in AFFIX_LANGS):
-        # define parameters
-        maxlen = LONGAFFIXLEN if lang in LONGER_AFFIXES else AFFIXLEN
-        # greedier subword decomposition: suffix search with character in between
-        # then suffixes
-        candidate = _affix_search(token, datadict, maxlen) or _suffix_search(
-            token, datadict
-        )
-    # greedy mode: try further hops, not always a good idea
-    if candidate is not None and greedy:
+
+    candidate = (
+        # supervised searches
+        _simple_search(token, datadict, initial=initial)
+        or _dehyphen(token, datadict)
+        or _apply_rules(token, lang)
+        or _prefix_search(token, lang, datadict)
+        # weakly supervised / greedier searches
+        or _affix_searches(token, greedy, limit, lang, datadict)
+    )
+
+    # additional round
+    if greedy and len(token) > limit and candidate is not None:
         candidate = _greedy_search(candidate, datadict)
+
     return candidate
 
 

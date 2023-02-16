@@ -184,10 +184,8 @@ def test_search() -> None:
     enDict = dictionaries["en"]
     assert simplemma.lemmatizer._simple_search("ignorant", enDict) == "ignorant"
     assert simplemma.lemmatizer._simple_search("Ignorant", enDict) == "ignorant"
-    assert (
-        simplemma.lemmatizer._dehyphen("magni-ficent", enDict, False) == "magnificent"
-    )
-    assert simplemma.lemmatizer._dehyphen("magni-ficents", enDict, False) is None
+    assert simplemma.lemmatizer._dehyphen("magni-ficent", enDict) == "magnificent"
+    assert simplemma.lemmatizer._dehyphen("magni-ficents", enDict) is None
     # assert simplemma.simplemma._greedy_search('Ignorance-Tests', enDict) == 'Ignorance-Test'
     # don't lemmatize numbers
     assert simplemma.lemmatizer._return_lemma("01234", enDict) == "01234"

@@ -81,7 +81,7 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
             if (
                 len(columns[1]) > 6 and langcode in APPLY_RULES
             ):  # columns[1] != columns[0]
-                rule = APPLY_RULES[langcode](columns[1], False)
+                rule = APPLY_RULES[langcode](columns[1])
                 if rule == columns[0]:
                     continue
                 if rule is not None and rule != columns[1]:

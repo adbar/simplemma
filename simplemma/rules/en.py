@@ -4,7 +4,7 @@ ENGLISH_IES_ENDING = ("cies", "ries", "ties", "qies")
 ENGLISH_S_ENDING = ("doms", "isms", "ists", "ments", "nces", "ships", "tions", "ums")
 
 
-def apply_en(token: str, greedy: bool = False) -> Optional[str]:
+def apply_en(token: str) -> Optional[str]:
     "Apply pre-defined rules for English."
     # nouns
     if len(token) > 7 and token.endswith(ENGLISH_IES_ENDING):
