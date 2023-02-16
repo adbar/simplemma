@@ -139,9 +139,8 @@ def _dehyphen(token: str, datadict: Dict[str, str]) -> Optional[str]:
     subcandidate = "".join(t for t in splitted if t not in HYPHENS).lower()
     if token[0].isupper():
         subcandidate = subcandidate.capitalize()
-    subcandidate_lemma = _simple_search(subcandidate, datadict)
-    if subcandidate_lemma is not None:
-        return subcandidate_lemma
+    if subcandidate in datadict:
+        return datadict[subcandidate]
 
     # decompose
     last_candidate = _simple_search(splitted[-1], datadict)
