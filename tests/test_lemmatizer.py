@@ -97,7 +97,7 @@ def test_logic() -> None:
 
     assert (
         simplemma.lemmatizer._greedy_search("getesteten", deDict, steps=0, distance=20)
-        == "getestet"
+        == "getesteten"
     )
     assert (
         simplemma.lemmatizer._greedy_search("getesteten", deDict, steps=1, distance=20)

@@ -65,15 +65,20 @@ def _greedy_search(
     candidate: str, datadict: Dict[str, str], steps: int = 1, distance: int = 5
 ) -> str:
     "Greedy mode: try further hops, not always a good idea."
-    i = 0
-    while candidate in datadict and (
-        len(datadict[candidate]) < len(candidate)
-        and levenshtein_dist(datadict[candidate], candidate) <= distance
-    ):
-        candidate = datadict[candidate]
-        i += 1
-        if i >= steps:
+    for _ in range(steps):
+        if candidate not in datadict:
             break
+
+        new_candidate = datadict[candidate]
+
+        if (
+            len(new_candidate) > len(candidate)
+            or levenshtein_dist(new_candidate, candidate) > distance
+        ):
+            break
+
+        candidate = new_candidate
+
     return candidate
 
 
