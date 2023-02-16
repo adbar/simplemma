@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Iterator, Optional, Tuple, Union
 from .constants import CACHE_SIZE
 from .dictionary_factory import DictionaryFactory
 from .tokenizer import Tokenizer
-from .rules import apply_rules, _find_prefix
+from .rules import APPLY_RULES, FIND_KNOWN_PREFIXES
 from .utils import levenshtein_dist
 
 
@@ -50,6 +50,7 @@ PUNCTUATION = {".", "?", "!", "…", "¿", "¡"}
 def _simple_search(
     token: str, datadict: Dict[str, str], initial: bool = False
 ) -> Optional[str]:
+    "Search the language data, reverse case to extend coverage."
     # beginning of sentence, reverse case
     if initial:
         token = token.lower()
@@ -79,6 +80,7 @@ def _greedy_search(
 def _decompose(
     token: str, datadict: Dict[str, str], affixlen: int = 0
 ) -> Tuple[Optional[str], Optional[str]]:
+    "Split token into known two known parts and lemmatize the second one."
     candidate, plan_b = None, None
     # this only makes sense for languages written from left to right
     # AFFIXLEN or MINCOMPLEN can spare time for some languages
@@ -128,6 +130,7 @@ def _decompose(
 
 
 def _dehyphen(token: str, datadict: Dict[str, str]) -> Optional[str]:
+    "Remove hyphens to see if a dictionary form can be found."
     splitted = HYPHEN_REGEX.split(token)
     if len(splitted) <= 1 or not splitted[-1]:
         return None
@@ -139,19 +142,30 @@ def _dehyphen(token: str, datadict: Dict[str, str]) -> Optional[str]:
         return datadict[subcandidate]
     # decompose
     last_candidate = _simple_search(splitted[-1], datadict)
+
     # return
     if last_candidate is None:
         return None
-
     splitted[-1] = last_candidate
     return "".join(splitted)
+
+
+def _apply_rules(token: str, lang: Optional[str]) -> Optional[str]:
+    "Apply simple rules to out-of-vocabulary words."
+    if lang in APPLY_RULES:
+        return APPLY_RULES[lang](token)
+    return None
 
 
 def _prefix_search(
     token: str, lang: Optional[str], datadict: Dict[str, str]
 ) -> Optional[str]:
-    prefix = _find_prefix(token, lang)
-    if prefix is None:
+    "Subword decomposition using pre-defined prefixes (often absent from vocabulary if they are not words)."
+    if lang not in FIND_KNOWN_PREFIXES:
+        return None
+
+    prefix = FIND_KNOWN_PREFIXES[lang](token)
+    if prefix is None or len(prefix) >= len(token):
         return None
 
     subword = _simple_search(token[len(prefix) :], datadict)
@@ -209,6 +223,7 @@ def _return_lemma(
     lang: Optional[str] = None,
     initial: bool = False,
 ) -> Optional[str]:
+    "Apply a cascade of functions on a token to look for a candidate lemma."
     # filters
     if token.isnumeric():
         return token
@@ -219,7 +234,7 @@ def _return_lemma(
         # supervised searches
         _simple_search(token, datadict, initial=initial)
         or _dehyphen(token, datadict)
-        or apply_rules(token, lang)
+        or _apply_rules(token, lang)
         or _prefix_search(token, lang, datadict)
         # weakly supervised / greedier searches
         or _affix_searches(token, greedy, limit, lang, datadict)
