@@ -2,6 +2,8 @@ import re
 
 from typing import Optional
 
+from .generic import find_known_prefix
+
 
 NOUN_ENDINGS_DE = re.compile(
     r"(?:erei|heit|keit|ion|schaft|tät|[^jlz]ung)(en)?$|"
@@ -29,7 +31,7 @@ ENDING_CHARS_DE = {"e", "m", "n", "r", "s"}
 ENDING_DE = re.compile(r"(?:e|em|er|es)$")
 
 # 2-letter prefixes are theoretically already accounted for by the current AFFIXLEN parameter
-GERMAN_PREFIXES = {
+GERMAN_PREFIXES = [
     "ab",
     "an",
     "auf",
@@ -94,16 +96,14 @@ GERMAN_PREFIXES = {
     "wieder",
     "zer",
     "zu",
-}
+]
+
+DE_PREFIX_REGEX = re.compile(r"^(" + "|".join(GERMAN_PREFIXES) + ")(?!zu)")
 
 
 def fix_known_prefix_de(token: str) -> Optional[str]:
     "Determine if the word starts with a known prefix."
-    prefix = next((p for p in GERMAN_PREFIXES if token.startswith(p)), None)
-    if prefix is None or token[len(prefix) : len(prefix) + 2] == "zu":
-        return None
-
-    return prefix
+    return find_known_prefix(token, DE_PREFIX_REGEX)
 
 
 def apply_de(token: str) -> Optional[str]:

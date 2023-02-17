@@ -2,10 +2,10 @@ import re
 
 from typing import Optional
 
-from .generic import apply_rules
+from .generic import apply_rules, find_known_prefix
 
 
-RUSSIAN_PREFIXES = {
+RUSSIAN_PREFIXES = [
     "гидро",
     "за",
     "контр",
@@ -23,7 +23,8 @@ RUSSIAN_PREFIXES = {
     "само",
     "экстра",
     "электро",
-}
+]
+
 
 DEFAULT_RULES = {
     re.compile(r"(?:ости|остью|остей|остям|остями|остях)$"): "ость",
@@ -31,8 +32,11 @@ DEFAULT_RULES = {
 }
 
 
+RU_PREFIX_REGEX = re.compile(r"^(" + "|".join(RUSSIAN_PREFIXES) + ")")
+
+
 def fix_known_prefix_ru(token: str) -> Optional[str]:
-    return next((p for p in RUSSIAN_PREFIXES if token.startswith(p)), None)
+    return find_known_prefix(token, RU_PREFIX_REGEX)
 
 
 def apply_ru(token: str) -> Optional[str]:
