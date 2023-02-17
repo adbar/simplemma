@@ -136,7 +136,7 @@ def _dehyphen(token: str, datadict: Dict[str, str]) -> Optional[str]:
         return None
 
     # try to find a word form without hyphen
-    subcandidate = "".join(t for t in splitted if t not in HYPHENS).lower()
+    subcandidate = "".join([t for t in splitted if t not in HYPHENS]).lower()
     if token[0].isupper():
         subcandidate = subcandidate.capitalize()
     if subcandidate in datadict:
