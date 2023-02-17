@@ -84,22 +84,21 @@ def _greedy_search(
 
 def _decompose(
     token: str, datadict: Dict[str, str], affixlen: int = 0
-) -> Tuple[Optional[str], Optional[str]]:
+) -> Optional[str]:
     "Split token into known two known parts and lemmatize the second one."
-    candidate, plan_b = None, None
     # this only makes sense for languages written from left to right
     # AFFIXLEN or MINCOMPLEN can spare time for some languages
     for count in range(1, len(token) - MINCOMPLEN + 1):
-        part1, part2 = token[:-count], token[-count:]
+        part1 = token[:-count]
         # part1_aff = token[:-(count + affixlen)]
         lempart1 = _simple_search(part1, datadict)
         if lempart1 is None:
             continue
         # maybe an affix? discard it
         if count <= affixlen:
-            candidate = lempart1
-            break
+            return lempart1
         # account for case before looking for second part
+        part2 = token[-count:]
         if token[0].isupper():
             part2 = part2.capitalize()
         lempart2 = _simple_search(part2, datadict)
@@ -111,19 +110,14 @@ def _decompose(
         # try other case
         greedy_candidate = _greedy_search(substitute, datadict)
         # shorten the second known part of the token
-        if greedy_candidate and len(greedy_candidate) < len(part2):
-            candidate = part1 + greedy_candidate.lower()
+        if greedy_candidate is not None and len(greedy_candidate) < len(part2):
+            return part1 + greedy_candidate.lower()
         # backup: equal length or further candidates accepted
-        if candidate is not None:
-            break
         # try without capitalizing
-        lower_candidate = _simple_search(part2, datadict)
-        if lower_candidate and len(lower_candidate) <= len(part2):
-            candidate = part1 + lower_candidate.lower()
         # even greedier
         # with capital letter?
-        elif len(lempart2) < len(part2) + affixlen:
-            plan_b = part1 + lempart2.lower()
+        if len(lempart2) < len(part2) + affixlen:
+            return part1 + lempart2.lower()
             # print(part1, part2, affixlen, count, newcandidate, planb)
         # elif newcandidate and len(newcandidate) < len(part2) + affixlen:
         # plan_b = part1 + newcandidate.lower()
@@ -131,7 +125,7 @@ def _decompose(
         # else:
         #    print(part1, part2, affixlen, count, newcandidate)
         break
-    return candidate, plan_b
+    return None
 
 
 def _dehyphen(token: str, datadict: Dict[str, str]) -> Optional[str]:
@@ -185,11 +179,11 @@ def _affix_search(
     wordform: str, datadict: Dict[str, str], maxlen: int = AFFIXLEN
 ) -> Optional[str]:
     for length in range(maxlen, 1, -1):
-        candidate, plan_b = _decompose(wordform, datadict, affixlen=length)
+        candidate = _decompose(wordform, datadict, affixlen=length)
         if candidate is not None:
             return candidate
-    # exceptionally accept a longer solution
-    return candidate or plan_b
+
+    return None
 
 
 def _suffix_search(token: str, datadict: Dict[str, str]) -> Optional[str]:
