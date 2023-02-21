@@ -65,10 +65,11 @@ class MostCommonTokenSampler(AbstractBaseTokenSampler):
 
 
 class RelaxedMostCommonTokenSampler(MostCommonTokenSampler):
+    __slots__ = ["capitalized_threshold", "sample_size"]
     def __init__(
         self,
-        tokenizer=Tokenizer(RELAXED_SPLIT_INPUT),
-        sample_size=1000,
-        capitalized_threshold=0,
+        tokenizer: Tokenizer = Tokenizer(RELAXED_SPLIT_INPUT),
+        sample_size: int = 1000,
+        capitalized_threshold: float = 0,
     ) -> None:
         super().__init__(tokenizer, sample_size, capitalized_threshold)
