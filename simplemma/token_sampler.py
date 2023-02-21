@@ -1,7 +1,7 @@
 import re
 
 from abc import ABC
-from typing import Iterable, List, Protocol
+from typing import Iterable, List
 from collections import Counter
 from .tokenizer import Tokenizer
 
@@ -9,15 +9,7 @@ SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
 RELAXED_SPLIT_INPUT = re.compile(r"[\w-]{3,}")
 
 
-class TokenSampler(Protocol):
-    def sample_text(self, text: str) -> List[str]:
-        raise NotImplementedError
-
-    def sample_tokens(self, tokens: Iterable[str]) -> List[str]:
-        raise NotImplementedError
-
-
-class AbstractBaseTokenSampler(ABC, TokenSampler):
+class TokenSampler(ABC):
     __slots__ = ["tokenizer"]
 
     def __init__(
@@ -33,7 +25,7 @@ class AbstractBaseTokenSampler(ABC, TokenSampler):
         raise NotImplementedError
 
 
-class MostCommonTokenSampler(AbstractBaseTokenSampler):
+class MostCommonTokenSampler(TokenSampler):
     __slots__ = ["capitalized_threshold", "sample_size"]
 
     def __init__(
