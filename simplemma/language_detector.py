@@ -5,8 +5,11 @@ from typing import Dict, List, Optional, Tuple, Union
 
 from .lemmatizer import _return_lemma
 from .dictionary_factory import DictionaryFactory
-from .token_sampler import TokenSampler, RELAXED_SPLIT_INPUT
-from .tokenizer import Tokenizer
+from .token_sampler import (
+    TokenSampler,
+    MostCommonTokenSampler,
+    RelaxedMostCommonTokenSampler,
+)
 
 
 def in_target_language(
@@ -14,12 +17,12 @@ def in_target_language(
     lang: Optional[Union[str, Tuple[str, ...]]] = None,
     greedy: bool = False,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
-    token_sampler: TokenSampler = TokenSampler(),
+    token_sampler: TokenSampler = MostCommonTokenSampler(),
 ) -> float:
     """Determine which proportion of the text is in the target language(s)."""
     return LanguageDetector(
-        lang, greedy, dictionary_factory
-    ).proportion_in_target_languages(text, token_sampler)
+        lang, greedy, dictionary_factory, token_sampler
+    ).proportion_in_target_languages(text)
 
 
 def _convert_results_to_sorted_list(
@@ -42,19 +45,15 @@ def langdetect(
     greedy: bool = False,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
     token_samplers: List[TokenSampler] = [
-        TokenSampler(),
-        TokenSampler(
-            tokenizer=Tokenizer(RELAXED_SPLIT_INPUT),
-            max_tokens=1000,
-            capitalized_threshold=0,
-        ),
+        MostCommonTokenSampler(),
+        RelaxedMostCommonTokenSampler(),
     ],
 ) -> List[Tuple[str, float]]:
     """Determine which proportion of the text is in the target language(s)."""
     for token_sampler in token_samplers:
         results = LanguageDetector(
-            lang, greedy, dictionary_factory
-        ).proportion_in_each_language(text, token_sampler)
+            lang, greedy, dictionary_factory, token_sampler
+        ).proportion_in_each_language(text)
         list_results = _convert_results_to_sorted_list(results)
 
         # post-processing
@@ -64,25 +63,26 @@ def langdetect(
 
 
 class LanguageDetector:
-    __slots__ = ["dictionary_factory", "greedy", "lang"]
+    __slots__ = ["dictionary_factory", "greedy", "lang", "token_sampler"]
 
     def __init__(
         self,
         lang: Optional[Union[str, Tuple[str, ...]]] = None,
         greedy: bool = False,
         dictionary_factory: DictionaryFactory = DictionaryFactory(),
+        token_sampler: TokenSampler = MostCommonTokenSampler(),
     ) -> None:
         self.lang = lang
         self.greedy = greedy
         self.dictionary_factory = dictionary_factory
+        self.token_sampler = token_sampler
 
     def proportion_in_each_language(
         self,
         text: str,
-        token_sampler: TokenSampler = TokenSampler(),
     ) -> Dict[str, float]:
         """Determine which proportion of the text is in each of the target language(s)."""
-        tokens = token_sampler.sample_tokens(text)
+        tokens = self.token_sampler.sample_text(text)
 
         total_tokens = len(tokens)
         if total_tokens == 0:
@@ -113,7 +113,6 @@ class LanguageDetector:
     def proportion_in_target_languages(
         self,
         text: str,
-        token_sampler: TokenSampler = TokenSampler(),
     ) -> float:
         return sum(
             [
@@ -121,7 +120,7 @@ class LanguageDetector:
                 for (
                     lang_code,
                     percentage,
-                ) in self.proportion_in_each_language(text, token_sampler).items()
+                ) in self.proportion_in_each_language(text).items()
                 if lang_code != "unk"
             ]
         )
@@ -129,19 +128,19 @@ class LanguageDetector:
     def main_language(
         self,
         text: str,
-        token_samplers: List[TokenSampler] = [
-            TokenSampler(),
-            TokenSampler(
-                tokenizer=Tokenizer(RELAXED_SPLIT_INPUT),
-                max_tokens=1000,
-                capitalized_threshold=0,
-            ),
+        additional_token_samplers: List[TokenSampler] = [
+            RelaxedMostCommonTokenSampler()
         ],
     ) -> str:
-        for token_sampler in token_samplers:
-            results = self.proportion_in_each_language(text, token_sampler)
+        original_token_sampler = self.token_sampler
+
+        for token_sampler in [self.token_sampler] + additional_token_samplers:
+            self.token_sampler = token_sampler
+            results = self.proportion_in_each_language(text)
             list_results = _convert_results_to_sorted_list(results)
             if len(list_results) > 1 and list_results[0][1] != list_results[1][1]:
                 return list_results[0][0]
+
+        self.token_sampler = original_token_sampler
 
         return "unk"

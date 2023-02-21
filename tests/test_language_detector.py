@@ -60,9 +60,9 @@ def test_proportion_in_each_language() -> None:
 
     lang = ("cs", "en")
     text = '"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.'
-    assert LanguageDetector(lang=lang).proportion_in_each_language(
-        text, token_sampler=CustomTokenSampler(6)
-    ) == {
+    assert LanguageDetector(
+        lang=lang, token_sampler=CustomTokenSampler(6)
+    ).proportion_in_each_language(text) == {
         "en": 1.0,
         "cs": 0.0,
         "unk": 0.0,
@@ -100,9 +100,9 @@ def test_in_target_language() -> None:
     lang = "en"
     text = '"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.'
     assert (
-        LanguageDetector(lang=lang).proportion_in_target_languages(
-            text, token_sampler=CustomTokenSampler(6)
-        )
+        LanguageDetector(
+            lang=lang, token_sampler=CustomTokenSampler(6)
+        ).proportion_in_target_languages(text)
         == in_target_language(
             text,
             lang=lang,
@@ -113,7 +113,6 @@ def test_in_target_language() -> None:
 
 
 def test_main_language():
-    # language detection
     text = "Dieser Satz ist auf Deutsch."
     lang = ("de", "en")
     assert (
@@ -127,3 +126,11 @@ def test_main_language():
         == langdetect(text, lang=lang, greedy=False)[0][0]
         == "de"
     )
+
+    # text = "Dieser Satz ist auf Deutsch. Y esta está en Español."
+    # lang = ("de", "es")
+    # assert (
+    #     LanguageDetector(lang=lang, greedy=False).main_language(text)
+    #     == langdetect(text, lang=lang, greedy=False)[0][0]
+    #     == "unk"
+    # )
