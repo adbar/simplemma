@@ -115,14 +115,12 @@ class LanguageDetector:
         text: str,
     ) -> float:
         return sum(
-            [
-                percentage
-                for (
-                    lang_code,
-                    percentage,
-                ) in self.proportion_in_each_language(text).items()
-                if lang_code != "unk"
-            ]
+            percentage
+            for (
+                lang_code,
+                percentage,
+            ) in self.proportion_in_each_language(text).items()
+            if lang_code != "unk"
         )
 
     def main_language(
