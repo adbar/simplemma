@@ -125,18 +125,15 @@ class LanguageDetector:
     def main_language(
         self,
         text: str,
-        additional_token_samplers: List[TokenSampler] = [
-            RelaxedMostCommonTokenSampler()
+        token_samplers: List[TokenSampler] = [
+            MostCommonTokenSampler(),
+            RelaxedMostCommonTokenSampler(),
         ],
     ) -> str:
-        original_token_sampler = self.token_sampler
-
-        for token_sampler in [self.token_sampler] + additional_token_samplers:
+        for token_sampler in token_samplers:
             self.token_sampler = token_sampler
             list_results = _as_list(self.proportion_in_each_language(text))
             if len(list_results) > 1 and list_results[0][1] != list_results[1][1]:
                 return list_results[0][0]
-
-        self.token_sampler = original_token_sampler
 
         return "unk"
