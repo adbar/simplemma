@@ -25,20 +25,6 @@ def in_target_language(
     ).proportion_in_target_languages(text)
 
 
-def _convert_results_to_sorted_list(
-    results: Dict[str, float]
-) -> List[Tuple[str, float]]:
-    list_results: List[Tuple[str, float]] = sorted(
-        results.items(), key=itemgetter(1), reverse=True
-    )
-    # switch unknown to the end
-    for i, item in enumerate(list_results):
-        if item[0] == "unk":
-            pair = list_results.pop(i)
-            list_results.append(pair)
-    return list_results
-
-
 def langdetect(
     text: str,
     lang: Optional[Union[str, Tuple[str, ...]]] = None,
@@ -54,11 +40,24 @@ def langdetect(
         results = LanguageDetector(
             lang, greedy, dictionary_factory, token_sampler
         ).proportion_in_each_language(text)
-        list_results = _convert_results_to_sorted_list(results)
 
         # post-processing
+        list_results = _as_list(results)
         if len(list_results) == 1 or list_results[0][1] != list_results[1][1]:
             return list_results
+    return list_results
+
+
+def _as_list(results: Dict[str, float]) -> List[Tuple[str, float]]:
+    list_results: List[Tuple[str, float]] = sorted(
+        results.items(), key=itemgetter(1), reverse=True
+    )
+    "Convert the results to a sorted list and switch unknown to the end."
+    for i, item in enumerate(list_results):
+        if item[0] == "unk":
+            pair = list_results.pop(i)
+            list_results.append(pair)
+            break
     return list_results
 
 
@@ -134,8 +133,7 @@ class LanguageDetector:
 
         for token_sampler in [self.token_sampler] + additional_token_samplers:
             self.token_sampler = token_sampler
-            results = self.proportion_in_each_language(text)
-            list_results = _convert_results_to_sorted_list(results)
+            list_results = _as_list(self.proportion_in_each_language(text))
             if len(list_results) > 1 and list_results[0][1] != list_results[1][1]:
                 return list_results[0][0]
 
