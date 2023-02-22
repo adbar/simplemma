@@ -49,10 +49,10 @@ def langdetect(
 
 
 def _as_list(results: Dict[str, float]) -> List[Tuple[str, float]]:
+    "Convert the results to a sorted list and switch unknown to the end."
     list_results: List[Tuple[str, float]] = sorted(
         results.items(), key=itemgetter(1), reverse=True
     )
-    "Convert the results to a sorted list and switch unknown to the end."
     for i, item in enumerate(list_results):
         if item[0] == "unk":
             pair = list_results.pop(i)
