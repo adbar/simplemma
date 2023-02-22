@@ -62,7 +62,13 @@ def _as_list(results: Dict[str, float]) -> List[Tuple[str, float]]:
 
 
 class LanguageDetector:
-    __slots__ = ["dictionary_factory", "greedy", "lang", "token_sampler"]
+    __slots__ = [
+        "dictionary_factory",
+        "greedy",
+        "lang",
+        "_orig_token_sampler",
+        "token_sampler",
+    ]
 
     def __init__(
         self,
@@ -75,6 +81,10 @@ class LanguageDetector:
         self.greedy = greedy
         self.dictionary_factory = dictionary_factory
         self.token_sampler = token_sampler
+        self._orig_token_sampler = token_sampler
+
+    def _restore_token_sampler(self) -> None:
+        self.token_sampler = self._orig_token_sampler
 
     def proportion_in_each_language(
         self,
@@ -125,15 +135,18 @@ class LanguageDetector:
     def main_language(
         self,
         text: str,
-        token_samplers: List[TokenSampler] = [
-            MostCommonTokenSampler(),
-            RelaxedMostCommonTokenSampler(),
+        additional_token_samplers: List[TokenSampler] = [
+            RelaxedMostCommonTokenSampler()
         ],
     ) -> str:
+        token_samplers = [self.token_sampler] + additional_token_samplers
+
         for token_sampler in token_samplers:
             self.token_sampler = token_sampler
             list_results = _as_list(self.proportion_in_each_language(text))
             if len(list_results) > 1 and list_results[0][1] != list_results[1][1]:
+                self._restore_token_sampler()
                 return list_results[0][0]
 
+        self._restore_token_sampler()
         return "unk"
