@@ -19,9 +19,9 @@ NOUN_ENDINGS_DE = re.compile(
 
 
 ADJ_ENDINGS_DE = re.compile(
-    r"^(.{4,})(?<!zu)"
-    r"(arm|artig|esk|oid|op|phil|phob|selig)"
-    r"(?:er|e?st)?(?:e|em|en|er|es)$"
+    r"^(.{4,})"
+    r"(artig|esk|oid|op|phil|phob|selig|schig)"
+    r"(?:er|e?st)?(?:e|em|en|er|es)?$"
 )
 
 PLUR_ORTH_DE = re.compile(r"(?:Innen|\*innen|\*Innen|-innen|_innen)$")
