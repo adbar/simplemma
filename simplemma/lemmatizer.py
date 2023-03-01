@@ -42,8 +42,9 @@ AFFIX_LANGS = {
     "uk",
 }
 
-HYPHEN_REGEX = re.compile(r"([_-])")
 HYPHENS = {"-", "_"}
+HYPHENS_FOR_REGEX = "".join(HYPHENS)
+HYPHEN_REGEX = re.compile(rf"([{HYPHENS_FOR_REGEX}])")
 PUNCTUATION = {".", "?", "!", "…", "¿", "¡"}
 
 
@@ -62,9 +63,10 @@ def _simple_search(
 
 
 def _greedy_search(
-    candidate: str, datadict: Dict[str, str], steps: int = 1, distance: int = 5
+    token: str, datadict: Dict[str, str], steps: int = 1, distance: int = 5
 ) -> str:
     "Greedy mode: try further hops, not always a good idea."
+    candidate = token
     for _ in range(steps):
         if candidate not in datadict:
             break
@@ -82,80 +84,34 @@ def _greedy_search(
     return candidate
 
 
-def _decompose(
-    token: str, datadict: Dict[str, str], affixlen: int = 0
-) -> Optional[str]:
-    "Split token into known two known parts and lemmatize the second one."
-    # this only makes sense for languages written from left to right
-    # AFFIXLEN or MINCOMPLEN can spare time for some languages
-    for count in range(1, len(token) - MINCOMPLEN + 1):
-        part1 = token[:-count]
-        # part1_aff = token[:-(count + affixlen)]
-        lempart1 = _simple_search(part1, datadict)
-        if lempart1 is None:
-            continue
-        # maybe an affix? discard it
-        if count <= affixlen:
-            return lempart1
-        # account for case before looking for second part
-        part2 = token[-count:]
-        if token[0].isupper():
-            part2 = part2.capitalize()
-        lempart2 = _simple_search(part2, datadict)
-        if lempart2 is None:
-            continue
-        # candidate must be shorter
-        # try original case, then substitute
-        substitute = part2.lower() if lempart2[0].isupper() else part2.capitalize()
-        # try other case
-        greedy_candidate = _greedy_search(substitute, datadict)
-        # shorten the second known part of the token
-        if greedy_candidate is not None and len(greedy_candidate) < len(part2):
-            return part1 + greedy_candidate.lower()
-        # backup: equal length or further candidates accepted
-        # try without capitalizing
-        # even greedier
-        # with capital letter?
-        if len(lempart2) < len(part2) + affixlen:
-            return part1 + lempart2.lower()
-            # print(part1, part2, affixlen, count, newcandidate, planb)
-        # elif newcandidate and len(newcandidate) < len(part2) + affixlen:
-        # plan_b = part1 + newcandidate.lower()
-        # print(part1, part2, affixlen, count, newcandidate, planb)
-        # else:
-        #    print(part1, part2, affixlen, count, newcandidate)
-        break
-    return None
-
-
-def _dehyphen(token: str, datadict: Dict[str, str]) -> Optional[str]:
+def _dehyphen_search(token: str, datadict: Dict[str, str]) -> Optional[str]:
     "Remove hyphens to see if a dictionary form can be found."
-    splitted = HYPHEN_REGEX.split(token)
-    if len(splitted) <= 1 or not splitted[-1]:
+    token_parts = HYPHEN_REGEX.split(token)
+    if len(token_parts) <= 1 or not token_parts[-1]:
         return None
 
     # try to find a word form without hyphen
-    subcandidate = "".join([t for t in splitted if t not in HYPHENS]).lower()
+    candidate = "".join([t for t in token_parts if t not in HYPHENS]).lower()
     if token[0].isupper():
-        subcandidate = subcandidate.capitalize()
-    if subcandidate in datadict:
-        return datadict[subcandidate]
+        candidate = candidate.capitalize()
+    if candidate in datadict:
+        return datadict[candidate]
 
     # decompose
-    last_candidate = _simple_search(splitted[-1], datadict)
+    last_candidate = _simple_search(token_parts[-1], datadict)
     if last_candidate is not None:
-        splitted[-1] = last_candidate
-        return "".join(splitted)
+        token_parts[-1] = last_candidate
+        return "".join(token_parts)
 
     return None
 
 
 def _apply_rules(token: str, lang: Optional[str]) -> Optional[str]:
     "Apply simple rules to out-of-vocabulary words."
-    if lang in APPLY_RULES:
-        return APPLY_RULES[lang](token)
-    return None
+    if lang not in APPLY_RULES:
+        return None
 
+    return APPLY_RULES[lang](token)
 
 def _prefix_search(
     token: str, lang: Optional[str], datadict: Dict[str, str]
@@ -165,7 +121,7 @@ def _prefix_search(
         return None
 
     prefix = FIND_KNOWN_PREFIXES[lang](token)
-    if prefix is None or len(prefix) >= len(token):
+    if prefix is None:
         return None
 
     subword = _simple_search(token[len(prefix) :], datadict)
@@ -176,27 +132,61 @@ def _prefix_search(
 
 
 def _affix_search(
-    wordform: str, datadict: Dict[str, str], maxlen: int = AFFIXLEN
+    token: str,
+    datadict: Dict[str, str],
+    max_affix_len: int = 0,
+    min_complem_len: int = 0,
 ) -> Optional[str]:
-    for length in range(maxlen, 1, -1):
-        candidate = _decompose(wordform, datadict, affixlen=length)
-        if candidate is not None:
-            return candidate
-
+    "Split token into known two known parts and lemmatize the second one."
+    # this only makes sense for languages written from left to right
+    # AFFIXLEN or MINCOMPLEN can spare time for some languages
+    for affixlen in range(max_affix_len, 1, -1):
+        for count in range(1, len(token) - min_complem_len + 1):
+            part1 = token[:-count]
+            # part1_aff = candidate[:-(count + affixlen)]
+            lempart1 = _simple_search(part1, datadict)
+            if lempart1 is None:
+                continue
+            # maybe an affix? discard it
+            if count <= affixlen:
+                return lempart1
+            # account for case before looking for second part
+            part2 = token[-count:]
+            if token[0].isupper():
+                part2 = part2.capitalize()
+            lempart2 = _simple_search(part2, datadict)
+            if lempart2 is None:
+                continue
+            # candidate must be shorter
+            # try other case
+            candidate = _greedy_search(part2, datadict)
+            # shorten the second known part of the token
+            if candidate is not None and len(candidate) < len(part2):
+                return part1 + candidate.lower()
+            # backup: equal length or further candidates accepted
+            # try without capitalizing
+            # even greedier
+            # with capital letter?
+            if len(lempart2) < len(part2) + affixlen:
+                return part1 + lempart2.lower()
+                # print(part1, part2, affixlen, count, newcandidate, planb)
+            # elif newcandidate and len(newcandidate) < len(part2) + affixlen:
+            # plan_b = part1 + newcandidate.lower()
+            # print(part1, part2, affixlen, count, newcandidate, planb)
+            # else:
+            #    print(part1, part2, affixlen, count, newcandidate)
     return None
 
 
-def _suffix_search(token: str, datadict: Dict[str, str]) -> Optional[str]:
-    lastcount = 0
-    for count in range(MINCOMPLEN, len(token) - MINCOMPLEN + 1):
-        part = _simple_search(token[-count:].capitalize(), datadict)
-        if part is not None and len(part) <= len(token[-count:]):
-            lastpart, lastcount = part, count
+def _suffix_search(
+    token: str, datadict: Dict[str, str], min_complem_len: int = 0
+) -> Optional[str]:
+    for count in range(len(token) - min_complem_len, min_complem_len - 1, -1):
+        suffix = _simple_search(token[-count:].capitalize(), datadict)
+        if suffix is not None and len(suffix) <= len(token[-count:]):
+            return token[:-count] + suffix.lower()
 
-    if lastcount == 0:
-        return None
-
-    return token[:-lastcount] + lastpart.lower()
+    return None
 
 
 def _affix_searches(
@@ -207,13 +197,12 @@ def _affix_searches(
         return None
 
     # define parameters
-    maxlen = LONGAFFIXLEN if lang in LONGER_AFFIXES else AFFIXLEN
+    max_affix_len = LONGAFFIXLEN if lang in LONGER_AFFIXES else AFFIXLEN
     # greedier subword decomposition: suffix search with character in between
     # then suffixes
-    candidate = _affix_search(token, datadict, maxlen) or _suffix_search(
-        token, datadict
+    return _affix_search(token, datadict, max_affix_len, MINCOMPLEN) or _suffix_search(
+        token, datadict, MINCOMPLEN
     )
-    return candidate
 
 
 def _return_lemma(
@@ -233,7 +222,7 @@ def _return_lemma(
     candidate = (
         # supervised searches
         _simple_search(token, datadict, initial=initial)
-        or _dehyphen(token, datadict)
+        or _dehyphen_search(token, datadict)
         or _apply_rules(token, lang)
         or _prefix_search(token, lang, datadict)
         # weakly supervised / greedier searches
@@ -241,7 +230,7 @@ def _return_lemma(
     )
 
     # additional round
-    if greedy and len(token) > limit and candidate is not None:
+    if candidate is not None and greedy and len(token) > limit:
         candidate = _greedy_search(candidate, datadict)
 
     return candidate
