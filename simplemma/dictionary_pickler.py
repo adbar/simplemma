@@ -8,12 +8,12 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 try:
-    from .constants import LANGLIST
+    from .dictionary_factory import SUPPORTED_LANGUAGES
     from .rules import APPLY_RULES
     from .utils import levenshtein_dist
 # local error, also ModuleNotFoundError for Python >= 3.6
 except ImportError:  # pragma: no cover
-    from constants import LANGLIST  # type: ignore
+    from dictionary_factory import SUPPORTED_LANGUAGES  # type: ignore
     from rules import APPLY_RULES  # type: ignore
     from utils import levenshtein_dist  # type: ignore
 
@@ -146,5 +146,5 @@ def _pickle_dict(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    for listcode in LANGLIST:
+    for listcode in SUPPORTED_LANGUAGES:
         _pickle_dict(listcode)
