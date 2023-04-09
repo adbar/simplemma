@@ -1,7 +1,7 @@
 """Experimental language detection."""
 
 from operator import itemgetter
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 from .lemmatizer import _return_lemma
 from .dictionary_factory import DictionaryFactory
@@ -14,7 +14,7 @@ from .token_sampler import (
 
 def in_target_language(
     text: str,
-    lang: Optional[Union[str, Tuple[str, ...]]] = None,
+    lang: Union[str, Tuple[str, ...]],
     greedy: bool = False,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
     token_sampler: TokenSampler = MostCommonTokenSampler(),
@@ -27,7 +27,7 @@ def in_target_language(
 
 def langdetect(
     text: str,
-    lang: Optional[Union[str, Tuple[str, ...]]] = None,
+    lang: Union[str, Tuple[str, ...]],
     greedy: bool = False,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
     token_samplers: List[TokenSampler] = [
@@ -72,7 +72,7 @@ class LanguageDetector:
 
     def __init__(
         self,
-        lang: Optional[Union[str, Tuple[str, ...]]] = None,
+        lang: Union[str, Tuple[str, ...]],
         greedy: bool = False,
         dictionary_factory: DictionaryFactory = DictionaryFactory(),
         token_sampler: TokenSampler = MostCommonTokenSampler(),
