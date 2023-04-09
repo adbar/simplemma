@@ -2,8 +2,6 @@ import re
 
 from typing import Optional
 
-from .generic import find_known_prefix
-
 
 NOUN_ENDINGS_DE = re.compile(
     r"(?:erei|heit|keit|ion|schaft|tät|[^jlz]ung)(en)?$|"
@@ -99,11 +97,6 @@ GERMAN_PREFIXES = [
 ]
 
 DE_PREFIX_REGEX = re.compile(r"^(" + "|".join(GERMAN_PREFIXES) + ")(?!zu)")
-
-
-def fix_known_prefix_de(token: str) -> Optional[str]:
-    "Determine if the word starts with a known prefix."
-    return find_known_prefix(token, DE_PREFIX_REGEX)
 
 
 def apply_de(token: str) -> Optional[str]:

@@ -2,7 +2,7 @@ import re
 
 from typing import Optional
 
-from .generic import apply_rules, find_known_prefix
+from .generic import apply_rules
 
 
 RUSSIAN_PREFIXES = [
@@ -33,10 +33,6 @@ DEFAULT_RULES = {
 
 
 RU_PREFIX_REGEX = re.compile(r"^(" + "|".join(RUSSIAN_PREFIXES) + ")")
-
-
-def fix_known_prefix_ru(token: str) -> Optional[str]:
-    return find_known_prefix(token, RU_PREFIX_REGEX)
 
 
 def apply_ru(token: str) -> Optional[str]:
