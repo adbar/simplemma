@@ -1,7 +1,8 @@
-from typing import Dict, Optional, Protocol
+from typing import Dict, Optional
+from abc import ABC
 
 
-class LemmatizationStrategy(Protocol):
+class LemmatizationStrategy(ABC):
     def get_lemma(
         self, token: str, lang: str, dictionary: Dict[str, str]
     ) -> Optional[str]:
