@@ -3,12 +3,11 @@ import lzma
 import logging
 import pickle
 
+from os import listdir, path
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
 from functools import lru_cache
-
-from .constants import LANGLIST
 
 LOGGER = logging.getLogger(__name__)
 
@@ -21,6 +20,14 @@ def _validate_lang_input(lang: Any) -> Tuple[str]:
     if not isinstance(lang, tuple):
         raise TypeError("lang argument must be a two-letter language code")
     return lang  # type: ignore[return-value]
+
+
+DATA_FOLDER = str(Path(__file__).parent / "data")
+SUPPORTED_LANGUAGES = [
+    path.splitext(dict)[0]
+    for dict in listdir(DATA_FOLDER)
+    if path.isfile(path.join(DATA_FOLDER, dict)) and dict.endswith(".plzma")
+]
 
 
 def _load_dictionary_from_disk(langcode: str) -> Dict[str, str]:
@@ -52,8 +59,9 @@ class DictionaryFactory:
 
         self._data = {}
         for lang in langs:
-            if lang not in LANGLIST:
-                raise ValueError(f"Unsupported language: {lang}")
+            if lang not in SUPPORTED_LANGUAGES:
+                LOGGER.error("language not supported: %s", lang)
+                continue
             LOGGER.debug("loading %s", lang)
             self._data[lang] = self._load_dictionary_from_disk(lang)
         return self._data
