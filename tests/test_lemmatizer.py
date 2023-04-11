@@ -76,7 +76,10 @@ def test_logic() -> None:
     """Test if certain code parts correspond to the intended logic."""
     # missing languages or faulty language codes
     dictionary_factory = DictionaryFactory()
-    dictionaries = dictionary_factory.get_dictionaries(("de", "abc", "en"))
+    with pytest.raises(ValueError):
+        dictionaries = dictionary_factory.get_dictionaries(("abc"))
+
+    dictionaries = dictionary_factory.get_dictionaries(("de", "en"))
     with pytest.raises(TypeError):
         lemmatize("test", lang=["test"])  # type: ignore[arg-type]
 

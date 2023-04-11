@@ -53,8 +53,7 @@ class DictionaryFactory:
         self._data = {}
         for lang in langs:
             if lang not in LANGLIST:
-                LOGGER.error("language not supported: %s", lang)
-                continue
+                raise ValueError(f"Unsupported language: {lang}")
             LOGGER.debug("loading %s", lang)
             self._data[lang] = self._load_dictionary_from_disk(lang)
         return self._data
