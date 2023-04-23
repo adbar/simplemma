@@ -14,7 +14,7 @@ try:
 # local error, also ModuleNotFoundError for Python >= 3.6
 except ImportError:  # pragma: no cover
     from dictionary_factory import SUPPORTED_LANGUAGES  # type: ignore
-    from rules import DEFAULT_RULES  # type: ignore
+    from strategies.defaultrules import DEFAULT_RULES  # type: ignore
     from utils import levenshtein_dist  # type: ignore
 
 LOGGER = logging.getLogger(__name__)
