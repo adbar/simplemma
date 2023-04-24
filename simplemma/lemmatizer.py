@@ -4,17 +4,20 @@ import logging
 from functools import lru_cache
 from typing import Any, List, Iterator, Tuple, Union
 
+
 from .strategies.lemmatization_strategy import LemmatizationStrategy
 from .strategies.default import DefaultStrategy
 from .strategies.dictionary_lookup import DictionaryLookupStrategy
+from .strategies.fallback.lemmatization_fallback_strategy import (
+    LemmatizationFallbackStrategy,
+)
+from .strategies.fallback.default import DefaultFallbackStrategy
 
 from .dictionary_factory import DictionaryFactory
 from .tokenizer import Tokenizer
 
 
 LOGGER = logging.getLogger(__name__)
-
-BETTER_LOWER = {"bg", "es", "hy", "lt", "lv", "pt", "sk", "uk"}
 
 PUNCTUATION = {".", "?", "!", "…", "¿", "¡"}
 
@@ -86,6 +89,7 @@ def lemma_iterator(
 class Lemmatizer:
     __slots__ = [
         "dictionary_factory",
+        "fallback_lemmatization_strategy",
         "lemmatize",
         "lemmatization_strategy",
         "tokenizer",
@@ -97,10 +101,12 @@ class Lemmatizer:
         dictionary_factory: DictionaryFactory = DictionaryFactory(),
         tokenizer: Tokenizer = Tokenizer(),
         lemmatization_strategy: LemmatizationStrategy = DefaultStrategy(),
+        fallback_lemmatization_strategy: LemmatizationFallbackStrategy = DefaultFallbackStrategy(),
     ) -> None:
         self.dictionary_factory = dictionary_factory
         self.tokenizer = tokenizer
         self.lemmatization_strategy = lemmatization_strategy
+        self.fallback_lemmatization_strategy = fallback_lemmatization_strategy
         self.lemmatize = lru_cache(maxsize=cache_max_size)(self._lemmatize)
 
     def is_known(
@@ -137,7 +143,10 @@ class Lemmatizer:
             )
             if candidate is not None:
                 return candidate
-        return token.lower() if next(iter(dictionaries)) in BETTER_LOWER else token
+
+        return self.fallback_lemmatization_strategy.get_lemma(
+            token, next(iter(dictionaries))
+        )
 
     def get_lemmas_in_text(
         self,
