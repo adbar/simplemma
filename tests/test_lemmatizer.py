@@ -5,7 +5,8 @@ import pytest
 from typing import Dict, Optional, Tuple, Union
 
 import simplemma
-from simplemma import lemmatize, DictionaryFactory
+from simplemma import lemmatize, Lemmatizer, DictionaryFactory
+from simplemma.strategies.fallback.raise_error import RaiseErrorFallbackStrategy
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -70,6 +71,11 @@ def test_readme() -> None:
     ]
     # error
     lemmatize("スパゲッティ", lang="pt") == None
+
+    with pytest.raises(ValueError):
+        Lemmatizer(
+            fallback_lemmatization_strategy=RaiseErrorFallbackStrategy()
+        ).lemmatize("スパゲッティ", lang="pt")
 
 
 def test_logic() -> None:
