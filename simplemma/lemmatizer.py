@@ -42,7 +42,6 @@ def lemmatize(
     token: str,
     lang: Union[str, Tuple[str, ...]],
     greedy: bool = False,
-    silent: bool = True,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
 ) -> str:
     return Lemmatizer(
@@ -55,7 +54,6 @@ def text_lemmatizer(
     text: str,
     lang: Union[str, Tuple[str, ...]],
     greedy: bool = False,
-    silent: bool = True,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
     tokenizer: Tokenizer = Tokenizer(),
 ) -> List[str]:
@@ -64,7 +62,6 @@ def text_lemmatizer(
             text,
             lang,
             greedy,
-            silent,
             dictionary_factory=dictionary_factory,
             tokenizer=tokenizer,
         )
@@ -75,7 +72,6 @@ def lemma_iterator(
     text: str,
     lang: Union[str, Tuple[str, ...]],
     greedy: bool = False,
-    silent: bool = True,
     dictionary_factory: DictionaryFactory = DictionaryFactory(),
     tokenizer: Tokenizer = Tokenizer(),
 ) -> Iterator[str]:
@@ -132,8 +128,7 @@ class Lemmatizer:
     ) -> str:
         """Try to reduce a token to its lemma form according to the
         language list passed as input.
-        Returns a string.
-        Can raise ValueError by silent=False if no lemma has been found."""
+        Returns a string."""
         _control_input_type(token)
         dictionaries = self.dictionary_factory.get_dictionaries(lang)
 
