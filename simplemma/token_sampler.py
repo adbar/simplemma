@@ -1,9 +1,11 @@
+"""TokenSampler module. A TokenSampler is a class that select samples from a text or a tokens collection."""
+
 import re
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Iterable, List
 from collections import Counter
-from .tokenizer import Tokenizer
+from .tokenizer import Tokenizer, RegexTokenizer
 
 SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
 RELAXED_SPLIT_INPUT = re.compile(r"[\w-]{3,}")
@@ -14,13 +16,14 @@ class TokenSampler(ABC):
 
     def __init__(
         self,
-        tokenizer: Tokenizer = Tokenizer(SPLIT_INPUT),
+        tokenizer: Tokenizer = RegexTokenizer(SPLIT_INPUT),
     ) -> None:
         self.tokenizer = tokenizer
 
     def sample_text(self, text: str) -> List[str]:
         return self.sample_tokens(self.tokenizer.split_text(text))
 
+    @abstractmethod
     def sample_tokens(self, tokens: Iterable[str]) -> List[str]:
         raise NotImplementedError
 
@@ -30,7 +33,7 @@ class MostCommonTokenSampler(TokenSampler):
 
     def __init__(
         self,
-        tokenizer: Tokenizer = Tokenizer(SPLIT_INPUT),
+        tokenizer: Tokenizer = RegexTokenizer(SPLIT_INPUT),
         sample_size: int = 100,
         capitalized_threshold: float = 0.8,
     ) -> None:
@@ -59,7 +62,7 @@ class MostCommonTokenSampler(TokenSampler):
 class RelaxedMostCommonTokenSampler(MostCommonTokenSampler):
     def __init__(
         self,
-        tokenizer: Tokenizer = Tokenizer(RELAXED_SPLIT_INPUT),
+        tokenizer: Tokenizer = RegexTokenizer(RELAXED_SPLIT_INPUT),
         sample_size: int = 1000,
         capitalized_threshold: float = 0,
     ) -> None:
