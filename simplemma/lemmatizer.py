@@ -1,6 +1,5 @@
 """Main module."""
 
-import logging
 from functools import lru_cache
 from typing import Any, List, Iterator, Tuple, Union
 
@@ -15,9 +14,6 @@ from .strategies.fallback.default import DefaultFallbackStrategy
 
 from .dictionary_factory import DictionaryFactory
 from .tokenizer import Tokenizer
-
-
-LOGGER = logging.getLogger(__name__)
 
 PUNCTUATION = {".", "?", "!", "…", "¿", "¡"}
 
