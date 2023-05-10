@@ -12,6 +12,7 @@ from .lemmatizer import Lemmatizer, lemmatize, lemma_iterator, text_lemmatizer, 
 from .tokenizer import Tokenizer, RegexTokenizer, simple_tokenizer
 from .token_sampler import (
     TokenSampler,
+    BaseTokenSampler,
     MostCommonTokenSampler,
     RelaxedMostCommonTokenSampler,
 )

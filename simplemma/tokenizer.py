@@ -1,10 +1,15 @@
 """Tokenizers module. A Tokenizer is a class that breaks a string into lemmas."""
 
 import re
+import sys
 
 from abc import ABC, abstractmethod
 from typing import Iterator, List, Pattern
 
+if sys.version_info >= (3, 8):
+    from typing import Protocol
+else:
+    from typing_extensions import Protocol
 
 TOKREGEX = re.compile(
     r"(?:"
@@ -23,7 +28,7 @@ def simple_tokenizer(text: str, splitting_regex: Pattern[str] = TOKREGEX) -> Lis
     return splitting_regex.findall(text)
 
 
-class Tokenizer(ABC):
+class Tokenizer(Protocol):
     @abstractmethod
     def split_text(self, text: str) -> Iterator[str]:
         raise NotImplementedError

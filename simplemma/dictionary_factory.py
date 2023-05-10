@@ -3,13 +3,18 @@
 import lzma
 import logging
 import pickle
-
+import sys
 from abc import ABC, abstractmethod
 from os import listdir, path
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
 from functools import lru_cache
+
+if sys.version_info >= (3, 8):
+    from typing import Protocol
+else:
+    from typing_extensions import Protocol
 
 LOGGER = logging.getLogger(__name__)
 
@@ -41,7 +46,7 @@ def _load_dictionary_from_disk(langcode: str) -> Dict[str, str]:
         return pickled_dict
 
 
-class DictionaryFactory(ABC):
+class DictionaryFactory(Protocol):
     @abstractmethod
     def get_dictionaries(
         self,
