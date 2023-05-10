@@ -7,15 +7,11 @@ from operator import itemgetter
 from pathlib import Path
 from typing import Dict, List, Optional
 
-try:
-    from .dictionary_factory import SUPPORTED_LANGUAGES
-    from .strategies.defaultrules import DEFAULT_RULES
-    from .utils import levenshtein_dist
-# local error, also ModuleNotFoundError for Python >= 3.6
-except ImportError:  # pragma: no cover
-    from dictionary_factory import SUPPORTED_LANGUAGES  # type: ignore
-    from strategies.defaultrules import DEFAULT_RULES  # type: ignore
-    from utils import levenshtein_dist  # type: ignore
+import simplemma
+from simplemma.dictionary_factory import SUPPORTED_LANGUAGES
+from simplemma.strategies.defaultrules import DEFAULT_RULES
+from simplemma.utils import levenshtein_dist
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -138,7 +134,7 @@ def _pickle_dict(
         mydict = dict(sorted(mydict.items(), key=itemgetter(1)))
     if filepath is None:
         filename = f"data/{langcode}.plzma"
-        filepath = str(Path(__file__).parent / filename)
+        filepath = str(Path(simplemma.__file__).parent / filename)
     with lzma.open(filepath, "wb") as filehandle:  # , filters=my_filters, preset=9
         pickle.dump(mydict, filehandle, protocol=4)
     LOGGER.debug("%s %s", langcode, len(mydict))

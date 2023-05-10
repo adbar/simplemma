@@ -1,7 +1,7 @@
 import os
 import tempfile
 
-from simplemma import dictionary_pickler
+from training import dictionary_pickler
 
 TEST_DIR = os.path.abspath(os.path.dirname(__file__))
 

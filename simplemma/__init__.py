@@ -16,4 +16,3 @@ from .token_sampler import (
     RelaxedMostCommonTokenSampler,
 )
 from .dictionary_factory import DictionaryFactory
-from .dictionary_pickler import *
