@@ -285,16 +285,7 @@ Orders of magnitude given for reference only, measured on an old laptop to give 
 - Tokenization: > 1 million tokens/sec
 - Lemmatization: > 250,000 words/sec
 
-Installing the most recent Python version can improve speed.
-
-
-Optional pre-compilation with `mypyc <https://github.com/mypyc/mypyc>`_
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-1. ``pip3 install mypy``
-2. clone or download the source code from the repository
-3. ``python3 setup.py --use-mypyc bdist_wheel``
-4. ``pip3 install dist/*.whl`` (where ``*`` is the compiled wheel)
+Using the most recent Python version (i.e. with ``pyenv``) can make the package run faster.
 
 
 Roadmap

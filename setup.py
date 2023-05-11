@@ -3,7 +3,6 @@
 """The setup script."""
 
 import re
-import sys
 
 from pathlib import Path
 from setuptools import setup, find_packages
@@ -25,24 +24,6 @@ setup_requirements = []
 
 test_requirements = ["pytest>=3", "pytest-cov"]
 
-# add argument to compile with mypyc
-if len(sys.argv) > 1 and sys.argv[1] == "--use-mypyc":
-    sys.argv.pop(1)
-    from mypyc.build import mypycify
-
-    ext_modules = mypycify(
-        [
-            "simplemma/__init__.py",
-            "simplemma/langdetect.py",
-            "simplemma/rules.py",
-            "simplemma/simplemma.py",
-            "simplemma/tokenizer.py",
-        ],
-        opt_level="3",
-        multi_file=True,
-    )
-else:
-    ext_modules = []
 
 setup(
     author="Adrien Barbaresi",
@@ -130,6 +111,4 @@ setup(
     url="https://github.com/adbar/simplemma",
     version=get_version("simplemma"),
     zip_safe=False,
-    # optional mypyc
-    ext_modules=ext_modules,
 )
