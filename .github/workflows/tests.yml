@@ -66,12 +66,16 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Install dependencies
+      if: matrix.python-version != '3.6' && matrix.python-version != '3.7'
+      run: pip install -r requirements-dev.txt
+
+    - name: Install dependencies (legacy versions)
+      if: matrix.python-version == '3.6' || matrix.python-version == '3.7'
       run: |
         python -m pip install --upgrade flake8
         python -m pip install --upgrade black
         python -m pip install --upgrade mypy
         python -m pip install --upgrade pytest pytest-cov
-        python -m pip install -e "."
 
     # tests
     - name: Lint with flake8
