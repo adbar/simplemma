@@ -3,6 +3,7 @@
 import logging
 
 from simplemma.language_detector import in_target_language, langdetect, LanguageDetector
+from simplemma.strategies.default import DefaultStrategy
 
 from .test_token_sampler import CustomTokenSampler
 
@@ -11,23 +12,23 @@ logging.basicConfig(level=logging.DEBUG)
 
 def test_proportion_in_each_language() -> None:
     # sanity checks
-    assert LanguageDetector(lang=("de", "en"), greedy=True).proportion_in_each_language(
-        " aa "
-    ) == {"unk": 1}
+    assert LanguageDetector(
+        lang=("de", "en"), lemmatization_strategy=DefaultStrategy(greedy=True)
+    ).proportion_in_each_language(" aa ") == {"unk": 1}
     assert langdetect(" aa ", lang=("de", "en"), greedy=True) == [("unk", 1)]
 
     text = "Test test"
     assert LanguageDetector(
-        lang=("de", "en"), greedy=False
+        lang=("de", "en"), lemmatization_strategy=DefaultStrategy(greedy=False)
     ).proportion_in_each_language(text) == {"de": 1.0, "en": 1.0, "unk": 0.0}
     assert langdetect(text, lang=("de", "en"), greedy=False) == [
         ("de", 1.0),
         ("en", 1.0),
         ("unk", 0.0),
     ]
-    assert LanguageDetector(lang=("de", "en"), greedy=True).proportion_in_each_language(
-        text
-    ) == {"de": 1.0, "en": 1.0, "unk": 0.0}
+    assert LanguageDetector(
+        lang=("de", "en"), lemmatization_strategy=DefaultStrategy(greedy=True)
+    ).proportion_in_each_language(text) == {"de": 1.0, "en": 1.0, "unk": 0.0}
     assert langdetect(text, lang=("de", "en"), greedy=True) == [
         ("de", 1.0),
         ("en", 1.0),
@@ -36,9 +37,9 @@ def test_proportion_in_each_language() -> None:
 
     lang = ("de", "en")
     text = "Nztruedg nsüplke deutsches weiter bgfnki gtrpinadsc."
-    assert LanguageDetector(lang=lang, greedy=False).proportion_in_each_language(
-        text
-    ) == {
+    assert LanguageDetector(
+        lang=lang, lemmatization_strategy=DefaultStrategy(greedy=False)
+    ).proportion_in_each_language(text) == {
         "de": 0.4,
         "en": 0.0,
         "unk": 0.6,
@@ -116,13 +117,17 @@ def test_main_language():
     text = "Dieser Satz ist auf Deutsch."
     lang = ("de", "en")
     assert (
-        LanguageDetector(lang=lang, greedy=False).main_language(text)
+        LanguageDetector(
+            lang=lang, lemmatization_strategy=DefaultStrategy(greedy=False)
+        ).main_language(text)
         == langdetect(text, lang=lang, greedy=False)[0][0]
         == "de"
     )
 
     assert (
-        LanguageDetector(lang=lang, greedy=True).main_language(text)
+        LanguageDetector(
+            lang=lang, lemmatization_strategy=DefaultStrategy(greedy=True)
+        ).main_language(text)
         == langdetect(text, lang=lang, greedy=False)[0][0]
         == "de"
     )

@@ -9,12 +9,12 @@ from typing import Dict, List, Optional
 
 try:
     from .dictionary_factory import SUPPORTED_LANGUAGES
-    from .rules import APPLY_RULES
+    from .strategies.defaultrules import DEFAULT_RULES
     from .utils import levenshtein_dist
 # local error, also ModuleNotFoundError for Python >= 3.6
 except ImportError:  # pragma: no cover
     from dictionary_factory import SUPPORTED_LANGUAGES  # type: ignore
-    from rules import APPLY_RULES  # type: ignore
+    from strategies.defaultrules import DEFAULT_RULES  # type: ignore
     from utils import levenshtein_dist  # type: ignore
 
 LOGGER = logging.getLogger(__name__)
@@ -79,9 +79,9 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
                 continue
             # tackled by rules
             if (
-                len(columns[1]) > 6 and langcode in APPLY_RULES
+                len(columns[1]) > 6 and langcode in DEFAULT_RULES
             ):  # columns[1] != columns[0]
-                rule = APPLY_RULES[langcode](columns[1])
+                rule = DEFAULT_RULES[langcode](columns[1])
                 if rule == columns[0]:
                     continue
                 if rule is not None and rule != columns[1]:

@@ -3,7 +3,9 @@
 from operator import itemgetter
 from typing import Dict, List, Tuple, Union
 
-from .lemmatizer import _return_lemma
+from .strategies.lemmatization_strategy import LemmatizationStrategy
+from .strategies.default import DefaultStrategy
+
 from .dictionary_factory import DictionaryFactory
 from .token_sampler import (
     TokenSampler,
@@ -21,7 +23,7 @@ def in_target_language(
 ) -> float:
     """Determine which proportion of the text is in the target language(s)."""
     return LanguageDetector(
-        lang, greedy, dictionary_factory, token_sampler
+        lang, dictionary_factory, token_sampler, DefaultStrategy(greedy)
     ).proportion_in_target_languages(text)
 
 
@@ -38,7 +40,7 @@ def langdetect(
     """Determine which proportion of the text is in the target language(s)."""
     for token_sampler in token_samplers:
         results = LanguageDetector(
-            lang, greedy, dictionary_factory, token_sampler
+            lang, dictionary_factory, token_sampler, DefaultStrategy(greedy)
         ).proportion_in_each_language(text)
 
         # post-processing
@@ -66,6 +68,7 @@ class LanguageDetector:
         "dictionary_factory",
         "greedy",
         "lang",
+        "lemmatization_strategy",
         "_orig_token_sampler",
         "token_sampler",
     ]
@@ -73,15 +76,15 @@ class LanguageDetector:
     def __init__(
         self,
         lang: Union[str, Tuple[str, ...]],
-        greedy: bool = False,
         dictionary_factory: DictionaryFactory = DictionaryFactory(),
         token_sampler: TokenSampler = MostCommonTokenSampler(),
+        lemmatization_strategy: LemmatizationStrategy = DefaultStrategy(),
     ) -> None:
         self.lang = lang
-        self.greedy = greedy
         self.dictionary_factory = dictionary_factory
         self.token_sampler = token_sampler
         self._orig_token_sampler = token_sampler
+        self.lemmatization_strategy = lemmatization_strategy
 
     def _restore_token_sampler(self) -> None:
         self.token_sampler = self._orig_token_sampler
@@ -103,8 +106,8 @@ class LanguageDetector:
         for token in tokens:
             token_found = False
             for lang_code, lang_dictionary in dictionaries.items():
-                candidate = _return_lemma(
-                    token, lang_dictionary, self.greedy, lang_code
+                candidate = self.lemmatization_strategy.get_lemma(
+                    token, lang_code, lang_dictionary
                 )
                 if candidate is not None:
                     known_tokens_count[lang_code] += 1
