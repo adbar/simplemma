@@ -17,26 +17,26 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.8, 3.9, "3.10", "3.11", "3.12-dev"]
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12-dev']
         include:
         # custom tests
         # other OS version necessary
         - os: ubuntu-20.04
-          python-version: 3.6
+          python-version: '3.6'
         - os: ubuntu-20.04
-          python-version: 3.7
+          python-version: '3.7'
         # common versions on MacOS
         - os: macos-latest
-          python-version: 3.7
+          python-version: '3.7'
         - os: macos-latest
-          python-version: 3.8
+          python-version: '3.8'
         # common versions on Windows
         - os: windows-latest
-          python-version: 3.7
+          python-version: '3.7'
           experimental: true
           allowed_failure: true
         - os: windows-latest
-          python-version: 3.8
+          python-version: '3.8'
           experimental: true
           allowed_failure: true
 
@@ -85,6 +85,7 @@ jobs:
       run: black --check --diff simplemma tests
 
     - name: Type checking with mypy
+      if: matrix.python-version != '3.6'
       run: mypy -p simplemma -p tests
 
     - name: Test with pytest
