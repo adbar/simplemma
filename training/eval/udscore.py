@@ -5,7 +5,7 @@ from collections import Counter
 from os import makedirs, path
 
 from conllu import parse_incr  # type: ignore
-from simplemma import Lemmatizer, DictionaryFactory
+from simplemma import Lemmatizer, DefaultDictionaryFactory
 from simplemma.strategies.default import DefaultStrategy
 
 if not path.exists("csv"):
@@ -67,7 +67,7 @@ for filedata in data_files:
     with open(filename, "r", encoding="utf-8") as myfile:
         data_file = myfile.read()
     start = time.time()
-    dictionary_factory = DictionaryFactory()
+    dictionary_factory = DefaultDictionaryFactory()
     strategies = DefaultStrategy(greedy=False)
     lemmatizer = Lemmatizer(
         dictionary_factory=dictionary_factory,
