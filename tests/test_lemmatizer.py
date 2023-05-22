@@ -5,7 +5,7 @@ import pytest
 from typing import Dict, Optional, Tuple, Union
 
 import simplemma
-from simplemma import lemmatize, Lemmatizer, DictionaryFactory
+from simplemma import lemmatize, Lemmatizer, DictionaryFactory, DefaultDictionaryFactory
 from simplemma.strategies.fallback.raise_error import RaiseErrorFallbackStrategy
 
 logging.basicConfig(level=logging.DEBUG)
@@ -81,7 +81,7 @@ def test_readme() -> None:
 def test_logic() -> None:
     """Test if certain code parts correspond to the intended logic."""
     # missing languages or faulty language codes
-    dictionary_factory = DictionaryFactory()
+    dictionary_factory = DefaultDictionaryFactory()
     with pytest.raises(ValueError):
         dictionaries = dictionary_factory.get_dictionaries(("abc"))
 

@@ -1,4 +1,5 @@
-"""Main module."""
+"""Lemmatizer can find the lemma of a token using a search strategy.
+Lemmatizer can also find the tokens in a text and return the list of lemmas."""
 
 from functools import lru_cache
 from typing import Any, List, Iterator, Tuple, Union
@@ -12,8 +13,8 @@ from .strategies.fallback.lemmatization_fallback_strategy import (
 )
 from .strategies.fallback.default import DefaultFallbackStrategy
 
-from .dictionary_factory import DictionaryFactory
-from .tokenizer import Tokenizer
+from .dictionary_factory import DictionaryFactory, DefaultDictionaryFactory
+from .tokenizer import Tokenizer, RegexTokenizer
 
 PUNCTUATION = {".", "?", "!", "…", "¿", "¡"}
 
@@ -29,7 +30,7 @@ def _control_input_type(token: Any) -> None:
 def is_known(
     token: str,
     lang: Union[str, Tuple[str, ...]],
-    dictionary_factory: DictionaryFactory = DictionaryFactory(),
+    dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
 ) -> bool:
     return Lemmatizer(dictionary_factory=dictionary_factory).is_known(token, lang)
 
@@ -38,7 +39,7 @@ def lemmatize(
     token: str,
     lang: Union[str, Tuple[str, ...]],
     greedy: bool = False,
-    dictionary_factory: DictionaryFactory = DictionaryFactory(),
+    dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
 ) -> str:
     return Lemmatizer(
         dictionary_factory=dictionary_factory,
@@ -50,8 +51,8 @@ def text_lemmatizer(
     text: str,
     lang: Union[str, Tuple[str, ...]],
     greedy: bool = False,
-    dictionary_factory: DictionaryFactory = DictionaryFactory(),
-    tokenizer: Tokenizer = Tokenizer(),
+    dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
+    tokenizer: Tokenizer = RegexTokenizer(),
 ) -> List[str]:
     return list(
         lemma_iterator(
@@ -68,8 +69,8 @@ def lemma_iterator(
     text: str,
     lang: Union[str, Tuple[str, ...]],
     greedy: bool = False,
-    dictionary_factory: DictionaryFactory = DictionaryFactory(),
-    tokenizer: Tokenizer = Tokenizer(),
+    dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
+    tokenizer: Tokenizer = RegexTokenizer(),
 ) -> Iterator[str]:
     return Lemmatizer(
         dictionary_factory=dictionary_factory,
@@ -90,8 +91,8 @@ class Lemmatizer:
     def __init__(
         self,
         cache_max_size: int = 1048576,
-        dictionary_factory: DictionaryFactory = DictionaryFactory(),
-        tokenizer: Tokenizer = Tokenizer(),
+        dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
+        tokenizer: Tokenizer = RegexTokenizer(),
         lemmatization_strategy: LemmatizationStrategy = DefaultStrategy(),
         fallback_lemmatization_strategy: LemmatizationFallbackStrategy = DefaultFallbackStrategy(),
     ) -> None:

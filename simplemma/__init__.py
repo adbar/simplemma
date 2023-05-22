@@ -7,12 +7,13 @@ __license__ = "MIT"
 __version__ = "0.9.1"
 
 
+from .dictionary_factory import DictionaryFactory
 from .language_detector import LanguageDetector, in_target_language, langdetect
 from .lemmatizer import Lemmatizer, lemmatize, lemma_iterator, text_lemmatizer, is_known
-from .tokenizer import Tokenizer, simple_tokenizer
+from .tokenizer import Tokenizer, RegexTokenizer, simple_tokenizer
 from .token_sampler import (
     TokenSampler,
+    BaseTokenSampler,
     MostCommonTokenSampler,
     RelaxedMostCommonTokenSampler,
 )
-from .dictionary_factory import DictionaryFactory

@@ -1,4 +1,4 @@
-from simplemma.dictionary_factory import DictionaryFactory
+from simplemma.dictionary_factory import DefaultDictionaryFactory
 from simplemma.strategies.dictionary_lookup import DictionaryLookupStrategy
 from simplemma.strategies.hyphen_removal import HyphenRemovalStrategy
 from simplemma.strategies.default import DefaultStrategy
@@ -8,7 +8,7 @@ from simplemma.strategies.affix_decomposition import AffixDecompositionStrategy
 
 def test_search() -> None:
     """Test simple and greedy dict search."""
-    dictionary_factory = DictionaryFactory()
+    dictionary_factory = DefaultDictionaryFactory()
     dictionaries = dictionary_factory.get_dictionaries(("en",))
     enDict = dictionaries["en"]
     assert DictionaryLookupStrategy().get_lemma("ignorant", "en", enDict) == "ignorant"

@@ -1,13 +1,20 @@
-"""Parts related to dictonaries."""
+"""DictionaryFactory module. A DictionaryFactory is a class that provides dictionary data."""
+
 import lzma
 import logging
 import pickle
-
+import sys
+from abc import ABC, abstractmethod
 from os import listdir, path
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
 from functools import lru_cache
+
+if sys.version_info >= (3, 8):
+    from typing import Protocol
+else:
+    from typing_extensions import Protocol
 
 LOGGER = logging.getLogger(__name__)
 
@@ -39,7 +46,16 @@ def _load_dictionary_from_disk(langcode: str) -> Dict[str, str]:
         return pickled_dict
 
 
-class DictionaryFactory:
+class DictionaryFactory(Protocol):
+    @abstractmethod
+    def get_dictionaries(
+        self,
+        langs: Optional[Union[str, Tuple[str, ...]]] = None,
+    ) -> Dict[str, Dict[str, str]]:
+        raise NotImplementedError
+
+
+class DefaultDictionaryFactory(DictionaryFactory):
     __slots__ = ["_data", "_load_dictionary_from_disk"]
 
     def __init__(self, cache_max_size: int = 8):

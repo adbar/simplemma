@@ -1,13 +1,13 @@
 from typing import Iterable, List
 
 from simplemma.token_sampler import (
-    TokenSampler,
+    BaseTokenSampler,
     MostCommonTokenSampler,
     RelaxedMostCommonTokenSampler,
 )
 
 
-class CustomTokenSampler(TokenSampler):
+class CustomTokenSampler(BaseTokenSampler):
     def __init__(self, skip_tokens: int) -> None:
         super().__init__()
         self.skip_tokens: int = skip_tokens

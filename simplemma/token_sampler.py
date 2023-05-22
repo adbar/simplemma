@@ -1,45 +1,59 @@
-import re
+"""TokenSampler module. A TokenSampler is a class that select samples from a text or a tokens collection."""
 
-from abc import ABC
+import re
+import sys
+from abc import ABC, abstractmethod
 from typing import Iterable, List
 from collections import Counter
-from .tokenizer import Tokenizer
+from .tokenizer import Tokenizer, RegexTokenizer
 
+if sys.version_info >= (3, 8):
+    from typing import Protocol
+else:
+    from typing_extensions import Protocol
 SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
 RELAXED_SPLIT_INPUT = re.compile(r"[\w-]{3,}")
 
 
-class TokenSampler(ABC):
+class TokenSampler(Protocol):
+    @abstractmethod
+    def sample_text(self, text: str) -> List[str]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def sample_tokens(self, tokens: Iterable[str]) -> List[str]:
+        raise NotImplementedError
+
+
+class BaseTokenSampler(ABC, TokenSampler):
     __slots__ = ["tokenizer"]
 
     def __init__(
         self,
-        tokenizer: Tokenizer = Tokenizer(SPLIT_INPUT),
+        tokenizer: Tokenizer = RegexTokenizer(SPLIT_INPUT),
     ) -> None:
         self.tokenizer = tokenizer
 
     def sample_text(self, text: str) -> List[str]:
         return self.sample_tokens(self.tokenizer.split_text(text))
 
+    @abstractmethod
     def sample_tokens(self, tokens: Iterable[str]) -> List[str]:
         raise NotImplementedError
 
 
-class MostCommonTokenSampler(TokenSampler):
+class MostCommonTokenSampler(BaseTokenSampler):
     __slots__ = ["capitalized_threshold", "sample_size"]
 
     def __init__(
         self,
-        tokenizer: Tokenizer = Tokenizer(SPLIT_INPUT),
+        tokenizer: Tokenizer = RegexTokenizer(SPLIT_INPUT),
         sample_size: int = 100,
         capitalized_threshold: float = 0.8,
     ) -> None:
         super().__init__(tokenizer)
         self.sample_size = sample_size
         self.capitalized_threshold = capitalized_threshold
-
-    def sample_text(self, text: str) -> List[str]:
-        return self.sample_tokens(self.tokenizer.split_text(text))
 
     def sample_tokens(self, tokens: Iterable[str]) -> List[str]:
         """Extract potential tokens, scramble them, potentially get rid of capitalized
@@ -59,7 +73,7 @@ class MostCommonTokenSampler(TokenSampler):
 class RelaxedMostCommonTokenSampler(MostCommonTokenSampler):
     def __init__(
         self,
-        tokenizer: Tokenizer = Tokenizer(RELAXED_SPLIT_INPUT),
+        tokenizer: Tokenizer = RegexTokenizer(RELAXED_SPLIT_INPUT),
         sample_size: int = 1000,
         capitalized_threshold: float = 0,
     ) -> None:

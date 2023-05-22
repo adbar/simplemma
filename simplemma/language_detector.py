@@ -1,4 +1,4 @@
-"""Experimental language detection."""
+"""LanguageDetector can extract information about languages present in a text like the proportion of text in each language or the main language of the text."""
 
 from operator import itemgetter
 from typing import Dict, List, Tuple, Union
@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple, Union
 from .strategies.lemmatization_strategy import LemmatizationStrategy
 from .strategies.default import DefaultStrategy
 
-from .dictionary_factory import DictionaryFactory
+from .dictionary_factory import DictionaryFactory, DefaultDictionaryFactory
 from .token_sampler import (
     TokenSampler,
     MostCommonTokenSampler,
@@ -18,7 +18,7 @@ def in_target_language(
     text: str,
     lang: Union[str, Tuple[str, ...]],
     greedy: bool = False,
-    dictionary_factory: DictionaryFactory = DictionaryFactory(),
+    dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
     token_sampler: TokenSampler = MostCommonTokenSampler(),
 ) -> float:
     """Determine which proportion of the text is in the target language(s)."""
@@ -31,7 +31,7 @@ def langdetect(
     text: str,
     lang: Union[str, Tuple[str, ...]],
     greedy: bool = False,
-    dictionary_factory: DictionaryFactory = DictionaryFactory(),
+    dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
     token_samplers: List[TokenSampler] = [
         MostCommonTokenSampler(),
         RelaxedMostCommonTokenSampler(),
@@ -76,7 +76,7 @@ class LanguageDetector:
     def __init__(
         self,
         lang: Union[str, Tuple[str, ...]],
-        dictionary_factory: DictionaryFactory = DictionaryFactory(),
+        dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
         token_sampler: TokenSampler = MostCommonTokenSampler(),
         lemmatization_strategy: LemmatizationStrategy = DefaultStrategy(),
     ) -> None:
