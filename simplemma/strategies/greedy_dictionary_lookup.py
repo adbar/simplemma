@@ -5,14 +5,16 @@ from ..utils import levenshtein_dist
 
 
 class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
+    __slots__ = ["_steps", "_distance"]
+
     def __init__(self, steps: int = 1, distance: int = 5):
-        self.steps = steps
-        self.distance = distance
+        self._steps = steps
+        self._distance = distance
 
     def get_lemma(self, token: str, lang: str, dictionary: Dict[str, str]) -> str:
         "Greedy mode: try further hops, not always a good idea."
         candidate = token
-        for _ in range(self.steps):
+        for _ in range(self._steps):
             if candidate not in dictionary:
                 break
 
@@ -20,7 +22,7 @@ class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
 
             if (
                 len(new_candidate) > len(candidate)
-                or levenshtein_dist(new_candidate, candidate) > self.distance
+                or levenshtein_dist(new_candidate, candidate) > self._distance
             ):
                 break
 

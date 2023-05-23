@@ -30,6 +30,8 @@ MINCOMPLEN = 4
 
 
 class AffixDecompositionStrategy(LemmatizationStrategy):
+    __slots__ = ["greedy", "limit", "dictionary_lookup", "greedy_dictionary_lookup"]
+
     def __init__(
         self,
         greedy: bool,

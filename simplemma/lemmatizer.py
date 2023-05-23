@@ -11,7 +11,7 @@ from .strategies.dictionary_lookup import DictionaryLookupStrategy
 from .strategies.fallback.lemmatization_fallback_strategy import (
     LemmatizationFallbackStrategy,
 )
-from .strategies.fallback.default import DefaultFallbackStrategy
+from .strategies.fallback.to_lowercase import ToLowercaseFallbackStrategy
 
 from .dictionary_factory import DictionaryFactory, DefaultDictionaryFactory
 from .tokenizer import Tokenizer, RegexTokenizer
@@ -81,11 +81,11 @@ def lemma_iterator(
 
 class Lemmatizer:
     __slots__ = [
-        "dictionary_factory",
-        "fallback_lemmatization_strategy",
+        "_dictionary_factory",
+        "_fallback_lemmatization_strategy",
+        "_lemmatization_strategy",
+        "_tokenizer",
         "lemmatize",
-        "lemmatization_strategy",
-        "tokenizer",
     ]
 
     def __init__(
@@ -94,12 +94,12 @@ class Lemmatizer:
         dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
         tokenizer: Tokenizer = RegexTokenizer(),
         lemmatization_strategy: LemmatizationStrategy = DefaultStrategy(),
-        fallback_lemmatization_strategy: LemmatizationFallbackStrategy = DefaultFallbackStrategy(),
+        fallback_lemmatization_strategy: LemmatizationFallbackStrategy = ToLowercaseFallbackStrategy(),
     ) -> None:
-        self.dictionary_factory = dictionary_factory
-        self.tokenizer = tokenizer
-        self.lemmatization_strategy = lemmatization_strategy
-        self.fallback_lemmatization_strategy = fallback_lemmatization_strategy
+        self._dictionary_factory = dictionary_factory
+        self._tokenizer = tokenizer
+        self._lemmatization_strategy = lemmatization_strategy
+        self._fallback_lemmatization_strategy = fallback_lemmatization_strategy
         self.lemmatize = lru_cache(maxsize=cache_max_size)(self._lemmatize)
 
     def is_known(
@@ -110,7 +110,7 @@ class Lemmatizer:
         """Tell if a token is present in one of the loaded dictionaries.
         Case-insensitive, whole word forms only. Returns True or False."""
         _control_input_type(token)
-        dictionaries = self.dictionary_factory.get_dictionaries(lang)
+        dictionaries = self._dictionary_factory.get_dictionaries(lang)
 
         dictionary_lookup = DictionaryLookupStrategy()
         return any(
@@ -127,16 +127,16 @@ class Lemmatizer:
         language list passed as input.
         Returns a string."""
         _control_input_type(token)
-        dictionaries = self.dictionary_factory.get_dictionaries(lang)
+        dictionaries = self._dictionary_factory.get_dictionaries(lang)
 
         for lang_code, lang_dictionary in dictionaries.items():
-            candidate = self.lemmatization_strategy.get_lemma(
+            candidate = self._lemmatization_strategy.get_lemma(
                 token, lang_code, lang_dictionary
             )
             if candidate is not None:
                 return candidate
 
-        return self.fallback_lemmatization_strategy.get_lemma(
+        return self._fallback_lemmatization_strategy.get_lemma(
             token, next(iter(dictionaries))
         )
 
@@ -148,6 +148,6 @@ class Lemmatizer:
         """Convenience function to lemmatize a text using a simple tokenizer.
         Returns a list of tokens and lemmata."""
         initial = True
-        for token in self.tokenizer.split_text(text):
+        for token in self._tokenizer.split_text(text):
             yield self.lemmatize(token.lower() if initial else token, lang)
             initial = token in PUNCTUATION

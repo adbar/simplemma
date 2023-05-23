@@ -11,10 +11,12 @@ HYPHEN_REGEX = re.compile(rf"([{HYPHENS_FOR_REGEX}])")
 
 
 class HyphenRemovalStrategy(LemmatizationStrategy):
+    __slots__ = ["_dictionary_lookup"]
+
     def __init__(
         self, dictionary_lookup: DictionaryLookupStrategy = DictionaryLookupStrategy()
     ):
-        self.dictionary_lookup = dictionary_lookup
+        self._dictionary_lookup = dictionary_lookup
 
     def get_lemma(
         self, token: str, lang: str, dictionary: Dict[str, str]
@@ -32,7 +34,7 @@ class HyphenRemovalStrategy(LemmatizationStrategy):
             return dictionary[candidate]
 
         # decompose
-        last_candidate = self.dictionary_lookup.get_lemma(
+        last_candidate = self._dictionary_lookup.get_lemma(
             token_parts[-1], lang, dictionary
         )
         if last_candidate is not None:

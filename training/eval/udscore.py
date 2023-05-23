@@ -52,7 +52,7 @@ data_files = [
 
 
 for filedata in data_files:
-    total, focus_total, greedy, nongreedy, zero, focus_zero, focus, focus_nongreedy = (
+    total, focus_total, _greedy, nongreedy, zero, focus_zero, focus, focus_nongreedy = (
         0,
         0,
         0,
@@ -67,14 +67,14 @@ for filedata in data_files:
     with open(filename, "r", encoding="utf-8") as myfile:
         data_file = myfile.read()
     start = time.time()
-    dictionary_factory = DefaultDictionaryFactory()
+    _dictionary_factory = DefaultDictionaryFactory()
     strategies = DefaultStrategy(greedy=False)
     lemmatizer = Lemmatizer(
-        dictionary_factory=dictionary_factory,
+        dictionary_factory=_dictionary_factory,
         lemmatization_strategy=DefaultStrategy(greedy=False),
     )
     greedy_lemmatizer = Lemmatizer(
-        dictionary_factory=dictionary_factory,
+        dictionary_factory=_dictionary_factory,
         lemmatization_strategy=DefaultStrategy(greedy=True),
     )
     print("==", filedata, "==")
@@ -103,7 +103,7 @@ for filedata in data_files:
             if token["form"] == token["lemma"]:
                 zero += 1
             if greedy_candidate == token["lemma"]:
-                greedy += 1
+                _greedy += 1
             else:
                 error_flag = True
             if candidate == token["lemma"]:
@@ -123,7 +123,7 @@ for filedata in data_files:
 
     print("exec time:\t %.3f" % (time.time() - start))
     print("token count:\t", total)
-    print("greedy:\t\t %.3f" % (greedy / total))
+    print("greedy:\t\t %.3f" % (_greedy / total))
     print("non-greedy:\t %.3f" % (nongreedy / total))
     print("baseline:\t %.3f" % (zero / total))
     print("ADJ+NOUN greedy:\t\t %.3f" % (focus / focus_total))

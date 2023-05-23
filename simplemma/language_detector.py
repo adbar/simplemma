@@ -65,12 +65,11 @@ def _as_list(results: Dict[str, float]) -> List[Tuple[str, float]]:
 
 class LanguageDetector:
     __slots__ = [
-        "dictionary_factory",
-        "greedy",
-        "lang",
-        "lemmatization_strategy",
+        "_dictionary_factory",
+        "_lang",
+        "_lemmatization_strategy",
         "_orig_token_sampler",
-        "token_sampler",
+        "_token_sampler",
     ]
 
     def __init__(
@@ -80,33 +79,33 @@ class LanguageDetector:
         token_sampler: TokenSampler = MostCommonTokenSampler(),
         lemmatization_strategy: LemmatizationStrategy = DefaultStrategy(),
     ) -> None:
-        self.lang = lang
-        self.dictionary_factory = dictionary_factory
-        self.token_sampler = token_sampler
+        self._lang = lang
+        self._dictionary_factory = dictionary_factory
+        self._token_sampler = token_sampler
         self._orig_token_sampler = token_sampler
-        self.lemmatization_strategy = lemmatization_strategy
+        self._lemmatization_strategy = lemmatization_strategy
 
     def _restore_token_sampler(self) -> None:
-        self.token_sampler = self._orig_token_sampler
+        self._token_sampler = self._orig_token_sampler
 
     def proportion_in_each_language(
         self,
         text: str,
     ) -> Dict[str, float]:
         """Determine which proportion of the text is in each of the target language(s)."""
-        tokens = self.token_sampler.sample_text(text)
+        tokens = self._token_sampler.sample_text(text)
 
         total_tokens = len(tokens)
         if total_tokens == 0:
             return {"unk": 1}
 
-        dictionaries = self.dictionary_factory.get_dictionaries(self.lang)
+        dictionaries = self._dictionary_factory.get_dictionaries(self._lang)
         known_tokens_count = dict.fromkeys(dictionaries, 0)
         unknown_tokens_count = 0
         for token in tokens:
             token_found = False
             for lang_code, lang_dictionary in dictionaries.items():
-                candidate = self.lemmatization_strategy.get_lemma(
+                candidate = self._lemmatization_strategy.get_lemma(
                     token, lang_code, lang_dictionary
                 )
                 if candidate is not None:
@@ -142,10 +141,10 @@ class LanguageDetector:
             RelaxedMostCommonTokenSampler()
         ],
     ) -> str:
-        token_samplers = [self.token_sampler] + additional_token_samplers
+        token_samplers = [self._token_sampler] + additional_token_samplers
 
         for token_sampler in token_samplers:
-            self.token_sampler = token_sampler
+            self._token_sampler = token_sampler
             list_results = _as_list(self.proportion_in_each_language(text))
             if len(list_results) > 1 and list_results[0][1] != list_results[1][1]:
                 self._restore_token_sampler()

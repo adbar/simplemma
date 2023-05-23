@@ -12,8 +12,10 @@ SHORTER_GREEDY = {"bg", "et", "fi"}
 
 
 class DefaultStrategy(LemmatizationStrategy):
+    __slots__ = ["_greedy"]
+
     def __init__(self, greedy: bool = False):
-        self.greedy = greedy
+        self._greedy = greedy
 
     def get_lemma(
         self, token: str, lang: str, dictionary: Dict[str, str]
@@ -29,7 +31,7 @@ class DefaultStrategy(LemmatizationStrategy):
         rules_search = RulesStrategy()
         prefix_search = PrefixDecompositionStrategy()
         greedy_dictionary_lookup = GreedyDictionaryLookupStrategy()
-        affix_search = AffixDecompositionStrategy(self.greedy, limit)
+        affix_search = AffixDecompositionStrategy(self._greedy, limit)
 
         candidate = (
             # supervised searches
@@ -42,7 +44,7 @@ class DefaultStrategy(LemmatizationStrategy):
         )
 
         # additional round
-        if candidate is not None and self.greedy and len(token) > limit:
+        if candidate is not None and self._greedy and len(token) > limit:
             candidate = greedy_dictionary_lookup.get_lemma(candidate, lang, dictionary)
 
         return candidate
