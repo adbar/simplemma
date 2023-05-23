@@ -5,7 +5,8 @@ from collections import Counter
 from os import makedirs, path
 
 from conllu import parse_incr  # type: ignore
-from simplemma import lemmatize
+from simplemma import Lemmatizer, DefaultDictionaryFactory
+from simplemma.strategies.default import DefaultStrategy
 
 if not path.exists("csv"):
     makedirs("csv")
@@ -66,6 +67,16 @@ for filedata in data_files:
     with open(filename, "r", encoding="utf-8") as myfile:
         data_file = myfile.read()
     start = time.time()
+    dictionary_factory = DefaultDictionaryFactory()
+    strategies = DefaultStrategy(greedy=False)
+    lemmatizer = Lemmatizer(
+        dictionary_factory=dictionary_factory,
+        lemmatization_strategy=DefaultStrategy(greedy=False),
+    )
+    greedy_lemmatizer = Lemmatizer(
+        dictionary_factory=dictionary_factory,
+        lemmatization_strategy=DefaultStrategy(greedy=True),
+    )
     print("==", filedata, "==")
     for tokenlist in parse_incr(data_file):
         for token in tokenlist:
@@ -75,13 +86,10 @@ for filedata in data_files:
                 continue
 
             initial = bool(token["id"] == 1)
+            token_form = token["form"].lower() if initial else token["form"]
 
-            greedy_candidate = lemmatize(
-                token["form"], lang=language, greedy=True, initial=initial
-            )
-            candidate = lemmatize(
-                token["form"], lang=language, greedy=False, initial=initial
-            )
+            candidate = lemmatizer.lemmatize(token_form, lang=language)
+            greedy_candidate = greedy_lemmatizer.lemmatize(token_form, lang=language)
 
             if token["upos"] in ("ADJ", "NOUN"):
                 focus_total += 1
