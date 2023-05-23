@@ -75,7 +75,7 @@ for filedata in data_files:
     )
     greedy_lemmatizer = Lemmatizer(
         dictionary_factory=dictionary_factory,
-        lemmatization_strategy=DefaultStrategy(greedy=False),
+        lemmatization_strategy=DefaultStrategy(greedy=True),
     )
     print("==", filedata, "==")
     for tokenlist in parse_incr(data_file):
