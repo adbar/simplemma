@@ -12,9 +12,7 @@ class RulesStrategy(LemmatizationStrategy):
     ):
         self._rules = rules
 
-    def get_lemma(
-        self, token: str, lang: str, dictionary: Dict[str, str]
-    ) -> Optional[str]:
+    def get_lemma(self, token: str, lang: str) -> Optional[str]:
         "Pre-defined rules."
         if lang not in self._rules:
             return None

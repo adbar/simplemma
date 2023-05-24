@@ -12,9 +12,8 @@ from .strategies.fallback.lemmatization_fallback_strategy import (
     LemmatizationFallbackStrategy,
 )
 from .strategies.fallback.to_lowercase import ToLowercaseFallbackStrategy
-
-from .dictionary_factory import DictionaryFactory, DefaultDictionaryFactory
 from .tokenizer import Tokenizer, RegexTokenizer
+from .utils import validate_lang_input
 
 PUNCTUATION = {".", "?", "!", "…", "¿", "¡"}
 
@@ -30,19 +29,14 @@ def _control_input_type(token: Any) -> None:
 def is_known(
     token: str,
     lang: Union[str, Tuple[str, ...]],
-    dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
 ) -> bool:
-    return Lemmatizer(dictionary_factory=dictionary_factory).is_known(token, lang)
+    return Lemmatizer().is_known(token, lang)
 
 
 def lemmatize(
-    token: str,
-    lang: Union[str, Tuple[str, ...]],
-    greedy: bool = False,
-    dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
+    token: str, lang: Union[str, Tuple[str, ...]], greedy: bool = False
 ) -> str:
     return Lemmatizer(
-        dictionary_factory=dictionary_factory,
         lemmatization_strategy=DefaultStrategy(greedy),
     ).lemmatize(token, lang)
 
@@ -51,7 +45,6 @@ def text_lemmatizer(
     text: str,
     lang: Union[str, Tuple[str, ...]],
     greedy: bool = False,
-    dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
     tokenizer: Tokenizer = RegexTokenizer(),
 ) -> List[str]:
     return list(
@@ -59,7 +52,6 @@ def text_lemmatizer(
             text,
             lang,
             greedy,
-            dictionary_factory=dictionary_factory,
             tokenizer=tokenizer,
         )
     )
@@ -69,11 +61,9 @@ def lemma_iterator(
     text: str,
     lang: Union[str, Tuple[str, ...]],
     greedy: bool = False,
-    dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
     tokenizer: Tokenizer = RegexTokenizer(),
 ) -> Iterator[str]:
     return Lemmatizer(
-        dictionary_factory=dictionary_factory,
         tokenizer=tokenizer,
         lemmatization_strategy=DefaultStrategy(greedy),
     ).get_lemmas_in_text(text, lang)
@@ -81,7 +71,6 @@ def lemma_iterator(
 
 class Lemmatizer:
     __slots__ = [
-        "_dictionary_factory",
         "_fallback_lemmatization_strategy",
         "_lemmatization_strategy",
         "_tokenizer",
@@ -91,12 +80,10 @@ class Lemmatizer:
     def __init__(
         self,
         cache_max_size: int = 1048576,
-        dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
         tokenizer: Tokenizer = RegexTokenizer(),
         lemmatization_strategy: LemmatizationStrategy = DefaultStrategy(),
         fallback_lemmatization_strategy: LemmatizationFallbackStrategy = ToLowercaseFallbackStrategy(),
     ) -> None:
-        self._dictionary_factory = dictionary_factory
         self._tokenizer = tokenizer
         self._lemmatization_strategy = lemmatization_strategy
         self._fallback_lemmatization_strategy = fallback_lemmatization_strategy
@@ -110,12 +97,12 @@ class Lemmatizer:
         """Tell if a token is present in one of the loaded dictionaries.
         Case-insensitive, whole word forms only. Returns True or False."""
         _control_input_type(token)
-        dictionaries = self._dictionary_factory.get_dictionaries(lang)
+        lang = validate_lang_input(lang)
 
         dictionary_lookup = DictionaryLookupStrategy()
         return any(
-            dictionary_lookup.get_lemma(token, lang_code, lang_dictionary) is not None
-            for lang_code, lang_dictionary in dictionaries.items()
+            dictionary_lookup.get_lemma(token, lang_code) is not None
+            for lang_code in lang
         )
 
     def _lemmatize(
@@ -127,18 +114,14 @@ class Lemmatizer:
         language list passed as input.
         Returns a string."""
         _control_input_type(token)
-        dictionaries = self._dictionary_factory.get_dictionaries(lang)
+        lang = validate_lang_input(lang)
 
-        for lang_code, lang_dictionary in dictionaries.items():
-            candidate = self._lemmatization_strategy.get_lemma(
-                token, lang_code, lang_dictionary
-            )
+        for lang_code in lang:
+            candidate = self._lemmatization_strategy.get_lemma(token, lang_code)
             if candidate is not None:
                 return candidate
 
-        return self._fallback_lemmatization_strategy.get_lemma(
-            token, next(iter(dictionaries))
-        )
+        return self._fallback_lemmatization_strategy.get_lemma(token, next(iter(lang)))
 
     def get_lemmas_in_text(
         self,

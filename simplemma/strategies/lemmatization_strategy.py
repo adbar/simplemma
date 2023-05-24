@@ -1,5 +1,5 @@
 import sys
-from typing import Dict, Optional
+from typing import Optional
 from abc import abstractmethod
 
 if sys.version_info >= (3, 8):
@@ -10,7 +10,5 @@ else:
 
 class LemmatizationStrategy(Protocol):
     @abstractmethod
-    def get_lemma(
-        self, token: str, lang: str, dictionary: Dict[str, str]
-    ) -> Optional[str]:
+    def get_lemma(self, token: str, lang: str) -> Optional[str]:
         raise NotImplementedError()

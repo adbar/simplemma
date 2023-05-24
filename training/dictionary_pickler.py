@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import simplemma
-from simplemma.dictionary_factory import SUPPORTED_LANGUAGES
+from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
 from simplemma.strategies.defaultrules import DEFAULT_RULES
 from simplemma.utils import levenshtein_dist
 
@@ -133,7 +133,7 @@ def _pickle_dict(
     if langcode not in ("lt", "sw"):
         mydict = dict(sorted(mydict.items(), key=itemgetter(1)))
     if filepath is None:
-        filename = f"data/{langcode}.plzma"
+        filename = f"strategies/dictionaries/data/{langcode}.plzma"
         filepath = str(Path(simplemma.__file__).parent / filename)
     with lzma.open(filepath, "wb") as filehandle:  # , filters=my_filters, preset=9
         pickle.dump(mydict, filehandle, protocol=4)

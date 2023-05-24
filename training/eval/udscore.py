@@ -5,7 +5,8 @@ from collections import Counter
 from os import makedirs, path
 
 from conllu import parse_incr  # type: ignore
-from simplemma import Lemmatizer, DefaultDictionaryFactory
+from simplemma import Lemmatizer
+from simplemma.strategies.dictionaries import DefaultDictionaryFactory
 from simplemma.strategies.default import DefaultStrategy
 
 if not path.exists("csv"):
@@ -70,12 +71,14 @@ for filedata in data_files:
     _dictionary_factory = DefaultDictionaryFactory()
     strategies = DefaultStrategy(greedy=False)
     lemmatizer = Lemmatizer(
-        dictionary_factory=_dictionary_factory,
-        lemmatization_strategy=DefaultStrategy(greedy=False),
+        lemmatization_strategy=DefaultStrategy(
+            greedy=False, dictionary_factory=_dictionary_factory
+        ),
     )
     greedy_lemmatizer = Lemmatizer(
-        dictionary_factory=_dictionary_factory,
-        lemmatization_strategy=DefaultStrategy(greedy=True),
+        lemmatization_strategy=DefaultStrategy(
+            greedy=True, dictionary_factory=_dictionary_factory
+        ),
     )
     print("==", filedata, "==")
     for tokenlist in parse_incr(data_file):

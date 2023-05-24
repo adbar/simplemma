@@ -3,7 +3,7 @@
 import re
 import sys
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Iterator, List, Pattern
 
 if sys.version_info >= (3, 8):

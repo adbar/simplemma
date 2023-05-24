@@ -4,10 +4,10 @@ import lzma
 import logging
 import pickle
 import sys
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from os import listdir, path
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Dict
 
 from functools import lru_cache
 
@@ -17,16 +17,6 @@ else:
     from typing_extensions import Protocol
 
 LOGGER = logging.getLogger(__name__)
-
-
-def _validate_lang_input(lang: Any) -> Tuple[str]:
-    "Make sure the lang variable is a valid tuple."
-    # convert string
-    if isinstance(lang, str):
-        lang = (lang,)
-    if not isinstance(lang, tuple):
-        raise TypeError("lang argument must be a two-letter language code")
-    return lang  # type: ignore[return-value]
 
 
 DATA_FOLDER = str(Path(__file__).parent / "data")
@@ -48,10 +38,10 @@ def _load_dictionary_from_disk(langcode: str) -> Dict[str, str]:
 
 class DictionaryFactory(Protocol):
     @abstractmethod
-    def get_dictionaries(
+    def get_dictionary(
         self,
-        langs: Optional[Union[str, Tuple[str, ...]]] = None,
-    ) -> Dict[str, Dict[str, str]]:
+        lang: str,
+    ) -> Dict[str, str]:
         raise NotImplementedError
 
 
@@ -64,19 +54,11 @@ class DefaultDictionaryFactory(DictionaryFactory):
             _load_dictionary_from_disk
         )
 
-    def get_dictionaries(
+    def get_dictionary(
         self,
-        langs: Optional[Union[str, Tuple[str, ...]]] = None,
-    ) -> Dict[str, Dict[str, str]]:
-        langs = _validate_lang_input(langs)
-
-        if sorted(self._data) == sorted(langs):
-            return self._data
-
-        self._data = {}
-        for lang in langs:
-            if lang not in SUPPORTED_LANGUAGES:
-                raise ValueError(f"Unsupported language: {lang}")
-            LOGGER.debug("loading %s", lang)
-            self._data[lang] = self._load_dictionary_from_disk(lang)
-        return self._data
+        lang: str,
+    ) -> Dict[str, str]:
+        if lang not in SUPPORTED_LANGUAGES:
+            raise ValueError(f"Unsupported language: {lang}")
+        LOGGER.debug("loading %s", lang)
+        return self._load_dictionary_from_disk(lang)

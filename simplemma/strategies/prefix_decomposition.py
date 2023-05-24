@@ -16,9 +16,7 @@ class PrefixDecompositionStrategy(LemmatizationStrategy):
         self._known_prefixes = known_prefixes
         self._dictionary_lookup = dictionary_lookup
 
-    def get_lemma(
-        self, token: str, lang: str, dictionary: Dict[str, str]
-    ) -> Optional[str]:
+    def get_lemma(self, token: str, lang: str) -> Optional[str]:
         "Subword decomposition using pre-defined prefixes (often absent from vocabulary if they are not words)."
         if lang not in self._known_prefixes:
             return None
@@ -28,9 +26,7 @@ class PrefixDecompositionStrategy(LemmatizationStrategy):
             return None
         prefix = prefix_match[1]
 
-        subword = self._dictionary_lookup.get_lemma(
-            token[len(prefix) :], lang, dictionary
-        )
+        subword = self._dictionary_lookup.get_lemma(token[len(prefix) :], lang)
         if subword is None:
             return None
 
