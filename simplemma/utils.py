@@ -1,3 +1,16 @@
+from typing import Any, Tuple
+
+
+def validate_lang_input(lang: Any) -> Tuple[str]:
+    "Make sure the lang variable is a valid tuple."
+    # convert string
+    if isinstance(lang, str):
+        lang = (lang,)
+    if not isinstance(lang, tuple):
+        raise TypeError("lang argument must be a two-letter language code")
+    return lang  # type: ignore[return-value]
+
+
 def levenshtein_dist(str1: str, str2: str) -> int:
     # inspired by this noticeably faster code:
     # https://gist.github.com/p-hash/9e0f9904ce7947c133308fbe48fe032b

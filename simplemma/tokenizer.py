@@ -3,7 +3,7 @@
 import re
 import sys
 
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Iterator, List, Pattern
 
 if sys.version_info >= (3, 8):
@@ -25,7 +25,7 @@ def simple_tokenizer(text: str, splitting_regex: Pattern[str] = TOKREGEX) -> Lis
     """Simple regular expression.
     Takes a string as input and returns a list of tokens.
     Provided for convenience and educational purposes."""
-    return splitting_regex.findall(text)
+    return list(RegexTokenizer(splitting_regex).split_text(text))
 
 
 class Tokenizer(Protocol):
@@ -35,10 +35,10 @@ class Tokenizer(Protocol):
 
 
 class RegexTokenizer(Tokenizer):
-    __slots__ = ["splitting_regex"]
+    __slots__ = ["_splitting_regex"]
 
     def __init__(self, splitting_regex: Pattern[str] = TOKREGEX) -> None:
-        self.splitting_regex = splitting_regex
+        self._splitting_regex = splitting_regex
 
     def split_text(self, text: str) -> Iterator[str]:
-        return (match[0] for match in self.splitting_regex.finditer(text))
+        return (match[0] for match in self._splitting_regex.finditer(text))

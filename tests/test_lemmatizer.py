@@ -2,10 +2,15 @@
 
 import logging
 import pytest
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict
 
 import simplemma
-from simplemma import lemmatize, Lemmatizer, DictionaryFactory, DefaultDictionaryFactory
+from simplemma import lemmatize, Lemmatizer
+from simplemma.strategies.dictionaries import (
+    DictionaryFactory,
+    DefaultDictionaryFactory,
+)
+from simplemma.strategies.default import DefaultStrategy
 from simplemma.strategies.fallback.raise_error import RaiseErrorFallbackStrategy
 
 logging.basicConfig(level=logging.DEBUG)
@@ -13,14 +18,18 @@ logging.basicConfig(level=logging.DEBUG)
 
 def test_custom_dictionary_factory() -> None:
     class CustomDictionaryFactory(DictionaryFactory):
-        def get_dictionaries(
+        def get_dictionary(
             self,
-            langs: Optional[Union[str, Tuple[str, ...]]] = None,
-        ) -> Dict[str, Dict[str, str]]:
-            return {"en": {"testing": "the test works!!"}}  # type: ignore
+            lang: str,
+        ) -> Dict[str, str]:
+            return {"testing": "the test works!!"}
 
     assert (
-        lemmatize("testing", lang="en", dictionary_factory=CustomDictionaryFactory())
+        Lemmatizer(
+            lemmatization_strategy=DefaultStrategy(
+                dictionary_factory=CustomDictionaryFactory()
+            )
+        ).lemmatize("testing", lang="en")
         == "the test works!!"
     )
 
@@ -83,13 +92,10 @@ def test_logic() -> None:
     # missing languages or faulty language codes
     dictionary_factory = DefaultDictionaryFactory()
     with pytest.raises(ValueError):
-        dictionaries = dictionary_factory.get_dictionaries(("abc"))
+        dictionary_factory.get_dictionary(("abc"))
 
-    dictionaries = dictionary_factory.get_dictionaries(("de", "en"))
     with pytest.raises(TypeError):
         lemmatize("test", lang=["test"])  # type: ignore[arg-type]
-
-    deDict = dictionaries["de"]
 
     # searches
     with pytest.raises(TypeError):
