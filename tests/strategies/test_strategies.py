@@ -1,6 +1,3 @@
-from simplemma.strategies.dictionaries.dictionary_factory import (
-    DefaultDictionaryFactory,
-)
 from simplemma.strategies.dictionary_lookup import DictionaryLookupStrategy
 from simplemma.strategies.hyphen_removal import HyphenRemovalStrategy
 from simplemma.strategies.default import DefaultStrategy

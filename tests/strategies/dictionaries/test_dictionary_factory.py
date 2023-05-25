@@ -1,6 +1,14 @@
+import pytest
 from simplemma.strategies.dictionaries.dictionary_factory import (
     DefaultDictionaryFactory,
 )
+
+
+def test_exceptions() -> None:
+    # missing languages or faulty language codes
+    dictionary_factory = DefaultDictionaryFactory()
+    with pytest.raises(ValueError):
+        dictionary_factory.get_dictionary(("abc"))
 
 
 def test_dictionary_cache() -> None:
