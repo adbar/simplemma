@@ -30,6 +30,25 @@ MINCOMPLEN = 4
 
 
 class AffixDecompositionStrategy(LemmatizationStrategy):
+    """
+    Lemmatization strategy that uses affix decomposition to find lemmas of tokens.
+
+    This strategy decomposes tokens into affixes and looks up their lemmas in a dictionary.
+    It first attempts to decompose the token using affix decomposition and then falls back
+    to suffix decomposition if affix decomposition fails.
+
+    Args:
+        greedy (bool): Flag indicating whether to use a greedy approach for decomposition.
+        dictionary_lookup (DictionaryLookupStrategy, optional): The dictionary lookup strategy
+            to use for retrieving lemma information. Defaults to `DictionaryLookupStrategy()`.
+        greedy_dictionary_lookup (GreedyDictionaryLookupStrategy, optional): The greedy dictionary
+            lookup strategy to use for retrieving lemma information in the greedy approach.
+            Defaults to `GreedyDictionaryLookupStrategy()`.
+
+    Methods:
+    - `get_lemma`: Get the lemma for a given token and language by performing subword decomposition.
+    """
+
     __slots__ = ["_greedy", "_dictionary_lookup", "_greedy_dictionary_lookup"]
 
     def __init__(
@@ -38,12 +57,31 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
         dictionary_lookup: DictionaryLookupStrategy = DictionaryLookupStrategy(),
         greedy_dictionary_lookup: GreedyDictionaryLookupStrategy = GreedyDictionaryLookupStrategy(),
     ):
+        """
+        Initialize the Affix Decomposition Strategy.
+
+        Args:
+            greedy (bool): Flag indicating whether to use greedy decomposition.
+            dictionary_lookup (DictionaryLookupStrategy): The dictionary lookup strategy to use.
+                Defaults to `DictionaryLookupStrategy()`.
+            greedy_dictionary_lookup (GreedyDictionaryLookupStrategy): The greedy dictionary lookup strategy to use.
+                Defaults to `GreedyDictionaryLookupStrategy()`.
+        """
         self._greedy = greedy
         self._dictionary_lookup = dictionary_lookup
         self._greedy_dictionary_lookup = greedy_dictionary_lookup
 
     def get_lemma(self, token: str, lang: str) -> Optional[str]:
-        "Unsupervised suffix/affix search, not productive for all languages."
+        """
+        Get the lemma of a token using affix decomposition strategy.
+
+        Args:
+            token (str): The input token.
+            lang (str): The language code.
+
+        Returns:
+            Optional[str]: The lemma of the token if found, or None otherwise.
+        """
         limit = 6 if lang in SHORTER_GREEDY else 8
         if (not self._greedy and not lang in AFFIX_LANGS) or len(token) <= limit:
             return None
@@ -63,7 +101,18 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
         max_affix_len: int = 0,
         min_complem_len: int = 0,
     ) -> Optional[str]:
-        "Split token into known two known parts and lemmatize the second one."
+        """
+        Perform affix decomposition on a token.
+
+        Args:
+            token (str): The input token.
+            lang (str): The language code.
+            max_affix_len (int): The maximum length of the affix.
+            min_complem_len (int): The minimum length of the complementary part.
+
+        Returns:
+            Optional[str]: The lemma of the token if found, or None otherwise.
+        """
         # this only makes sense for languages written from left to right
         # AFFIXLEN or MINCOMPLEN can spare time for some languages
         for affixlen in range(max_affix_len, 1, -1):
@@ -109,6 +158,18 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
         lang: str,
         min_complem_len: int = 0,
     ) -> Optional[str]:
+        """
+        Decomposes the token using suffix decomposition strategy.
+
+        Args:
+            token (str): The token to be decomposed.
+            lang (str): The language of the token.
+            min_complem_len (int, optional): The minimum length of the complementary part
+                to consider during decomposition. Defaults to 0.
+
+        Returns:
+            Optional[str]: The decomposed token if decomposition is successful, None otherwise.
+        """
         for count in range(len(token) - min_complem_len, min_complem_len - 1, -1):
             suffix = self._dictionary_lookup.get_lemma(
                 token[-count:].capitalize(), lang

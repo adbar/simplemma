@@ -1,8 +1,27 @@
+"""
+Utils module. Contains utility functions for language processing.
+
+- validate_lang_input: Validates the language input and ensures it is a valid tuple.
+- levenshtein_dist: Calculates the Levenshtein distance between two strings.
+"""
+
 from typing import Any, Tuple
 
 
 def validate_lang_input(lang: Any) -> Tuple[str]:
-    "Make sure the lang variable is a valid tuple."
+    """
+    Make sure the lang variable is a valid tuple.
+
+    Args:
+        lang (Any): The language input.
+
+    Returns:
+        Tuple[str]: A tuple containing the language code.
+
+    Raises:
+        TypeError: If the lang argument is not a tuple or a string.
+
+    """
     # convert string
     if isinstance(lang, str):
         lang = (lang,)
@@ -12,6 +31,21 @@ def validate_lang_input(lang: Any) -> Tuple[str]:
 
 
 def levenshtein_dist(str1: str, str2: str) -> int:
+    """
+    Calculate the Levenshtein distance between two strings.
+
+    The Levenshtein distance is a metric for measuring the difference between two strings,
+    defined as the minimum number of single-character edits (insertions, deletions, or substitutions)
+    required to change one string into the other.
+
+    Args:
+        str1 (str): The first string.
+        str2 (str): The second string.
+
+    Returns:
+        int: The Levenshtein distance between the two strings.
+
+    """
     # inspired by this noticeably faster code:
     # https://gist.github.com/p-hash/9e0f9904ce7947c133308fbe48fe032b
     if str1 == str2:
