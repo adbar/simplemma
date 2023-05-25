@@ -2,8 +2,8 @@
 
 import logging
 
-from simplemma.language_detector import in_target_language, langdetect, LanguageDetector
-from simplemma.strategies.default import DefaultStrategy
+from simplemma import in_target_language, langdetect, LanguageDetector
+from simplemma.strategies import DefaultStrategy
 
 from .test_token_sampler import CustomTokenSampler
 

@@ -1,8 +1,10 @@
-from simplemma.strategies.dictionary_lookup import DictionaryLookupStrategy
-from simplemma.strategies.hyphen_removal import HyphenRemovalStrategy
-from simplemma.strategies.default import DefaultStrategy
-from simplemma.strategies.greedy_dictionary_lookup import GreedyDictionaryLookupStrategy
-from simplemma.strategies.affix_decomposition import AffixDecompositionStrategy
+from simplemma.strategies import (
+    DictionaryLookupStrategy,
+    HyphenRemovalStrategy,
+    DefaultStrategy,
+    GreedyDictionaryLookupStrategy,
+    AffixDecompositionStrategy,
+)
 
 
 def test_search() -> None:

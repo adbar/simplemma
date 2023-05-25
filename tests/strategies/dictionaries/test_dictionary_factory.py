@@ -1,7 +1,5 @@
 import pytest
-from simplemma.strategies.dictionaries.dictionary_factory import (
-    DefaultDictionaryFactory,
-)
+from simplemma.strategies import DefaultDictionaryFactory
 
 
 def test_exceptions() -> None:
