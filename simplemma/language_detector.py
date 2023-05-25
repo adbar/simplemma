@@ -1,4 +1,13 @@
-"""LanguageDetector can extract information about languages present in a text like the proportion of text in each language or the main language of the text."""
+"""
+This module implements a language detection functionality using lemmatization and token sampling.
+
+Classes:
+- LanguageDetector: A class that performs language detection using lemmatization and token sampling.
+
+Functions:
+- in_target_language: Calculate the proportion of text in the target language(s).
+- langdetect: Detect the language(s) of the given text and their proportions.
+"""
 
 from operator import itemgetter
 from typing import Dict, List, Tuple, Union
@@ -19,7 +28,20 @@ def in_target_language(
     greedy: bool = False,
     token_sampler: TokenSampler = MostCommonTokenSampler(),
 ) -> float:
-    """Determine which proportion of the text is in the target language(s)."""
+    """
+    Calculate the proportion of text in the target language(s).
+
+    Args:
+        text (str): The input text to analyze.
+        lang (Union[str, Tuple[str, ...]]): The target language(s) to compare against.
+        greedy (bool, optional): Whether to use greedy lemmatization. Defaults to `False`.
+        token_sampler (TokenSampler, optional): The token sampling strategy to use.
+            Defaults to `MostCommonTokenSampler()`.
+
+    Returns:
+        float: The proportion of text in the target language(s).
+    """
+
     return LanguageDetector(
         lang, token_sampler, DefaultStrategy(greedy)
     ).proportion_in_target_languages(text)
@@ -34,7 +56,21 @@ def langdetect(
         RelaxedMostCommonTokenSampler(),
     ],
 ) -> List[Tuple[str, float]]:
-    """Determine which proportion of the text is in the target language(s)."""
+    """
+    Detect the language(s) of the given text and their proportions.
+
+    Args:
+        text (str): The input text to analyze.
+        lang (Union[str, Tuple[str, ...]]): The target language(s) to compare against.
+        greedy (bool, optional): Whether to use greedy lemmatization. Defaults to `False`.
+        token_samplers (List[TokenSampler], optional): The list of token sampling strategies
+            to use. Defaults to `[MostCommonTokenSampler(), RelaxedMostCommonTokenSampler()]`.
+
+    Returns:
+        List[Tuple[str, float]]: A list of tuples containing the detected language(s)
+            and their respective proportions.
+    """
+
     for token_sampler in token_samplers:
         results = LanguageDetector(
             lang, token_sampler, DefaultStrategy(greedy)
@@ -48,7 +84,16 @@ def langdetect(
 
 
 def _as_list(results: Dict[str, float]) -> List[Tuple[str, float]]:
-    "Convert the results to a sorted list and switch unknown to the end."
+    """
+    Convert the language detection results into a sorted list.
+
+    Args:
+        results (Dict[str, float]): The language detection results.
+
+    Returns:
+        List[Tuple[str, float]]: A sorted list of tuples containing the language codes
+            and their respective proportions.
+    """
     list_results: List[Tuple[str, float]] = sorted(
         results.items(), key=itemgetter(1), reverse=True
     )
@@ -61,6 +106,15 @@ def _as_list(results: Dict[str, float]) -> List[Tuple[str, float]]:
 
 
 class LanguageDetector:
+    """
+    A class that performs language detection using lemmatization and token sampling.
+
+    Methods:
+        proportion_in_each_language: Calculate the proportion of each language in the given text.
+        proportion_in_target_languages: Calculate the proportion of text in the target language(s).
+        main_language: Determine the main language of the given text.
+    """
+
     __slots__ = [
         "_lang",
         "_lemmatization_strategy",
@@ -74,6 +128,17 @@ class LanguageDetector:
         token_sampler: TokenSampler = MostCommonTokenSampler(),
         lemmatization_strategy: LemmatizationStrategy = DefaultStrategy(),
     ) -> None:
+        """
+        Initialize the LanguageDetector.
+
+        Args:
+            lang (Union[str, Tuple[str, ...]]): The target language or languages to detect.
+            token_sampler (TokenSampler, optional): The token sampling strategy to use.
+                Defaults to `MostCommonTokenSampler()`.
+            lemmatization_strategy (LemmatizationStrategy, optional): The lemmatization
+                strategy to use. `Defaults to DefaultStrategy()`.
+        """
+
         self._lang = validate_lang_input(lang)
         self._token_sampler = token_sampler
         self._orig_token_sampler = token_sampler
@@ -86,7 +151,16 @@ class LanguageDetector:
         self,
         text: str,
     ) -> Dict[str, float]:
-        """Determine which proportion of the text is in each of the target language(s)."""
+        """
+        Calculate the proportion of each language in the given text.
+
+        Args:
+            text (str): The input text to analyze.
+
+        Returns:
+            Dict[str, float]: A dictionary containing the detected languages and
+                their respective proportions.
+        """
         tokens = self._token_sampler.sample_text(text)
 
         total_tokens = len(tokens)
@@ -116,6 +190,15 @@ class LanguageDetector:
         self,
         text: str,
     ) -> float:
+        """
+        Calculate the proportion of text in the target language.
+
+        Args:
+            text (str): The input text to analyze.
+
+        Returns:
+            float: The proportion of text in the target language(s).
+        """
         return sum(
             percentage
             for (
@@ -132,6 +215,17 @@ class LanguageDetector:
             RelaxedMostCommonTokenSampler()
         ],
     ) -> str:
+        """
+        Determine the main language of the given text.
+
+        Args:
+            text (str): The input text to analyze.
+            additional_token_samplers (List[TokenSampler], optional): Additional token
+                sampling strategies to use. Defaults to `[RelaxedMostCommonTokenSampler()]`.
+
+        Returns:
+            str: The main language of the text.
+        """
         token_samplers = [self._token_sampler] + additional_token_samplers
 
         for token_sampler in token_samplers:

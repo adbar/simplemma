@@ -1,4 +1,14 @@
-"""Top-level package for Simplemma."""
+"""Top-level package for Simplemma.
+
+This package provides simple and lightweight tools for language detection and lemmatization.
+
+Modules:
+    language_detector: Module for language detection functionality.
+    lemmatizer: Module for lemmatization functionality.
+    tokenizer: Module for tokenization functionality.
+    token_sampler: Module for token sampling functionality.
+
+"""
 
 __title__ = "simplemma"
 __author__ = "Adrien Barbaresi"

@@ -1,3 +1,19 @@
+"""
+Hyphen Removal Strategy
+-----------------------
+
+This module defines the `HyphenRemovalStrategy` class, which is a concrete implementation of the `LemmatizationStrategy` protocol.
+It provides lemmatization by removing hyphens from tokens and attempting to find dictionary forms.
+
+Module Dependencies:
+- typing.Optional: For representing an optional return value.
+- re: For working with regular expressions.
+
+Class:
+- `HyphenRemovalStrategy`: A lemmatization strategy based on hyphen removal.
+
+"""
+
 import re
 from typing import Optional
 
@@ -11,15 +27,55 @@ HYPHEN_REGEX = re.compile(rf"([{HYPHENS_FOR_REGEX}])")
 
 
 class HyphenRemovalStrategy(LemmatizationStrategy):
+    """
+    Hyphen Removal Strategy
+
+    This class represents a lemmatization strategy that performs lemmatization by removing hyphens from tokens
+    and attempting to find dictionary forms.
+    It implements the `LemmatizationStrategy` protocol.
+
+    Attributes:
+    - `_dictionary_lookup` (DictionaryLookupStrategy): The dictionary lookup strategy used to find dictionary forms.
+
+    Methods:
+    - `get_lemma`: Get the lemma for a given token and language by removing hyphens and performing dictionary lookup.
+
+    """
+
     __slots__ = ["_dictionary_lookup"]
 
     def __init__(
         self, dictionary_lookup: DictionaryLookupStrategy = DictionaryLookupStrategy()
     ):
+        """
+        Initialize the Hyphen Removal Strategy.
+
+        Args:
+        - `dictionary_lookup` (DictionaryLookupStrategy): The dictionary lookup strategy used to find dictionary forms.
+                Defaults to `DictionaryLookupStrategy()`.
+
+        """
         self._dictionary_lookup = dictionary_lookup
 
     def get_lemma(self, token: str, lang: str) -> Optional[str]:
-        "Remove hyphens to see if a dictionary form can be found."
+        """
+        Get Lemma using Hyphen Removal Strategy
+
+        This method performs lemmatization by removing hyphens from the token and attempting to find a dictionary form.
+        It splits the token based on hyphen characters, removes hyphens, and forms a candidate lemma for lookup.
+        If a dictionary form is found, it is returned as the lemma.
+        If not found, it attempts to decompose the token by looking up the last part (after the last hyphen) in the dictionary.
+        If a lemma is found for the last part, it replaces the last part in the token and returns the modified token as the lemma.
+        If no dictionary form is found, None is returned.
+
+        Args:
+        - `token` (str): The input token to lemmatize.
+        - `lang` (str): The language code for the token's language.
+
+        Returns:
+        - Optional[str]: The lemma for the token, or None if no lemma is found.
+
+        """
         token_parts = HYPHEN_REGEX.split(token)
         if len(token_parts) <= 1 or not token_parts[-1]:
             return None
