@@ -1,6 +1,10 @@
-from simplemma.strategies.defaultprefixes import DEFAULT_KNOWN_PREFIXES
+from simplemma.strategies import PrefixDecompositionStrategy
 
 
 def test_test_prefixes_de():
-    assert DEFAULT_KNOWN_PREFIXES["de"].match("zerlemmatisiertes")[1] == "zer"
-    assert DEFAULT_KNOWN_PREFIXES["de"].match("abzugshaube") == None
+    prefix_decomposition_strategy = PrefixDecompositionStrategy()
+    assert (
+        prefix_decomposition_strategy.get_lemma("zerlemmatisiertes", "de")
+        == "zerlemmatisiert"
+    )
+    assert prefix_decomposition_strategy.get_lemma("abzugshaube", "de") == None

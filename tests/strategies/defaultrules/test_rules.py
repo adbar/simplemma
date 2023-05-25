@@ -1,14 +1,14 @@
-"""Tests for rule-based behavior of the `simplemma` package."""
-from simplemma.strategies.defaultrules import DEFAULT_RULES
+from simplemma.strategies import RulesStrategy
 
 
 def test_DEFAULT_RULES() -> None:
     """Test rules on all available languages."""
-    assert DEFAULT_RULES["de"]("Pfifferlinge") == "Pfifferling"
-    assert DEFAULT_RULES["en"]("Pfifferlinge") is None
-    assert DEFAULT_RULES["de"]("atonements") is None
-    assert DEFAULT_RULES["en"]("atonements") == "atonement"
-    assert DEFAULT_RULES["nl"]("brieven") == "brief"
-    assert DEFAULT_RULES["fi"]("liikenaisessa") == "liikenainen"
-    assert DEFAULT_RULES["pl"]("pracowaliście") == "pracować"
-    assert DEFAULT_RULES["ru"]("безгра́мотностью") == "безгра́мотность"
+    rules_strategy = RulesStrategy()
+    assert rules_strategy.get_lemma("Pfifferlinge", "de") == "Pfifferling"
+    assert rules_strategy.get_lemma("Pfifferlinge", "en") is None
+    assert rules_strategy.get_lemma("atonements", "de") is None
+    assert rules_strategy.get_lemma("atonements", "en") == "atonement"
+    assert rules_strategy.get_lemma("brieven", "nl") == "brief"
+    assert rules_strategy.get_lemma("liikenaisessa", "fi") == "liikenainen"
+    assert rules_strategy.get_lemma("pracowaliście", "pl") == "pracować"
+    assert rules_strategy.get_lemma("безгра́мотностью", "ru") == "безгра́мотность"

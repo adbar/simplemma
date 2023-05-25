@@ -1,32 +1,33 @@
-from simplemma.strategies.defaultrules import DEFAULT_RULES
+from simplemma.strategies import RulesStrategy
 
 
 def test_apply_en() -> None:
     """Test English rules."""
+    rules_strategy = RulesStrategy()
     # doesn't exist
-    assert DEFAULT_RULES["en"]("Whatawordicantbelieveit") is None
+    assert rules_strategy.get_lemma("Whatawordicantbelieveit", "en") is None
     # nouns
-    assert DEFAULT_RULES["en"]("delicacies") == "delicacy"
-    assert DEFAULT_RULES["en"]("nurseries") == "nursery"
-    assert DEFAULT_RULES["en"]("realities") == "reality"
-    assert DEFAULT_RULES["en"]("kingdoms") == "kingdom"
-    assert DEFAULT_RULES["en"]("mistresses") == "mistress"
-    assert DEFAULT_RULES["en"]("realisms") == "realism"
-    assert DEFAULT_RULES["en"]("naturists") == "naturist"
-    assert DEFAULT_RULES["en"]("atonements") == "atonement"
-    assert DEFAULT_RULES["en"]("nonces") == "nonce"
-    assert DEFAULT_RULES["en"]("hardships") == "hardship"
-    assert DEFAULT_RULES["en"]("atonements") == "atonement"
-    assert DEFAULT_RULES["en"]("nations") == "nation"
-    # assert DEFAULT_RULES["en"]("nerves") == "nerve"
-    # assert DEFAULT_RULES["en"]("dwarves") == "dwarf"
-    # assert DEFAULT_RULES["en"]("matrices") == "matrix"
+    assert rules_strategy.get_lemma("delicacies", "en") == "delicacy"
+    assert rules_strategy.get_lemma("nurseries", "en") == "nursery"
+    assert rules_strategy.get_lemma("realities", "en") == "reality"
+    assert rules_strategy.get_lemma("kingdoms", "en") == "kingdom"
+    assert rules_strategy.get_lemma("mistresses", "en") == "mistress"
+    assert rules_strategy.get_lemma("realisms", "en") == "realism"
+    assert rules_strategy.get_lemma("naturists", "en") == "naturist"
+    assert rules_strategy.get_lemma("atonements", "en") == "atonement"
+    assert rules_strategy.get_lemma("nonces", "en") == "nonce"
+    assert rules_strategy.get_lemma("hardships", "en") == "hardship"
+    assert rules_strategy.get_lemma("atonements", "en") == "atonement"
+    assert rules_strategy.get_lemma("nations", "en") == "nation"
+    # assert rules_strategy.get_lemma("nerves", "en") == "nerve"
+    # assert rules_strategy.get_lemma("dwarves", "en") == "dwarf"
+    # assert rules_strategy.get_lemma("matrices", "en") == "matrix"
     # adjectives / verb forms
-    # assert DEFAULT_RULES["en"]("vindicated") == "vindicate"
-    # assert DEFAULT_RULES["en"]("fastened") == "fasten"
-    # assert DEFAULT_RULES["en"]("dignified") == "dignify"
-    # assert DEFAULT_RULES["en"]("realized") == "realize"
-    # assert DEFAULT_RULES["en"]("complies") == "comply"
-    # assert DEFAULT_RULES["en"]("pinches") == "pinch"
-    # assert DEFAULT_RULES["en"]("dignified") == "dignify"
-    # assert DEFAULT_RULES["en"]('realised') == 'realise'
+    # assert rules_strategy.get_lemma("vindicated", "en") == "vindicate"
+    # assert rules_strategy.get_lemma("fastened", "en") == "fasten"
+    # assert rules_strategy.get_lemma("dignified", "en") == "dignify"
+    # assert rules_strategy.get_lemma("realized", "en") == "realize"
+    # assert rules_strategy.get_lemma("complies", "en") == "comply"
+    # assert rules_strategy.get_lemma("pinches", "en") == "pinch"
+    # assert rules_strategy.get_lemma("dignified", "en") == "dignify"
+    # assert rules_strategy.get_lemma('realised', "en") == 'realise'
