@@ -10,7 +10,6 @@ Classes:
 """
 
 import lzma
-import logging
 import pickle
 import sys
 from abc import abstractmethod
@@ -24,8 +23,6 @@ if sys.version_info >= (3, 8):
     from typing import Protocol
 else:
     from typing_extensions import Protocol
-
-LOGGER = logging.getLogger(__name__)
 
 DATA_FOLDER = str(Path(__file__).parent / "data")
 SUPPORTED_LANGUAGES = [
@@ -143,5 +140,4 @@ class DefaultDictionaryFactory(DictionaryFactory):
         """
         if lang not in SUPPORTED_LANGUAGES:
             raise ValueError(f"Unsupported language: {lang}")
-        LOGGER.debug("loading %s", lang)
         return self._load_dictionary_from_disk(lang)

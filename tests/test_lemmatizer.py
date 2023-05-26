@@ -1,6 +1,5 @@
 """Tests for `simplemma` package."""
 
-import logging
 import pytest
 from typing import Dict
 
@@ -10,8 +9,6 @@ from simplemma.strategies import (
     DefaultStrategy,
     RaiseErrorFallbackStrategy,
 )
-
-logging.basicConfig(level=logging.DEBUG)
 
 
 def test_custom_dictionary_factory() -> None:
