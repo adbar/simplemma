@@ -12,8 +12,7 @@ Functions:
 from operator import itemgetter
 from typing import Dict, List, Tuple, Union
 
-from .strategies.lemmatization_strategy import LemmatizationStrategy
-from .strategies.default import DefaultStrategy
+from .strategies import LemmatizationStrategy, DefaultStrategy
 from .token_sampler import (
     TokenSampler,
     MostCommonTokenSampler,

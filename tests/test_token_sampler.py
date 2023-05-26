@@ -1,6 +1,6 @@
 from typing import Iterable, List
 
-from simplemma.token_sampler import (
+from simplemma import (
     BaseTokenSampler,
     MostCommonTokenSampler,
     RelaxedMostCommonTokenSampler,

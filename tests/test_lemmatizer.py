@@ -5,11 +5,11 @@ import pytest
 from typing import Dict
 
 from simplemma import lemmatize, is_known, text_lemmatizer, lemma_iterator, Lemmatizer
-from simplemma.strategies.dictionaries import (
+from simplemma.strategies import (
     DictionaryFactory,
+    DefaultStrategy,
+    RaiseErrorFallbackStrategy,
 )
-from simplemma.strategies.default import DefaultStrategy
-from simplemma.strategies.fallback.raise_error import RaiseErrorFallbackStrategy
 
 logging.basicConfig(level=logging.DEBUG)
 

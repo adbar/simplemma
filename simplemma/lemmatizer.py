@@ -15,13 +15,13 @@ from functools import lru_cache
 from typing import Any, List, Iterator, Tuple, Union
 
 
-from .strategies.lemmatization_strategy import LemmatizationStrategy
-from .strategies.default import DefaultStrategy
-from .strategies.dictionary_lookup import DictionaryLookupStrategy
-from .strategies.fallback.lemmatization_fallback_strategy import (
+from .strategies import (
+    LemmatizationStrategy,
+    DefaultStrategy,
+    DictionaryLookupStrategy,
     LemmatizationFallbackStrategy,
+    ToLowercaseFallbackStrategy,
 )
-from .strategies.fallback.to_lowercase import ToLowercaseFallbackStrategy
 from .tokenizer import Tokenizer, RegexTokenizer
 from .utils import validate_lang_input
 
