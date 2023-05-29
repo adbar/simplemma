@@ -7,7 +7,11 @@ from os import makedirs, path
 from conllu import parse_incr  # type: ignore
 from simplemma import Lemmatizer
 from simplemma.strategies.dictionaries import DefaultDictionaryFactory
-from simplemma.strategies.default import DefaultStrategy
+from simplemma.strategies.default import (
+    DefaultStrategy,
+    DictionaryLookupStrategy,
+    GreedyDictionaryLookupStrategy,
+)
 
 if not path.exists("csv"):
     makedirs("csv")
@@ -69,15 +73,14 @@ for filedata in data_files:
         data_file = myfile.read()
     start = time.time()
     _dictionary_factory = DefaultDictionaryFactory()
-    strategies = DefaultStrategy(greedy=False)
     lemmatizer = Lemmatizer(
         lemmatization_strategy=DefaultStrategy(
-            greedy=False, dictionary_factory=_dictionary_factory
+            DictionaryLookupStrategy(_dictionary_factory)
         ),
     )
     greedy_lemmatizer = Lemmatizer(
         lemmatization_strategy=DefaultStrategy(
-            greedy=True, dictionary_factory=_dictionary_factory
+            GreedyDictionaryLookupStrategy(_dictionary_factory)
         ),
     )
     print("==", filedata, "==")

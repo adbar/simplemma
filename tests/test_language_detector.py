@@ -3,7 +3,7 @@
 import logging
 
 from simplemma import in_target_language, langdetect, LanguageDetector
-from simplemma.strategies import DefaultStrategy
+from simplemma.strategies import DefaultStrategy, GreedyDictionaryLookupStrategy
 
 from .test_token_sampler import CustomTokenSampler
 
@@ -13,13 +13,14 @@ logging.basicConfig(level=logging.DEBUG)
 def test_proportion_in_each_language() -> None:
     # sanity checks
     assert LanguageDetector(
-        lang=("de", "en"), lemmatization_strategy=DefaultStrategy(greedy=True)
+        lang=("de", "en"),
+        lemmatization_strategy=DefaultStrategy(GreedyDictionaryLookupStrategy()),
     ).proportion_in_each_language(" aa ") == {"unk": 1}
     assert langdetect(" aa ", lang=("de", "en"), greedy=True) == [("unk", 1)]
 
     text = "Test test"
     assert LanguageDetector(
-        lang=("de", "en"), lemmatization_strategy=DefaultStrategy(greedy=False)
+        lang=("de", "en"), lemmatization_strategy=DefaultStrategy()
     ).proportion_in_each_language(text) == {"de": 1.0, "en": 1.0, "unk": 0.0}
     assert langdetect(text, lang=("de", "en"), greedy=False) == [
         ("de", 1.0),
@@ -27,7 +28,8 @@ def test_proportion_in_each_language() -> None:
         ("unk", 0.0),
     ]
     assert LanguageDetector(
-        lang=("de", "en"), lemmatization_strategy=DefaultStrategy(greedy=True)
+        lang=("de", "en"),
+        lemmatization_strategy=DefaultStrategy(GreedyDictionaryLookupStrategy()),
     ).proportion_in_each_language(text) == {"de": 1.0, "en": 1.0, "unk": 0.0}
     assert langdetect(text, lang=("de", "en"), greedy=True) == [
         ("de", 1.0),
@@ -38,7 +40,7 @@ def test_proportion_in_each_language() -> None:
     lang = ("de", "en")
     text = "Nztruedg nsüplke deutsches weiter bgfnki gtrpinadsc."
     assert LanguageDetector(
-        lang=lang, lemmatization_strategy=DefaultStrategy(greedy=False)
+        lang=lang, lemmatization_strategy=DefaultStrategy()
     ).proportion_in_each_language(text) == {
         "de": 0.4,
         "en": 0.0,
@@ -118,7 +120,7 @@ def test_main_language():
     lang = ("de", "en")
     assert (
         LanguageDetector(
-            lang=lang, lemmatization_strategy=DefaultStrategy(greedy=False)
+            lang=lang, lemmatization_strategy=DefaultStrategy()
         ).main_language(text)
         == langdetect(text, lang=lang, greedy=False)[0][0]
         == "de"
@@ -126,7 +128,8 @@ def test_main_language():
 
     assert (
         LanguageDetector(
-            lang=lang, lemmatization_strategy=DefaultStrategy(greedy=True)
+            lang=lang,
+            lemmatization_strategy=DefaultStrategy(GreedyDictionaryLookupStrategy()),
         ).main_language(text)
         == langdetect(text, lang=lang, greedy=False)[0][0]
         == "de"

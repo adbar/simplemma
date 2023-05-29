@@ -15,7 +15,6 @@ Class:
 
 from typing import Optional
 
-from .dictionaries.dictionary_factory import DictionaryFactory, DefaultDictionaryFactory
 from .lemmatization_strategy import LemmatizationStrategy
 from .dictionary_lookup import DictionaryLookupStrategy
 from .hyphen_removal import HyphenRemovalStrategy
@@ -37,7 +36,6 @@ class DefaultStrategy(LemmatizationStrategy):
     - `_hyphen_search` (HyphenRemovalStrategy): A strategy for lemmatization by removing hyphens.
     - `_rules_search` (RulesStrategy): A strategy for rule-based lemmatization.
     - `_prefix_search` (PrefixDecompositionStrategy): A strategy for lemmatization by prefix decomposition.
-    - `_greedy_dictionary_lookup` (Optional[GreedyDictionaryLookupStrategy]): A strategy for dictionary lookup with a greedy approach.
     - `_affix_search` (AffixDecompositionStrategy): A strategy for lemmatization by affix decomposition.
 
     Methods:
@@ -55,23 +53,17 @@ class DefaultStrategy(LemmatizationStrategy):
 
     def __init__(
         self,
-        greedy: bool = False,
-        dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
+        dictionary_lookup: DictionaryLookupStrategy = DictionaryLookupStrategy(),
     ):
         """
         Initialize the Default Strategy.
 
         Args:
-        - `greedy` (bool): Whether to use a greedy approach for dictionary lookup. Defaults to `False`.
-        - `dictionary_factory` (DictionaryFactory): A factory for creating dictionaries.
-            Defaults to `DefaultDictionaryFactory()`.
+            dictionary_lookup (DictionaryLookupStrategy, optional): The dictionary lookup strategy
+                to use for retrieving lemma information. Defaults to `DictionaryLookupStrategy()`.
 
         """
-        self._dictionary_lookup = (
-            GreedyDictionaryLookupStrategy(dictionary_factory)
-            if greedy
-            else DictionaryLookupStrategy(dictionary_factory)
-        )
+        self._dictionary_lookup = dictionary_lookup
         self._hyphen_search = HyphenRemovalStrategy(self._dictionary_lookup)
         self._rules_search = RulesStrategy()
         self._prefix_search = PrefixDecompositionStrategy(

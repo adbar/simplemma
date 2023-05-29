@@ -19,6 +19,7 @@ from .strategies import (
     LemmatizationStrategy,
     DefaultStrategy,
     DictionaryLookupStrategy,
+    GreedyDictionaryLookupStrategy,
     LemmatizationFallbackStrategy,
     ToLowercaseFallbackStrategy,
 )
@@ -75,8 +76,11 @@ def lemmatize(
     Returns:
         str: The lemmatized form of the token.
     """
+    dictionary_lookup_strategy = (
+        GreedyDictionaryLookupStrategy() if greedy else DictionaryLookupStrategy()
+    )
     return Lemmatizer(
-        lemmatization_strategy=DefaultStrategy(greedy),
+        lemmatization_strategy=DefaultStrategy(dictionary_lookup_strategy),
     ).lemmatize(token, lang)
 
 
@@ -126,9 +130,12 @@ def lemma_iterator(
         str: The lemmatized tokens in the text.
     """
 
+    dictionary_lookup_strategy = (
+        GreedyDictionaryLookupStrategy() if greedy else DictionaryLookupStrategy()
+    )
     return Lemmatizer(
         tokenizer=tokenizer,
-        lemmatization_strategy=DefaultStrategy(greedy),
+        lemmatization_strategy=DefaultStrategy(dictionary_lookup_strategy),
     ).get_lemmas_in_text(text, lang)
 
 
