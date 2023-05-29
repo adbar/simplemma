@@ -29,7 +29,7 @@ def test_search() -> None:
         GreedyDictionaryLookupStrategy(steps=0, distance=20).get_lemma(
             "getesteten", "de"
         )
-        == "getesteten"
+        == "getestet"
     )
     assert (
         GreedyDictionaryLookupStrategy(steps=1, distance=20).get_lemma(
@@ -41,13 +41,13 @@ def test_search() -> None:
         GreedyDictionaryLookupStrategy(steps=2, distance=20).get_lemma(
             "getesteten", "de"
         )
-        == "testen"
+        == "getestet"
     )
     assert (
-        GreedyDictionaryLookupStrategy(steps=2, distance=2).get_lemma(
+        GreedyDictionaryLookupStrategy(steps=3, distance=2).get_lemma(
             "getesteten", "de"
         )
         == "getestet"
     )
 
-    assert AffixDecompositionStrategy(greedy=True).get_lemma("ccc", "de") is None
+    assert AffixDecompositionStrategy().get_lemma("ccc", "de") is None

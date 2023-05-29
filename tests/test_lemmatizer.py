@@ -72,17 +72,17 @@ def test_readme() -> None:
     assert (
         Lemmatizer().lemmatize("spaghettis", lang="it")
         == lemmatize("spaghettis", lang="it")
-        == "spaghettis"
+        == "spaghetto"
     )
     assert (
         Lemmatizer().lemmatize("spaghettini", lang="it")
         == lemmatize("spaghettini", lang="it")
-        == "spaghettini"
+        == "spaghetto"
     )
     assert (
         Lemmatizer().lemmatize("spaghettis", lang=("it", "fr"))
         == lemmatize("spaghettis", lang=("it", "fr"))
-        == "spaghetti"
+        == "spaghetto"
     )
     assert (
         Lemmatizer().lemmatize("spaghetti", lang=("it", "fr"))
@@ -174,7 +174,7 @@ def test_subwords() -> None:
             myword, lang="de"
         )
         == lemmatize(myword, lang="de", greedy=False)
-        == "Impftermine"
+        == "Impftermin"
     )
     assert (
         Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
@@ -204,7 +204,7 @@ def test_subwords() -> None:
             myword, lang="de"
         )
         == lemmatize(myword, lang="de", greedy=False)
-        == "Hoffnungsmaschinen"
+        == "Hoffnungsmaschine"
     )
     assert (
         Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
@@ -286,7 +286,7 @@ def test_subwords() -> None:
     )
     assert (
         lemmatize("insulinproduzierende", lang="de", greedy=True)
-        == "insulinproduzierend"
+        == "insulinproduzieren"
     )
     # assert Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize("Urlaubsreisenden", lang="de") == lemmatize("Urlaubsreisenden", lang="de", greedy=True) == "Urlaubsreisende"
     assert (

@@ -16,13 +16,14 @@ Class:
 from typing import Optional
 
 from .lemmatization_strategy import LemmatizationStrategy
+from .dictionary_lookup import DictionaryLookupStrategy
 from .dictionaries.dictionary_factory import DictionaryFactory, DefaultDictionaryFactory
 from ..utils import levenshtein_dist
 
 SHORTER_GREEDY = {"bg", "et", "fi"}
 
 
-class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
+class GreedyDictionaryLookupStrategy(DictionaryLookupStrategy):
     """
     Greedy Dictionary Lookup Strategy
 
@@ -39,7 +40,7 @@ class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
 
     """
 
-    __slots__ = ["_dictionary_factory", "_distance", "_steps"]
+    __slots__ = ["_distance", "_steps"]
 
     def __init__(
         self,
@@ -57,11 +58,11 @@ class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
         - `distance` (int): The maximum allowed Levenshtein distance between candidate lemmas. Defaults to `5`.
 
         """
-        self._dictionary_factory = dictionary_factory
+        super().__init__(dictionary_factory)
         self._steps = steps
         self._distance = distance
 
-    def get_lemma(self, token: str, lang: str) -> str:
+    def get_lemma(self, token: str, lang: str) -> Optional[str]:
         """
         Get Lemma using Greedy Dictionary Lookup Strategy
 
@@ -77,12 +78,15 @@ class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
         - str: The lemma for the token.
 
         """
+        candidate = super().get_lemma(token, lang)
+        if candidate is None:
+            return None
+
         limit = 6 if lang in SHORTER_GREEDY else 8
-        if len(token) <= limit:
-            return token
+        if len(candidate) <= limit:
+            return candidate
 
         dictionary = self._dictionary_factory.get_dictionary(lang)
-        candidate = token
         for _ in range(self._steps):
             if candidate not in dictionary:
                 break

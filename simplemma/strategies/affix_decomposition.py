@@ -38,12 +38,8 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
     to suffix decomposition if affix decomposition fails.
 
     Args:
-        greedy (bool): Flag indicating whether to use a greedy approach for decomposition.
         dictionary_lookup (DictionaryLookupStrategy, optional): The dictionary lookup strategy
             to use for retrieving lemma information. Defaults to `DictionaryLookupStrategy()`.
-        greedy_dictionary_lookup (GreedyDictionaryLookupStrategy, optional): The greedy dictionary
-            lookup strategy to use for retrieving lemma information in the greedy approach.
-            Defaults to `GreedyDictionaryLookupStrategy()`.
 
     Methods:
     - `get_lemma`: Get the lemma for a given token and language by performing subword decomposition.
@@ -53,23 +49,16 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
 
     def __init__(
         self,
-        greedy: bool,
         dictionary_lookup: DictionaryLookupStrategy = DictionaryLookupStrategy(),
-        greedy_dictionary_lookup: GreedyDictionaryLookupStrategy = GreedyDictionaryLookupStrategy(),
     ):
         """
         Initialize the Affix Decomposition Strategy.
 
         Args:
-            greedy (bool): Flag indicating whether to use greedy decomposition.
             dictionary_lookup (DictionaryLookupStrategy): The dictionary lookup strategy to use.
                 Defaults to `DictionaryLookupStrategy()`.
-            greedy_dictionary_lookup (GreedyDictionaryLookupStrategy): The greedy dictionary lookup strategy to use.
-                Defaults to `GreedyDictionaryLookupStrategy()`.
         """
-        self._greedy = greedy
         self._dictionary_lookup = dictionary_lookup
-        self._greedy_dictionary_lookup = greedy_dictionary_lookup
 
     def get_lemma(self, token: str, lang: str) -> Optional[str]:
         """
@@ -83,7 +72,7 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
             Optional[str]: The lemma of the token if found, or None otherwise.
         """
         limit = 6 if lang in SHORTER_GREEDY else 8
-        if (not self._greedy and not lang in AFFIX_LANGS) or len(token) <= limit:
+        if len(token) <= limit and not lang in AFFIX_LANGS:
             return None
 
         # define parameters
@@ -133,11 +122,6 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
                 if lempart2 is None:
                     continue
                 # candidate must be shorter
-                # try other case
-                candidate = self._greedy_dictionary_lookup.get_lemma(part2, lang)
-                # shorten the second known part of the token
-                if candidate is not None and len(candidate) < len(part2):
-                    return part1 + candidate.lower()
                 # backup: equal length or further candidates accepted
                 # try without capitalizing
                 # even greedier
