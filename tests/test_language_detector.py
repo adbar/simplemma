@@ -1,13 +1,9 @@
 """Tests for Simplemma's language detection utilities."""
 
-import logging
-
 from simplemma import in_target_language, langdetect, LanguageDetector
 from simplemma.strategies import DefaultStrategy
 
 from .test_token_sampler import CustomTokenSampler
-
-logging.basicConfig(level=logging.DEBUG)
 
 
 def test_proportion_in_each_language() -> None:
