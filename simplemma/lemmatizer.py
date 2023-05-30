@@ -63,7 +63,7 @@ def is_known(
 
 
 def lemmatize(
-    token: str, lang: Union[str, Tuple[str, ...]], greedy: bool = False
+    token: str, lang: Union[str, Tuple[str, ...]], greedy: bool = False, initial: bool = False
 ) -> str:
     """Lemmatize a token in the specified language(s).
 
@@ -77,7 +77,7 @@ def lemmatize(
     """
     return Lemmatizer(
         lemmatization_strategy=DefaultStrategy(greedy),
-    ).lemmatize(token, lang)
+    ).lemmatize(token.lower() if initial else token, lang)
 
 
 def text_lemmatizer(

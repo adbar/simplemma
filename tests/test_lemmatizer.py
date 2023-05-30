@@ -557,3 +557,7 @@ def test_get_lemmas_in_text() -> None:
             ".",
         ]
     )
+
+def test_lemmatize() -> None:
+    assert (lemmatize("Dritte", "de", initial=True) == "dritt")
+    assert (lemmatize("Dritte", "de", initial=False) == "Dritter")
