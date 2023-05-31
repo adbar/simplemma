@@ -99,10 +99,10 @@ setup(
         "tokenizer",
     ],
     name="simplemma",
-    package_data={"simplemma": ["data/*.plzma"]},
+    package_data={"simplemma": ["strategies/dictionaries/data/*.plzma"]},
     packages=find_packages(include=["simplemma", "simplemma.*"]),
     project_urls={
-        "Source": "https://github.com/adbar/",
+        "Source": "https://github.com/adbar/simplemma",
         "Blog": "https://adrien.barbaresi.eu/blog/",  # tag/simplemma
     },
     setup_requires=setup_requirements,
