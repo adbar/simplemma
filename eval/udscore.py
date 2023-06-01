@@ -2,15 +2,13 @@ import csv
 import time
 
 from collections import Counter
-from os import makedirs, path
+from os import path
 
 from conllu import parse_incr  # type: ignore
 from simplemma import Lemmatizer
 from simplemma.strategies.dictionaries import DefaultDictionaryFactory
 from simplemma.strategies.default import DefaultStrategy
 
-if not path.exists("csv"):
-    makedirs("csv")
 
 data_files = [
     ("bg", "tests/UD/bg-btb-all.conllu"),
@@ -48,8 +46,8 @@ data_files = [
 # ]
 
 # data_files = [
-#              ('de', 'tests/UD/de-gsd-all.conllu'),
-# ]
+#             ('de', 'tests/UD/de-gsd-all.conllu'),
+#]
 
 
 for filedata in data_files:
@@ -65,8 +63,7 @@ for filedata in data_files:
     )
     errors, flag = [], False
     language, filename = filedata[0], filedata[1]
-    with open(filename, "r", encoding="utf-8") as myfile:
-        data_file = myfile.read()
+
     start = time.time()
     _dictionary_factory = DefaultDictionaryFactory()
     strategies = DefaultStrategy(greedy=False)
@@ -81,44 +78,51 @@ for filedata in data_files:
         ),
     )
     print("==", filedata, "==")
-    for tokenlist in parse_incr(data_file):
-        for token in tokenlist:
-            error_flag = False
-            if token["lemma"] == "_":  # or token['upos'] in ('PUNCT', 'SYM')
-                # flag = True
-                continue
+    with open(filename, "r", encoding="utf-8") as data_file:
+        for tokenlist in parse_incr(data_file):
+            for token in tokenlist:
+                error_flag = False
+                if token["lemma"] == "_":  # or token['upos'] in ('PUNCT', 'SYM')
+                    # flag = True
+                    continue
 
-            initial = bool(token["id"] == 1)
-            token_form = token["form"].lower() if initial else token["form"]
+                initial = bool(token["id"] == 1)
+                token_form = token["form"].lower() if initial else token["form"]
 
-            candidate = lemmatizer.lemmatize(token_form, lang=language)
-            greedy_candidate = greedy_lemmatizer.lemmatize(token_form, lang=language)
+                try:
+                    candidate = lemmatizer.lemmatize(token_form, lang=language)
+                except Exception:
+                    candidate = ""
+                try:
+                    greedy_candidate = greedy_lemmatizer.lemmatize(token_form, lang=language)
+                except Exception:
+                    greedy_candidate = ""
 
-            if token["upos"] in ("ADJ", "NOUN"):
-                focus_total += 1
+                if token["upos"] in ("ADJ", "NOUN"):
+                    focus_total += 1
+                    if token["form"] == token["lemma"]:
+                        focus_zero += 1
+                    if greedy_candidate == token["lemma"]:
+                        focus += 1
+                    if candidate == token["lemma"]:
+                        focus_nongreedy += 1
+                total += 1
                 if token["form"] == token["lemma"]:
-                    focus_zero += 1
+                    zero += 1
                 if greedy_candidate == token["lemma"]:
-                    focus += 1
+                    _greedy += 1
+                else:
+                    error_flag = True
                 if candidate == token["lemma"]:
-                    focus_nongreedy += 1
-            total += 1
-            if token["form"] == token["lemma"]:
-                zero += 1
-            if greedy_candidate == token["lemma"]:
-                _greedy += 1
-            else:
-                error_flag = True
-            if candidate == token["lemma"]:
-                nongreedy += 1
-            else:
-                error_flag = True
-            if error_flag:
-                errors.append(
-                    (token["form"], token["lemma"], candidate, greedy_candidate)
-                )
+                    nongreedy += 1
+                else:
+                    error_flag = True
+                if error_flag:
+                    errors.append(
+                        (token["form"], token["lemma"], candidate, greedy_candidate)
+                    )
     with open(
-        f'csv/{path.basename(filename).replace("conllu","csv")}', "w", encoding="utf-8"
+        f'{path.basename(filename).replace("conllu","csv")}', "w", encoding="utf-8"
     ) as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(("form", "lemma", "candidate", "greedy_candidate"))
