@@ -12,7 +12,12 @@ Functions:
 from operator import itemgetter
 from typing import Dict, List, Tuple, Union
 
-from .strategies import LemmatizationStrategy, DefaultStrategy
+from .strategies import (
+    LemmatizationStrategy,
+    DefaultStrategy,
+    DictionaryLookupStrategy,
+    GreedyDictionaryLookupStrategy,
+)
 from .token_sampler import (
     TokenSampler,
     MostCommonTokenSampler,
@@ -41,8 +46,11 @@ def in_target_language(
         float: The proportion of text in the target language(s).
     """
 
+    dictionary_lookup_strategy = (
+        GreedyDictionaryLookupStrategy() if greedy else DictionaryLookupStrategy()
+    )
     return LanguageDetector(
-        lang, token_sampler, DefaultStrategy(greedy)
+        lang, token_sampler, DefaultStrategy(dictionary_lookup_strategy)
     ).proportion_in_target_languages(text)
 
 
@@ -70,9 +78,12 @@ def langdetect(
             and their respective proportions.
     """
 
+    dictionary_lookup_strategy = (
+        GreedyDictionaryLookupStrategy() if greedy else DictionaryLookupStrategy()
+    )
     for token_sampler in token_samplers:
         results = LanguageDetector(
-            lang, token_sampler, DefaultStrategy(greedy)
+            lang, token_sampler, DefaultStrategy(dictionary_lookup_strategy)
         ).proportion_in_each_language(text)
 
         # post-processing
