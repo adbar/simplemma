@@ -272,7 +272,7 @@ Code    Language             Forms (10³) Acc.  Comments
 
 *Experimental* mentions indicate that the language remains untested or that there could be issues with the underlying data or lemmatization process.
 
-The scores are calculated on `Universal Dependencies <https://universaldependencies.org/>`_ treebanks on single word tokens (including some contractions but not merged prepositions), they describe to what extent simplemma can accurately map tokens to their lemma form. They can be reproduced by concatenating all available UD files and by using the script ``udscore.py`` in the ``eval/`` folder of the code repository.
+The scores are calculated on `Universal Dependencies <https://universaldependencies.org/>`_ treebanks on single word tokens (including some contractions but not merged prepositions), they describe to what extent simplemma can accurately map tokens to their lemma form. See ``eval/`` folder of the code repository for more information.
 
 This library is particularly relevant as regards the lemmatization of less frequent words. Its performance in this case is only incidentally captured by the benchmark above. In some languages, a fixed number of words such as pronouns can be further mapped by hand to enhance performance.
 
