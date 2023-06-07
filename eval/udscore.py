@@ -89,14 +89,8 @@ for filedata in data_files:
                 initial = bool(token["id"] == 1)
                 token_form = token["form"].lower() if initial else token["form"]
 
-                try:
-                    candidate = lemmatizer.lemmatize(token_form, lang=language)
-                except Exception:
-                    candidate = ""
-                try:
-                    greedy_candidate = greedy_lemmatizer.lemmatize(token_form, lang=language)
-                except Exception:
-                    greedy_candidate = ""
+                candidate = lemmatizer.lemmatize(token_form, lang=language)
+                greedy_candidate = greedy_lemmatizer.lemmatize(token_form, lang=language)
 
                 if token["upos"] in ("ADJ", "NOUN"):
                     focus_total += 1
