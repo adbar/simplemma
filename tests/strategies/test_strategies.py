@@ -4,6 +4,7 @@ from simplemma.strategies import (
     DefaultStrategy,
     GreedyDictionaryLookupStrategy,
     AffixDecompositionStrategy,
+    PrefixDecompositionStrategy,
 )
 
 
@@ -51,3 +52,5 @@ def test_search() -> None:
     )
 
     assert AffixDecompositionStrategy(greedy=True).get_lemma("ccc", "de") is None
+
+    assert PrefixDecompositionStrategy().get_lemma("auf", "de") is None

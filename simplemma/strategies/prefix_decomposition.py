@@ -85,6 +85,9 @@ class PrefixDecompositionStrategy(LemmatizationStrategy):
             return None
         prefix = prefix_match[1]
 
+        if prefix == token:
+            return None
+
         subword = self._dictionary_lookup.get_lemma(token[len(prefix) :], lang)
         if subword is None:
             return None
