@@ -32,24 +32,6 @@ TOKREGEX = re.compile(
 )
 
 
-def simple_tokenizer(text: str, splitting_regex: Pattern[str] = TOKREGEX) -> List[str]:
-    """
-    Simple regular expression tokenizer.
-
-    This function takes a string as input and returns a list of tokens.
-
-    Args:
-        text (str): The input text to tokenize.
-        splitting_regex (Pattern[str], optional): The regular expression pattern used for tokenization.
-            Defaults to `TOKREGEX`.
-
-    Returns:
-        List[str]: The list of tokens extracted from the input text.
-
-    """
-    return list(RegexTokenizer(splitting_regex).split_text(text))
-
-
 class Tokenizer(Protocol):
     """
     Abstract base class for tokenizers.
@@ -109,3 +91,24 @@ class RegexTokenizer(Tokenizer):
 
         """
         return (match[0] for match in self._splitting_regex.finditer(text))
+
+
+_legacy_tokenizer = RegexTokenizer()
+
+
+def simple_tokenizer(text: str) -> List[str]:
+    """
+    Simple regular expression tokenizer.
+
+    This function takes a string as input and returns a list of tokens.
+
+    Args:
+        text (str): The input text to tokenize.
+        splitting_regex (Pattern[str], optional): The regular expression pattern used for tokenization.
+            Defaults to `TOKREGEX`.
+
+    Returns:
+        List[str]: The list of tokens extracted from the input text.
+
+    """
+    return list(_legacy_tokenizer.split_text(text))
