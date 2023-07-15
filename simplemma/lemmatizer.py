@@ -1,14 +1,12 @@
 """
-This module implements a Lemmatizer class and related functions for lemmatizing tokens and text in various languages.
+Lemmatizer module.
+Provides classes for lemmatizing token and full texts.
 
-Classes:
-- Lemmatizer: A class that provides lemmatization functionality using different strategies.
-
-Functions:
-- is_known: Check if a token is known in the given language(s).
-- lemmatize: Lemmatize a token in the given language(s).
-- text_lemmatizer: Lemmatize text in the given language(s).
-- lemma_iterator: Iterate over lemmatized tokens in the given text.
+- [Lemmatizer][simplemma.lemmatizer.Lemmatizer]: Class for performing token and full text lemmatization.
+- [is_known()][simplemma.lemmatizer.is_known]: A legacy function that wraps the Lemmatizer's [is_known()][simplemma.lemmatizer.Lemmatizer.is_known] method.
+- [lemmatize()][simplemma.lemmatizer.lemmatize]: A legacy function that wraps the Lemmatizer's [lemmatize()][simplemma.lemmatizer.Lemmatizer.lemmatize] method.
+- [text_lemmatizer()][simplemma.lemmatizer.text_lemmatizer]: A legacy function that wraps the Lemmatizer's [text_lemmatizer()][simplemma.lemmatizer.Lemmatizer.get_lemmas_in_text] method.
+- [lemma_iterator()][simplemma.lemmatizer.lemma_iterator]: A legacy function that wraps the Lemmatizer's [lemma_iterator()][simplemma.lemmatizer.Lemmatizer.get_lemmas_in_text] method.
 """
 
 from functools import lru_cache
@@ -133,22 +131,13 @@ def lemma_iterator(
 
 
 class Lemmatizer:
-    """Lemmatizer class for performing token lemmatization.
-
-    Methods:
-        is_known(token: str, lang: Union[str, Tuple[str, ...]]) -> bool:
-            Checks if a token is known in a given language.
-        lemmatize(token: str, lang: Union[str, Tuple[str, ...]]) -> str:
-            Lemmatizes a token in a given language.
-        get_lemmas_in_text(text: str, lang: Union[str, Tuple[str, ...]]) -> Iterator[str]:
-            Returns an iterator over the lemmas in a text in a given language.
-    """
+    """Lemmatizer class for performing token lemmatization."""
 
     __slots__ = [
+        "_cached_lemmatize",
         "_fallback_lemmatization_strategy",
         "_lemmatization_strategy",
         "_tokenizer",
-        "lemmatize",
     ]
 
     def __init__(
@@ -175,7 +164,7 @@ class Lemmatizer:
         self._tokenizer = tokenizer
         self._lemmatization_strategy = lemmatization_strategy
         self._fallback_lemmatization_strategy = fallback_lemmatization_strategy
-        self.lemmatize = lru_cache(maxsize=cache_max_size)(self._lemmatize)
+        self._cached_lemmatize = lru_cache(maxsize=cache_max_size)(self._lemmatize)
 
     def is_known(
         self,
@@ -200,6 +189,22 @@ class Lemmatizer:
             dictionary_lookup.get_lemma(token, lang_code) is not None
             for lang_code in lang
         )
+
+    def lemmatize(
+        self,
+        token: str,
+        lang: Union[str, Tuple[str, ...]],
+    ) -> str:
+        """Get the lemmatized form of a given word in the specified language(s).
+
+        Args:
+            token: The token to lemmatize.
+            lang: The language or languages for lemmatization.
+
+        Returns:
+            str: The lemmatized form of the token.
+        """
+        return self._cached_lemmatize(token, lang)
 
     def _lemmatize(
         self,

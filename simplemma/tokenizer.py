@@ -1,14 +1,11 @@
 """
-Tokenizers module. Provides classes for text tokenization.
+Tokenizers module.
+Provides classes for text tokenization.
 
-Classes:
-- Tokenizer: An abstract base class for tokenizers.
-- RegexTokenizer: A tokenizer that uses regular expressions for tokenization.
-
-Functions:
-- simple_tokenizer: A simple tokenizer based on regular expressions.
-
-TODO ADD TOKREGEX
+- [Tokenizer][simplemma.tokenizer.Tokenizer]: The Protocol class for all tokenizers.
+- [RegexTokenizer][simplemma.tokenizer.RegexTokenizer]: A tokenizer based on a regular expresion.
+- [simple_tokenizer()][simplemma.tokenizer.simple_tokenizer]: A legacy function that wraps the RegexTokenizer's [split_text][simplemma.tokenizer.RegexTokenizer.split_text] method.
+- [TOKREGEX][simplemma.tokenizer.RegexTokenizer]: The regular expresion used by default by [RegexTokenizer][simplemma.tokenizer.RegexTokenizer].
 """
 
 import re
@@ -30,6 +27,7 @@ TOKREGEX = re.compile(
     r"[,;:\.?!¿¡‽⸮…()\[\]–{}—―/‒_“„”⹂‚‘’‛′″‟'\"«»‹›<>=+−×÷•·]+"
     r")"
 )
+"""The regular expresion used by default by [RegexTokenizer][simplemma.tokenizer.RegexTokenizer]."""
 
 
 def simple_tokenizer(text: str, splitting_regex: Pattern[str] = TOKREGEX) -> List[str]:
@@ -52,14 +50,8 @@ def simple_tokenizer(text: str, splitting_regex: Pattern[str] = TOKREGEX) -> Lis
 
 class Tokenizer(Protocol):
     """
-    Abstract base class for tokenizers.
-
+    Abstract base class for Tokenizers.
     Tokenizers are used to split a text into individual tokens.
-
-    Methods:
-        split_text(text: str) -> List[str]:
-            Splits the text into tokens using the specified regular expression pattern.
-
     """
 
     @abstractmethod
@@ -80,16 +72,7 @@ class Tokenizer(Protocol):
 class RegexTokenizer(Tokenizer):
     """
     Tokenizer that uses regular expressions to split a text into tokens.
-
     This tokenizer splits the input text using the specified regex pattern.
-
-    Args:
-        splitting_regex (Pattern[str], optional): The regular expression pattern used for tokenization.
-            Defaults to `TOKREGEX`.
-
-    Methods:
-        split_text(text: str) -> List[str]:
-            Splits the text into tokens using the specified regular expression pattern.
     """
 
     __slots__ = ["_splitting_regex"]

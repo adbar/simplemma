@@ -1,10 +1,12 @@
 """
-Sampler module. Provides classes for sampling tokens from text.
+Token Sampler module.
+Provides classes for sampling tokens from text.
 
-- TokenSampler: An abstract base class for token samplers.
-- BaseTokenSampler: A base class for token samplers with common functionality.
-- MostCommonTokenSampler: A token sampler that selects the most common tokens.
-- RelaxedMostCommonTokenSampler: A relaxed version of the most common token sampler.
+- [TokenSampler][simplemma.token_sampler.TokenSampler]: The Protocol class for all token samplers.
+- [BaseTokenSampler][simplemma.token_sampler.BaseTokenSampler]: An abstract base class for token samplers implementing tokenization using
+a [Tokenizer][simplemma.tokenizer.Tokenizer] so the user only has to implement the sampling strategy.
+- [MostCommonTokenSampler][simplemma.token_sampler.MostCommonTokenSampler]: A token sampler that selects the most common tokens.
+- [RelaxedMostCommonTokenSampler][simplemma.token_sampler.RelaxedMostCommonTokenSampler]: A relaxed version of the most common token sampler.
 
 """
 
@@ -67,17 +69,6 @@ class BaseTokenSampler(ABC, TokenSampler):
     BaseTokenSampler is the base class for token samplers.
     It uses the given Tokenizer to convert a text in token.
     Classes inheriting from BaseTokenSampler only have to implement sample_tokens.
-
-    Args:
-        tokenizer (Tokenizer, optional): The tokenizer to use for splitting text into tokens.
-            Defaults to `RegexTokenizer(SPLIT_INPUT)`.
-
-    Methods:
-        sample_text(text: str) -> List[str]:
-            Samples tokens from the given text.
-
-        sample_tokens(tokens: List[str]) -> List[str]:
-            Samples tokens from the given list of tokens.
     """
 
     __slots__ = ["_tokenizer"]
@@ -124,16 +115,7 @@ class BaseTokenSampler(ABC, TokenSampler):
 
 
 class MostCommonTokenSampler(BaseTokenSampler):
-    """
-    Token sampler that selects the most common tokens.
-
-    Methods:
-        sample_text(text: str) -> List[str]:
-            Samples tokens from the given text.
-
-        sample_tokens(tokens: List[str]) -> List[str]:
-            Samples tokens from the given list of tokens.
-    """
+    """Token sampler that selects the most common tokens."""
 
     __slots__ = ["_capitalized_threshold", "_sample_size"]
 
@@ -182,15 +164,7 @@ class MostCommonTokenSampler(BaseTokenSampler):
 class RelaxedMostCommonTokenSampler(MostCommonTokenSampler):
     """
     Relaxed version of the most common token sampler.
-
     This sampler uses a relaxed splitting regex pattern and allows for a larger sample size.
-
-    Methods:
-        sample_text(text: str) -> List[str]:
-            Samples tokens from the given text.
-
-        sample_tokens(tokens: List[str]) -> List[str]:
-            Samples tokens from the given list of tokens.
     """
 
     def __init__(

@@ -1,16 +1,6 @@
 """
-Default Strategy
-----------------
-
 This module defines the `DefaultStrategy` class, which is a concrete implementation of the `LemmatizationStrategy` protocol.
 It provides lemmatization using a combination of different strategies such as dictionary lookup, hyphen removal, rule-based lemmatization, prefix decomposition, and affix decomposition.
-
-Module Dependencies:
-- typing.Optional: For representing an optional return value.
-
-Class:
-- `DefaultStrategy`: A lemmatization strategy that combines different lemmatization techniques.
-
 """
 
 from typing import Optional
@@ -27,22 +17,8 @@ from .affix_decomposition import AffixDecompositionStrategy
 
 class DefaultStrategy(LemmatizationStrategy):
     """
-    Default Strategy
-
     This class represents a lemmatization strategy that combines different techniques to perform lemmatization.
     It implements the `LemmatizationStrategy` protocol.
-
-    Attributes:
-    - `_dictionary_lookup` (DictionaryLookupStrategy): A strategy for dictionary lookup.
-    - `_hyphen_search` (HyphenRemovalStrategy): A strategy for lemmatization by removing hyphens.
-    - `_rules_search` (RulesStrategy): A strategy for rule-based lemmatization.
-    - `_prefix_search` (PrefixDecompositionStrategy): A strategy for lemmatization by prefix decomposition.
-    - `_greedy_dictionary_lookup` (Optional[GreedyDictionaryLookupStrategy]): A strategy for dictionary lookup with a greedy approach.
-    - `_affix_search` (AffixDecompositionStrategy): A strategy for lemmatization by affix decomposition.
-
-    Methods:
-    - `get_lemma`: Get the lemma for a given token and language using the combination of different techniques.
-
     """
 
     __slots__ = [
@@ -63,9 +39,9 @@ class DefaultStrategy(LemmatizationStrategy):
         Initialize the Default Strategy.
 
         Args:
-        - `greedy` (bool): Whether to use a greedy approach for dictionary lookup. Defaults to `False`.
-        - `dictionary_factory` (DictionaryFactory): A factory for creating dictionaries.
-            Defaults to `DefaultDictionaryFactory()`.
+            greedy (bool): Whether to use a greedy approach for dictionary lookup. Defaults to `False`.
+            dictionary_factory (DictionaryFactory): A factory for creating dictionaries.
+                Defaults to [`DefaultDictionaryFactory()`][simplemma.strategies.dictionaries.dictionary_factory.DefaultDictionaryFactory]..
 
         """
         self._greedy = greedy
@@ -87,11 +63,11 @@ class DefaultStrategy(LemmatizationStrategy):
         Get the lemma for a given token and language using the combination of different lemmatization techniques.
 
         Args:
-        - `token` (str): The token to lemmatize.
-        - `lang` (str): The language of the token.
+            token (str): The token to lemmatize.
+            lang (str): The language of the token.
 
         Returns:
-        - Optional[str]: The lemma of the token, or None if no lemma is found.
+            Optional[str]: The lemma of the token, or None if no lemma is found.
 
         """
         # filters

@@ -1,12 +1,10 @@
 """
-This module implements a language detection functionality using lemmatization and token sampling.
+Lemmatizer module.
+Provides classes for text language detection using lemmatization and token sampling.
 
-Classes:
-- LanguageDetector: A class that performs language detection using lemmatization and token sampling.
-
-Functions:
-- in_target_language: Calculate the proportion of text in the target language(s).
-- langdetect: Detect the language(s) of the given text and their proportions.
+- [LanguageDetector][simplemma.language_detector.LanguageDetector]: Class for performing language detection using lemmatization and token sampling.
+- [in_target_language()][simplemma.language_detector.in_target_language]: A legacy function that wraps the LanguageDetector's [is_known()][simplemma.language_detector.LanguageDetector.proportion_in_each_language] method.
+- [langdetect()][simplemma.language_detector.langdetect]: A legacy function that wraps the LanguageDetector's [is_known()][simplemma.language_detector.LanguageDetector.proportion_in_target_languages] method.
 """
 
 from operator import itemgetter
@@ -105,14 +103,7 @@ def _as_list(results: Dict[str, float]) -> List[Tuple[str, float]]:
 
 
 class LanguageDetector:
-    """
-    A class that performs language detection using lemmatization and token sampling.
-
-    Methods:
-        proportion_in_each_language: Calculate the proportion of each language in the given text.
-        proportion_in_target_languages: Calculate the proportion of text in the target language(s).
-        main_language: Determine the main language of the given text.
-    """
+    """A class that performs language detection using lemmatization and token sampling."""
 
     __slots__ = [
         "_lang",
