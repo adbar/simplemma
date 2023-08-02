@@ -19,6 +19,7 @@ from .strategies import (
     LemmatizationStrategy,
     DefaultStrategy,
     DictionaryLookupStrategy,
+    DefaultDictionaryFactory,
     LemmatizationFallbackStrategy,
     ToLowercaseFallbackStrategy,
 )
@@ -43,93 +44,6 @@ def _control_input_type(token: Any) -> None:
         raise TypeError(f"Wrong input type, expected string, got {type(token)}")
     if token == "":
         raise ValueError("Wrong input type: empty string")
-
-
-def is_known(
-    token: str,
-    lang: Union[str, Tuple[str, ...]],
-) -> bool:
-    """Check if a token is known in the specified language(s).
-
-    Args:
-        token: The token to check.
-        lang: The language or languages to check in.
-
-    Returns:
-        bool: True if the token is known, False otherwise.
-    """
-
-    return Lemmatizer().is_known(token, lang)
-
-
-def lemmatize(
-    token: str, lang: Union[str, Tuple[str, ...]], greedy: bool = False
-) -> str:
-    """Lemmatize a token in the specified language(s).
-
-    Args:
-        token: The token to lemmatize.
-        lang: The language or languages for lemmatization.
-        greedy: A flag indicating whether to use greedy lemmatization (default: False).
-
-    Returns:
-        str: The lemmatized form of the token.
-    """
-    return Lemmatizer(
-        lemmatization_strategy=DefaultStrategy(greedy),
-    ).lemmatize(token, lang)
-
-
-def text_lemmatizer(
-    text: str,
-    lang: Union[str, Tuple[str, ...]],
-    greedy: bool = False,
-    tokenizer: Tokenizer = RegexTokenizer(),
-) -> List[str]:
-    """Lemmatize a text in the specified language(s).
-
-    Args:
-        text: The text to lemmatize.
-        lang: The language or languages for lemmatization.
-        greedy: A flag indicating whether to use greedy lemmatization (default: False).
-        tokenizer: The tokenizer to use (default: RegexTokenizer()).
-
-    Returns:
-        List[str]: The list of lemmatized tokens.
-    """
-
-    return list(
-        lemma_iterator(
-            text,
-            lang,
-            greedy,
-            tokenizer=tokenizer,
-        )
-    )
-
-
-def lemma_iterator(
-    text: str,
-    lang: Union[str, Tuple[str, ...]],
-    greedy: bool = False,
-    tokenizer: Tokenizer = RegexTokenizer(),
-) -> Iterator[str]:
-    """Iterate over lemmatized tokens in a text.
-
-    Args:
-        text: The text to iterate over.
-        lang: The language or languages for lemmatization.
-        greedy: A flag indicating whether to use greedy lemmatization (default: False).
-        tokenizer: The tokenizer to use (default: RegexTokenizer()).
-
-    Yields:
-        str: The lemmatized tokens in the text.
-    """
-
-    return Lemmatizer(
-        tokenizer=tokenizer,
-        lemmatization_strategy=DefaultStrategy(greedy),
-    ).get_lemmas_in_text(text, lang)
 
 
 class Lemmatizer:
@@ -243,3 +157,93 @@ class Lemmatizer:
         for token in self._tokenizer.split_text(text):
             yield self.lemmatize(token.lower() if initial else token, lang)
             initial = token in PUNCTUATION
+
+
+# From here down are legacy function pre-1.0
+
+_legacy_dictionary_factory = DefaultDictionaryFactory()
+_legacy_lemmatizer = Lemmatizer(
+    lemmatization_strategy=DefaultStrategy(
+        dictionary_factory=_legacy_dictionary_factory
+    )
+)
+_legacy_greedy_lemmatizer = Lemmatizer(
+    lemmatization_strategy=DefaultStrategy(
+        greedy=True, dictionary_factory=_legacy_dictionary_factory
+    )
+)
+
+
+def is_known(
+    token: str, lang: Union[str, Tuple[str, ...]], greedy: bool = False
+) -> bool:
+    """Check if a token is known in the specified language(s).
+
+    Args:
+        token: The token to check.
+        lang: The language or languages to check in.
+
+    Returns:
+        bool: True if the token is known, False otherwise.
+    """
+    lemmatizer = _legacy_lemmatizer if not greedy else _legacy_greedy_lemmatizer
+    return lemmatizer.is_known(token, lang)
+
+
+def lemmatize(
+    token: str, lang: Union[str, Tuple[str, ...]], greedy: bool = False
+) -> str:
+    """Lemmatize a token in the specified language(s).
+
+    Args:
+        token: The token to lemmatize.
+        lang: The language or languages for lemmatization.
+        greedy: A flag indicating whether to use greedy lemmatization (default: False).
+
+    Returns:
+        str: The lemmatized form of the token.
+    """
+    lemmatizer = _legacy_lemmatizer if not greedy else _legacy_greedy_lemmatizer
+    return lemmatizer.lemmatize(token, lang)
+
+
+def text_lemmatizer(
+    text: str, lang: Union[str, Tuple[str, ...]], greedy: bool = False
+) -> List[str]:
+    """Lemmatize a text in the specified language(s).
+
+    Args:
+        text: The text to lemmatize.
+        lang: The language or languages for lemmatization.
+        greedy: A flag indicating whether to use greedy lemmatization (default: False).
+        tokenizer: The tokenizer to use (default: RegexTokenizer()).
+
+    Returns:
+        List[str]: The list of lemmatized tokens.
+    """
+
+    return list(
+        lemma_iterator(
+            text,
+            lang,
+            greedy,
+        )
+    )
+
+
+def lemma_iterator(
+    text: str, lang: Union[str, Tuple[str, ...]], greedy: bool = False
+) -> Iterator[str]:
+    """Iterate over lemmatized tokens in a text.
+
+    Args:
+        text: The text to iterate over.
+        lang: The language or languages for lemmatization.
+        greedy: A flag indicating whether to use greedy lemmatization (default: False).
+        tokenizer: The tokenizer to use (default: RegexTokenizer()).
+
+    Yields:
+        str: The lemmatized tokens in the text.
+    """
+    lemmatizer = _legacy_lemmatizer if not greedy else _legacy_greedy_lemmatizer
+    return lemmatizer.get_lemmas_in_text(text, lang)
