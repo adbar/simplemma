@@ -108,6 +108,15 @@ def test_in_target_language() -> None:
         == 1.0
     )
 
+    langs = ("en", "de")
+    text = "It was a true gift"
+    assert (
+        LanguageDetector(lang=langs).proportion_in_target_languages(text)
+        == in_target_language(text, lang=langs)
+        == 1.0
+    )
+    in_target_language("It was a true gift", lang=("en", "de"))
+
 
 def test_main_language():
     text = "Dieser Satz ist auf Deutsch."
