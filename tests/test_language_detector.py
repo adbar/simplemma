@@ -115,7 +115,6 @@ def test_in_target_language() -> None:
         == in_target_language(text, lang=langs)
         == 1.0
     )
-    in_target_language("It was a true gift", lang=("en", "de"))
 
 
 def test_main_language():
