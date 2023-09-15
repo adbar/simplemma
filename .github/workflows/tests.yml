@@ -69,6 +69,10 @@ jobs:
       if: matrix.python-version != '3.6' && matrix.python-version != '3.7'
       run: pip install -r requirements-dev.txt
 
+    - name: Install training dependencies
+      if: matrix.python-version != '3.6' && matrix.python-version != '3.7'
+      run: pip install -r training/requirements.txt
+
     - name: Install dependencies (legacy versions)
       if: matrix.python-version == '3.6' || matrix.python-version == '3.7'
       run: |
