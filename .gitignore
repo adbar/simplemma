@@ -116,3 +116,4 @@ Makefile
 
 # eval
 UD/
+training/**/data

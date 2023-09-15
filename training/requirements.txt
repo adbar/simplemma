@@ -1,0 +1,8 @@
+certifi==2023.7.22
+charset-normalizer==3.2.0
+conllu>=4.5.2
+idna==3.4
+requests==2.31.0
+types-requests==2.31.0.2
+types-urllib3==1.26.25.14
+urllib3==2.0.4
