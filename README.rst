@@ -205,6 +205,34 @@ The ``lang_detector()`` function returns a list of language codes along with sco
 The ``greedy`` argument (``extensive`` in past software versions) triggers use of the greedier decomposition algorithm described above, thus extending word coverage and recall of detection at the potential cost of a lesser accuracy.
 
 
+Advanced usage via classes
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The above described functions are suitable for simple usage, but it is possible to have more control by instantiating Simplemma classes and calling their methods instead. Lemmatization is handled by the ``Lemmatizer`` class and language detection by the ``LanguageDetector`` class. These in turn rely on different lemmatization strategies, which are implementations of the ``LemmatizationStrategy`` protocol. The ``DefaultStrategy`` implementation uses a combination of different strategies, one of which is ``DictionaryLookupStrategy``. It looks up tokens in a dictionary created by a ``DictionaryFactory``.
+
+For example, it is possible to conserve RAM by limiting the number of cached language dictionaries (default: 8) by creating a custom ``DefaultDictionaryFactory`` with a specific ``cache_max_size`` setting, creating a ``DefaultStrategy`` using that factory, and then creating a ``Lemmatizer`` and/or a ``LanguageDetector`` using that strategy:
+
+.. code-block:: python
+
+    # import necessary classes
+    >>> from simplemma import LanguageDetector, Lemmatizer
+    >>> from simplemma.strategies import DefaultStrategy
+    >>> from simplemma.strategies.dictionaries import DefaultDictionaryFactory
+
+    LANG_CACHE_SIZE = 5  # How many language dictionaries to keep in memory at once (max)
+    >>> dictionary_factory = DefaultDictionaryFactory(cache_max_size=LANG_CACHE_SIZE)
+    >>> lemmatization_strategy = DefaultStrategy(dictionary_factory=dictionary_factory)
+
+    # lemmatize using the above customized strategy
+    >>> lemmatizer = Lemmatizer(lemmatization_strategy=lemmatization_strategy)
+    >>> lemmatizer.lemmatize('doughnuts', lang='en')
+    'doughnut'
+
+    # detect languages using the above customized strategy
+    >>> language_detector = LanguageDetector('la', lemmatization_strategy=lemmatization_strategy)
+    >>> language_detector.proportion_in_target_languages("opera post physica posita (τὰ μετὰ τὰ φυσικά)")
+    0.5
+
 Supported languages
 -------------------
 
