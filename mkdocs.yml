@@ -1,0 +1,64 @@
+site_name: Simplemma
+
+theme:
+  name: "material"
+  palette: 
+
+    # Palette toggle for light mode
+    - scheme: default
+      toggle:
+        icon: material/weather-night 
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - toc.follow
+
+extra_css:
+  - css/mkdocstrings.css
+
+repo_url: https://github.com/adbar/simplemma
+
+plugins:
+  - search:
+      lang: en
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            group_by_category: true
+            show_category_heading: true
+
+
+nav:
+  - Introduction: index.md
+  - Reference:
+    - Lemmatizer: reference/lemmatizer.md
+    - Language Detector: reference/language_detector.md
+    - Tokenizer: reference/tokenizer.md
+    - TokenSampler: reference/token_sampler.md
+    - Utils: reference/utils.md
+    - Strategies:
+      - Lemmatization Strategy: reference/strategies/lemmatization_strategy.md
+      - Dictionary Lookup Strategy: reference/strategies/dictionary_lookup.md
+      - Greedy Dictionary Lookup Strategy: reference/strategies/greedy_dictionary_lookup.md
+      - Hyphen removal Strategy: reference/strategies/hyphen_removal.md
+      - Rules Strategy: reference/strategies/rules.md
+      - Prefix Decomposition Strategy: reference/strategies/prefix_decomposition.md
+      - Affix Decomposition Strategy: reference/strategies/affix_decomposition.md
+      - Default Strategy: reference/strategies/default.md
+      - Fallback Strategies:
+        - Lemmatization Fallback Strategy: reference/strategies/fallback/lemmatization_fallback_strategy.md
+        - To Lowercase Strategy: reference/strategies/fallback/to_lowercase.md
+        - Raise Error Strategy: reference/strategies/fallback/raise_error.md
+      - Dictionaries:
+        - Dictionary Factory: reference/strategies/dictionaries/dictionary_factory.md
+  - Languages Supported: supported-languages.md
+  - Contributing: contributing.md
+  - Credit & Licenses: credit-and-licenses.md

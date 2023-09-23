@@ -1,0 +1,1 @@
+::: simplemma.language_detector

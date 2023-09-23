@@ -1,16 +1,6 @@
 """
-Greedy Dictionary Lookup Strategy
----------------------------------
-
 This module defines the `GreedyDictionaryLookupStrategy` class, which is a concrete implementation of the `LemmatizationStrategy` protocol.
 It provides lemmatization using a greedy dictionary lookup strategy.
-
-Module Dependencies:
-- typing.Optional: For representing an optional return value.
-
-Class:
-- `GreedyDictionaryLookupStrategy`: A lemmatization strategy based on greedy dictionary lookup.
-
 """
 
 from typing import Optional
@@ -24,19 +14,7 @@ SHORTER_GREEDY = {"bg", "et", "fi"}
 
 class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
     """
-    Greedy Dictionary Lookup Strategy
-
     This class represents a lemmatization strategy that performs lemmatization using a greedy dictionary lookup strategy.
-    It implements the `LemmatizationStrategy` protocol.
-
-    Attributes:
-    - `_dictionary_factory` (DictionaryFactory): The dictionary factory used to obtain language dictionaries.
-    - `_distance` (int): The maximum allowed Levenshtein distance between candidate lemmas.
-    - `_steps` (int): The maximum number of lemmatization steps to perform.
-
-    Methods:
-    - `get_lemma`: Get the lemma for a given token and language using the greedy dictionary lookup strategy.
-
     """
 
     __slots__ = ["_dictionary_factory", "_distance", "_steps"]
@@ -51,10 +29,10 @@ class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
         Initialize the Greedy Dictionary Lookup Strategy.
 
         Args:
-        - `dictionary_factory` (DictionaryFactory): The dictionary factory used to obtain language dictionaries.
-            Defaults to `DefaultDictionaryFactory()`.
-        - `steps` (int): The maximum number of lemmatization steps to perform. Defaults to `1`.
-        - `distance` (int): The maximum allowed Levenshtein distance between candidate lemmas. Defaults to `5`.
+            dictionary_factory (DictionaryFactory): The dictionary factory used to obtain language dictionaries.
+                Defaults to [`DefaultDictionaryFactory()`][simplemma.strategies.dictionaries.dictionary_factory.DefaultDictionaryFactory]..
+            steps (int): The maximum number of lemmatization steps to perform. Defaults to `1`.
+            distance (int): The maximum allowed Levenshtein distance between candidate lemmas. Defaults to `5`.
 
         """
         self._dictionary_factory = dictionary_factory
@@ -70,11 +48,11 @@ class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
         It returns the resulting lemma after the specified number of steps or when the conditions are not met.
 
         Args:
-        - `token` (str): The input token to lemmatize.
-        - `lang` (str): The language code for the token's language.
+            token (str): The input token to lemmatize.
+            lang (str): The language code for the token's language.
 
         Returns:
-        - str: The lemma for the token.
+            str: The lemma for the token.
 
         """
         limit = 6 if lang in SHORTER_GREEDY else 8

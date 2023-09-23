@@ -1,13 +1,6 @@
 """
-Lemmatization Fallback Strategy
--------------------------------
-
-This file defines the `LemmatizationFallbackStrategy` protocol, which represents the interface for lemmatization fallback strategies in the Simplemma library.
+This module defines the `LemmatizationFallbackStrategy` protocol, which represents the interface for lemmatization fallback strategies in the Simplemma library.
 `LemmatizationFallbackStrategy` are used as a fallback strategy when a token's lemma cannot be determined using other lemmatization strategies.
-
-Classes:
-- `LemmatizationFallbackStrategy`: A protocol defining the interface for lemmatization fallback strategies.
-
 """
 
 import sys
@@ -21,18 +14,12 @@ else:
 
 class LemmatizationFallbackStrategy(Protocol):
     """
-    Protocol for Lemmatization Fallback Strategies.
+    This protocol defines the interface for lemmatization fallback strategies in the Simplemma library.
+    Fallback strategies are used when a token's lemma cannot be determined using other lemmatization strategies.
 
-    LemmatizationFallbackStrategy is a protocol that defines the interface for lemmatization fallback strategies
-    in the Simplemma library. Fallback strategies are used when a token's lemma cannot be determined using other
-    lemmatization strategies.
-
-    Note:
-        This protocol should be implemented by concrete fallback strategy classes.
-
-    Methods:
-    - `get_lemma(token: str, lang: str) -> str`: Retrieves the lemma of a given token in the specified language.
-
+     Note:
+         This protocol should be implemented by concrete fallback strategy classes.
+         Concrete implementations of this protocol should provide a concrete implementation for the `get_lemma` method.
     """
 
     @abstractmethod
