@@ -93,7 +93,7 @@ jobs:
       run: black --check --diff simplemma training tests
 
     - name: Type checking with mypy
-      if: matrix.python-version != '3.6'
+      if: matrix.python-version != '3.6' && matrix.python-version != '3.7'
       run: mypy -p simplemma -p training -p tests
 
     - name: Test with pytest
