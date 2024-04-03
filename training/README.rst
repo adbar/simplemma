@@ -10,6 +10,6 @@ The scores are calculated on `Universal Dependencies <https://universaldependenc
   2. Extract relevant data (language and if applicable specific treebank, see notes in the results table)
   3. Concatenate the train, dev and test data into a single file (e.g. ``cat de_gsd*.conllu > de-gsd-all.conllu``)
   4. Store the files at the expected location (``training/data/UD/``)
-4. Run the script, e.g. from the home directory ``python3 training/evaluate_simplema.py``
+4. Run the script, e.g. from the home directory ``python3 training/evaluate_simplemma.py``
 5. Results are stored at ``training/data/results/results_summary.csv``. Also, errors are written in a CSV file for each dataset under the ``data/results``folder. 
 
