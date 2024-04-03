@@ -97,7 +97,7 @@ jobs:
       run: mypy -p simplemma -p training -p tests
 
     - name: Test with pytest
-      run: pytest -p simplemma --cov=./ --cov-report=xml
+      run: python3 -m pytest --cov=./ --cov-report=xml
 
     # coverage
     - name: Upload coverage to Codecov
