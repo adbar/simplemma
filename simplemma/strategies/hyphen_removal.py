@@ -1,17 +1,6 @@
 """
-Hyphen Removal Strategy
------------------------
-
 This module defines the `HyphenRemovalStrategy` class, which is a concrete implementation of the `LemmatizationStrategy` protocol.
 It provides lemmatization by removing hyphens from tokens and attempting to find dictionary forms.
-
-Module Dependencies:
-- typing.Optional: For representing an optional return value.
-- re: For working with regular expressions.
-
-Class:
-- `HyphenRemovalStrategy`: A lemmatization strategy based on hyphen removal.
-
 """
 
 import re
@@ -28,18 +17,9 @@ HYPHEN_REGEX = re.compile(rf"([{HYPHENS_FOR_REGEX}])")
 
 class HyphenRemovalStrategy(LemmatizationStrategy):
     """
-    Hyphen Removal Strategy
-
     This class represents a lemmatization strategy that performs lemmatization by removing hyphens from tokens
     and attempting to find dictionary forms.
     It implements the `LemmatizationStrategy` protocol.
-
-    Attributes:
-    - `_dictionary_lookup` (DictionaryLookupStrategy): The dictionary lookup strategy used to find dictionary forms.
-
-    Methods:
-    - `get_lemma`: Get the lemma for a given token and language by removing hyphens and performing dictionary lookup.
-
     """
 
     __slots__ = ["_dictionary_lookup"]
@@ -51,7 +31,7 @@ class HyphenRemovalStrategy(LemmatizationStrategy):
         Initialize the Hyphen Removal Strategy.
 
         Args:
-        - `dictionary_lookup` (DictionaryLookupStrategy): The dictionary lookup strategy used to find dictionary forms.
+            dictionary_lookup (DictionaryLookupStrategy): The dictionary lookup strategy used to find dictionary forms.
                 Defaults to `DictionaryLookupStrategy()`.
 
         """
@@ -69,11 +49,11 @@ class HyphenRemovalStrategy(LemmatizationStrategy):
         If no dictionary form is found, None is returned.
 
         Args:
-        - `token` (str): The input token to lemmatize.
-        - `lang` (str): The language code for the token's language.
+            token (str): The input token to lemmatize.
+            lang (str): The language code for the token's language.
 
         Returns:
-        - Optional[str]: The lemma for the token, or None if no lemma is found.
+            Optional[str]: The lemma for the token, or None if no lemma is found.
 
         """
         token_parts = HYPHEN_REGEX.split(token)

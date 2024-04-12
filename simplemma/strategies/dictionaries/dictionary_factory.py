@@ -1,12 +1,11 @@
 """
-Dictionary Factory
-------------------
+This module defines the `DictionaryFactory` protocol and the `DefaultDictionaryFactory` class.
+It provides functionality for loading and accessing dictionaries for supported languages.
 
-This file defines the `DictionaryFactory` protocol and the `DefaultDictionaryFactory` class. It provides functionality for loading and accessing dictionaries for supported languages.
+- [DictionaryFactory][simplemma.strategies.dictionaries.DictionaryFactory]: The Protocol class for all dictionary factories.
+- [DefaultDictionaryFactory][simplemma.strategies.dictionaries.DefaultDictionaryFactory]: Default dictionary factory.
+It loads the dictionaries that are shipped with simplemma and caches them as configured.
 
-Classes:
-- `DictionaryFactory`: A protocol defining the interface for a dictionary factory.
-- `DefaultDictionaryFactory`: A concrete implementation of the `DictionaryFactory` protocol.
 """
 
 import lzma
@@ -59,14 +58,10 @@ def _load_dictionary_from_disk(langcode: str) -> Dict[str, str]:
 
 class DictionaryFactory(Protocol):
     """
-    Dictionary Factory protocol.
-
     This protocol defines the interface for a dictionary factory, which is responsible for loading and providing access to dictionaries for different languages.
 
-    Methods:
-    - `get_dictionary(lang: str) -> Dict[str, str]`: Get the dictionary for a specific language.
-
     Note:
+        This protocol should be implemented by concrete dictionary factories.
         Concrete implementations of this protocol should provide a concrete implementation for the `get_dictionary` method.
     """
 
@@ -94,17 +89,8 @@ class DefaultDictionaryFactory(DictionaryFactory):
     """
     Default Dictionary Factory.
 
-    This class is a concrete implementation of the `DictionaryFactory` protocol. It provides functionality for loading and caching dictionaries from disk.
-
-    Attributes:
-    - `_data`: A dictionary to cache loaded dictionaries.
-    - `_load_dictionary_from_disk`: A cached version of the `_load_dictionary_from_disk` function.
-
-    Methods:
-    - `get_dictionary(lang: str) -> Dict[str, str]`: Get the dictionary for a specific language.
-
-    Note:
-        This class assumes that the dictionary files are stored in the 'data' folder relative to this module.
+    This class is a concrete implementation of the `DictionaryFactory` protocol.
+    It provides functionality for loading and caching dictionaries from disk that are included in Simplemma.
     """
 
     __slots__ = ["_data", "_load_dictionary_from_disk"]

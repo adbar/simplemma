@@ -1,8 +1,9 @@
 """
-Utils module. Contains utility functions for language processing.
+Utils module.
+Contains utility functions for language processing.
 
-- validate_lang_input: Validates the language input and ensures it is a valid tuple.
-- levenshtein_dist: Calculates the Levenshtein distance between two strings.
+- [levenshtein_dist][simplemma.utils.levenshtein_dist]: Calculates the Levenshtein distance between two strings.
+- [validate_lang_input][simplemma.utils.validate_lang_input]: Validates the language input and ensures it is a valid tuple.
 """
 
 from typing import Any, Tuple

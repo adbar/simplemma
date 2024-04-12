@@ -1,3 +1,7 @@
+"""
+This file defines the `AffixDecompositionStrategy` class, which implements an affix decomposition lemmatization strategy in the Simplemma library.
+"""
+
 from typing import Optional
 
 from .lemmatization_strategy import LemmatizationStrategy
@@ -36,17 +40,6 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
     This strategy decomposes tokens into affixes and looks up their lemmas in a dictionary.
     It first attempts to decompose the token using affix decomposition and then falls back
     to suffix decomposition if affix decomposition fails.
-
-    Args:
-        greedy (bool): Flag indicating whether to use a greedy approach for decomposition.
-        dictionary_lookup (DictionaryLookupStrategy, optional): The dictionary lookup strategy
-            to use for retrieving lemma information. Defaults to `DictionaryLookupStrategy()`.
-        greedy_dictionary_lookup (GreedyDictionaryLookupStrategy, optional): The greedy dictionary
-            lookup strategy to use for retrieving lemma information in the greedy approach.
-            Defaults to `GreedyDictionaryLookupStrategy()`.
-
-    Methods:
-    - `get_lemma`: Get the lemma for a given token and language by performing subword decomposition.
     """
 
     __slots__ = ["_greedy", "_dictionary_lookup", "_greedy_dictionary_lookup"]
