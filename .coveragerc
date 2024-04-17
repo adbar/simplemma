@@ -2,6 +2,7 @@
 source = simplemma
 
 omit =
+    training/*
     tests/*
     setup.py
 
