@@ -11,7 +11,7 @@ Modules:
 """
 
 __title__ = "simplemma"
-__author__ = "Adrien Barbaresi"
+__author__ = "Adrien Barbaresi, Juanjo Diaz and contributors"
 __email__ = "barbaresi@bbaw.de"
 __license__ = "MIT"
 __version__ = "0.9.1"

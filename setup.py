@@ -14,7 +14,7 @@ def get_version(package):
     return re.search("__version__ = ['\"]([^'\"]+)['\"]", initfile)[1]
 
 
-readme = Path("README.rst").read_text()
+readme = Path("README.md").read_text()
 # with open('HISTORY.rst') as history_file:
 #    history = history_file.read()
 
@@ -90,6 +90,7 @@ setup(
     install_requires=requirements,
     license="MIT license",
     long_description=readme,  # + '\n\n' + history,
+    long_description_content_type="text/markdown",
     include_package_data=True,
     keywords=[
         "nlp",
@@ -104,6 +105,7 @@ setup(
     packages=find_packages(include=["simplemma", "simplemma.*"]),
     project_urls={
         "Source": "https://github.com/adbar/simplemma",
+        "Docs": "https://adbar.github.io/simplemma",
         "Blog": "https://adrien.barbaresi.eu/blog/",  # tag/simplemma
     },
     setup_requires=setup_requirements,
