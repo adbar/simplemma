@@ -71,6 +71,7 @@ jobs:
 
     # tests
     - name: Lint with flake8
+      if: matrix.python-version != '3.6' && matrix.python-version != '3.7'
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
