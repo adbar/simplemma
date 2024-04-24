@@ -79,6 +79,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: Code format with black
+      if: matrix.python-version != '3.6' && matrix.python-version != '3.7'
       run: black --check --diff simplemma training tests
 
     - name: Type checking with mypy
@@ -88,8 +89,9 @@ jobs:
     - name: Test with pytest
       run: python3 -m pytest --cov=./ --cov-report=xml
 
-    # coverage
+    # coverage with default version
     - name: Upload coverage to Codecov
+      if: matrix.python-version == '3.10'
       uses: codecov/codecov-action@v4
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
