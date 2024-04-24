@@ -65,9 +65,8 @@ jobs:
       if: matrix.python-version != '3.6' && matrix.python-version != '3.7'
       run: pip install -r requirements-dev.txt
 
-    - name: Install training dependencies
-      if: matrix.python-version != '3.6' && matrix.python-version != '3.7'
-      run: pip install -r training/requirements.txt
+    - name: Install dependencies (pytest)
+      run: python -m pip install --upgrade pytest
 
     # tests
     - name: Lint with flake8
