@@ -74,6 +74,7 @@ myword = 'masks'
 ['hier', 'sein', 'Vaccines']
 ```
 
+
 ### Chaining languages
 
 Chaining several languages can improve coverage, they are used in
@@ -90,6 +91,7 @@ sequence:
 >>> lemmatize('spaghetti', lang=('it', 'fr'))
 'spaghetto'
 ```
+
 
 ### Greedier decomposition
 
@@ -114,6 +116,7 @@ may be closer to stemming than to lemmatization.
 'angekündigt' # 1 step: reduction to past participle
 ```
 
+
 ### is_known()
 
 The additional function `is_known()` checks if a given word is present
@@ -124,6 +127,7 @@ in the language data:
 >>> is_known('spaghetti', lang='it')
 True
 ```
+
 
 ### Tokenization
 
@@ -151,6 +155,7 @@ lemmatization) and `silent` (affecting errors and logging) as arguments:
 >>> from simplemma import lemma_iterator
 >>> lemma_iterator(sentence, lang='pt')
 ```
+
 
 ### Caveats
 
@@ -183,6 +188,7 @@ also act as a linguistically motivated stemmer.
 Bug reports over the [issues
 page](https://github.com/adbar/simplemma/issues) are welcome.
 
+
 ### Language detection
 
 Language detection works by providing a text and tuple `lang` consisting
@@ -210,10 +216,12 @@ use of the greedier decomposition algorithm described above, thus
 extending word coverage and recall of detection at the potential cost of
 a lesser accuracy.
 
+
 ### Advanced usage via classes
 
 *The following classes will be made available in the next version. To
-start using them, install the latest version from the git repository.*
+start using them, install the latest version from the git repository.
+The full docs are available [here](https://adbar.github.io/simplemma/)*
 
 The above described functions are suitable for simple usage, but it is
 possible to have more control by instantiating Simplemma classes and
@@ -251,6 +259,7 @@ LANG_CACHE_SIZE = 5  # How many language dictionaries to keep in memory at once 
 >>> language_detector.proportion_in_target_languages("opera post physica posita (τὰ μετὰ τὰ φυσικά)")
 0.5
 ```
+
 
 ## Supported languages
 
@@ -338,6 +347,7 @@ captured by the benchmark above. In some languages, a fixed number of
 words such as pronouns can be further mapped by hand to enhance
 performance.
 
+
 ## Speed
 
 Orders of magnitude given for reference only, measured on an old laptop
@@ -348,6 +358,7 @@ to give a lower bound:
 
 Using the most recent Python version (i.e. with `pyenv`) can make the
 package run faster.
+
 
 ## Roadmap
 
@@ -377,6 +388,7 @@ from various sources, ordered by relative importance:
     corpus](https://github.com/lenakmeth/Wikinflection-Corpus) by Eleni
     Metheniti (CC BY 4.0 License)
 
+
 ## Contributions
 
 This package has been first created and published by Adrien Barbaresi.
@@ -401,6 +413,7 @@ awesome-NLP lists](https://github.com/adbar/German-NLP#More-lists).
 
 For another approach in Python see Spacy's
 [edit tree lemmatizer](https://spacy.io/api/edittreelemmatizer).
+
 
 ## References
 
