@@ -41,11 +41,12 @@ Currently, 49 languages are partly or fully supported (see table below).
 ## Installation
 
 The current library is written in pure Python with no dependencies:
-
 `pip install simplemma`
 
--   `pip3` where applicable
--   `pip install -U simplemma` for updates
+- `pip3` where applicable
+- `pip install -U simplemma` for updates
+- `pip install git+https://github.com/adbar/trafilatura` for the cutting-edge version
+
 
 ## Usage
 
@@ -273,12 +274,12 @@ Available languages (2022-01-20):
 | `cy` | Welsh | 360 | 
 | `da` | Danish | 554 | 0.92 | on UD DA-DDT, alternative: [lemmy](https://github.com/sorenlind/lemmy)
 | `de` | German | 675 | 0.95 | on UD DE-GSD, see also [German-NLP list](https://github.com/adbar/German-NLP#Lemmatization)
-| `el` | Greek | 181 | 0.88 on UD EL-GDT
+| `el` | Greek | 181 | 0.88 | on UD EL-GDT
 | `en` | English | 131 | 0.94 | on UD EN-GUM, alternative: [LemmInflect](https://github.com/bjascob/LemmInflect)
 | `enm` | Middle English | 38
 | `es` | Spanish | 665 | 0.95 | on UD ES-GSD
 | `et` | Estonian | 119 | | low coverage
-| `fa` | Persian | 12 | experimental
+| `fa` | Persian | 12 | | experimental
 | `fi` | Finnish | 3,199 | | see [this benchmark](https://github.com/aajanki/finnish-pos-accuracy)
 | `fr` | French | 217 | 0.94 | on UD FR-GSD
 | `ga` | Irish | 372
@@ -350,10 +351,10 @@ package run faster.
 
 ## Roadmap
 
--   \[-\] Add further lemmatization lists
--   \[ \] Grammatical categories as option
--   \[ \] Function as a meta-package?
--   \[ \] Integrate optional, more complex models?
+- [x] Add further lemmatization lists
+- [ ] Grammatical categories as option
+- [ ] Function as a meta-package?
+- [ ] Integrate optional, more complex models?
 
 ## Credits and licenses
 
@@ -398,8 +399,8 @@ hinting with [mypy](https://github.com/python/mypy), included tests with
 See lists: [German-NLP](https://github.com/adbar/German-NLP) and [other
 awesome-NLP lists](https://github.com/adbar/German-NLP#More-lists).
 
-For a more complex and universal approach in Python see
-[universal-lemmatizer](https://github.com/jmnybl/universal-lemmatizer/).
+For another approach in Python see Spacy's
+[edit tree lemmatizer](https://spacy.io/api/edittreelemmatizer).
 
 ## References
 
