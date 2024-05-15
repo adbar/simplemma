@@ -155,9 +155,7 @@ _legacy_greedy_lemmatizer = Lemmatizer(
 )
 
 
-def is_known(
-    token: str, lang: Union[str, Tuple[str, ...]], greedy: bool = False
-) -> bool:
+def is_known(token: str, lang: Union[str, Tuple[str, ...]]) -> bool:
     """Check if a token is known in the specified language(s).
 
     Args:
