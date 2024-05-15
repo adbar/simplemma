@@ -171,7 +171,7 @@ def is_known(
     _control_input_type(token)
     lang = validate_lang_input(lang)
 
-    dictionary_lookup = DictionaryLookupStrategy()
+    dictionary_lookup = DictionaryLookupStrategy(_legacy_dictionary_factory)
     return any(
         dictionary_lookup.get_lemma(token, lang_code) is not None for lang_code in lang
     )
