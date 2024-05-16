@@ -460,6 +460,9 @@ def test_is_known() -> None:
     assert is_known("FanCY", lang="en") == True
     assert is_known("Fancy-String", lang="en") == False
 
+    assert is_known("espejos", lang=("es", "de")) == True
+    assert is_known("espejos", lang=("de", "es")) == True
+
 
 def test_get_lemmas_in_text() -> None:
     # text lemmatization
