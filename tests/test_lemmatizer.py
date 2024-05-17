@@ -452,27 +452,16 @@ def test_subwords() -> None:
 
 
 def test_is_known() -> None:
-    # logic
-    with pytest.raises(TypeError):
-        assert Lemmatizer().is_known(None, lang="en") is None  # type: ignore[arg-type]
     with pytest.raises(TypeError):
         assert is_known(None, lang="en") is None  # type: ignore[arg-type]
     with pytest.raises(ValueError):
-        assert Lemmatizer().is_known("", lang="en") is None
-    with pytest.raises(ValueError):
         assert is_known("", lang="en") is None
 
-    assert (
-        Lemmatizer().is_known("FanCY", lang="en")
-        == is_known("FanCY", lang="en")
-        == True
-    )
-    # known words
-    assert (
-        Lemmatizer().is_known("Fancy-String", lang="en")
-        == is_known("Fancy-String", lang="en")
-        == False
-    )
+    assert is_known("FanCY", lang="en") == True
+    assert is_known("Fancy-String", lang="en") == False
+
+    assert is_known("espejos", lang=("es", "de")) == True
+    assert is_known("espejos", lang=("de", "es")) == True
 
 
 def test_get_lemmas_in_text() -> None:

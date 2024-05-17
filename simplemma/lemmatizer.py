@@ -80,30 +80,6 @@ class Lemmatizer:
         self._fallback_lemmatization_strategy = fallback_lemmatization_strategy
         self._cached_lemmatize = lru_cache(maxsize=cache_max_size)(self._lemmatize)
 
-    def is_known(
-        self,
-        token: str,
-        lang: Union[str, Tuple[str, ...]],
-    ) -> bool:
-        """Check if a token is known in the specified language(s).
-
-        Args:
-            token: The token to check.
-            lang: The language or languages to check in.
-
-        Returns:
-            bool: True if the token is known, False otherwise.
-        """
-
-        _control_input_type(token)
-        lang = validate_lang_input(lang)
-
-        dictionary_lookup = DictionaryLookupStrategy()
-        return any(
-            dictionary_lookup.get_lemma(token, lang_code) is not None
-            for lang_code in lang
-        )
-
     def lemmatize(
         self,
         token: str,
@@ -179,9 +155,7 @@ _legacy_greedy_lemmatizer = Lemmatizer(
 )
 
 
-def is_known(
-    token: str, lang: Union[str, Tuple[str, ...]], greedy: bool = False
-) -> bool:
+def is_known(token: str, lang: Union[str, Tuple[str, ...]]) -> bool:
     """Check if a token is known in the specified language(s).
 
     Args:
@@ -191,8 +165,14 @@ def is_known(
     Returns:
         bool: True if the token is known, False otherwise.
     """
-    lemmatizer = _legacy_lemmatizer if not greedy else _legacy_greedy_lemmatizer
-    return lemmatizer.is_known(token, lang)
+
+    _control_input_type(token)
+    lang = validate_lang_input(lang)
+
+    dictionary_lookup = DictionaryLookupStrategy(_legacy_dictionary_factory)
+    return any(
+        dictionary_lookup.get_lemma(token, lang_code) is not None for lang_code in lang
+    )
 
 
 def lemmatize(
