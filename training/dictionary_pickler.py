@@ -1,6 +1,6 @@
 """
 Functions used to created lemmatization dictionaries out of word lists.
-Input format: lemma, tab, word, newline
+Input format: word, tab, lemma, newline
 Output format: pickled Python dictionary compressed with lzma.
 """
 
@@ -88,7 +88,7 @@ def _read_dict(
                 and langcode in DEFAULT_RULES
             ):
                 rule = DEFAULT_RULES[langcode](columns[1])
-                if rule is not None and rule != columns[1]:
+                if rule is not None and rule != columns[0]:
                     print(columns[1], columns[0], rule)
             # process
             if columns[1] in mydict and mydict[columns[1]] != columns[0]:
@@ -143,7 +143,7 @@ def _pickle_dict(
         mydict = dict(sorted(mydict.items(), key=itemgetter(1)))
     if filepath is None:
         filename = f"strategies/dictionaries/data/{langcode}.plzma"
-        filepath = str(Path(simplemma.__file__).parent / filename)
+        filepath = str(Path(__file__).parent.parent / "simplemma" / filename)
     with lzma.open(filepath, "wb") as filehandle:  # , filters=my_filters, preset=9
         pickle.dump(mydict, filehandle, protocol=4)
     LOGGER.debug("%s %s", langcode, len(mydict))
@@ -151,5 +151,5 @@ def _pickle_dict(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    for listcode in SUPPORTED_LANGUAGES:
+    for listcode in sorted(SUPPORTED_LANGUAGES):
         _pickle_dict(listcode)
