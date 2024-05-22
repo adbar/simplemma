@@ -14,7 +14,7 @@ import sys
 from abc import abstractmethod
 from os import listdir, path
 from pathlib import Path
-from typing import Dict
+from typing import ByteString, Dict
 
 from functools import lru_cache
 
@@ -31,7 +31,7 @@ SUPPORTED_LANGUAGES = [
 ]
 
 
-def _load_dictionary_from_disk(langcode: str) -> Dict[str, str]:
+def _load_dictionary_from_disk(langcode: str) -> Dict[ByteString, ByteString]:
     """
     Load a dictionary from disk.
 
@@ -69,7 +69,7 @@ class DictionaryFactory(Protocol):
     def get_dictionary(
         self,
         lang: str,
-    ) -> Dict[str, str]:
+    ) -> Dict[ByteString, ByteString]:
         """
         Get the dictionary for a specific language.
 
@@ -103,7 +103,7 @@ class DefaultDictionaryFactory(DictionaryFactory):
             cache_max_size (int): The maximum size of the cache for loaded dictionaries.
                 Defaults to `8`.
         """
-        self._data: Dict[str, Dict[str, str]] = {}
+        self._data: Dict[str, Dict[ByteString, ByteString]] = {}
         self._load_dictionary_from_disk = lru_cache(maxsize=cache_max_size)(
             _load_dictionary_from_disk
         )
@@ -111,7 +111,7 @@ class DefaultDictionaryFactory(DictionaryFactory):
     def get_dictionary(
         self,
         lang: str,
-    ) -> Dict[str, str]:
+    ) -> Dict[ByteString, ByteString]:
         """
         Get the dictionary for a specific language.
 

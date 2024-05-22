@@ -5,7 +5,7 @@ import re
 
 from operator import itemgetter
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import ByteString, Dict, List, Optional
 
 import simplemma
 from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
@@ -45,7 +45,9 @@ def _determine_path(listpath: str, langcode: str) -> str:
     return str(Path(__file__).parent / filename)
 
 
-def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
+def _read_dict(
+    filepath: str, langcode: str, silent: bool
+) -> Dict[ByteString, ByteString]:
     mydict: Dict[str, str] = {}
     myadditions: List[str] = []
     i: int = 0
@@ -115,12 +117,13 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
     for word in myadditions:
         mydict[word] = word
     LOGGER.debug("%s %s", langcode, i)
-    return dict(sorted(mydict.items()))
+    # sort and convert to bytestrings
+    return {k.encode("utf-8"): v.encode("utf-8") for k, v in sorted(mydict.items())}
 
 
 def _load_dict(
     langcode: str, listpath: str = "lists", silent: bool = True
-) -> Dict[str, str]:
+) -> Dict[ByteString, ByteString]:
     filepath = _determine_path(listpath, langcode)
     return _read_dict(filepath, langcode, silent)
 

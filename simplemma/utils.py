@@ -6,7 +6,7 @@ Contains utility functions for language processing.
 - [validate_lang_input][simplemma.utils.validate_lang_input]: Validates the language input and ensures it is a valid tuple.
 """
 
-from typing import Any, Tuple
+from typing import Any, ByteString, Tuple, Union
 
 
 def validate_lang_input(lang: Any) -> Tuple[str]:
@@ -31,7 +31,9 @@ def validate_lang_input(lang: Any) -> Tuple[str]:
     return lang  # type: ignore[return-value]
 
 
-def levenshtein_dist(str1: str, str2: str) -> int:
+def levenshtein_dist(
+    first: Union[ByteString, str], second: Union[ByteString, str]
+) -> int:
     """
     Calculate the Levenshtein distance between two strings.
 
@@ -47,6 +49,8 @@ def levenshtein_dist(str1: str, str2: str) -> int:
         int: The Levenshtein distance between the two strings.
 
     """
+    str1 = first.encode("utf-8") if isinstance(first, str) else first
+    str2 = second.encode("utf-8") if isinstance(second, str) else second
     # inspired by this noticeably faster code:
     # https://gist.github.com/p-hash/9e0f9904ce7947c133308fbe48fe032b
     if str1 == str2:
