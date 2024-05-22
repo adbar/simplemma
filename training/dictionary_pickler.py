@@ -3,6 +3,7 @@ Functions used to created lemmatization dictionaries out of word lists.
 Input format: lemma, tab, word, newline
 Output format: pickled Python dictionary compressed with lzma.
 """
+
 import lzma
 import logging
 import pickle
@@ -80,8 +81,9 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
                 continue
             # print line if the rule is wrong
             if (
-                len(columns[1]) > 6 and columns[1] != columns[0] and \
-                langcode in DEFAULT_RULES
+                len(columns[1]) > 6
+                and columns[1] != columns[0]
+                and langcode in DEFAULT_RULES
             ):
                 rule = DEFAULT_RULES[langcode](columns[1])
                 if rule is not None and rule != columns[1]:
