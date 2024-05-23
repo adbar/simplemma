@@ -4,9 +4,9 @@ This file defines the `AffixDecompositionStrategy` class, which implements an af
 
 from typing import Optional
 
-from .lemmatization_strategy import LemmatizationStrategy
 from .dictionary_lookup import DictionaryLookupStrategy
-from .greedy_dictionary_lookup import GreedyDictionaryLookupStrategy, SHORTER_GREEDY
+from .greedy_dictionary_lookup import SHORTER_GREEDY, GreedyDictionaryLookupStrategy
+from .lemmatization_strategy import LemmatizationStrategy
 
 # TODO: This custom behavior has to be simplified before it becomes unmaintainable
 LONGER_AFFIXES = {"et", "fi", "hu", "lt"}

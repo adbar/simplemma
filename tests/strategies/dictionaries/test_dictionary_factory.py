@@ -1,4 +1,5 @@
 import pytest
+
 from simplemma.strategies import DefaultDictionaryFactory
 
 

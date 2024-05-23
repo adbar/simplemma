@@ -1,6 +1,5 @@
 import re
 
-
 RUSSIAN_PREFIXES = [
     "гидро",
     "за",

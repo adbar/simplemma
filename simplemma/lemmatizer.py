@@ -10,18 +10,17 @@ Provides classes for lemmatizing token and full texts.
 """
 
 from functools import lru_cache
-from typing import Any, List, Iterator, Tuple, Union
-
+from typing import Any, Iterator, List, Tuple, Union
 
 from .strategies import (
-    LemmatizationStrategy,
+    DefaultDictionaryFactory,
     DefaultStrategy,
     DictionaryLookupStrategy,
-    DefaultDictionaryFactory,
     LemmatizationFallbackStrategy,
+    LemmatizationStrategy,
     ToLowercaseFallbackStrategy,
 )
-from .tokenizer import Tokenizer, RegexTokenizer
+from .tokenizer import RegexTokenizer, Tokenizer
 from .utils import validate_lang_input
 
 PUNCTUATION = {".", "?", "!", "…", "¿", "¡"}

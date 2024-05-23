@@ -9,7 +9,6 @@ from .nl import apply_nl
 from .pl import apply_pl
 from .ru import apply_ru
 
-
 DEFAULT_RULES: Dict[str, Callable[[str], Optional[str]]] = {
     "de": apply_de,
     "en": apply_en,

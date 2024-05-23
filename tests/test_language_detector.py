@@ -2,7 +2,7 @@
 
 import pytest
 
-from simplemma import in_target_language, langdetect, LanguageDetector
+from simplemma import LanguageDetector, in_target_language, langdetect
 from simplemma.langdetect import in_target_language as deprecated_itl
 from simplemma.langdetect import lang_detector as deprecated_ld
 from simplemma.strategies import DefaultStrategy

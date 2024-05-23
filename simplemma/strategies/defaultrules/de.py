@@ -1,7 +1,5 @@
 import re
-
 from typing import Optional
-
 
 NOUN_ENDINGS_DE = re.compile(
     r"(?:erei|heit|keit|ion|schaft|tät|[^jlz]ung)(en)?$|"

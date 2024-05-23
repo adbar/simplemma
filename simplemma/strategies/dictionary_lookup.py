@@ -5,7 +5,7 @@ It provides lemmatization using dictionary lookup.
 
 from typing import Optional
 
-from .dictionaries.dictionary_factory import DictionaryFactory, DefaultDictionaryFactory
+from .dictionaries.dictionary_factory import DefaultDictionaryFactory, DictionaryFactory
 from .lemmatization_strategy import LemmatizationStrategy
 
 

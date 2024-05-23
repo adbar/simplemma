@@ -6,7 +6,6 @@ It provides lemmatization by applying pre-defined rules for each language.
 from typing import Callable, Dict, Optional
 
 from .defaultrules import DEFAULT_RULES
-
 from .lemmatization_strategy import LemmatizationStrategy
 
 

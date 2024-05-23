@@ -13,9 +13,10 @@ a [Tokenizer][simplemma.tokenizer.Tokenizer] so the user only has to implement t
 import re
 import sys
 from abc import ABC, abstractmethod
-from typing import Iterable, List
 from collections import Counter
-from .tokenizer import Tokenizer, RegexTokenizer
+from typing import Iterable, List
+
+from .tokenizer import RegexTokenizer, Tokenizer
 
 if sys.version_info >= (3, 8):
     from typing import Protocol

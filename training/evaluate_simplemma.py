@@ -1,15 +1,15 @@
 import csv
+import logging
 import time
 
 # from collections import Counter
 from os import mkdir, path, rmdir, scandir, unlink
-import logging
 
 from conllu import parse_incr  # type: ignore
 
 from simplemma import Lemmatizer
-from simplemma.strategies.dictionaries import DefaultDictionaryFactory
 from simplemma.strategies.default import DefaultStrategy
+from simplemma.strategies.dictionaries import DefaultDictionaryFactory
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)

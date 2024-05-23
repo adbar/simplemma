@@ -10,7 +10,6 @@ Provides classes for text tokenization.
 
 import re
 import sys
-
 from abc import abstractmethod
 from typing import Iterator, List, Pattern
 

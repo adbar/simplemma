@@ -1,9 +1,7 @@
 import re
-
 from typing import Optional
 
 from .generic import apply_rules
-
 
 DEFAULT_RULES = {
     re.compile(r"(?:ости|остью|остей|остям|остями|остях)$"): "ость",
