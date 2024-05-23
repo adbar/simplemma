@@ -3,8 +3,6 @@ This module defines the `GreedyDictionaryLookupStrategy` class, which is a concr
 It provides lemmatization using a greedy dictionary lookup strategy.
 """
 
-from typing import Optional
-
 from .lemmatization_strategy import LemmatizationStrategy
 from .dictionaries.dictionary_factory import DictionaryFactory, DefaultDictionaryFactory
 from ..utils import levenshtein_dist

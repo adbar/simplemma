@@ -5,34 +5,10 @@ from typing import Optional
 from .generic import apply_rules
 
 
-RUSSIAN_PREFIXES = [
-    "гидро",
-    "за",
-    "контр",
-    "много",
-    "микро",
-    "недо",
-    "пере",
-    "под",
-    "пред",
-    "при",
-    "про",
-    "радио",
-    "раз",
-    "рас",
-    "само",
-    "экстра",
-    "электро",
-]
-
-
 DEFAULT_RULES = {
     re.compile(r"(?:ости|остью|остей|остям|остями|остях)$"): "ость",
     re.compile(r"(?:ства|ств|ству|ствам|ством|ствами|стве|ствах)$"): "ство",
 }
-
-
-RU_PREFIX_REGEX = re.compile(r"^(" + "|".join(RUSSIAN_PREFIXES) + ")")
 
 
 def apply_ru(token: str) -> Optional[str]:

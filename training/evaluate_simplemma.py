@@ -1,7 +1,7 @@
 import csv
 import time
 
-from collections import Counter
+# from collections import Counter
 from os import mkdir, path, rmdir, scandir, unlink
 import logging
 
@@ -63,7 +63,6 @@ with open(path.join(RESULTS_FOLDER, "results_summary.csv"), "w") as csv_results_
 
         start = time.time()
         _dictionary_factory = DefaultDictionaryFactory()
-        strategies = DefaultStrategy(greedy=False)
         lemmatizer = Lemmatizer(
             lemmatization_strategy=DefaultStrategy(
                 greedy=False, dictionary_factory=_dictionary_factory

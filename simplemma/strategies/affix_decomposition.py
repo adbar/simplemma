@@ -76,7 +76,7 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
             Optional[str]: The lemma of the token if found, or None otherwise.
         """
         limit = 6 if lang in SHORTER_GREEDY else 8
-        if (not self._greedy and not lang in AFFIX_LANGS) or len(token) <= limit:
+        if (not self._greedy and lang not in AFFIX_LANGS) or len(token) <= limit:
             return None
 
         # define parameters

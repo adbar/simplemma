@@ -112,9 +112,8 @@ def test_readme() -> None:
         ".",
     ]
     # error
-    Lemmatizer().lemmatize("スパゲッティ", lang="pt") == lemmatize(
-        "スパゲッティ", lang="pt"
-    ) == None
+    assert Lemmatizer().lemmatize("スパゲッティ", lang="pt") == lemmatize("スパゲッティ", lang="pt")
+    assert lemmatize("スパゲッティ", lang="pt") == "スパゲッティ"
 
     with pytest.raises(ValueError):
         Lemmatizer(
