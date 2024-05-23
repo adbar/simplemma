@@ -1,4 +1,4 @@
-from simplemma import simple_tokenizer, RegexTokenizer
+from simplemma import RegexTokenizer, simple_tokenizer
 
 
 def test_tokenizer() -> None:

@@ -10,11 +10,11 @@ Provides classes for text language detection using lemmatization and token sampl
 from operator import itemgetter
 from typing import Dict, List, Tuple, Union
 
-from .strategies import LemmatizationStrategy, DefaultStrategy
+from .strategies import DefaultStrategy, LemmatizationStrategy
 from .token_sampler import (
-    TokenSampler,
     MostCommonTokenSampler,
     RelaxedMostCommonTokenSampler,
+    TokenSampler,
 )
 from .utils import validate_lang_input
 

@@ -12,11 +12,10 @@ import lzma
 import pickle
 import sys
 from abc import abstractmethod
+from functools import lru_cache
 from os import listdir, path
 from pathlib import Path
 from typing import ByteString, Dict
-
-from functools import lru_cache
 
 if sys.version_info >= (3, 8):
     from typing import Protocol

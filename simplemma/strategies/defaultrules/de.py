@@ -1,7 +1,5 @@
 import re
-
 from typing import Optional
-
 
 NOUN_ENDINGS_DE = re.compile(
     r"(?:erei|heit|keit|ion|schaft|tät|[^jlz]ung)(en)?$|"
@@ -27,76 +25,6 @@ PP_DE = re.compile(r"^.{2,}ge.+?[^aes]t(?:e|em|er|es)$")
 
 ENDING_CHARS_DE = {"e", "m", "n", "r", "s"}
 ENDING_DE = re.compile(r"(?:e|em|er|es)$")
-
-# 2-letter prefixes are theoretically already accounted for by the current AFFIXLEN parameter
-GERMAN_PREFIXES = [
-    "ab",
-    "an",
-    "auf",
-    "aus",
-    "be",
-    "bei",
-    "da",
-    "dar",
-    "darin",
-    "davor",
-    "durch",
-    "ein",
-    "ent",
-    "entgegen",
-    "er",
-    "gegen",
-    "heim",
-    "her",
-    "herab",
-    "heran",
-    "herauf",
-    "heraus",
-    "herbei",
-    "herein",
-    "herum",
-    "herunter",
-    "hervor",
-    "hin",
-    "hinab",
-    "hinauf",
-    "hinaus",
-    "hinein",
-    "hinten",
-    "hinter",
-    "hinunter",
-    "hinweg",
-    "hinzu",
-    "innen",
-    "los",
-    "miss",
-    "mit",
-    "nach",
-    "neben",
-    "nieder",
-    "ran",
-    "raus",
-    "rein",
-    "rum",
-    "runter",
-    "über",
-    "um",
-    "unter",
-    "ver",
-    "vor",
-    "voran",
-    "voraus",
-    "vorbei",
-    "vorher",
-    "vorüber",
-    "weg",
-    "weiter",
-    "wieder",
-    "zer",
-    "zu",
-]
-
-DE_PREFIX_REGEX = re.compile(r"^(" + "|".join(GERMAN_PREFIXES) + ")(?!zu)")
 
 
 def apply_de(token: str) -> Optional[str]:

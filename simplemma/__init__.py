@@ -18,11 +18,11 @@ __version__ = "0.9.1"
 
 
 from .language_detector import LanguageDetector, in_target_language, langdetect
-from .lemmatizer import Lemmatizer, lemmatize, lemma_iterator, text_lemmatizer, is_known
-from .tokenizer import Tokenizer, RegexTokenizer, simple_tokenizer
+from .lemmatizer import Lemmatizer, is_known, lemma_iterator, lemmatize, text_lemmatizer
 from .token_sampler import (
-    TokenSampler,
     BaseTokenSampler,
     MostCommonTokenSampler,
     RelaxedMostCommonTokenSampler,
+    TokenSampler,
 )
+from .tokenizer import RegexTokenizer, Tokenizer, simple_tokenizer

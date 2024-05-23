@@ -1,9 +1,7 @@
 import re
-
 from typing import Optional
 
 from .generic import apply_rules
-
 
 DEFAULT_RULES = {
     # -minen nouns, ä/ö/y + a/o/u

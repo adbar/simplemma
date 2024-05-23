@@ -4,20 +4,18 @@ Input format: lemma, tab, word, newline
 Output format: pickled Python dictionary compressed with lzma.
 """
 
-import lzma
 import logging
+import lzma
 import pickle
 import re
-
 from operator import itemgetter
 from pathlib import Path
 from typing import ByteString, Dict, List, Optional
 
 import simplemma
-from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
 from simplemma.strategies.defaultrules import DEFAULT_RULES
+from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
 from simplemma.utils import levenshtein_dist
-
 
 LOGGER = logging.getLogger(__name__)
 

@@ -9,7 +9,7 @@ Contains utility functions for language processing.
 from typing import Any, ByteString, Tuple, Union
 
 
-def validate_lang_input(lang: Any) -> Tuple[str]:
+def validate_lang_input(lang: Union[str, Tuple[str, ...]]) -> Tuple[str]:
     """
     Make sure the lang variable is a valid tuple.
 

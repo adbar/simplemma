@@ -5,14 +5,14 @@ It provides lemmatization using a combination of different strategies such as di
 
 from typing import Optional
 
-from .dictionaries.dictionary_factory import DictionaryFactory, DefaultDictionaryFactory
-from .lemmatization_strategy import LemmatizationStrategy
-from .dictionary_lookup import DictionaryLookupStrategy
-from .hyphen_removal import HyphenRemovalStrategy
-from .rules import RulesStrategy
-from .prefix_decomposition import PrefixDecompositionStrategy
-from .greedy_dictionary_lookup import GreedyDictionaryLookupStrategy
 from .affix_decomposition import AffixDecompositionStrategy
+from .dictionaries.dictionary_factory import DefaultDictionaryFactory, DictionaryFactory
+from .dictionary_lookup import DictionaryLookupStrategy
+from .greedy_dictionary_lookup import GreedyDictionaryLookupStrategy
+from .hyphen_removal import HyphenRemovalStrategy
+from .lemmatization_strategy import LemmatizationStrategy
+from .prefix_decomposition import PrefixDecompositionStrategy
+from .rules import RulesStrategy
 
 
 class DefaultStrategy(LemmatizationStrategy):

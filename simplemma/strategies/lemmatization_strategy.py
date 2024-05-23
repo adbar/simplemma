@@ -3,8 +3,8 @@ This file defines the `LemmatizationStrategy` protocl class, which all lemmatiza
 """
 
 import sys
-from typing import Optional
 from abc import abstractmethod
+from typing import Optional
 
 if sys.version_info >= (3, 8):
     from typing import Protocol

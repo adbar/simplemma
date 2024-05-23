@@ -1,6 +1,10 @@
 """Tests for Simplemma's language detection utilities."""
 
-from simplemma import in_target_language, langdetect, LanguageDetector
+import pytest
+
+from simplemma import LanguageDetector, in_target_language, langdetect
+from simplemma.langdetect import in_target_language as deprecated_itl
+from simplemma.langdetect import lang_detector as deprecated_ld
 from simplemma.strategies import DefaultStrategy
 
 from .test_token_sampler import CustomTokenSampler
@@ -74,9 +78,11 @@ def test_proportion_in_each_language() -> None:
 def test_in_target_language() -> None:
     lang = "en"
     text = ""
+    with pytest.raises(ValueError):
+        deprecated_itl(text, lang=lang)
     assert (
         LanguageDetector(lang=(lang,)).proportion_in_target_languages(text)
-        == in_target_language(text, lang="en")
+        == in_target_language(text, lang=lang)
         == 0
     )
 
@@ -112,6 +118,8 @@ def test_in_target_language() -> None:
 def test_main_language():
     text = "Dieser Satz ist auf Deutsch."
     lang = ("de", "en")
+    with pytest.raises(ValueError):
+        deprecated_ld(text, lang=lang)
     assert (
         LanguageDetector(
             lang=lang, lemmatization_strategy=DefaultStrategy(greedy=False)
