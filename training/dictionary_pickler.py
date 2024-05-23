@@ -1,6 +1,6 @@
 """
 Functions used to created lemmatization dictionaries out of word lists.
-Input format: word, tab, lemma, newline
+Input format: lemma, tab, word, newline
 Output format: pickled Python dictionary compressed with lzma.
 """
 
@@ -84,11 +84,11 @@ def _read_dict(
             # print line if the rule is wrong
             if (
                 len(columns[1]) > 6
-                and columns[1] != columns[0]
                 and langcode in DEFAULT_RULES
+                and columns[1] != columns[0]
             ):
                 rule = DEFAULT_RULES[langcode](columns[1])
-                if rule is not None and rule != columns[0]:
+                if rule is not None and rule != columns[1]:
                     print(columns[1], columns[0], rule)
             # process
             if columns[1] in mydict and mydict[columns[1]] != columns[0]:

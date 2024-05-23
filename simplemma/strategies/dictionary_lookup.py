@@ -29,7 +29,7 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
     def _get(
         self, token: str, dictionary: Dict[ByteString, ByteString]
     ) -> Optional[str]:
-        "."
+        "Convenience function to handle bytestring to string conversion."
         result = dictionary.get(token.encode("utf-8"))
         return result.decode("utf-8") if result else None  # type: ignore[union-attr]
 
