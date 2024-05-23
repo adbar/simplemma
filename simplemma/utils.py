@@ -6,10 +6,10 @@ Contains utility functions for language processing.
 - [validate_lang_input][simplemma.utils.validate_lang_input]: Validates the language input and ensures it is a valid tuple.
 """
 
-from typing import Any, Tuple
+from typing import Tuple, Union
 
 
-def validate_lang_input(lang: Any) -> Tuple[str]:
+def validate_lang_input(lang: Union[str, Tuple[str, ...]]) -> Tuple[str]:
     """
     Make sure the lang variable is a valid tuple.
 

@@ -1,12 +1,13 @@
 """Tests for `simplemma` package."""
 
-import pytest
 from typing import Dict
 
-from simplemma import lemmatize, is_known, text_lemmatizer, lemma_iterator, Lemmatizer
+import pytest
+
+from simplemma import Lemmatizer, is_known, lemma_iterator, lemmatize, text_lemmatizer
 from simplemma.strategies import (
-    DictionaryFactory,
     DefaultStrategy,
+    DictionaryFactory,
     RaiseErrorFallbackStrategy,
 )
 
@@ -112,9 +113,10 @@ def test_readme() -> None:
         ".",
     ]
     # error
-    Lemmatizer().lemmatize("スパゲッティ", lang="pt") == lemmatize(
+    assert Lemmatizer().lemmatize("スパゲッティ", lang="pt") == lemmatize(
         "スパゲッティ", lang="pt"
-    ) == None
+    )
+    assert lemmatize("スパゲッティ", lang="pt") == "スパゲッティ"
 
     with pytest.raises(ValueError):
         Lemmatizer(

@@ -1,3 +1,3 @@
 """Dictionary-based lemmatization strategy."""
 
-from .dictionary_factory import DictionaryFactory, DefaultDictionaryFactory
+from .dictionary_factory import DefaultDictionaryFactory, DictionaryFactory

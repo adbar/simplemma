@@ -1,9 +1,9 @@
 from simplemma.strategies import (
-    DictionaryLookupStrategy,
-    HyphenRemovalStrategy,
-    DefaultStrategy,
-    GreedyDictionaryLookupStrategy,
     AffixDecompositionStrategy,
+    DefaultStrategy,
+    DictionaryLookupStrategy,
+    GreedyDictionaryLookupStrategy,
+    HyphenRemovalStrategy,
     PrefixDecompositionStrategy,
 )
 

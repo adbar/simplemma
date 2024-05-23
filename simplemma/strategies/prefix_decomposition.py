@@ -5,9 +5,8 @@ It provides lemmatization by performing subword decomposition using pre-defined 
 
 from typing import Dict, Optional, Pattern
 
-from .dictionary_lookup import DictionaryLookupStrategy
 from .defaultprefixes import DEFAULT_KNOWN_PREFIXES
-
+from .dictionary_lookup import DictionaryLookupStrategy
 from .lemmatization_strategy import LemmatizationStrategy
 
 

@@ -9,7 +9,6 @@ from typing import Optional
 from .dictionary_lookup import DictionaryLookupStrategy
 from .lemmatization_strategy import LemmatizationStrategy
 
-
 HYPHENS = {"-", "_"}
 HYPHENS_FOR_REGEX = "".join(HYPHENS)
 HYPHEN_REGEX = re.compile(rf"([{HYPHENS_FOR_REGEX}])")

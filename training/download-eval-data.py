@@ -1,10 +1,11 @@
-from typing import Iterable, List, Tuple
-from os import mkdir, path, scandir
-import re
 import logging
+import re
 import tarfile
-import requests
 from glob import glob
+from os import mkdir, path, scandir
+from typing import Iterable, List, Tuple
+
+import requests
 
 from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
 
