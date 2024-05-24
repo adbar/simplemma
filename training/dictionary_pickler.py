@@ -133,15 +133,22 @@ def _load_dict(
 
 
 def _pickle_dict(
-    langcode: str, listpath: str = "lists", filepath: Optional[str] = None
+    langcode: str = "en",
+    listpath: str = "lists",
+    filepath: Optional[str] = None,
+    in_place: bool = False,
 ) -> None:
     mydict = _load_dict(langcode, listpath)
     # sort dictionary to help saving space during compression
     if langcode not in ("lt", "sw"):
         mydict = dict(sorted(mydict.items(), key=itemgetter(1)))
     if filepath is None:
-        filename = f"strategies/dictionaries/data/{langcode}.plzma"
-        filepath = str(Path(__file__).parent.parent / "simplemma" / filename)
+        directory = (
+            Path(simplemma.__file__).parent
+            if in_place
+            else Path(__file__).parent.parent / "simplemma"
+        )
+        filepath = str(directory / f"strategies/dictionaries/data/{langcode}.plzma")
     with lzma.open(filepath, "wb") as filehandle:  # , filters=my_filters, preset=9
         pickle.dump(mydict, filehandle, protocol=4)
     LOGGER.debug("%s %s", langcode, len(mydict))

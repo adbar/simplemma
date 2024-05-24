@@ -37,3 +37,4 @@ def test_logic() -> None:
     listpath = os.path.join(TEST_DIR, "data")
     os_handle, temp_outputfile = tempfile.mkstemp(suffix=".pkl", text=True)
     dictionary_pickler._pickle_dict("zz", listpath, temp_outputfile)
+    dictionary_pickler._pickle_dict("zz", listpath, in_place=True)
