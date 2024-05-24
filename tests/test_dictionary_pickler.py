@@ -26,9 +26,9 @@ def test_logic() -> None:
     # different order
     mydict = dictionary_pickler._read_dict(testfile, "es", silent=True)
     assert len(mydict) == 5
-    assert mydict["closeones"] == "closeone"
+    assert mydict[b"closeones"] == b"closeone"
     item = sorted(mydict.keys(), reverse=True)[0]
-    assert item == "valid-word"
+    assert item == b"valid-word"
 
     # file I/O
     assert dictionary_pickler._determine_path("lists", "de").endswith("de.txt")
@@ -37,3 +37,4 @@ def test_logic() -> None:
     listpath = os.path.join(TEST_DIR, "data")
     os_handle, temp_outputfile = tempfile.mkstemp(suffix=".pkl", text=True)
     dictionary_pickler._pickle_dict("zz", listpath, temp_outputfile)
+    dictionary_pickler._pickle_dict("zz", listpath, in_place=True)

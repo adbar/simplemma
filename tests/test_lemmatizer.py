@@ -1,6 +1,6 @@
 """Tests for `simplemma` package."""
 
-from typing import Dict
+from typing import ByteString, Dict
 
 import pytest
 
@@ -17,8 +17,8 @@ def test_custom_dictionary_factory() -> None:
         def get_dictionary(
             self,
             lang: str,
-        ) -> Dict[str, str]:
-            return {"testing": "the test works!!"}
+        ) -> Dict[ByteString, ByteString]:
+            return {b"testing": b"the test works!!"}
 
     assert (
         Lemmatizer(

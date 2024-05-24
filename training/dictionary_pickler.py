@@ -10,7 +10,7 @@ import pickle
 import re
 from operator import itemgetter
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import ByteString, Dict, List, Optional
 
 import simplemma
 from simplemma.strategies.defaultrules import DEFAULT_RULES
@@ -49,7 +49,9 @@ def _determine_path(listpath: str, langcode: str) -> str:
     return str(Path(__file__).parent / filename)
 
 
-def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
+def _read_dict(
+    filepath: str, langcode: str, silent: bool
+) -> Dict[ByteString, ByteString]:
     mydict: Dict[str, str] = {}
     myadditions: List[str] = []
     i: int = 0
@@ -80,8 +82,8 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
             # print line if the rule is wrong
             if (
                 len(columns[1]) > 6
-                and columns[1] != columns[0]
                 and langcode in DEFAULT_RULES
+                and columns[1] != columns[0]
             ):
                 rule = DEFAULT_RULES[langcode](columns[1])
                 if rule is not None and rule != columns[1]:
@@ -119,18 +121,22 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
     for word in myadditions:
         mydict[word] = word
     LOGGER.debug("%s %s", langcode, i)
-    return dict(sorted(mydict.items()))
+    # sort and convert to bytestrings
+    return {k.encode("utf-8"): v.encode("utf-8") for k, v in sorted(mydict.items())}
 
 
 def _load_dict(
     langcode: str, listpath: str = "lists", silent: bool = True
-) -> Dict[str, str]:
+) -> Dict[ByteString, ByteString]:
     filepath = _determine_path(listpath, langcode)
     return _read_dict(filepath, langcode, silent)
 
 
 def _pickle_dict(
-    langcode: str, listpath: str = "lists", filepath: Optional[str] = None
+    langcode: str = "en",
+    listpath: str = "lists",
+    filepath: Optional[str] = None,
+    in_place: bool = False,
 ) -> None:
     mydict = _load_dict(langcode, listpath)
     # sort dictionary to help saving space during compression
@@ -138,7 +144,12 @@ def _pickle_dict(
         mydict = dict(sorted(mydict.items(), key=itemgetter(1)))
     if filepath is None:
         filename = f"strategies/dictionaries/data/{langcode}.plzma"
-        filepath = str(Path(simplemma.__file__).parent / filename)
+        directory = (
+            Path(simplemma.__file__).parent
+            if in_place
+            else Path(__file__).parent.parent / "simplemma"
+        )
+        filepath = str(directory / filename)
     with lzma.open(filepath, "wb") as filehandle:  # , filters=my_filters, preset=9
         pickle.dump(mydict, filehandle, protocol=4)
     LOGGER.debug("%s %s", langcode, len(mydict))
@@ -146,5 +157,5 @@ def _pickle_dict(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    for listcode in SUPPORTED_LANGUAGES:
+    for listcode in sorted(SUPPORTED_LANGUAGES):
         _pickle_dict(listcode)

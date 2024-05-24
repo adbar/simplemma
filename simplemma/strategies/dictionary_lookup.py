@@ -3,7 +3,7 @@ This module defines the `DictionaryLookupStrategy` class, which is a concrete im
 It provides lemmatization using dictionary lookup.
 """
 
-from typing import Optional
+from typing import ByteString, Dict, Optional
 
 from .dictionaries.dictionary_factory import DefaultDictionaryFactory, DictionaryFactory
 from .lemmatization_strategy import LemmatizationStrategy
@@ -26,6 +26,13 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
         """
         self._dictionary_factory = dictionary_factory
 
+    def _get(
+        self, token: str, dictionary: Dict[ByteString, ByteString]
+    ) -> Optional[str]:
+        "Convenience function to handle bytestring to string conversion."
+        result = dictionary.get(token.encode("utf-8"))
+        return result.decode("utf-8") if result else None  # type: ignore[union-attr]
+
     def get_lemma(self, token: str, lang: str) -> Optional[str]:
         """
         Get Lemma using Dictionary Lookup
@@ -43,8 +50,9 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
         """
         # Search the language data, reverse case to extend coverage.
         dictionary = self._dictionary_factory.get_dictionary(lang)
-        if token in dictionary:
-            return dictionary[token]
+        result = self._get(token, dictionary)
+        if result:
+            return result
         # Try upper or lowercase.
         token = token.lower() if token[0].isupper() else token.capitalize()
-        return dictionary.get(token)
+        return self._get(token, dictionary)
