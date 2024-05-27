@@ -12,5 +12,7 @@ include tests/__init__.py tests/test_*.py
 graft tests/data/
 graft tests/strategies/
 
+graft training/
+
 # recursive-include docs *.md
 # include requirements-*.txt
