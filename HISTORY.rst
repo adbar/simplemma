@@ -2,6 +2,31 @@
 History
 =======
 
+1.0.0
+-----
+
+Extensive refactoring by @juanjoDiaz:
+- Series of modular classes
+- Different lemmatization strategies available
+- Customization of dictionary loading and handling (`DictionaryFactory`)
+- `LanguageDetector` class with extended options
+- See readme and [detailed documentation](https://adbar.github.io/simplemma/)
+
+Breaking changes:
+- The `extensive` argument is now `greedy`
+- The `langdetect` submodule is now `language_detector`
+`from simplemma.langdetect import ...` → `from simplemma.language_detector import ...`
+
+Fixes and improvements
+- `is_known()` function now restored to its state in v0.9.0 (full dictionary)
+- more languages and better rules (with @juanjoDiaz)
+- use binary strings in dictionaries to save memory
+- dictionary sort before compression by @1over137
+
+Documentation:
+- Classes and general doc pages by @juanjoDiaz 
+- Section on classes in the readme by @osma
+
 
 0.9.1
 -----
