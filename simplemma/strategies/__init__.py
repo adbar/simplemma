@@ -2,7 +2,11 @@
 
 from .affix_decomposition import AffixDecompositionStrategy
 from .default import DefaultStrategy
-from .dictionaries import DefaultDictionaryFactory, DictionaryFactory
+from .dictionaries import (
+    DefaultDictionaryFactory,
+    DictionaryFactory,
+    TrieDictionaryFactory,
+)
 from .dictionary_lookup import DictionaryLookupStrategy
 from .fallback.lemmatization_fallback_strategy import LemmatizationFallbackStrategy
 from .fallback.raise_error import RaiseErrorFallbackStrategy

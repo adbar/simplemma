@@ -259,6 +259,61 @@ LANG_CACHE_SIZE = 5  # How many language dictionaries to keep in memory at once 
 For more information see the
 [extended documentation](https://adbar.github.io/simplemma/).
 
+### Reducing memory usage
+
+For situations where low memory usage and fast initialization time are
+more important than lemmatization and language detection performance,
+Simplemma ships another `DictionaryFactory`, which uses a trie as
+underlying data structure instead of a Python dict.
+
+Using the `TrieDictionaryFactory` reduces memory usage on average by
+20x and initialization time by 100x, but comes at the cost that
+performance can be down 50% or even more compared to what Simplemma
+otherwise achieves, depending on the specific usage.
+
+To use the `TrieDictionaryFactory` you have to install Simplemma with
+the `marisa-trie` extra dependency:
+
+```
+pip install simplemma[marisa-trie]
+```
+
+Then you have to create a custom strategy using the
+`TrieDictionaryFactory` and use that for `Lemmatizer` and
+`LanguageDetector` instances:
+
+``` python
+>>> from simplemma import LanguageDetector, Lemmatizer
+>>> from simplemma.strategies import DefaultStrategy
+>>> from simplemma.strategies.dictionaries import TrieDictionaryFactory
+
+>>> lemmatization_strategy = DefaultStrategy(dictionary_factory=TrieDictionaryFactory())
+
+>>> lemmatizer = Lemmatizer(lemmatization_strategy=lemmatization_strategy)
+>>> lemmatizer.lemmatize('doughnuts', lang='en')
+'doughnut'
+
+>>> language_detector = LanguageDetector('la', lemmatization_strategy=lemmatization_strategy)
+>>> language_detector.proportion_in_target_languages("opera post physica posita (τὰ μετὰ τὰ φυσικά)")
+0.5
+```
+
+While memory usage and initialization time when using the
+`TrieDictionaryFactory` are significantly lower compared to the
+`DefaultDictionaryFactory`, that's only true if the trie dictionaries
+are available on disk. That's not the case when using the
+`TrieDictionaryFactory` for the first time, as Simplemma only ships
+the dictionaries as Python dicts. The trie dictionaries have to be
+generated once from the Python dicts. That happens on-the-fly when
+using the `TrieDictionaryFactory` for the first time for a language and
+will take a few seconds and use as much memory as loading the Python
+dicts for the language requires. For further invocations the trie
+dictionaries get cached on disk.
+
+If the computer supposed to run Simplemma doesn't have enough memory to
+generate the trie dictionaries, they can also be generated on another
+computer with the same CPU architecture and copied over to the cache
+directory.
 
 ## Supported languages
 

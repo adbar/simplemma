@@ -85,6 +85,7 @@ setup(
     ],
     description="A simple multilingual lemmatizer for Python.",
     install_requires=requirements,
+    extras_require={"marisa-trie": ["marisa-trie", "platformdirs"]},
     license="MIT license",
     long_description=readme,  # + '\n\n' + history,
     long_description_content_type="text/markdown",
