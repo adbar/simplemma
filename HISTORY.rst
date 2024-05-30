@@ -17,11 +17,11 @@ Breaking changes:
 - The `langdetect` submodule is now `language_detector`
 `from simplemma.langdetect import ...` → `from simplemma.language_detector import ...`
 
-Fixes and improvements
+Fixes and improvements:
 - `is_known()` function now restored to its state in v0.9.0 (full dictionary)
-- more languages and better rules (with @juanjoDiaz)
-- use binary strings in dictionaries to save memory
-- dictionary sort before compression by @1over137
+- More languages and better rules (with @juanjoDiaz)
+- Use binary strings in dictionaries to save memory
+- Dictionary sort before compression by @1over137
 
 Documentation:
 - Classes and general doc pages by @juanjoDiaz 
