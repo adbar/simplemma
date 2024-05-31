@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """The setup script."""
 
 import re
@@ -30,7 +28,7 @@ setup(
     author_email="barbaresi@bbaw.de",
     python_requires=">=3.6",
     classifiers=[  # https://pypi.org/classifiers/
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Intended Audience :: Education",
         "Intended Audience :: Information Technology",
@@ -80,6 +78,7 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Topic :: Scientific/Engineering :: Information Analysis",
         "Topic :: Software Development :: Internationalization",
         "Topic :: Software Development :: Localization",
@@ -105,8 +104,8 @@ setup(
     packages=find_packages(include=["simplemma", "simplemma.*"]),
     project_urls={
         "Source": "https://github.com/adbar/simplemma",
-        "Docs": "https://adbar.github.io/simplemma",
-        "Blog": "https://adrien.barbaresi.eu/blog/",  # tag/simplemma
+        "Docs": "https://adbar.github.io/simplemma/",
+        # "Blog": "https://adrien.barbaresi.eu/blog/",  # tag/simplemma
     },
     setup_requires=setup_requirements,
     test_suite="tests",

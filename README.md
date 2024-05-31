@@ -219,10 +219,6 @@ a lesser accuracy.
 
 ### Advanced usage via classes
 
-*The following classes will be made available in the next version. To
-start using them, install the latest version from the git repository.
-The full docs are available [here](https://adbar.github.io/simplemma/)*
-
 The above described functions are suitable for simple usage, but it is
 possible to have more control by instantiating Simplemma classes and
 calling their methods instead. Lemmatization is handled by the
@@ -259,6 +255,9 @@ LANG_CACHE_SIZE = 5  # How many language dictionaries to keep in memory at once 
 >>> language_detector.proportion_in_target_languages("opera post physica posita (τὰ μετὰ τὰ φυσικά)")
 0.5
 ```
+
+For more information see the
+[extended documentation](https://adbar.github.io/simplemma/).
 
 
 ## Supported languages
