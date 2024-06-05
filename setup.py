@@ -26,7 +26,7 @@ test_requirements = ["pytest>=3", "pytest-cov"]
 setup(
     author="Adrien Barbaresi",
     author_email="barbaresi@bbaw.de",
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     classifiers=[  # https://pypi.org/classifiers/
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
@@ -71,8 +71,6 @@ setup(
         "Natural Language :: Ukrainian",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
