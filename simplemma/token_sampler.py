@@ -11,17 +11,11 @@ a [Tokenizer][simplemma.tokenizer.Tokenizer] so the user only has to implement t
 """
 
 import re
-import sys
 from abc import ABC, abstractmethod
 from collections import Counter
-from typing import Iterable, List
+from typing import Iterable, List, Protocol
 
 from .tokenizer import RegexTokenizer, Tokenizer
-
-if sys.version_info >= (3, 8):
-    from typing import Protocol
-else:
-    from typing_extensions import Protocol
 
 
 SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")

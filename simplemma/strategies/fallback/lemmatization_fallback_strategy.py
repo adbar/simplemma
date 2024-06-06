@@ -3,13 +3,9 @@ This module defines the `LemmatizationFallbackStrategy` protocol, which represen
 `LemmatizationFallbackStrategy` are used as a fallback strategy when a token's lemma cannot be determined using other lemmatization strategies.
 """
 
-import sys
 from abc import abstractmethod
 
-if sys.version_info >= (3, 8):
-    from typing import Protocol
-else:
-    from typing_extensions import Protocol
+from typing import Protocol
 
 
 class LemmatizationFallbackStrategy(Protocol):

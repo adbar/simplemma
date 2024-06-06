@@ -2,14 +2,8 @@
 This file defines the `LemmatizationStrategy` protocl class, which all lemmatization strategies should extend to be usable by the Simplemma library.
 """
 
-import sys
 from abc import abstractmethod
-from typing import Optional
-
-if sys.version_info >= (3, 8):
-    from typing import Protocol
-else:
-    from typing_extensions import Protocol
+from typing import Optional, Protocol
 
 
 class LemmatizationStrategy(Protocol):

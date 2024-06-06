@@ -9,14 +9,10 @@ Provides classes for text tokenization.
 """
 
 import re
-import sys
 from abc import abstractmethod
 from typing import Iterator, List, Pattern
 
-if sys.version_info >= (3, 8):
-    from typing import Protocol
-else:
-    from typing_extensions import Protocol
+from typing import Protocol
 
 TOKREGEX = re.compile(
     r"(?:"

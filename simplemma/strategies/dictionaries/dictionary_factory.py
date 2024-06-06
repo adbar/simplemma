@@ -10,17 +10,11 @@ It loads the dictionaries that are shipped with simplemma and caches them as con
 
 import lzma
 import pickle
-import sys
 from abc import abstractmethod
 from functools import lru_cache
 from os import listdir, path
 from pathlib import Path
-from typing import ByteString, Dict
-
-if sys.version_info >= (3, 8):
-    from typing import Protocol
-else:
-    from typing_extensions import Protocol
+from typing import ByteString, Dict, Protocol
 
 DATA_FOLDER = str(Path(__file__).parent / "data")
 SUPPORTED_LANGUAGES = [
