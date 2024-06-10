@@ -58,7 +58,7 @@ class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
             return token
 
         dictionary = self._dictionary_factory.get_dictionary(lang)
-        candidate = token.encode("utf-8")
+        candidate = token
         for _ in range(self._steps):
             if candidate not in dictionary:
                 break
@@ -73,4 +73,4 @@ class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
 
             candidate = new_candidate
 
-        return candidate.decode("utf-8")
+        return candidate
