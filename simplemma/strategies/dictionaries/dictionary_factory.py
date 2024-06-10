@@ -14,7 +14,7 @@ from abc import abstractmethod
 from functools import lru_cache
 from os import listdir, path
 from pathlib import Path
-from typing import ByteString, Dict, Protocol
+from typing import Dict, Mapping, Protocol
 
 DATA_FOLDER = str(Path(__file__).parent / "data")
 SUPPORTED_LANGUAGES = [
@@ -24,7 +24,7 @@ SUPPORTED_LANGUAGES = [
 ]
 
 
-def _load_dictionary_from_disk(langcode: str) -> Dict[ByteString, ByteString]:
+def _load_dictionary_from_disk(langcode: str) -> Dict[bytes, bytes]:
     """
     Load a dictionary from disk.
 
@@ -62,7 +62,7 @@ class DictionaryFactory(Protocol):
     def get_dictionary(
         self,
         lang: str,
-    ) -> Dict[ByteString, ByteString]:
+    ) -> Mapping[str, str]:
         """
         Get the dictionary for a specific language.
 
@@ -70,12 +70,31 @@ class DictionaryFactory(Protocol):
             lang (str): The language code.
 
         Returns:
-            Dict[str, str]: The dictionary for the specified language.
+            Mapping[str, str]: The dictionary for the specified language.
 
         Raises:
             ValueError: If the specified language is not supported.
         """
         raise NotImplementedError
+
+
+class MappingStrToByteString(Mapping[str, str]):
+    """Wrapper around ByString dict to make them behave like str dict."""
+
+    __slots__ = ["_dict"]
+
+    def __init__(self, dict: Dict[bytes, bytes]):
+        self._dict = dict
+
+    def __getitem__(self, item: str):
+        return self._dict[item.encode()].decode()
+
+    def __iter__(self):
+        for key in self._dict.iterkeys():
+            yield key.decode()
+
+    def __len__(self):
+        return len(self._dict)
 
 
 class DefaultDictionaryFactory(DictionaryFactory):
@@ -86,7 +105,7 @@ class DefaultDictionaryFactory(DictionaryFactory):
     It provides functionality for loading and caching dictionaries from disk that are included in Simplemma.
     """
 
-    __slots__ = ["_data", "_load_dictionary_from_disk"]
+    __slots__ = ["_load_dictionary_from_disk"]
 
     def __init__(self, cache_max_size: int = 8):
         """
@@ -96,7 +115,6 @@ class DefaultDictionaryFactory(DictionaryFactory):
             cache_max_size (int): The maximum size of the cache for loaded dictionaries.
                 Defaults to `8`.
         """
-        self._data: Dict[str, Dict[ByteString, ByteString]] = {}
         self._load_dictionary_from_disk = lru_cache(maxsize=cache_max_size)(
             _load_dictionary_from_disk
         )
@@ -104,7 +122,7 @@ class DefaultDictionaryFactory(DictionaryFactory):
     def get_dictionary(
         self,
         lang: str,
-    ) -> Dict[ByteString, ByteString]:
+    ) -> Mapping[str, str]:
         """
         Get the dictionary for a specific language.
 
@@ -112,11 +130,11 @@ class DefaultDictionaryFactory(DictionaryFactory):
             lang (str): The language code.
 
         Returns:
-            Dict[str, str]: The dictionary for the specified language.
+            Mapping[str, str]: The dictionary for the specified language.
 
         Raises:
             ValueError: If the specified language is not supported.
         """
         if lang not in SUPPORTED_LANGUAGES:
             raise ValueError(f"Unsupported language: {lang}")
-        return self._load_dictionary_from_disk(lang)
+        return MappingStrToByteString(self._load_dictionary_from_disk(lang))
