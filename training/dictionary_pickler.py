@@ -10,7 +10,7 @@ import pickle
 import re
 from operator import itemgetter
 from pathlib import Path
-from typing import ByteString, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import simplemma
 from simplemma.strategies.defaultrules import DEFAULT_RULES
@@ -49,9 +49,7 @@ def _determine_path(listpath: str, langcode: str) -> str:
     return str(Path(__file__).parent / filename)
 
 
-def _read_dict(
-    filepath: str, langcode: str, silent: bool
-) -> Dict[ByteString, ByteString]:
+def _read_dict(filepath: str, langcode: str, silent: bool) -> Dict[str, str]:
     mydict: Dict[str, str] = {}
     myadditions: List[str] = []
     i: int = 0
@@ -122,12 +120,12 @@ def _read_dict(
         mydict[word] = word
     LOGGER.debug("%s %s", langcode, i)
     # sort and convert to bytestrings
-    return {k.encode("utf-8"): v.encode("utf-8") for k, v in sorted(mydict.items())}
+    return dict(sorted(mydict.items()))
 
 
 def _load_dict(
     langcode: str, listpath: str = "lists", silent: bool = True
-) -> Dict[ByteString, ByteString]:
+) -> Dict[str, str]:
     filepath = _determine_path(listpath, langcode)
     return _read_dict(filepath, langcode, silent)
 

@@ -188,11 +188,11 @@ def test_dictionary_working_as_a_dict() -> None:
 
     assert isinstance(dictionary, TrieWrapDict)
 
-    assert (b"balconies" in dictionary) is True
-    assert (b"balconies123" in dictionary) is False
+    assert ("balconies" in dictionary) is True
+    assert ("balconies123" in dictionary) is False
     with pytest.raises(KeyError):
-        dictionary[b"balconies123"]
-    assert dictionary.get(b"balconies") == b"balcony"
+        dictionary["balconies123"]
+    assert dictionary.get("balconies") == "balcony"
 
 
 def test_trie_wrap_dict():
@@ -201,21 +201,21 @@ def test_trie_wrap_dict():
     )
     wrapped_trie = TrieWrapDict(trie)
 
-    assert (b"balconies" in wrapped_trie) is True
-    assert (b"balconies123" in wrapped_trie) is False
-    assert wrapped_trie[b"balconies"] == b"balcony"
+    assert ("balconies" in wrapped_trie) is True
+    assert ("balconies123" in wrapped_trie) is False
+    assert wrapped_trie["balconies"] == "balcony"
     with pytest.raises(KeyError):
         wrapped_trie[b"balconies123"]
-    assert wrapped_trie.get(b"balconies") == b"balcony"
-    assert wrapped_trie.get(b"balconies123") is None
+    assert wrapped_trie.get("balconies") == "balcony"
+    assert wrapped_trie.get("balconies123") is None
 
     assert isinstance(wrapped_trie.keys(), KeysView)
     assert isinstance(wrapped_trie.items(), ItemsView)
     assert len(wrapped_trie) == 3
 
     with pytest.raises(NotImplementedError):
-        wrapped_trie["houses"] = b"teapot"
+        wrapped_trie["houses"] = "teapot"
     with pytest.raises(NotImplementedError):
         del wrapped_trie["balconies"]
 
-    assert [key for key in wrapped_trie] == [b"balconies", b"houses", b"ponies"]
+    assert [key for key in wrapped_trie] == ["balconies", "houses", "ponies"]

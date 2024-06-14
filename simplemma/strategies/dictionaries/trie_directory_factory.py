@@ -2,7 +2,7 @@ import logging
 from collections.abc import MutableMapping
 from functools import lru_cache
 from pathlib import Path
-from typing import ByteString, Dict, List, Optional, cast
+from typing import List, Mapping, Optional
 
 from marisa_trie import BytesTrie, HUGE_CACHE  # type: ignore[import-not-found]
 from platformdirs import user_cache_dir
@@ -24,7 +24,7 @@ class TrieWrapDict(MutableMapping):
         self._trie = trie
 
     def __getitem__(self, item):
-        return self._trie[item.decode()][0]
+        return self._trie[item][0].decode()
 
     def __setitem__(self, key, value):
         raise NotImplementedError
@@ -34,7 +34,7 @@ class TrieWrapDict(MutableMapping):
 
     def __iter__(self):
         for key in self._trie.iterkeys():
-            yield key.encode()
+            yield key
 
     def __len__(self):
         return len(self._trie)
@@ -85,8 +85,8 @@ class TrieDictionaryFactory(DictionaryFactory):
         unpickled_dict = DefaultDictionaryFactory(cache_max_size=0).get_dictionary(lang)
         return BytesTrie(
             zip(
-                [key.decode() for key in unpickled_dict],  # type: ignore[union-attr]
-                unpickled_dict.values(),
+                unpickled_dict.keys(),
+                [value.encode() for value in unpickled_dict.values()],
             ),
             cache_size=HUGE_CACHE,
         )
@@ -102,7 +102,7 @@ class TrieDictionaryFactory(DictionaryFactory):
 
         trie.save(self._cache_dir / f"{lang}.dic")
 
-    def _get_dictionary_uncached(self, lang: str) -> Dict[ByteString, ByteString]:
+    def _get_dictionary_uncached(self, lang: str) -> Mapping[str, str]:
         """Get the dictionary for the given language."""
         if lang not in SUPPORTED_LANGUAGES:
             raise ValueError(f"Unsupported language: {lang}")
@@ -114,10 +114,10 @@ class TrieDictionaryFactory(DictionaryFactory):
             if self._use_disk_cache:
                 self._write_trie_to_disk(lang, trie)
 
-        return cast(dict, TrieWrapDict(trie))
+        return TrieWrapDict(trie)
 
     def get_dictionary(
         self,
         lang: str,
-    ) -> Dict[ByteString, ByteString]:
+    ) -> Mapping[str, str]:
         return self._get_dictionary(lang)

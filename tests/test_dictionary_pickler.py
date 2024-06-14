@@ -26,9 +26,9 @@ def test_logic() -> None:
     # different order
     mydict = dictionary_pickler._read_dict(testfile, "es", silent=True)
     assert len(mydict) == 5
-    assert mydict[b"closeones"] == b"closeone"
+    assert mydict["closeones"] == "closeone"
     item = sorted(mydict.keys(), reverse=True)[0]
-    assert item == b"valid-word"
+    assert item == "valid-word"
 
     # file I/O
     assert dictionary_pickler._determine_path("lists", "de").endswith("de.txt")
