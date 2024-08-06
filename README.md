@@ -1,7 +1,6 @@
 # Simplemma: a simple multilingual lemmatizer for Python
 
 [![Python package](https://img.shields.io/pypi/v/simplemma.svg)](https://pypi.python.org/pypi/simplemma)
-[![License](https://img.shields.io/pypi/l/simplemma.svg)](https://pypi.python.org/pypi/simplemma)
 [![Python versions](https://img.shields.io/pypi/pyversions/simplemma.svg)](https://pypi.python.org/pypi/simplemma)
 [![Code Coverage](https://img.shields.io/codecov/c/github/adbar/simplemma.svg)](https://codecov.io/gh/adbar/simplemma)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
@@ -45,7 +44,9 @@ The current library is written in pure Python with no dependencies:
 
 - `pip3` where applicable
 - `pip install -U simplemma` for updates
-- `pip install git+https://github.com/adbar/trafilatura` for the cutting-edge version
+- `pip install git+https://github.com/adbar/simplemma` for the cutting-edge version
+
+The last version supporting Python 3.6 and 3.7 is `simplemma==1.0.0`.
 
 
 ## Usage
@@ -100,7 +101,7 @@ as it can be beneficial, mostly due to a certain capacity to address
 affixes in an unsupervised way. This can be triggered manually by
 setting the `greedy` parameter to `True`.
 
-This option also triggers a stronger reduction through a further
+This option also triggers a stronger reduction through an additional
 iteration of the search algorithm, e.g. \"angekündigten\" →
 \"angekündigt\" (standard) → \"ankündigen\" (greedy). In some cases it
 may be closer to stemming than to lemmatization.
@@ -131,7 +132,7 @@ True
 
 ### Tokenization
 
-A simple tokenization function is included for convenience:
+A simple tokenization function is provided for convenience:
 
 ``` python
 >>> from simplemma import simple_tokenizer
@@ -173,11 +174,12 @@ As the focus lies on overall coverage, some short frequent words
 (typically: pronouns and conjunctions) may need post-processing, this
 generally concerns a few dozens of tokens per language.
 
-The current absence of morphosyntactic information is both an advantage
-in terms of simplicity and an impassable frontier regarding
-lemmatization accuracy, e.g. disambiguation between past participles and
-adjectives derived from verbs in Germanic and Romance languages. In most
-cases, `simplemma` often does not change such input words.
+The current absence of morphosyntactic information is an advantage in
+terms of simplicity. However, it is also an impassable frontier regarding
+lemmatization accuracy, for example when it comes to disambiguating
+between past participles and adjectives derived from verbs in Germanic
+and Romance languages. In most cases, `simplemma` often does not change
+such input words.
 
 The greedy algorithm seldom produces invalid forms. It is designed to
 work best in the low-frequency range, notably for compound words and
@@ -196,9 +198,9 @@ of a series of languages of interest. Scores between 0 and 1 are
 returned.
 
 The `lang_detector()` function returns a list of language codes along
-with scores and adds \"unk\" at the end for unknown or out-of-vocabulary
-words. The latter can also be calculated by using the function
-`in_target_language()` which returns a ratio.
+with their corresponding scores, appending \"unk\" for unknown or
+out-of-vocabulary words. The latter can also be calculated by using
+the function `in_target_language()` which returns a ratio.
 
 ``` python
 # import necessary functions
@@ -219,10 +221,10 @@ a lesser accuracy.
 
 ### Advanced usage via classes
 
-The above described functions are suitable for simple usage, but it is
-possible to have more control by instantiating Simplemma classes and
-calling their methods instead. Lemmatization is handled by the
-`Lemmatizer` class and language detection by the `LanguageDetector`
+The functions described above are suitable for simple usage, but you
+can have more control by instantiating Simplemma classes and calling
+their methods instead. Lemmatization is handled by the `Lemmatizer`
+class, while language detection is handled by the `LanguageDetector`
 class. These in turn rely on different lemmatization strategies, which
 are implementations of the `LemmatizationStrategy` protocol. The
 `DefaultStrategy` implementation uses a combination of different
@@ -259,20 +261,22 @@ LANG_CACHE_SIZE = 5  # How many language dictionaries to keep in memory at once 
 For more information see the
 [extended documentation](https://adbar.github.io/simplemma/).
 
+
 ### Reducing memory usage
 
-For situations where low memory usage and fast initialization time are
-more important than lemmatization and language detection performance,
-Simplemma ships another `DictionaryFactory`, which uses a trie as
-underlying data structure instead of a Python dict.
+Simplemma provides an alternative solution for situations where low
+memory usage and fast initialization time are more important than
+lemmatization and language detection performance. This solution uses a
+`DictionaryFactory` that employs a trie as its underlying data structure,
+rather than a Python dict.
 
-Using the `TrieDictionaryFactory` reduces memory usage on average by
-20x and initialization time by 100x, but comes at the cost that
-performance can be down 50% or even more compared to what Simplemma
-otherwise achieves, depending on the specific usage.
+The `TrieDictionaryFactory` reduces memory usage by an average of
+20x and initialization time by 100x, but this comes at the cost of
+potentially reducing performance by 50% or more, depending on the
+specific usage.
 
 To use the `TrieDictionaryFactory` you have to install Simplemma with
-the `marisa-trie` extra dependency:
+the `marisa-trie` extra dependency (available from version 1.1.0):
 
 ```
 pip install simplemma[marisa-trie]
@@ -315,15 +319,16 @@ generate the trie dictionaries, they can also be generated on another
 computer with the same CPU architecture and copied over to the cache
 directory.
 
+
 ## Supported languages
 
-The following languages are available using their [BCP 47 language
-tag](https://en.wikipedia.org/wiki/IETF_language_tag), which is usually
-the [ISO 639-1
-code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) but if no
-such code exists, a [ISO 639-3
-code](https://en.wikipedia.org/wiki/List_of_ISO_639-3_codes) is used
-instead:
+The following languages are available, identified by their [BCP 47
+language tag](https://en.wikipedia.org/wiki/IETF_language_tag), which
+typically corresponds to the [ISO 639-1 code](
+https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes).
+If no such code exists, a [ISO 639-3
+code](https://en.wikipedia.org/wiki/List_of_ISO_639-3_codes) is
+used instead.
 
 Available languages (2022-01-20):
 
@@ -380,9 +385,11 @@ Available languages (2022-01-20):
 | `tr` | Turkish | 1,232 | 0.89 | on UD-TR-Boun
 | `uk` | Ukrainian | 370 | | alternative: [pymorphy2](https://github.com/kmike/pymorphy2/)
 
-*Low coverage* mentions means one would probably be better off with a
-language-specific library, but *simplemma* will work to a limited
-extent. Open-source alternatives for Python are referenced if possible.
+
+Languages marked as having low coverage may be better suited to
+language-specific libraries, but Simplemma can still provide limited
+functionality. Where possible, open-source Python alternatives are
+referenced.
 
 *Experimental* mentions indicate that the language remains untested or
 that there could be issues with the underlying data or lemmatization
@@ -404,8 +411,8 @@ performance.
 
 ## Speed
 
-Orders of magnitude given for reference only, measured on an old laptop
-to give a lower bound:
+The following orders of magnitude are provided for reference only and
+were measured on an old laptop to establish a lower bound:
 
 -   Tokenization: \> 1 million tokens/sec
 -   Lemmatization: \> 250,000 words/sec
@@ -421,13 +428,14 @@ package run faster.
 - [ ] Function as a meta-package?
 - [ ] Integrate optional, more complex models?
 
+
 ## Credits and licenses
 
-Software under MIT license, for the linguistic information databases see
-`licenses` folder.
+The software is licensed under the MIT license. For information on the
+licenses of the linguistic information databases, see the `licenses` folder.
 
-The surface lookups (non-greedy mode) use lemmatization lists derived
-from various sources, ordered by relative importance:
+The surface lookups (non-greedy mode) rely on lemmatization lists derived
+from the following sources, listed in order of relative importance:
 
 -   [Lemmatization
     lists](https://github.com/michmech/lemmatization-lists) by Michal

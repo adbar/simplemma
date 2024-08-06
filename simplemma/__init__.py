@@ -14,7 +14,7 @@ __title__ = "simplemma"
 __author__ = "Adrien Barbaresi, Juanjo Diaz and contributors"
 __email__ = "barbaresi@bbaw.de"
 __license__ = "MIT"
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 
 from .language_detector import LanguageDetector, in_target_language, langdetect
