@@ -104,12 +104,12 @@ marisa-trie = [
     "platformdirs == 4.2.2",
 ]
 test = [
-    "@marisa-trie",
+    "simplemma[marisa-trie]",
     "pytest == 8.3.2",
     "pytest-cov == 5.0.0",
 ]
 dev = [
-    "@test",
+    "simplemma[test]",
     "black == 24.8.0",
     "flake8 == 7.1.1",
     "mypy == 1.11.0",
