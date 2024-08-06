@@ -1,7 +1,4 @@
-include CITATION.cff
-include HISTORY.rst
-include LICENSE
-include README.md
+include CITATION.cff HISTORY.rst LICENSE README.md
 include licenses/
 include simplemma/py.typed
 graft simplemma/strategies/
