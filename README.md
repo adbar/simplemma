@@ -47,6 +47,8 @@ The current library is written in pure Python with no dependencies:
 - `pip install -U simplemma` for updates
 - `pip install git+https://github.com/adbar/trafilatura` for the cutting-edge version
 
+The last version to support Python 3.6 and 3.7 is `simplemma==1.0.0`.
+
 
 ## Usage
 
@@ -259,6 +261,7 @@ LANG_CACHE_SIZE = 5  # How many language dictionaries to keep in memory at once 
 For more information see the
 [extended documentation](https://adbar.github.io/simplemma/).
 
+
 ### Reducing memory usage
 
 For situations where low memory usage and fast initialization time are
@@ -272,7 +275,7 @@ performance can be down 50% or even more compared to what Simplemma
 otherwise achieves, depending on the specific usage.
 
 To use the `TrieDictionaryFactory` you have to install Simplemma with
-the `marisa-trie` extra dependency:
+the `marisa-trie` extra dependency (available from version 1.1.0).
 
 ```
 pip install simplemma[marisa-trie]
@@ -314,6 +317,7 @@ If the computer supposed to run Simplemma doesn't have enough memory to
 generate the trie dictionaries, they can also be generated on another
 computer with the same CPU architecture and copied over to the cache
 directory.
+
 
 ## Supported languages
 

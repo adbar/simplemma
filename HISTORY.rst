@@ -2,6 +2,15 @@
 History
 =======
 
+
+1.1.0
+-----
+
+- Add a memory-efficient dictionary factory backed by MARISA-tries by @Dunedan in #133
+- Drop support for Python 3.6 & 3.7 by @Dunedan in #134
+- Update setup files (#138)
+
+
 1.0.0
 -----
 
