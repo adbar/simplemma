@@ -55,8 +55,8 @@ jobs:
     # package setup
     - uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: pip install -r requirements-dev.txt
+    - name: Install package and dependencies
+      run: pip install .[test]
 
     # tests
     - name: Lint with flake8

@@ -6,17 +6,20 @@ build-backend = "setuptools.build_meta"
 name = "simplemma"
 description = "A lightweight toolkit for multilingual lemmatization and language detection."
 readme = "README.md"
-license = { text = "Apache 2.0" }
+license = { text = "MIT License" }
 dynamic = ["version"]
 requires-python = ">=3.8"
 authors = [
   {name = "Adrien Barbaresi", email = "barbaresi@bbaw.de"}
 ]
 keywords=[
-    "nlp",
+    "language detection",
+    "language identification",
+    "langid",
     "lemmatization",
-    "lemmatisation",
+    "lemmatizer",
     "lemmatiser",
+    "nlp",
     "tokenization",
     "tokenizer",
 ]
@@ -96,19 +99,21 @@ version = {attr = "simplemma.__version__"}
 "Blog" = "https://adrien.barbaresi.eu/blog/"
 
 [project.optional-dependencies]
-dev = [
-    "black",
-    "flake8",
-    "marisa-trie",
-    "mypy",
-    "platformdirs",
-    "pytest",
-    "pytest-cov",
-    "types-requests",
-]
 marisa-trie = [
-    "marisa-trie",
-    "platformdirs",
+    "marisa_trie == 1.2.0",
+    "platformdirs == 4.2.2",
+]
+test = [
+    "@marisa-trie",
+    "pytest == 8.3.2",
+    "pytest-cov == 5.0.0",
+]
+dev = [
+    "@test",
+    "black == 24.8.0",
+    "flake8 == 7.1.1",
+    "mypy == 1.11.0",
+    "types-requests == 2.32.0.20240712",
 ]
 docs = [
     "mkdocs",
