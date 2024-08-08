@@ -14,7 +14,7 @@ from abc import abstractmethod
 from functools import lru_cache
 from os import listdir, path
 from pathlib import Path
-from typing import ByteString, Dict, Mapping, Protocol
+from typing import ByteString, Dict, Iterator, Mapping, Protocol
 
 DATA_FOLDER = str(Path(__file__).parent / "data")
 SUPPORTED_LANGUAGES = [
@@ -83,17 +83,17 @@ class MappingStrToByteString(Mapping[str, str]):
 
     __slots__ = ["_dict"]
 
-    def __init__(self, dictionary: Dict[bytes, bytes]):
+    def __init__(self, dictionary: Dict[bytes, bytes]) -> None:
         self._dict = dictionary
 
-    def __getitem__(self, item: str):
+    def __getitem__(self, item: str) -> str:
         return self._dict[item.encode()].decode()
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         for key in self._dict:
             yield key.decode()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._dict)
 
 
@@ -107,7 +107,7 @@ class DefaultDictionaryFactory(DictionaryFactory):
 
     __slots__ = ["_load_dictionary_from_disk"]
 
-    def __init__(self, cache_max_size: int = 8):
+    def __init__(self, cache_max_size: int = 8) -> None:
         """
         Initialize the DefaultDictionaryFactory.
 

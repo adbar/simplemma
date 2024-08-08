@@ -39,8 +39,6 @@ def apply_de(token: str) -> Optional[str]:
             # apply pattern
             ending = next((g for g in match.groups() if g), None)
             return token[: -len(ending)] if ending else token
-            # lemma identified
-            return token
         # inclusive speech
         # Binnen-I: ArbeitnehmerInnenschutzgesetz?
         if PLUR_ORTH_DE.search(token):

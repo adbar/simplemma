@@ -2,7 +2,7 @@ import logging
 from collections.abc import MutableMapping
 from functools import lru_cache
 from pathlib import Path
-from typing import List, Mapping, Optional
+from typing import Any, Iterator, List, Mapping, Optional
 
 try:
     from marisa_trie import BytesTrie, HUGE_CACHE  # type: ignore[import-not-found]
@@ -10,7 +10,7 @@ try:
 except ImportError:
 
     class BytesTrie:  # type: ignore[no-redef]
-        def __init__(self):
+        def __init__(self) -> None:
             raise ImportError("marisa_trie and platformdirs packages not installed")
 
 
@@ -24,26 +24,25 @@ from simplemma.strategies.dictionaries.dictionary_factory import (
 logger = logging.getLogger(__name__)
 
 
-class TrieWrapDict(MutableMapping):
+class TrieWrapDict(MutableMapping[str, Any]):
     """Wrapper around BytesTrie to make them behave like dicts."""
 
-    def __init__(self, trie: BytesTrie):
+    def __init__(self, trie: BytesTrie) -> None:
         self._trie = trie
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return self._trie[item][0].decode()
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Any, value: Any) -> None:
         raise NotImplementedError
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: Any) -> None:
         raise NotImplementedError
 
-    def __iter__(self):
-        for key in self._trie.iterkeys():
-            yield key
+    def __iter__(self) -> Iterator[str]:
+        yield from self._trie.iterkeys()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._trie)
 
 
@@ -56,7 +55,7 @@ class TrieDictionaryFactory(DictionaryFactory):
     lookup performance isn't as good as with dicts.
     """
 
-    __slots__: List[str] = []
+    __slots__: List[str] = ["cache_max_size", "disk_cache_dir", "use_disk_cache"]
 
     def __init__(
         self,
@@ -127,4 +126,5 @@ class TrieDictionaryFactory(DictionaryFactory):
         self,
         lang: str,
     ) -> Mapping[str, str]:
+        "Retrieves a dictionary for the specified language."
         return self._get_dictionary(lang)
