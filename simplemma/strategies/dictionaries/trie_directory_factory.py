@@ -24,7 +24,7 @@ from simplemma.strategies.dictionaries.dictionary_factory import (
 logger = logging.getLogger(__name__)
 
 
-class TrieWrapDict(MutableMapping[str, Any]):
+class TrieWrapDict(MutableMapping):  # Python > 3.8: [str, Any]
     """Wrapper around BytesTrie to make them behave like dicts."""
 
     def __init__(self, trie: BytesTrie) -> None:
