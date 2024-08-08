@@ -18,6 +18,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13-dev']
+        env: [{ MINIMAL: "true" }, { MINIMAL: "false" }]
         include:
         # common versions on MacOS
         - os: macos-latest
@@ -56,7 +57,12 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Install package and dependencies
-      run: pip install .[dev]
+      run: |
+        if [ "${MATRIX_ENV_MINIMAL}" = "false" ]; then
+          pip install .[dev,marisa-trie]
+        else
+          pip install .[dev]
+        fi
 
     # tests
     - name: Lint with flake8

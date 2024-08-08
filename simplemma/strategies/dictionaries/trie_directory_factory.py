@@ -4,8 +4,15 @@ from functools import lru_cache
 from pathlib import Path
 from typing import List, Mapping, Optional
 
-from marisa_trie import BytesTrie, HUGE_CACHE  # type: ignore[import-not-found]
-from platformdirs import user_cache_dir
+try:
+    from marisa_trie import BytesTrie, HUGE_CACHE  # type: ignore[import-not-found]
+    from platformdirs import user_cache_dir
+except ImportError:
+
+    class BytesTrie:  # type: ignore[no-redef]
+        def __init__(self):
+            raise ImportError("marisa_trie and platformdirs packages not installed")
+
 
 from simplemma import __version__ as SIMPLEMMA_VERSION
 from simplemma.strategies.dictionaries.dictionary_factory import (
