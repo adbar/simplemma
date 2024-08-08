@@ -3,6 +3,13 @@ History
 =======
 
 
+1.1.1
+-----
+
+- Fix `ModuleNotFoundError` and test optional dependencies (#142)
+- Simplify code and add missing type annotations (#144)
+
+
 1.1.0
 -----
 
