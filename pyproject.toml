@@ -104,7 +104,6 @@ marisa-trie = [
     "platformdirs == 4.2.2",
 ]
 test = [
-    "simplemma[marisa-trie]",
     "pytest == 8.3.2",
     "pytest-cov == 5.0.0",
 ]

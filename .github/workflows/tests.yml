@@ -18,6 +18,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13-dev']
+        env: [{ MINIMAL: "true" }, { MINIMAL: "false" }]
         include:
         # common versions on MacOS
         - os: macos-latest
@@ -55,8 +56,12 @@ jobs:
     # package setup
     - uses: actions/checkout@v4
 
-    - name: Install package and dependencies
-      run: pip install .[dev]
+    - name: Install dependencies
+      run: python -m pip install ".[dev]"
+
+    - name: Install full dependencies
+      if: ${{ matrix.env.MINIMAL == 'false'}}
+      run: python -m pip install --ignore-installed ".[marisa-trie]"
 
     # tests
     - name: Lint with flake8
@@ -77,7 +82,7 @@ jobs:
 
     # coverage with default version
     - name: Upload coverage to Codecov
-      if: matrix.python-version == '3.11'
+      if: ${{ matrix.env.MINIMAL == 'false' && matrix.python-version == '3.11' }}
       uses: codecov/codecov-action@v4
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
