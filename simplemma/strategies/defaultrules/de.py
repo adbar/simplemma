@@ -35,12 +35,10 @@ def apply_de(token: str) -> Optional[str]:
     # nouns
     if token[0].isupper():
         # noun endings/suffixes: regex search
-        match = NOUN_ENDINGS_DE.search(token)
-        if match:
+        if match := NOUN_ENDINGS_DE.search(token):
             # apply pattern
-            ending = next((g for g in match.groups() if g is not None), None)
-            if ending:
-                return token[: -len(ending)]
+            ending = next((g for g in match.groups() if g), None)
+            return token[: -len(ending)] if ending else token
             # lemma identified
             return token
         # inclusive speech
@@ -50,8 +48,8 @@ def apply_de(token: str) -> Optional[str]:
 
     # mostly adjectives and verbs
     elif token[-1] in ENDING_CHARS_DE:
-        if ADJ_ENDINGS_DE.match(token):
-            return ADJ_ENDINGS_DE.sub(r"\1\2", token).lower()
+        if match := ADJ_ENDINGS_DE.match(token):
+            return (match[1] + match[2]).lower()
         if PP_DE.search(token):
             return ENDING_DE.sub("", token).lower()
 
