@@ -22,7 +22,7 @@ ADJ_ENDINGS_DE = re.compile(
 
 PLUR_ORTH_DE = re.compile(r"(?:Innen|\*innen|\*Innen|-innen|_innen)$")
 
-PP_DE = re.compile(r"(^.{2,}ge.+?[^aes]t)(?:e|em|er|es)$")
+PP_DE = re.compile(r"^(.{2,}ge.+?[^aes]t)(?:e|em|er|es)$")
 
 ENDING_CHARS_DE = {"e", "m", "n", "r", "s"}
 
