@@ -21,10 +21,10 @@ ADJ_ENDINGS_DE = re.compile(
 )
 
 PLUR_ORTH_DE = re.compile(r"(?:Innen|\*innen|\*Innen|-innen|_innen)$")
-PP_DE = re.compile(r"^.{2,}ge.+?[^aes]t(?:e|em|er|es)$")
+
+PP_DE = re.compile(r"^(.{2,}ge.+?[^aes]t)(?:e|em|er|es)$")
 
 ENDING_CHARS_DE = {"e", "m", "n", "r", "s"}
-ENDING_DE = re.compile(r"(?:e|em|er|es)$")
 
 
 def apply_de(token: str) -> Optional[str]:
@@ -35,14 +35,10 @@ def apply_de(token: str) -> Optional[str]:
     # nouns
     if token[0].isupper():
         # noun endings/suffixes: regex search
-        match = NOUN_ENDINGS_DE.search(token)
-        if match:
+        if match := NOUN_ENDINGS_DE.search(token):
             # apply pattern
-            ending = next((g for g in match.groups() if g is not None), None)
-            if ending:
-                return token[: -len(ending)]
-            # lemma identified
-            return token
+            ending = next((g for g in match.groups() if g), None)
+            return token[: -len(ending)] if ending else token
         # inclusive speech
         # Binnen-I: ArbeitnehmerInnenschutzgesetz?
         if PLUR_ORTH_DE.search(token):
@@ -50,9 +46,9 @@ def apply_de(token: str) -> Optional[str]:
 
     # mostly adjectives and verbs
     elif token[-1] in ENDING_CHARS_DE:
-        if ADJ_ENDINGS_DE.match(token):
-            return ADJ_ENDINGS_DE.sub(r"\1\2", token).lower()
-        if PP_DE.search(token):
-            return ENDING_DE.sub("", token).lower()
+        if adj_match := ADJ_ENDINGS_DE.match(token):
+            return (adj_match[1] + adj_match[2]).lower()
+        if pp_match := PP_DE.match(token):
+            return pp_match[1].lower()
 
     return None

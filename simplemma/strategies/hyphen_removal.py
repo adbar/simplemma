@@ -10,8 +10,7 @@ from .dictionary_lookup import DictionaryLookupStrategy
 from .lemmatization_strategy import LemmatizationStrategy
 
 HYPHENS = {"-", "_"}
-HYPHENS_FOR_REGEX = "".join(HYPHENS)
-HYPHEN_REGEX = re.compile(rf"([{HYPHENS_FOR_REGEX}])")
+HYPHEN_REGEX = re.compile(rf"([{''.join(HYPHENS)}])")
 
 
 class HyphenRemovalStrategy(LemmatizationStrategy):
@@ -69,9 +68,8 @@ class HyphenRemovalStrategy(LemmatizationStrategy):
             return lemma
 
         # decompose
-        lemma = self._dictionary_lookup.get_lemma(token_parts[-1], lang)
-        if lemma is not None:
-            token_parts[-1] = lemma
-            return "".join(token_parts)
+        last_part_lemma = self._dictionary_lookup.get_lemma(token_parts[-1], lang)
+        if last_part_lemma is not None:
+            return "".join(token_parts[:-1] + [last_part_lemma])
 
         return None

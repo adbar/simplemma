@@ -58,19 +58,17 @@ class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
             return token
 
         dictionary = self._dictionary_factory.get_dictionary(lang)
-        candidate = token
-        for _ in range(self._steps):
-            if candidate not in dictionary:
-                break
 
-            new_candidate = dictionary[candidate]
+        for _ in range(self._steps):
+            candidate = dictionary.get(token)
 
             if (
-                len(new_candidate) > len(candidate)
-                or levenshtein_dist(new_candidate, candidate) > self._distance
+                not candidate
+                or len(candidate) > len(token)
+                or levenshtein_dist(candidate, token) > self._distance
             ):
                 break
 
-            candidate = new_candidate
+            token = candidate
 
-        return candidate
+        return token
