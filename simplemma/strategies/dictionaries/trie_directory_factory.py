@@ -4,8 +4,14 @@ from functools import lru_cache
 from pathlib import Path
 from typing import List, Mapping, Optional
 
-from marisa_trie import BytesTrie, HUGE_CACHE  # type: ignore[import-not-found]
-from platformdirs import user_cache_dir
+try:
+    from marisa_trie import BytesTrie, HUGE_CACHE  # type: ignore[import-not-found]
+    from platformdirs import user_cache_dir
+    _dependencies_installed = True
+except ImportError:
+    type BytesTrie = type
+    _dependencies_installed = False
+    
 
 from simplemma import __version__ as SIMPLEMMA_VERSION
 from simplemma.strategies.dictionaries.dictionary_factory import (
@@ -68,6 +74,9 @@ class TrieDictionaryFactory(DictionaryFactory):
                 tries should be stored in. Defaults to a Simplemma-
                 specific subdirectory of the user's cache directory.
         """
+
+        if not _dependencies_installed:
+                raise ImportError("trie_dictionary dependencies must be installed before using TrieDictionaryFactory")
 
         if disk_cache_dir:
             self._cache_dir = Path(disk_cache_dir)
