@@ -56,13 +56,12 @@ jobs:
     # package setup
     - uses: actions/checkout@v4
 
-    - name: Install package and dependencies
-      run: |
-        if [ "${MATRIX_ENV_MINIMAL}" = "false" ]; then
-          pip install .[dev,marisa-trie]
-        else
-          pip install .[dev]
-        fi
+    - name: Install dependencies
+      run: python -m pip install ".[dev]"
+
+    - name: Install full dependencies
+      if: ${{ matrix.env.MINIMAL == 'false'}}
+      run: python -m pip install --ignore-installed ".[marisa-trie]"
 
     # tests
     - name: Lint with flake8
@@ -83,7 +82,7 @@ jobs:
 
     # coverage with default version
     - name: Upload coverage to Codecov
-      if: matrix.python-version == '3.11'
+      if: ${{ matrix.env.MINIMAL == 'false' && matrix.python-version == '3.11' }}
       uses: codecov/codecov-action@v4
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

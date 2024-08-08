@@ -4,10 +4,20 @@ from tempfile import TemporaryDirectory
 from unittest.mock import call, patch
 
 import pytest
-from marisa_trie import BytesTrie  # type: ignore[import-not-found]
+
+try:
+    from marisa_trie import BytesTrie  # type: ignore[import-not-found]
+
+    HAS_MARISA = True
+except ImportError:
+    HAS_MARISA = False
 
 from simplemma.strategies.dictionaries.trie_directory_factory import TrieWrapDict
 from simplemma.strategies import TrieDictionaryFactory
+
+
+if not HAS_MARISA:
+    pytest.skip("skipping marisa-trie tests", allow_module_level=True)
 
 
 def test_exceptions() -> None:
