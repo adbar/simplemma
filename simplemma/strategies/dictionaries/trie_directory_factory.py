@@ -14,7 +14,7 @@ except ImportError:
             raise ImportError("marisa_trie and platformdirs packages not installed")
 
 
-from simplemma import __version__ as SIMPLEMMA_VERSION
+from simplemma.__metadata__ import __version__ as SIMPLEMMA_VERSION
 from simplemma.strategies.dictionaries.dictionary_factory import (
     DefaultDictionaryFactory,
     DictionaryFactory,

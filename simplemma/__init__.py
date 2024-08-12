@@ -10,13 +10,7 @@ Modules:
 
 """
 
-__title__ = "simplemma"
-__author__ = "Adrien Barbaresi, Juanjo Diaz and contributors"
-__email__ = "barbaresi@bbaw.de"
-__license__ = "MIT"
-__version__ = "1.1.1"
-
-
+from .__metadata__ import __title__, __author__, __email__, __license__, __version__
 from .language_detector import LanguageDetector, in_target_language, langdetect
 from .lemmatizer import Lemmatizer, is_known, lemma_iterator, lemmatize, text_lemmatizer
 from .token_sampler import (
