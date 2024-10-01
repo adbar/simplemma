@@ -189,14 +189,18 @@ class LanguageDetector:
         Returns:
             float: The proportion of text in the target language(s).
         """
-        return sum(
-            percentage
-            for (
-                lang_code,
-                percentage,
-            ) in self.proportion_in_each_language(text).items()
-            if lang_code != "unk"
-        )
+        tokens = self._token_sampler.sample_text(text)
+        if len(tokens) == 0:
+            return 0
+
+        in_target = 0
+        for token in tokens:
+            for lang_code in self._lang:
+                candidate = self._lemmatization_strategy.get_lemma(token, lang_code)
+                if candidate is not None:
+                    in_target += 1
+                    break
+        return in_target / len(tokens)
 
     def main_language(
         self,
