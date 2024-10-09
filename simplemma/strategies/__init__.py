@@ -16,3 +16,20 @@ from .hyphen_removal import HyphenRemovalStrategy
 from .lemmatization_strategy import LemmatizationStrategy
 from .prefix_decomposition import PrefixDecompositionStrategy
 from .rules import RulesStrategy
+
+__all__ = [
+    "AffixDecompositionStrategy",
+    "DefaultStrategy",
+    "DefaultDictionaryFactory",
+    "DictionaryFactory",
+    "TrieDictionaryFactory",
+    "DictionaryLookupStrategy",
+    "LemmatizationFallbackStrategy",
+    "RaiseErrorFallbackStrategy",
+    "ToLowercaseFallbackStrategy",
+    "GreedyDictionaryLookupStrategy",
+    "HyphenRemovalStrategy",
+    "LemmatizationStrategy",
+    "PrefixDecompositionStrategy",
+    "RulesStrategy",
+]

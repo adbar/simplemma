@@ -20,3 +20,26 @@ from .token_sampler import (
     TokenSampler,
 )
 from .tokenizer import RegexTokenizer, Tokenizer, simple_tokenizer
+
+__all__ = [
+    "__title__",
+    "__author__",
+    "__email__",
+    "__license__",
+    "__version__",
+    "LanguageDetector",
+    "in_target_language",
+    "langdetect",
+    "Lemmatizer",
+    "is_known",
+    "lemma_iterator",
+    "lemmatize",
+    "text_lemmatizer",
+    "BaseTokenSampler",
+    "MostCommonTokenSampler",
+    "RelaxedMostCommonTokenSampler",
+    "TokenSampler",
+    "RegexTokenizer",
+    "Tokenizer",
+    "simple_tokenizer",
+]
