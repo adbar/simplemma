@@ -197,16 +197,16 @@ Language detection works by providing a text and tuple `lang` consisting
 of a series of languages of interest. Scores between 0 and 1 are
 returned.
 
-The `lang_detector()` function returns a list of language codes along
+The `langdetect()` function returns a list of language codes along
 with their corresponding scores, appending \"unk\" for unknown or
 out-of-vocabulary words. The latter can also be calculated by using
 the function `in_target_language()` which returns a ratio.
 
 ``` python
 # import necessary functions
->>> from simplemma import in_target_language, lang_detector
+>>> from simplemma import in_target_language, langdetect
 # language detection
->>> lang_detector('"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."', lang=("cs", "sk"))
+>>> langdetect('"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."', lang=("cs", "sk"))
 [("cs", 0.75), ("sk", 0.125), ("unk", 0.25)]
 # proportion of known words
 >>> in_target_language("opera post physica posita (τὰ μετὰ τὰ φυσικά)", lang="la")
