@@ -17,17 +17,17 @@ DEFAULT_RULES = {
     re.compile(r"(?:īva|īvu|īvam|īvas|īvai|īvus|īviem|īvos|īvā|īvām|īvās)$"): "īvs",
     re.compile(r"(?:šanu|šanas|šanai|šanā|šanām|šanās)$"): "šana",
     re.compile(r"(?:umu|uma|umam|umā|umām|umās)$"): "ums",  # |um
-
     # masculine nouns
     re.compile(r"(?:āju|āja|ājam|āj|āji|ājus|ājiem|ājos)$"): "ājs",
     re.compile(r"(?:iņu|iņa|iņam|iņ|iņi|iņus|iņiem|iņos)$"): "iņš",
-    re.compile(r"(?:isku|iska|iskam|iskā|iski|iskus|iskiem|isko|iskos|iskai|iskas|iskām|iskās)$"): "isks",
+    re.compile(
+        r"(?:isku|iska|iskam|iskā|iski|iskus|iskiem|isko|iskos|iskai|iskas|iskām|iskās)$"
+    ): "isks",
     re.compile(r"(?:ismu|isma|ismam|ismā|iski|ism)$"): "isms",
     re.compile(r"(?:īti|īša|ītim|ītī|īt|īši|īšus|īšu|īšiem|īšos)$"): "ītis",
     re.compile(r"(?:kli|kļa|klim|klī|kļi|kļus|kļiem|kļos)$"): "klis",
     re.compile(r"(?:nieku|nieka|niekam|niekā|nieki|niekus|niekiem|niekos)$"): "nieks",
     re.compile(r"(?:ni|ņa|nim|nī|ņi|ņus|ņu|ņiem|ņos)$"): "nis",
-
     # fallback
     re.compile(r"(?:as|ai|ā|ām|ās)$"): "a",
     re.compile(r"(?:ei|es|ē|ēm|ēs)$"): "e",
