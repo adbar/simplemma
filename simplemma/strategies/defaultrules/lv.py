@@ -31,15 +31,15 @@ DEFAULT_RULES = {
     # fallback
     re.compile(r"(?:as|ai|ā|ām|ās)$"): "a",
     re.compile(r"(?:ei|es|ē|ēm|ēs)$"): "e",
+    re.compile(r"(?:is|im|ī|iem|īs)$"): "is",
     # re.compile(r"(?:os|us)$"): "s",
-    # re.compile(r"(?:is|im|ī|iem|īs)$"): "is",
     # re.compile(r"(?:ēto|ēts)$"): "ēt",
 }
 
 
 def apply_lv(token: str) -> Optional[str]:
     "Apply pre-defined rules for Latvian."
-    if len(token) < 5 or token[0].isupper():
+    if len(token) < 4:
         return None
 
     return apply_rules(token, DEFAULT_RULES)
