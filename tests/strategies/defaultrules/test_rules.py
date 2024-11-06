@@ -19,4 +19,8 @@ def test_DEFAULT_RULES() -> None:
 
     assert rules_strategy.get_lemma("безгра́мотностью", "ru") == "безгра́мотность"
 
+    assert rules_strategy.get_lemma("Rīga", "lv") is None
+    assert rules_strategy.get_lemma("šķirkļiem", "lv") == "šķirklis"
+    assert rules_strategy.get_lemma("mācībām", "lv") == "mācība"
+
     assert rules_strategy.get_lemma("keelkondade", "et") == "keelkond"
