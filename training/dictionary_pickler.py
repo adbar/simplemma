@@ -19,7 +19,7 @@ from simplemma.utils import levenshtein_dist
 
 LOGGER = logging.getLogger(__name__)
 
-INPUT_PUNCT = re.compile(r"[,:*/\+_]|^-|-\t")
+INPUT_PUNCT = re.compile(r"[,:*/\+_]|.+-$|.+-\t|^-.+")
 SAFE_LIMIT = {
     "cs",
     "da",
@@ -31,6 +31,7 @@ SAFE_LIMIT = {
     "ga",
     "hu",
     "it",
+    "lv",
     "pl",
     "pt",
     "ru",
@@ -86,7 +87,7 @@ def _read_dict(
                 and columns[1] != columns[0]
             ):
                 rule = DEFAULT_RULES[langcode](columns[1])
-                if rule is not None and rule != columns[1]:
+                if rule and rule != columns[0]:
                     print(columns[1], columns[0], rule)
             # process
             if columns[1] in mydict and mydict[columns[1]] != columns[0]:

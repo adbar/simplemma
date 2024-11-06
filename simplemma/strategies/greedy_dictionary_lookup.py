@@ -7,7 +7,7 @@ from ..utils import levenshtein_dist
 from .dictionaries.dictionary_factory import DefaultDictionaryFactory, DictionaryFactory
 from .lemmatization_strategy import LemmatizationStrategy
 
-SHORTER_GREEDY = {"bg", "et", "fi"}
+SHORTER_GREEDY = {"bg", "et", "fi", "lv"}
 
 
 class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
