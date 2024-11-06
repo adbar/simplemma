@@ -39,3 +39,7 @@ def test_logic() -> None:
     os_handle, temp_outputfile = tempfile.mkstemp(suffix=".pkl", text=True)
     dictionary_pickler._pickle_dict("zz", listpath, temp_outputfile)
     dictionary_pickler._pickle_dict("zz", listpath, in_place=True)
+
+    # remove pickle file
+    filepath = dictionary_pickler._determine_pickle_path("zz")
+    os.remove(filepath)

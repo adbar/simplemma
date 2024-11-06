@@ -133,6 +133,16 @@ def _load_dict(
     return _read_dict(filepath, langcode, silent)
 
 
+def _determine_pickle_path(langcode: str = "en", in_place: bool = False) -> str:
+    filename = f"strategies/dictionaries/data/{langcode}.plzma"
+    directory = (
+        Path(simplemma.__file__).parent
+        if in_place
+        else Path(__file__).parent.parent / "simplemma"
+    )
+    return str(directory / filename)
+
+
 def _pickle_dict(
     langcode: str = "en",
     listpath: str = "lists",
@@ -144,13 +154,7 @@ def _pickle_dict(
     if langcode not in ("lt", "sw"):
         mydict = dict(sorted(mydict.items(), key=itemgetter(1)))
     if filepath is None:
-        filename = f"strategies/dictionaries/data/{langcode}.plzma"
-        directory = (
-            Path(simplemma.__file__).parent
-            if in_place
-            else Path(__file__).parent.parent / "simplemma"
-        )
-        filepath = str(directory / filename)
+        filepath = _determine_pickle_path(langcode, in_place)
     with lzma.open(filepath, "wb") as filehandle:  # , filters=my_filters, preset=9
         pickle.dump(mydict, filehandle, protocol=4)
     LOGGER.debug("%s %s", langcode, len(mydict))
