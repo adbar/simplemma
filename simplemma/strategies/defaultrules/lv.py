@@ -39,7 +39,7 @@ DEFAULT_RULES = {
 
 def apply_lv(token: str) -> Optional[str]:
     "Apply pre-defined rules for Latvian."
-    if len(token) < 4:
+    if len(token) < 5:
         return None
 
     return apply_rules(token, DEFAULT_RULES)

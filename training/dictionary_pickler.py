@@ -19,7 +19,7 @@ from simplemma.utils import levenshtein_dist
 
 LOGGER = logging.getLogger(__name__)
 
-INPUT_PUNCT = re.compile(r"[,:*/\+_]|.+-$|.+-\t")
+INPUT_PUNCT = re.compile(r"[,:*/\+_]|.+-$|.+-\t|^-.+")
 SAFE_LIMIT = {
     "cs",
     "da",

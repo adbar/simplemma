@@ -20,6 +20,7 @@ def test_logic() -> None:
     # log warning
     mydict = dictionary_pickler._read_dict(testfile, "zz", silent=False)
     assert len(mydict) == 3
+
     # different length
     mydict = dictionary_pickler._read_dict(testfile, "en", silent=True)
     assert len(mydict) == 5
