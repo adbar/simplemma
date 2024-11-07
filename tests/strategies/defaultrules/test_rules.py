@@ -23,4 +23,9 @@ def test_DEFAULT_RULES() -> None:
     assert rules_strategy.get_lemma("šķirkļiem", "lv") == "šķirklis"
     assert rules_strategy.get_lemma("mācībām", "lv") == "mācība"
 
+    assert rules_strategy.get_lemma("Läänemere", "et") is None
+    assert rules_strategy.get_lemma("tavalised", "et") == "tavaline"
+    assert rules_strategy.get_lemma("peamisteks", "et") == "peamine"
+    assert rules_strategy.get_lemma("tähendustena", "et") == "tähendus"
+    assert rules_strategy.get_lemma("kunstnikud", "et") == "kunstnik"
     assert rules_strategy.get_lemma("keelkondade", "et") == "keelkond"
