@@ -156,7 +156,7 @@ def _pickle_dict(
     if filepath is None:
         filepath = _determine_pickle_path(langcode, in_place)
     with lzma.open(filepath, "wb") as filehandle:  # , filters=my_filters, preset=9
-        pickle.dump(mydict, filehandle, protocol=4)
+        pickle.dump(mydict, filehandle, protocol=5)
     LOGGER.debug("%s %s", langcode, len(mydict))
 
 
