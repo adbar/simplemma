@@ -158,5 +158,5 @@ def _pickle_dict(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    for listcode in sorted(["et"]):
+    for listcode in sorted(SUPPORTED_LANGUAGES):
         _pickle_dict(listcode)
