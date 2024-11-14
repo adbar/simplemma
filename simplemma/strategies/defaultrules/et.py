@@ -3,6 +3,10 @@ from typing import Optional
 
 from .generic import apply_rules
 
+
+## Just a demo, the rules are really basic and coverage is not good
+
+
 DEFAULT_RULES = {
     # adjectives
     # https://en.wiktionary.org/wiki/-line

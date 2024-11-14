@@ -152,11 +152,11 @@ def _pickle_dict(
         )
         filepath = str(directory / filename)
     with lzma.open(filepath, "wb") as filehandle:  # , filters=my_filters, preset=9
-        pickle.dump(mydict, filehandle, protocol=4)
+        pickle.dump(mydict, filehandle, protocol=5)
     LOGGER.debug("%s %s", langcode, len(mydict))
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    for listcode in sorted(SUPPORTED_LANGUAGES):
+    for listcode in sorted(["et"]):
         _pickle_dict(listcode)
