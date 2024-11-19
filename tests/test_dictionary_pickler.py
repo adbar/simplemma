@@ -46,4 +46,4 @@ def test_logic() -> None:
     try:
         remove(filepath)
     except (AttributeError, FileNotFoundError):
-        pass
+        print("Pickle file already deleted")
