@@ -1,7 +1,5 @@
 """Tests for Simplemma's language detection utilities."""
 
-import pytest
-
 from simplemma import LanguageDetector, in_target_language, langdetect
 from simplemma.strategies import DefaultStrategy
 

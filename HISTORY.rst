@@ -2,6 +2,18 @@
 History
 =======
 
+1.1.2
+-----
+
+- Fix cyclic import by @juanjoDiaz (#148)
+- Fix language detector proportion_in_each_language results by @juanjoDiaz (#150)
+- Init: use explicit re-exports (#151)
+- Fix data written by dictionary pickler by @Dunedan (#156)
+- Add demo rules for Latvian and Estonian (#154, #157)
+- Remove deprecated langdetect submodule (#160)
+- Test: remove dummy pickled data (#161)
+- Language data: upgrade pickle to v5 (#162)
+
 
 1.1.1
 -----
