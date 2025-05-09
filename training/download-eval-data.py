@@ -53,7 +53,11 @@ with open(DATA_FILE, "wb") as f:
 
 log.info("Uncompressing evaluation data...")
 with tarfile.open(DATA_FILE) as tar:
-    tar.extractall(DATA_FOLDER)
+    for member in tar.getmembers():
+        member_path = path.join(DATA_FOLDER, member.name)
+        if not member_path.startswith(path.abspath(DATA_FOLDER)):
+            raise ValueError(f"Illegal tar archive entry: {member.name}")
+        tar.extract(member, DATA_FOLDER)
 uncompressed_data_folder = path.join(
     DATA_FOLDER, glob(f"{DATA_FOLDER}/ud-treebanks-*")[0]
 )
