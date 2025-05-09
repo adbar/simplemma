@@ -48,7 +48,8 @@ mkdir(CLEAN_DATA_FOLDER)
 
 log.info("Downloading evaluation data...")
 response = requests.get(DATA_URL)
-open(DATA_FILE, "wb").write(response.content)
+with open(DATA_FILE, "wb") as f:
+    f.write(response.content)
 
 log.info("Uncompressing evaluation data...")
 with tarfile.open(DATA_FILE) as tar:
