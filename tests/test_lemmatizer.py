@@ -548,3 +548,21 @@ def test_get_lemmas_in_text() -> None:
             ".",
         ]
     )
+    # test for Esperanto
+    text = "Mi vidas la pomon."
+    assert (
+        list(
+            Lemmatizer(
+                lemmatization_strategy=DefaultStrategy(greedy=False)
+            ).get_lemmas_in_text(text, lang="eo")
+        )
+        == text_lemmatizer(text, lang="eo", greedy=False)
+        == [
+            "mi",
+            "vidi",
+            "la",
+            "pomo",
+            ".",
+        ]
+    )
+
