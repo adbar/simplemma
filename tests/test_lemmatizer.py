@@ -565,4 +565,3 @@ def test_get_lemmas_in_text() -> None:
             ".",
         ]
     )
-
