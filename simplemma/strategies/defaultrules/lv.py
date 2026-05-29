@@ -1,5 +1,4 @@
 import re
-from typing import Optional
 
 from .generic import apply_rules
 
@@ -37,7 +36,7 @@ DEFAULT_RULES = {
 }
 
 
-def apply_lv(token: str) -> Optional[str]:
+def apply_lv(token: str) -> str | None:
     "Apply pre-defined rules for Latvian."
     if len(token) < 5:
         return None

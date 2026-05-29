@@ -8,7 +8,6 @@ Provides classes for text language detection using lemmatization and token sampl
 """
 
 from operator import itemgetter
-from typing import Dict, List, Tuple, Union
 
 from .strategies import DefaultStrategy, LemmatizationStrategy
 from .token_sampler import (
@@ -21,7 +20,7 @@ from .utils import validate_lang_input
 
 def in_target_language(
     text: str,
-    lang: Union[str, Tuple[str, ...]],
+    lang: str | tuple[str, ...],
     greedy: bool = False,
     token_sampler: TokenSampler = MostCommonTokenSampler(),
 ) -> float:
@@ -30,7 +29,7 @@ def in_target_language(
 
     Args:
         text (str): The input text to analyze.
-        lang (Union[str, Tuple[str, ...]]): The target language(s) to compare against.
+        lang (str | tuple[str, ...]): The target language(s) to compare against.
         greedy (bool, optional): Whether to use greedy lemmatization. Defaults to `False`.
         token_sampler (TokenSampler, optional): The token sampling strategy to use.
             Defaults to `MostCommonTokenSampler()`.
@@ -46,25 +45,25 @@ def in_target_language(
 
 def langdetect(
     text: str,
-    lang: Union[str, Tuple[str, ...]],
+    lang: str | tuple[str, ...],
     greedy: bool = False,
-    token_samplers: List[TokenSampler] = [
+    token_samplers: list[TokenSampler] = [
         MostCommonTokenSampler(),
         RelaxedMostCommonTokenSampler(),
     ],
-) -> List[Tuple[str, float]]:
+) -> list[tuple[str, float]]:
     """
     Detect the language(s) of the given text and their proportions.
 
     Args:
         text (str): The input text to analyze.
-        lang (Union[str, Tuple[str, ...]]): The target language(s) to compare against.
+        lang (str | tuple[str, ...]): The target language(s) to compare against.
         greedy (bool, optional): Whether to use greedy lemmatization. Defaults to `False`.
-        token_samplers (List[TokenSampler], optional): The list of token sampling strategies
+        token_samplers (list[TokenSampler], optional): The list of token sampling strategies
             to use. Defaults to `[MostCommonTokenSampler(), RelaxedMostCommonTokenSampler()]`.
 
     Returns:
-        List[Tuple[str, float]]: A list of tuples containing the detected language(s)
+        list[tuple[str, float]]: A list of tuples containing the detected language(s)
             and their respective proportions.
     """
 
@@ -80,18 +79,18 @@ def langdetect(
     return list_results
 
 
-def _as_list(results: Dict[str, float]) -> List[Tuple[str, float]]:
+def _as_list(results: dict[str, float]) -> list[tuple[str, float]]:
     """
     Convert the language detection results into a sorted list.
 
     Args:
-        results (Dict[str, float]): The language detection results.
+        results (dict[str, float]): The language detection results.
 
     Returns:
-        List[Tuple[str, float]]: A sorted list of tuples containing the language codes
+        list[tuple[str, float]]: A sorted list of tuples containing the language codes
             and their respective proportions.
     """
-    list_results: List[Tuple[str, float]] = sorted(
+    list_results: list[tuple[str, float]] = sorted(
         results.items(), key=itemgetter(1), reverse=True
     )
     for i, item in enumerate(list_results):
@@ -114,7 +113,7 @@ class LanguageDetector:
 
     def __init__(
         self,
-        lang: Union[str, Tuple[str, ...]],
+        lang: str | tuple[str, ...],
         token_sampler: TokenSampler = MostCommonTokenSampler(),
         lemmatization_strategy: LemmatizationStrategy = DefaultStrategy(),
     ) -> None:
@@ -122,7 +121,7 @@ class LanguageDetector:
         Initialize the LanguageDetector.
 
         Args:
-            lang (Union[str, Tuple[str, ...]]): The target language or languages to detect.
+            lang (str | tuple[str, ...]): The target language or languages to detect.
             token_sampler (TokenSampler, optional): The token sampling strategy to use.
                 Defaults to `MostCommonTokenSampler()`.
             lemmatization_strategy (LemmatizationStrategy, optional): The lemmatization
@@ -140,7 +139,7 @@ class LanguageDetector:
     def proportion_in_each_language(
         self,
         text: str,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Calculate the proportion of each language in the given text.
 
@@ -148,7 +147,7 @@ class LanguageDetector:
             text (str): The input text to analyze.
 
         Returns:
-            Dict[str, float]: A dictionary containing the detected languages and
+            dict[str, float]: A dictionary containing the detected languages and
                 their respective proportions.
         """
         tokens = self._token_sampler.sample_text(text)
@@ -169,10 +168,10 @@ class LanguageDetector:
             if not token_found:
                 unknown_tokens_count += 1
 
-        results: Dict[str, float] = dict(
-            (lang_code, token_count / total_tokens)
+        results: dict[str, float] = {
+            lang_code: token_count / total_tokens
             for (lang_code, token_count) in known_tokens_count.items()
-        )
+        }
         results["unk"] = unknown_tokens_count / total_tokens
         return results
 
@@ -205,7 +204,7 @@ class LanguageDetector:
     def main_language(
         self,
         text: str,
-        additional_token_samplers: List[TokenSampler] = [
+        additional_token_samplers: list[TokenSampler] = [
             RelaxedMostCommonTokenSampler()
         ],
     ) -> str:
@@ -214,7 +213,7 @@ class LanguageDetector:
 
         Args:
             text (str): The input text to analyze.
-            additional_token_samplers (List[TokenSampler], optional): Additional token
+            additional_token_samplers (list[TokenSampler], optional): Additional token
                 sampling strategies to use. Defaults to `[RelaxedMostCommonTokenSampler()]`.
 
         Returns:

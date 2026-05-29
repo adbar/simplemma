@@ -7,7 +7,7 @@ def test_exceptions() -> None:
     # missing languages or faulty language codes
     dictionary_factory = DefaultDictionaryFactory()
     with pytest.raises(ValueError):
-        dictionary_factory.get_dictionary(("abc"))
+        dictionary_factory.get_dictionary("abc")
 
 
 def test_dictionary_cache() -> None:

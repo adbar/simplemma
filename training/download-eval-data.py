@@ -3,7 +3,7 @@ import re
 import tarfile
 from glob import glob
 from os import mkdir, path, scandir
-from typing import Iterable, List, Tuple
+from collections.abc import Iterable
 
 import requests
 
@@ -17,15 +17,15 @@ DATA_FILE = path.join(DATA_FOLDER, "ud-treeebanks.tgz")
 CLEAN_DATA_FOLDER = path.join(DATA_FOLDER, "UD")
 
 
-def get_dirs(file_name: str) -> List[str]:
+def get_dirs(file_name: str) -> list[str]:
     return [dir.name for dir in scandir(file_name) if dir.is_dir()]
 
 
-def get_files(file_name: str) -> List[str]:
+def get_files(file_name: str) -> list[str]:
     return [dir.name for dir in scandir(file_name) if dir.is_file()]
 
 
-def get_relevant_language_data_folders(data_folder) -> Iterable[Tuple[str, str, str]]:
+def get_relevant_language_data_folders(data_folder) -> Iterable[tuple[str, str, str]]:
     for lang_folder in get_dirs(data_folder):
         lang_data_folder = path.join(uncompressed_data_folder, lang_folder)
         conllu_file = glob(path.join(lang_data_folder, "*.conllu"))[0]

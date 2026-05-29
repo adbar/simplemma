@@ -1,5 +1,4 @@
 import re
-from typing import Optional
 
 NOUN_ENDINGS_DE = re.compile(
     r"(?:erei|heit|keit|ion|schaft|tät|[^jlz]ung)(en)?$|"
@@ -27,7 +26,7 @@ PP_DE = re.compile(r"^(.{2,}ge.+?[^aes]t)(?:e|em|er|es)$")
 ENDING_CHARS_DE = {"e", "m", "n", "r", "s"}
 
 
-def apply_de(token: str) -> Optional[str]:
+def apply_de(token: str) -> str | None:
     "Apply pre-defined rules for German."
     if len(token) < 7:
         return None

@@ -1,6 +1,6 @@
 """Rule-based lemmatization of unknown tokens."""
 
-from typing import Callable, Dict, Optional
+from collections.abc import Callable
 
 from .de import apply_de
 from .en import apply_en
@@ -11,7 +11,7 @@ from .nl import apply_nl
 from .pl import apply_pl
 from .ru import apply_ru
 
-DEFAULT_RULES: Dict[str, Callable[[str], Optional[str]]] = {
+DEFAULT_RULES: dict[str, Callable[[str], str | None]] = {
     "de": apply_de,
     "en": apply_en,
     "et": apply_et,

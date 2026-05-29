@@ -1,5 +1,4 @@
 import re
-from typing import Optional
 
 from .generic import apply_rules
 
@@ -16,7 +15,7 @@ DEFAULT_RULES = {
 }
 
 
-def apply_pl(token: str) -> Optional[str]:
+def apply_pl(token: str) -> str | None:
     "Apply pre-defined rules for Polish."
     if len(token) < 10 or token[0].isupper():
         return None

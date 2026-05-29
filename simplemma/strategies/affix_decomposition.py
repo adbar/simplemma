@@ -2,8 +2,6 @@
 This file defines the `AffixDecompositionStrategy` class, which implements an affix decomposition lemmatization strategy in the Simplemma library.
 """
 
-from typing import Optional
-
 from .dictionary_lookup import DictionaryLookupStrategy
 from .greedy_dictionary_lookup import SHORTER_GREEDY, GreedyDictionaryLookupStrategy
 from .lemmatization_strategy import LemmatizationStrategy
@@ -64,7 +62,7 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
         self._dictionary_lookup = dictionary_lookup
         self._greedy_dictionary_lookup = greedy_dictionary_lookup
 
-    def get_lemma(self, token: str, lang: str) -> Optional[str]:
+    def get_lemma(self, token: str, lang: str) -> str | None:
         """
         Get the lemma of a token using affix decomposition strategy.
 
@@ -73,7 +71,7 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
             lang (str): The language code.
 
         Returns:
-            Optional[str]: The lemma of the token if found, or None otherwise.
+            str | None: The lemma of the token if found, or None otherwise.
         """
         limit = 6 if lang in SHORTER_GREEDY else 8
         if (not self._greedy and lang not in AFFIX_LANGS) or len(token) <= limit:
@@ -93,7 +91,7 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
         lang: str,
         max_affix_len: int = 0,
         min_complem_len: int = 0,
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Perform affix decomposition on a token.
 
@@ -104,7 +102,7 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
             min_complem_len (int): The minimum length of the complementary part.
 
         Returns:
-            Optional[str]: The lemma of the token if found, or None otherwise.
+            str | None: The lemma of the token if found, or None otherwise.
         """
         # this only makes sense for languages written from left to right
         # AFFIXLEN or MINCOMPLEN can spare time for some languages
@@ -150,7 +148,7 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
         token: str,
         lang: str,
         min_complem_len: int = 0,
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Decomposes the token using suffix decomposition strategy.
 
@@ -161,7 +159,7 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
                 to consider during decomposition. Defaults to 0.
 
         Returns:
-            Optional[str]: The decomposed token if decomposition is successful, None otherwise.
+            str | None: The decomposed token if decomposition is successful, None otherwise.
         """
         for count in range(len(token) - min_complem_len, min_complem_len - 1, -1):
             suffix = self._dictionary_lookup.get_lemma(

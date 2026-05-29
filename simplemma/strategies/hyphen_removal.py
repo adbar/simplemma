@@ -4,7 +4,6 @@ It provides lemmatization by removing hyphens from tokens and attempting to find
 """
 
 import re
-from typing import Optional
 
 from .dictionary_lookup import DictionaryLookupStrategy
 from .lemmatization_strategy import LemmatizationStrategy
@@ -35,7 +34,7 @@ class HyphenRemovalStrategy(LemmatizationStrategy):
         """
         self._dictionary_lookup = dictionary_lookup
 
-    def get_lemma(self, token: str, lang: str) -> Optional[str]:
+    def get_lemma(self, token: str, lang: str) -> str | None:
         """
         Get Lemma using Hyphen Removal Strategy
 
@@ -51,7 +50,7 @@ class HyphenRemovalStrategy(LemmatizationStrategy):
             lang (str): The language code for the token's language.
 
         Returns:
-            Optional[str]: The lemma for the token, or None if no lemma is found.
+            str | None: The lemma for the token, or None if no lemma is found.
 
         """
         token_parts = HYPHEN_REGEX.split(token)

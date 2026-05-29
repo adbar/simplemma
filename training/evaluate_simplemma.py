@@ -75,7 +75,7 @@ with open(path.join(RESULTS_FOLDER, "results_summary.csv"), "w") as csv_results_
         )
         log.info(f"Evaluating dataset: {filename}")
         with open(
-            path.join(CLEAN_DATA_FOLDER, filename), "r", encoding="utf-8"
+            path.join(CLEAN_DATA_FOLDER, filename), encoding="utf-8"
         ) as data_file:
             for tokens in parse_incr(data_file):
                 for token in tokens:

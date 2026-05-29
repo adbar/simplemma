@@ -1,4 +1,4 @@
-from typing import Iterable, List
+from collections.abc import Iterable
 
 from simplemma import (
     BaseTokenSampler,
@@ -12,7 +12,7 @@ class CustomTokenSampler(BaseTokenSampler):
         super().__init__()
         self.skip_tokens: int = skip_tokens
 
-    def sample_tokens(self, tokens: Iterable[str]) -> List[str]:
+    def sample_tokens(self, tokens: Iterable[str]) -> list[str]:
         return list(tokens)[self.skip_tokens :]
 
 

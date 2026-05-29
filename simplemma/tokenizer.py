@@ -10,7 +10,7 @@ Provides classes for text tokenization.
 
 import re
 from abc import abstractmethod
-from typing import Iterator, List
+from collections.abc import Iterator
 
 from typing import Protocol
 
@@ -76,7 +76,7 @@ class RegexTokenizer(Tokenizer):
 _legacy_tokenizer = RegexTokenizer()
 
 
-def simple_tokenizer(text: str) -> List[str]:
+def simple_tokenizer(text: str) -> list[str]:
     """
     Simple regular expression tokenizer.
 
@@ -88,7 +88,7 @@ def simple_tokenizer(text: str) -> List[str]:
             Defaults to `TOKREGEX`.
 
     Returns:
-        List[str]: The list of tokens extracted from the input text.
+        list[str]: The list of tokens extracted from the input text.
 
     """
     return list(_legacy_tokenizer.split_text(text))
