@@ -44,7 +44,6 @@ class DefaultStrategy(LemmatizationStrategy):
                 Defaults to [`DefaultDictionaryFactory()`][simplemma.strategies.dictionaries.dictionary_factory.DefaultDictionaryFactory]..
 
         """
-        self._greedy = greedy
         self._dictionary_lookup = DictionaryLookupStrategy(dictionary_factory)
         self._hyphen_search = HyphenRemovalStrategy(self._dictionary_lookup)
         self._rules_search = RulesStrategy()

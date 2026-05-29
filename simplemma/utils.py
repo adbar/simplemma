@@ -9,7 +9,7 @@ Contains utility functions for language processing.
 from typing import Tuple, Union
 
 
-def validate_lang_input(lang: Union[str, Tuple[str, ...]]) -> Tuple[str]:
+def validate_lang_input(lang: Union[str, Tuple[str, ...]]) -> Tuple[str, ...]:
     """
     Make sure the lang variable is a valid tuple.
 
@@ -17,7 +17,7 @@ def validate_lang_input(lang: Union[str, Tuple[str, ...]]) -> Tuple[str]:
         lang (Any): The language input.
 
     Returns:
-        Tuple[str]: A tuple containing the language code.
+        Tuple[str, ...]: A tuple containing the language code(s).
 
     Raises:
         TypeError: If the lang argument is not a tuple or a string.
@@ -28,7 +28,7 @@ def validate_lang_input(lang: Union[str, Tuple[str, ...]]) -> Tuple[str]:
         lang = (lang,)
     if not isinstance(lang, tuple):
         raise TypeError("lang argument must be a two-letter language code")
-    return lang  # type: ignore[return-value]
+    return lang
 
 
 def levenshtein_dist(str1: str, str2: str) -> int:

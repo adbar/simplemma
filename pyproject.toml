@@ -8,7 +8,7 @@ description = "A lightweight toolkit for multilingual lemmatization and language
 readme = "README.md"
 license = { text = "MIT License" }
 dynamic = ["version"]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 authors = [
   {name = "Adrien Barbaresi", email = "barbaresi@bbaw.de"}
 ]
@@ -68,12 +68,11 @@ classifiers = [
     "Natural Language :: Ukrainian",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Software Development :: Internationalization",
     "Topic :: Software Development :: Localization",
@@ -100,23 +99,53 @@ version = {attr = "simplemma.__version__"}
 
 [project.optional-dependencies]
 marisa-trie = [
-    "marisa_trie == 1.2.0",
-    "platformdirs == 4.2.2",
+    "marisa_trie == 1.4.1",
+    "platformdirs == 4.10.0",
 ]
 test = [
-    "pytest == 8.3.2",
-    "pytest-cov == 5.0.0",
+    "pytest == 9.0.3",
+    "pytest-cov == 7.1.0",
 ]
 dev = [
     "simplemma[test]",
-    "black == 24.8.0",
-    "flake8 == 7.1.1",
-    "mypy == 1.11.0",
-    "types-requests == 2.32.0.20240712",
+    "black == 26.5.1",
+    "flake8 == 7.3.0",
+    "mypy == 2.1.0",
+    "types-requests == 2.33.0.20260518",
 ]
 docs = [
     "mkdocs",
     "mkdocs-material",
     "mkdocstrings",
     "mkdocstrings-python",
+]
+
+[tool.mypy]
+python_version = "3.10"
+files = ["simplemma", "training", "tests"]
+# the shipped library is held to a strict bar
+strict = true
+
+[[tool.mypy.overrides]]
+# tests and training scripts are not fully annotated
+module = ["tests.*", "training.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["simplemma"]
+omit = [
+    "training/*",
+    "tests/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "except .*ImportError.*:",
 ]

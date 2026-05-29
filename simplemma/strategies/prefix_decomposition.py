@@ -3,7 +3,8 @@ This module defines the `PrefixDecompositionStrategy` class, which is a concrete
 It provides lemmatization by performing subword decomposition using pre-defined prefixes.
 """
 
-from typing import Dict, Optional, Pattern
+import re
+from typing import Dict, Optional
 
 from .defaultprefixes import DEFAULT_KNOWN_PREFIXES
 from .dictionary_lookup import DictionaryLookupStrategy
@@ -20,14 +21,14 @@ class PrefixDecompositionStrategy(LemmatizationStrategy):
 
     def __init__(
         self,
-        known_prefixes: Dict[str, Pattern[str]] = DEFAULT_KNOWN_PREFIXES,
+        known_prefixes: Dict[str, re.Pattern[str]] = DEFAULT_KNOWN_PREFIXES,
         dictionary_lookup: DictionaryLookupStrategy = DictionaryLookupStrategy(),
     ):
         """
         Initialize the Prefix Decomposition Strategy.
 
         Args:
-            known_prefixes (Dict[str, Pattern[str]]): A dictionary of known prefixes for various languages.
+            known_prefixes (Dict[str, re.Pattern[str]]): A dictionary of known prefixes for various languages.
                 Defaults to `DEFAULT_KNOWN_PREFIXES`.
             dictionary_lookup (DictionaryLookupStrategy): The dictionary lookup strategy used to find dictionary forms.
                 Defaults to `DictionaryLookupStrategy()`.

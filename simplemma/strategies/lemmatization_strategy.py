@@ -16,6 +16,8 @@ class LemmatizationStrategy(Protocol):
         Concrete implementations of this protocol should provide a concrete implementation for the `get_lemma` method.
     """
 
+    __slots__ = ()
+
     @abstractmethod
     def get_lemma(self, token: str, lang: str) -> Optional[str]:
         """

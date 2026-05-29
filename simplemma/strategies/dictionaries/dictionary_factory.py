@@ -14,7 +14,7 @@ from abc import abstractmethod
 from functools import lru_cache
 from os import listdir, path
 from pathlib import Path
-from typing import ByteString, Dict, Iterator, Mapping, Protocol
+from typing import Dict, Iterator, Mapping, Protocol
 
 DATA_FOLDER = str(Path(__file__).parent / "data")
 SUPPORTED_LANGUAGES = [
@@ -24,7 +24,7 @@ SUPPORTED_LANGUAGES = [
 ]
 
 
-def _load_dictionary_from_disk(langcode: str) -> Dict[ByteString, ByteString]:
+def _load_dictionary_from_disk(langcode: str) -> Dict[bytes, bytes]:
     """
     Load a dictionary from disk.
 
@@ -57,6 +57,8 @@ class DictionaryFactory(Protocol):
         This protocol should be implemented by concrete dictionary factories.
         Concrete implementations of this protocol should provide a concrete implementation for the `get_dictionary` method.
     """
+
+    __slots__ = ()
 
     @abstractmethod
     def get_dictionary(

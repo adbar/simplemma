@@ -24,8 +24,10 @@ from simplemma.strategies.dictionaries.dictionary_factory import (
 logger = logging.getLogger(__name__)
 
 
-class TrieWrapDict(MutableMapping):  # Python > 3.8: [str, Any]
+class TrieWrapDict(MutableMapping[str, Any]):
     """Wrapper around BytesTrie to make them behave like dicts."""
+
+    __slots__ = ("_trie",)
 
     def __init__(self, trie: BytesTrie) -> None:
         self._trie = trie
@@ -55,7 +57,7 @@ class TrieDictionaryFactory(DictionaryFactory):
     lookup performance isn't as good as with dicts.
     """
 
-    __slots__: List[str] = ["cache_max_size", "disk_cache_dir", "use_disk_cache"]
+    __slots__: List[str] = ["_cache_dir", "_use_disk_cache", "_get_dictionary"]
 
     def __init__(
         self,

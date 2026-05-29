@@ -10,7 +10,7 @@ Provides classes for text tokenization.
 
 import re
 from abc import abstractmethod
-from typing import Iterator, List, Pattern
+from typing import Iterator, List
 
 from typing import Protocol
 
@@ -30,6 +30,8 @@ class Tokenizer(Protocol):
     Abstract base class for Tokenizers.
     Tokenizers are used to split a text into individual tokens.
     """
+
+    __slots__ = ()
 
     @abstractmethod
     def split_text(self, text: str) -> Iterator[str]:
@@ -54,7 +56,7 @@ class RegexTokenizer(Tokenizer):
 
     __slots__ = ["_splitting_regex"]
 
-    def __init__(self, splitting_regex: Pattern[str] = TOKREGEX) -> None:
+    def __init__(self, splitting_regex: re.Pattern[str] = TOKREGEX) -> None:
         self._splitting_regex = splitting_regex
 
     def split_text(self, text: str) -> Iterator[str]:
@@ -82,7 +84,7 @@ def simple_tokenizer(text: str) -> List[str]:
 
     Args:
         text (str): The input text to tokenize.
-        splitting_regex (Pattern[str], optional): The regular expression pattern used for tokenization.
+        splitting_regex (re.Pattern[str], optional): The regular expression pattern used for tokenization.
             Defaults to `TOKREGEX`.
 
     Returns:

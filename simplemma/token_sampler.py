@@ -17,7 +17,6 @@ from typing import Iterable, List, Protocol
 
 from .tokenizer import RegexTokenizer, Tokenizer
 
-
 SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
 RELAXED_SPLIT_INPUT = re.compile(r"[\w-]{3,}")
 
@@ -29,6 +28,8 @@ class TokenSampler(Protocol):
     Token samplers are used to sample tokens from text.
 
     """
+
+    __slots__ = ()
 
     @abstractmethod
     def sample_text(self, text: str) -> List[str]:
@@ -161,6 +162,8 @@ class RelaxedMostCommonTokenSampler(MostCommonTokenSampler):
     Relaxed version of the most common token sampler.
     This sampler uses a relaxed splitting regex pattern and allows for a larger sample size.
     """
+
+    __slots__ = ()
 
     def __init__(
         self,
