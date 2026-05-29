@@ -145,3 +145,28 @@ def test_main_language():
     #     == langdetect(text, lang=lang, greedy=False)[0][0]
     #     == "unk"
     # )
+
+
+def test_main_language_unknown() -> None:
+    """When no language wins across any sampler, "unk" is returned."""
+    detector = LanguageDetector(lang=("de", "en"))
+    # no recognizable tokens: proportion_in_each_language yields {"unk": 1}
+    # for every sampler, so no language ever wins
+    assert detector.main_language("aa bb cc") == "unk"
+    # the token sampler is restored to its original after the fallback
+    assert detector._token_sampler is detector._orig_token_sampler
+
+
+def test_main_language_tie() -> None:
+    """A genuine tie between two supported languages also yields "unk"."""
+    detector = LanguageDetector(lang=("de", "en"))
+    # "test" is a valid lemma in both German and English, so de and en stay
+    # tied at 1.0 across both the default and the relaxed sampler: there is
+    # never a single winner, so the fallback returns "unk"
+    assert detector.proportion_in_each_language("Test test") == {
+        "de": 1.0,
+        "en": 1.0,
+        "unk": 0.0,
+    }
+    assert detector.main_language("Test test") == "unk"
+    assert detector._token_sampler is detector._orig_token_sampler
