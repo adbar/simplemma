@@ -84,8 +84,6 @@ def simple_tokenizer(text: str) -> list[str]:
 
     Args:
         text (str): The input text to tokenize.
-        splitting_regex (re.Pattern[str], optional): The regular expression pattern used for tokenization.
-            Defaults to `TOKREGEX`.
 
     Returns:
         list[str]: The list of tokens extracted from the input text.

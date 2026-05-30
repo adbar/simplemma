@@ -3,7 +3,7 @@ Lemmatizer module.
 Provides classes for lemmatizing token and full texts.
 
 - [Lemmatizer][simplemma.lemmatizer.Lemmatizer]: Class for performing token and full text lemmatization.
-- [is_known()][simplemma.lemmatizer.is_known]: A legacy function that wraps the Lemmatizer's [is_known()][simplemma.lemmatizer.Lemmatizer.is_known] method.
+- [is_known()][simplemma.lemmatizer.is_known]: A legacy function that checks whether a token is present in the language data.
 - [lemmatize()][simplemma.lemmatizer.lemmatize]: A legacy function that wraps the Lemmatizer's [lemmatize()][simplemma.lemmatizer.Lemmatizer.lemmatize] method.
 - [text_lemmatizer()][simplemma.lemmatizer.text_lemmatizer]: A legacy function that wraps the Lemmatizer's [text_lemmatizer()][simplemma.lemmatizer.Lemmatizer.get_lemmas_in_text] method.
 - [lemma_iterator()][simplemma.lemmatizer.lemma_iterator]: A legacy function that wraps the Lemmatizer's [lemma_iterator()][simplemma.lemmatizer.Lemmatizer.get_lemmas_in_text] method.
@@ -199,7 +199,6 @@ def text_lemmatizer(
         text: The text to lemmatize.
         lang: The language or languages for lemmatization.
         greedy: A flag indicating whether to use greedy lemmatization (default: False).
-        tokenizer: The tokenizer to use (default: RegexTokenizer()).
 
     Returns:
         list[str]: The list of lemmatized tokens.
@@ -223,7 +222,6 @@ def lemma_iterator(
         text: The text to iterate over.
         lang: The language or languages for lemmatization.
         greedy: A flag indicating whether to use greedy lemmatization (default: False).
-        tokenizer: The tokenizer to use (default: RegexTokenizer()).
 
     Yields:
         str: The lemmatized tokens in the text.
