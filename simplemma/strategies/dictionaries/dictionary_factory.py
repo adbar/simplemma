@@ -12,19 +12,15 @@ import lzma
 import pickle
 from abc import abstractmethod
 from functools import lru_cache
-from os import listdir, path
 from pathlib import Path
-from typing import ByteString, Dict, Iterator, Mapping, Protocol
+from typing import Protocol
+from collections.abc import Iterator, Mapping
 
-DATA_FOLDER = str(Path(__file__).parent / "data")
-SUPPORTED_LANGUAGES = [
-    path.splitext(dict)[0]
-    for dict in listdir(DATA_FOLDER)
-    if path.isfile(path.join(DATA_FOLDER, dict)) and dict.endswith(".plzma")
-]
+DATA_FOLDER = Path(__file__).parent / "data"
+SUPPORTED_LANGUAGES = [f.stem for f in DATA_FOLDER.glob("*.plzma")]
 
 
-def _load_dictionary_from_disk(langcode: str) -> Dict[ByteString, ByteString]:
+def _load_dictionary_from_disk(langcode: str) -> dict[bytes, bytes]:
     """
     Load a dictionary from disk.
 
@@ -32,7 +28,7 @@ def _load_dictionary_from_disk(langcode: str) -> Dict[ByteString, ByteString]:
         langcode (str): The language code.
 
     Returns:
-        Dict[str, str]: The loaded dictionary.
+        dict[str, str]: The loaded dictionary.
 
     Raises:
         AssertionError: If the loaded object is not a dictionary.
@@ -41,8 +37,7 @@ def _load_dictionary_from_disk(langcode: str) -> Dict[ByteString, ByteString]:
         This function assumes that the dictionary file is stored in the 'data' folder relative to this module.
         The file name is constructed by appending '.plzma' to the language code.
     """
-    filename = f"data/{langcode}.plzma"
-    filepath = str(Path(__file__).parent / filename)
+    filepath = DATA_FOLDER / f"{langcode}.plzma"
     with lzma.open(filepath, "rb") as filehandle:
         pickled_dict = pickle.load(filehandle)
         assert isinstance(pickled_dict, dict)
@@ -57,6 +52,8 @@ class DictionaryFactory(Protocol):
         This protocol should be implemented by concrete dictionary factories.
         Concrete implementations of this protocol should provide a concrete implementation for the `get_dictionary` method.
     """
+
+    __slots__ = ()
 
     @abstractmethod
     def get_dictionary(
@@ -83,7 +80,7 @@ class MappingStrToByteString(Mapping[str, str]):
 
     __slots__ = ["_dict"]
 
-    def __init__(self, dictionary: Dict[bytes, bytes]) -> None:
+    def __init__(self, dictionary: dict[bytes, bytes]) -> None:
         self._dict = dictionary
 
     def __getitem__(self, item: str) -> str:

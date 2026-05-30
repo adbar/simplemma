@@ -3,8 +3,6 @@ This module defines the `DictionaryLookupStrategy` class, which is a concrete im
 It provides lemmatization using dictionary lookup.
 """
 
-from typing import Optional
-
 from .dictionaries.dictionary_factory import DefaultDictionaryFactory, DictionaryFactory
 from .lemmatization_strategy import LemmatizationStrategy
 
@@ -26,7 +24,7 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
         """
         self._dictionary_factory = dictionary_factory
 
-    def get_lemma(self, token: str, lang: str) -> Optional[str]:
+    def get_lemma(self, token: str, lang: str) -> str | None:
         """
         Get Lemma using Dictionary Lookup
 
@@ -38,7 +36,7 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
             lang (str): The language code for the token's language.
 
         Returns:
-            Optional[str]: The lemma for the token, or `None` if not found in the dictionary.
+            str | None: The lemma for the token, or `None` if not found in the dictionary.
 
         """
         # Search the language data, reverse case to extend coverage.

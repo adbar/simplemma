@@ -2,6 +2,15 @@
 History
 =======
 
+1.2.0
+-----
+
+- Add support for Esperanto (#167)
+- Security: fix arbitrary file write during tarfile extraction in training (#165)
+- Maintenance: fix file opening in ``training/download-eval-data.py`` (#164)
+- Update setup and modernize code
+
+
 1.1.2
 -----
 

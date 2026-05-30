@@ -13,10 +13,10 @@ a [Tokenizer][simplemma.tokenizer.Tokenizer] so the user only has to implement t
 import re
 from abc import ABC, abstractmethod
 from collections import Counter
-from typing import Iterable, List, Protocol
+from typing import Protocol
+from collections.abc import Iterable
 
 from .tokenizer import RegexTokenizer, Tokenizer
-
 
 SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
 RELAXED_SPLIT_INPUT = re.compile(r"[\w-]{3,}")
@@ -30,8 +30,10 @@ class TokenSampler(Protocol):
 
     """
 
+    __slots__ = ()
+
     @abstractmethod
-    def sample_text(self, text: str) -> List[str]:
+    def sample_text(self, text: str) -> list[str]:
         """
         Sample tokens from the input text.
 
@@ -39,13 +41,13 @@ class TokenSampler(Protocol):
             text (str): The input text to sample tokens from.
 
         Returns:
-            List[str]: The sampled tokens.
+            list[str]: The sampled tokens.
 
         """
         raise NotImplementedError
 
     @abstractmethod
-    def sample_tokens(self, tokens: Iterable[str]) -> List[str]:
+    def sample_tokens(self, tokens: Iterable[str]) -> list[str]:
         """
         Sample tokens from the given iterable of tokens.
 
@@ -53,7 +55,7 @@ class TokenSampler(Protocol):
             tokens (Iterable[str]): The iterable of tokens to sample from.
 
         Returns:
-            List[str]: The sampled tokens.
+            list[str]: The sampled tokens.
 
         """
         raise NotImplementedError
@@ -81,7 +83,7 @@ class BaseTokenSampler(ABC, TokenSampler):
         """
         self._tokenizer = tokenizer
 
-    def sample_text(self, text: str) -> List[str]:
+    def sample_text(self, text: str) -> list[str]:
         """
         Sample tokens from the input text.
 
@@ -89,13 +91,13 @@ class BaseTokenSampler(ABC, TokenSampler):
             text (str): The input text to sample tokens from.
 
         Returns:
-            List[str]: The sampled tokens.
+            list[str]: The sampled tokens.
 
         """
         return self.sample_tokens(self._tokenizer.split_text(text))
 
     @abstractmethod
-    def sample_tokens(self, tokens: Iterable[str]) -> List[str]:
+    def sample_tokens(self, tokens: Iterable[str]) -> list[str]:
         """
         Sample tokens from the given iterable of tokens.
 
@@ -103,7 +105,7 @@ class BaseTokenSampler(ABC, TokenSampler):
             tokens (Iterable[str]): The iterable of tokens to sample from.
 
         Returns:
-            List[str]: The sampled tokens.
+            list[str]: The sampled tokens.
 
         """
         raise NotImplementedError
@@ -134,7 +136,7 @@ class MostCommonTokenSampler(BaseTokenSampler):
         self._sample_size = sample_size
         self._capitalized_threshold = capitalized_threshold
 
-    def sample_tokens(self, tokens: Iterable[str]) -> List[str]:
+    def sample_tokens(self, tokens: Iterable[str]) -> list[str]:
         """
         Sample tokens from the given iterable of tokens.
 
@@ -142,7 +144,7 @@ class MostCommonTokenSampler(BaseTokenSampler):
             tokens (Iterable[str]): The iterable of tokens to sample from.
 
         Returns:
-            List[str]: The sampled tokens.
+            list[str]: The sampled tokens.
 
         """
         counter = Counter(tokens)
@@ -161,6 +163,8 @@ class RelaxedMostCommonTokenSampler(MostCommonTokenSampler):
     Relaxed version of the most common token sampler.
     This sampler uses a relaxed splitting regex pattern and allows for a larger sample size.
     """
+
+    __slots__ = ()
 
     def __init__(
         self,

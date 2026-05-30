@@ -1,6 +1,6 @@
 """Tests for `simplemma` package."""
 
-from typing import Mapping
+from collections.abc import Mapping
 
 import pytest
 
@@ -451,6 +451,24 @@ def test_subwords() -> None:
         == lemmatize("зафиксированные", lang="ru")
         == "зафиксированный"
     )
+
+
+def test_numeric_tokens() -> None:
+    """Numeric tokens are returned unchanged regardless of language."""
+    assert (
+        Lemmatizer().lemmatize("2024", lang="en")
+        == lemmatize("2024", lang="en")
+        == "2024"
+    )
+    assert lemmatize("123", lang=("de", "en")) == "123"
+    # unicode numerals also count as numeric: the short-circuit returns the
+    # token verbatim instead of lowercasing it (which would yield "ⅻ")
+    assert "Ⅻ".isnumeric()
+    assert lemmatize("Ⅻ", lang="en") == "Ⅻ"
+    # near-misses are NOT numeric: the strategy falls through to a normal
+    # lookup (returning None here) rather than short-circuiting on the token
+    assert DefaultStrategy().get_lemma("2024", "en") == "2024"
+    assert DefaultStrategy().get_lemma("12.5", "en") is None
 
 
 def test_is_known() -> None:

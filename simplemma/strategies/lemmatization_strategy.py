@@ -3,7 +3,7 @@ This file defines the `LemmatizationStrategy` protocl class, which all lemmatiza
 """
 
 from abc import abstractmethod
-from typing import Optional, Protocol
+from typing import Protocol
 
 
 class LemmatizationStrategy(Protocol):
@@ -16,8 +16,10 @@ class LemmatizationStrategy(Protocol):
         Concrete implementations of this protocol should provide a concrete implementation for the `get_lemma` method.
     """
 
+    __slots__ = ()
+
     @abstractmethod
-    def get_lemma(self, token: str, lang: str) -> Optional[str]:
+    def get_lemma(self, token: str, lang: str) -> str | None:
         """
         This method receives a token and a language code and should return the lemma for the token in the specified language.
         If the lemma is not found, it should return `None`.
@@ -27,7 +29,7 @@ class LemmatizationStrategy(Protocol):
             lang (str): The language code for the token's language.
 
         Returns:
-            Optional[str]: The lemma for the token, or `None` if not found.
+            str | None: The lemma for the token, or `None` if not found.
 
         Raises:
             NotImplementedError: If the method is not implemented by the subclass.

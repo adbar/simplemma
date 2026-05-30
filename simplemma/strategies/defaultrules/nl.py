@@ -1,7 +1,4 @@
-from typing import Optional
-
-
-def apply_nl(token: str) -> Optional[str]:
+def apply_nl(token: str) -> str | None:
     "Apply pre-defined rules for Dutch."
     # inspired by:
     # https://github.com/clips/pattern/blob/master/pattern/text/nl/inflect.py

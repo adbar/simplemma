@@ -11,7 +11,7 @@
 
 [Lemmatization](https://en.wikipedia.org/wiki/Lemmatisation) is the
 process of grouping together the inflected forms of a word so they can
-be analysed as a single item, identified by the word\'s lemma, or
+be analysed as a single item, identified by the word's lemma, or
 dictionary form. Unlike stemming, lemmatization outputs word units that
 are still valid linguistic forms.
 
@@ -34,7 +34,7 @@ speed and simplicity matter, in low-resource contexts, for educational
 purposes, or as a baseline system for lemmatization and morphological
 analysis.
 
-Currently, 49 languages are partly or fully supported (see table below).
+Currently, 50 languages are partly or fully supported (see table below).
 
 
 ## Installation
@@ -63,14 +63,8 @@ myword = 'masks'
 # decide which language to use and apply it on a word form
 >>> simplemma.lemmatize(myword, lang='en')
 'mask'
-# grab a list of tokens
+# apply it on a list of tokens
 >>> mytokens = ['Hier', 'sind', 'Vaccines']
->>> for token in mytokens:
->>>     simplemma.lemmatize(token, lang='de')
-'hier'
-'sein'
-'Vaccines'
-# list comprehensions can be faster
 >>> [simplemma.lemmatize(t, lang='de') for t in mytokens]
 ['hier', 'sein', 'Vaccines']
 ```
@@ -102,8 +96,8 @@ affixes in an unsupervised way. This can be triggered manually by
 setting the `greedy` parameter to `True`.
 
 This option also triggers a stronger reduction through an additional
-iteration of the search algorithm, e.g. \"angekündigten\" →
-\"angekündigt\" (standard) → \"ankündigen\" (greedy). In some cases it
+iteration of the search algorithm, e.g. "angekündigten" →
+"angekündigt" (standard) → "ankündigen" (greedy). In some cases it
 may be closer to stemming than to lemmatization.
 
 ``` python
@@ -143,8 +137,8 @@ A simple tokenization function is provided for convenience:
 ```
 
 The functions `text_lemmatizer()` and `lemma_iterator()` chain
-tokenization and lemmatization. They can take `greedy` (affecting
-lemmatization) and `silent` (affecting errors and logging) as arguments:
+tokenization and lemmatization. They accept the same `greedy` argument
+as `lemmatize()`:
 
 ``` python
 >>> from simplemma import text_lemmatizer
@@ -197,16 +191,16 @@ Language detection works by providing a text and tuple `lang` consisting
 of a series of languages of interest. Scores between 0 and 1 are
 returned.
 
-The `lang_detector()` function returns a list of language codes along
-with their corresponding scores, appending \"unk\" for unknown or
+The `langdetect()` function returns a list of language codes along
+with their corresponding scores, appending "unk" for unknown or
 out-of-vocabulary words. The latter can also be calculated by using
 the function `in_target_language()` which returns a ratio.
 
 ``` python
 # import necessary functions
->>> from simplemma import in_target_language, lang_detector
+>>> from simplemma import in_target_language, langdetect
 # language detection
->>> lang_detector('"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."', lang=("cs", "sk"))
+>>> langdetect('"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."', lang=("cs", "sk"))
 [("cs", 0.75), ("sk", 0.125), ("unk", 0.25)]
 # proportion of known words
 >>> in_target_language("opera post physica posita (τὰ μετὰ τὰ φυσικά)", lang="la")
@@ -278,7 +272,7 @@ specific usage.
 To use the `TrieDictionaryFactory` you have to install Simplemma with
 the `marisa-trie` extra dependency (available from version 1.1.0):
 
-```
+```bash
 pip install simplemma[marisa-trie]
 ```
 
@@ -330,60 +324,66 @@ If no such code exists, a [ISO 639-3
 code](https://en.wikipedia.org/wiki/List_of_ISO_639-3_codes) is
 used instead.
 
-Available languages (2022-01-20):
+Available languages (2026-05-29):
+
+The *Forms* column counts the inflected word forms stored in the
+dictionary, while *Lemmata* counts the distinct base forms they map to
+(both in thousands). A large gap between the two reflects rich
+morphology rather than a data error.
 
 
-| Code | Language | Forms (10³) | Acc. | Comments |
-| ---- | -------- | ----------- | ---- | -------- |
-| `ast` | Asturian | 124 | 
-| `bg` | Bulgarian | 204 | 
-| `ca` | Catalan | 579 | 
-| `cs` | Czech | 187 | 0.89 | on UD CS-PDT
-| `cy` | Welsh | 360 | 
-| `da` | Danish | 554 | 0.92 | on UD DA-DDT, alternative: [lemmy](https://github.com/sorenlind/lemmy)
-| `de` | German | 675 | 0.95 | on UD DE-GSD, see also [German-NLP list](https://github.com/adbar/German-NLP#Lemmatization)
-| `el` | Greek | 181 | 0.88 | on UD EL-GDT
-| `en` | English | 131 | 0.94 | on UD EN-GUM, alternative: [LemmInflect](https://github.com/bjascob/LemmInflect)
-| `enm` | Middle English | 38
-| `es` | Spanish | 665 | 0.95 | on UD ES-GSD
-| `et` | Estonian | 119 | | low coverage
-| `fa` | Persian | 12 | | experimental
-| `fi` | Finnish | 3,199 | | see [this benchmark](https://github.com/aajanki/finnish-pos-accuracy)
-| `fr` | French | 217 | 0.94 | on UD FR-GSD
-| `ga` | Irish | 372
-| `gd` | Gaelic | 48
-| `gl` | Galician | 384
-| `gv` | Manx | 62
-| `hbs` | Serbo-Croatian | 656 | | Croatian and Serbian lists to be added later
-| `hi` | Hindi | 58 | | experimental
-| `hu` | Hungarian | 458
-| `hy` | Armenian | 246
-| `id` | Indonesian | 17 | 0.91 | on UD ID-CSUI
-| `is` | Icelandic | 174
-| `it` | Italian | 333 | 0.93 | on UD IT-ISDT
-| `ka` | Georgian | 65
-| `la` | Latin | 843
-| `lb` | Luxembourgish | 305
-| `lt` | Lithuanian | 247
-| `lv` | Latvian | 164
-| `mk` | Macedonian | 56
-| `ms` | Malay | 14
-| `nb` | Norwegian (Bokmål) |  617
-| `nl` | Dutch | 250 | 0.92 | on UD-NL-Alpino
-| `nn` | Norwegian (Nynorsk) | 56
-| `pl` | Polish | 3,211 | 0.91 | on UD-PL-PDB
-| `pt` | Portuguese | 924 | 0.92 | on UD-PT-GSD
-| `ro` | Romanian | 311
-| `ru` | Russian | 595 | | alternative: [pymorphy2](https://github.com/kmike/pymorphy2/)
-| `se` | Northern Sámi | 113
-| `sk` | Slovak | 818 | 0.92 | on UD SK-SNK
-| `sl` | Slovene | 136
-| `sq` | Albanian | 35
-| `sv` | Swedish | 658 | | alternative: [lemmy](https://github.com/sorenlind/lemmy)
-| `sw` | Swahili | 10 | | experimental
-| `tl` | Tagalog | 32 | | experimental
-| `tr` | Turkish | 1,232 | 0.89 | on UD-TR-Boun
-| `uk` | Ukrainian | 370 | | alternative: [pymorphy2](https://github.com/kmike/pymorphy2/)
+| Code | Language | Forms (10³) | Lemmata (10³) | Acc. | Comments |
+| ---- | -------- | ----------- | ------------- | ---- | -------- |
+| `ast` | Asturian | 154 | 36 | 
+| `bg` | Bulgarian | 215 | 18 | 
+| `ca` | Catalan | 640 | 63 | 
+| `cs` | Czech | 200 | 26 | 0.89 | on UD CS-PDT
+| `cy` | Welsh | 363 | 14 | 
+| `da` | Danish | 555 | 81 | 0.92 | on UD DA-DDT, alternative: [lemmy](https://github.com/sorenlind/lemmy)
+| `de` | German | 730 | 246 | 0.95 | on UD DE-GSD, see also [German-NLP list](https://github.com/adbar/German-NLP#Lemmatization)
+| `el` | Greek | 185 | 21 | 0.88 | on UD EL-GDT
+| `en` | English | 139 | 50 | 0.94 | on UD EN-GUM, alternative: [LemmInflect](https://github.com/bjascob/LemmInflect)
+| `enm` | Middle English | 43 | 6
+| `eo` | Esperanto | 191 | 18 | 
+| `es` | Spanish | 666 | 72 | 0.95 | on UD ES-GSD
+| `et` | Estonian | 141 | 34 | | low coverage
+| `fa` | Persian | 13 | 4 | | experimental
+| `fi` | Finnish | 3,549 | 124 | | see [this benchmark](https://github.com/aajanki/finnish-pos-accuracy)
+| `fr` | French | 248 | 37 | 0.94 | on UD FR-GSD
+| `ga` | Irish | 399 | 46
+| `gd` | Gaelic | 59 | 12
+| `gl` | Galician | 426 | 43
+| `gv` | Manx | 76 | 13
+| `hbs` | Serbo-Croatian | 674 | 52 | | Croatian and Serbian lists to be added later
+| `hi` | Hindi | 58 | 11 | | experimental
+| `hu` | Hungarian | 492 | 36
+| `hy` | Armenian | 247 | 7
+| `id` | Indonesian | 21 | 4 | 0.91 | on UD ID-CSUI
+| `is` | Icelandic | 177 | 15
+| `it` | Italian | 357 | 28 | 0.93 | on UD IT-ISDT
+| `ka` | Georgian | 66 | 4
+| `la` | Latin | 892 | 52
+| `lb` | Luxembourgish | 306 | 79
+| `lt` | Lithuanian | 268 | 25
+| `lv` | Latvian | 166 | 14
+| `mk` | Macedonian | 67 | 16
+| `ms` | Malay | 18 | 4
+| `nb` | Norwegian (Bokmål) | 618 | 134
+| `nl` | Dutch | 366 | 124 | 0.92 | on UD-NL-Alpino
+| `nn` | Norwegian (Nynorsk) | 68 | 18
+| `pl` | Polish | 3,670 | 264 | 0.91 | on UD-PL-PDB
+| `pt` | Portuguese | 924 | 94 | 0.92 | on UD-PT-GSD
+| `ro` | Romanian | 342 | 36
+| `ru` | Russian | 633 | 54 | | alternative: [pymorphy2](https://github.com/kmike/pymorphy2/)
+| `se` | Northern Sámi | 115 | 7
+| `sk` | Slovak | 889 | 71 | 0.92 | on UD SK-SNK
+| `sl` | Slovene | 165 | 30
+| `sq` | Albanian | 38 | 5
+| `sv` | Swedish | 745 | 93 | | alternative: [lemmy](https://github.com/sorenlind/lemmy)
+| `sw` | Swahili | 4,870 | 4 | | experimental
+| `tl` | Tagalog | 39 | 8 | | experimental
+| `tr` | Turkish | 1,236 | 40 | 0.89 | on UD-TR-Boun
+| `uk` | Ukrainian | 388 | 22 | | alternative: [pymorphy2](https://github.com/kmike/pymorphy2/)
 
 
 Languages marked as having low coverage may be better suited to
@@ -399,8 +399,8 @@ The scores are calculated on [Universal
 Dependencies](https://universaldependencies.org/) treebanks on single
 word tokens (including some contractions but not merged prepositions),
 they describe to what extent simplemma can accurately map tokens to
-their lemma form. See `eval/` folder of the code repository for more
-information.
+their lemma form. See the `training/` folder of the code repository for
+more information.
 
 This library is particularly relevant as regards the lemmatization of
 less frequent words. Its performance in this case is only incidentally
@@ -414,8 +414,8 @@ performance.
 The following orders of magnitude are provided for reference only and
 were measured on an old laptop to establish a lower bound:
 
--   Tokenization: \> 1 million tokens/sec
--   Lemmatization: \> 250,000 words/sec
+-   Tokenization: > 1 million tokens/sec
+-   Lemmatization: > 250,000 words/sec
 
 Using the most recent Python version (i.e. with `pyenv`) can make the
 package run faster.
@@ -484,7 +484,7 @@ To cite this software:
 [![Reference DOI: 10.5281/zenodo.4673264](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.4673264-brightgreen)](https://doi.org/10.5281/zenodo.4673264)
 
 Barbaresi A. (*year*). Simplemma: a simple multilingual lemmatizer for
-Python \[Computer software\] (Version *version number*). Berlin,
+Python [Computer software] (Version *version number*). Berlin,
 Germany: Berlin-Brandenburg Academy of Sciences. Available from
 <https://github.com/adbar/simplemma> DOI: 10.5281/zenodo.4673264
 

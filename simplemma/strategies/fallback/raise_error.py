@@ -12,6 +12,8 @@ class RaiseErrorFallbackStrategy(LemmatizationFallbackStrategy):
     a fallback strategy that raises a ValueError when the lemma of a token cannot be determined.
     """
 
+    __slots__ = ()
+
     def get_lemma(self, token: str, lang: str) -> str:
         """
         Raise a ValueError indicating that the token was not found.

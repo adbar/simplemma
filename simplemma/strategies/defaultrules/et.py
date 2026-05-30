@@ -1,8 +1,6 @@
 import re
-from typing import Optional
 
 from .generic import apply_rules
-
 
 ## Just a demo, the rules are really basic and coverage is not good
 
@@ -34,7 +32,7 @@ DEFAULT_RULES = {
 }
 
 
-def apply_et(token: str) -> Optional[str]:
+def apply_et(token: str) -> str | None:
     "Apply pre-defined rules for Estonian."
     if len(token) < 8 or token[0].isupper():
         return None

@@ -3,7 +3,7 @@ This module defines the `PrefixDecompositionStrategy` class, which is a concrete
 It provides lemmatization by performing subword decomposition using pre-defined prefixes.
 """
 
-from typing import Dict, Optional, Pattern
+import re
 
 from .defaultprefixes import DEFAULT_KNOWN_PREFIXES
 from .dictionary_lookup import DictionaryLookupStrategy
@@ -20,14 +20,14 @@ class PrefixDecompositionStrategy(LemmatizationStrategy):
 
     def __init__(
         self,
-        known_prefixes: Dict[str, Pattern[str]] = DEFAULT_KNOWN_PREFIXES,
+        known_prefixes: dict[str, re.Pattern[str]] = DEFAULT_KNOWN_PREFIXES,
         dictionary_lookup: DictionaryLookupStrategy = DictionaryLookupStrategy(),
     ):
         """
         Initialize the Prefix Decomposition Strategy.
 
         Args:
-            known_prefixes (Dict[str, Pattern[str]]): A dictionary of known prefixes for various languages.
+            known_prefixes (dict[str, re.Pattern[str]]): A dictionary of known prefixes for various languages.
                 Defaults to `DEFAULT_KNOWN_PREFIXES`.
             dictionary_lookup (DictionaryLookupStrategy): The dictionary lookup strategy used to find dictionary forms.
                 Defaults to `DictionaryLookupStrategy()`.
@@ -36,7 +36,7 @@ class PrefixDecompositionStrategy(LemmatizationStrategy):
         self._known_prefixes = known_prefixes
         self._dictionary_lookup = dictionary_lookup
 
-    def get_lemma(self, token: str, lang: str) -> Optional[str]:
+    def get_lemma(self, token: str, lang: str) -> str | None:
         """
         Get Lemma using Prefix Decomposition Strategy
 
@@ -51,7 +51,7 @@ class PrefixDecompositionStrategy(LemmatizationStrategy):
             lang (str): The language code for the token's language.
 
         Returns:
-            Optional[str]: The lemma for the token, or None if no lemma is found.
+            str | None: The lemma for the token, or None if no lemma is found.
 
         """
         if lang not in self._known_prefixes:

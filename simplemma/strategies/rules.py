@@ -3,7 +3,7 @@ This module defines the `RulesStrategy` class, which is a concrete implementatio
 It provides lemmatization by applying pre-defined rules for each language.
 """
 
-from typing import Callable, Dict, Optional
+from collections.abc import Callable
 
 from .defaultrules import DEFAULT_RULES
 from .lemmatization_strategy import LemmatizationStrategy
@@ -17,20 +17,18 @@ class RulesStrategy(LemmatizationStrategy):
 
     __slots__ = ["_rules"]
 
-    def __init__(
-        self, rules: Dict[str, Callable[[str], Optional[str]]] = DEFAULT_RULES
-    ):
+    def __init__(self, rules: dict[str, Callable[[str], str | None]] = DEFAULT_RULES):
         """
         Initialize the Rules Strategy.
 
         Args:
-            rules (Dict[str, Callable[[str], Optional[str]]]): A dictionary of pre-defined rules for various languages.
+            rules (dict[str, Callable[[str], str | None]]): A dictionary of pre-defined rules for various languages.
                 Defaults to `DEFAULT_RULES`.
 
         """
         self._rules = rules
 
-    def get_lemma(self, token: str, lang: str) -> Optional[str]:
+    def get_lemma(self, token: str, lang: str) -> str | None:
         """
         Get Lemma using Rules Strategy
 
@@ -45,7 +43,7 @@ class RulesStrategy(LemmatizationStrategy):
             lang (str): The language code for the token's language.
 
         Returns:
-            Optional[str]: The lemma for the token, or None if no lemma is found.
+            str | None: The lemma for the token, or None if no lemma is found.
 
         """
         if lang not in self._rules:

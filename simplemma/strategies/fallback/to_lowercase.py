@@ -2,8 +2,6 @@
 This module defines the `ToLowercaseFallbackStrategy` class, which is a concrete implementation of the `LemmatizationFallbackStrategy` protocol. It represents a fallback strategy that converts tokens to lowercase for specific languages.
 """
 
-from typing import Set
-
 from .lemmatization_fallback_strategy import LemmatizationFallbackStrategy
 
 BETTER_LOWER = {"bg", "es", "hy", "lt", "lv", "pt", "sk", "uk"}
@@ -17,7 +15,7 @@ class ToLowercaseFallbackStrategy(LemmatizationFallbackStrategy):
 
     __slots__ = ["_langs_to_lower"]
 
-    def __init__(self, langs_to_lower: Set[str] = BETTER_LOWER):
+    def __init__(self, langs_to_lower: set[str] = BETTER_LOWER):
         """
         Initialize the ToLowercaseFallbackStrategy with the specified set of languages to convert to lowercase.
 

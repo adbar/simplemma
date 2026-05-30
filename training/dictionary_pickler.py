@@ -10,7 +10,6 @@ import pickle
 import re
 from operator import itemgetter
 from pathlib import Path
-from typing import ByteString, Dict, List, Optional
 
 import simplemma
 from simplemma.strategies.defaultrules import DEFAULT_RULES
@@ -50,15 +49,13 @@ def _determine_path(listpath: str, langcode: str) -> str:
     return str(Path(__file__).parent / filename)
 
 
-def _read_dict(
-    filepath: str, langcode: str, silent: bool
-) -> Dict[ByteString, ByteString]:
-    mydict: Dict[str, str] = {}
-    myadditions: List[str] = []
+def _read_dict(filepath: str, langcode: str, silent: bool) -> dict[bytes, bytes]:
+    mydict: dict[str, str] = {}
+    myadditions: list[str] = []
     i: int = 0
     leftlimit = 1 if langcode in SAFE_LIMIT else 2
     # load data from list
-    with open(filepath, "r", encoding="utf-8") as filehandle:
+    with open(filepath, encoding="utf-8") as filehandle:
         for line in filehandle:
             # skip potentially invalid lines, e.g. with punctuation
             if " " in line or INPUT_PUNCT.search(line):
@@ -128,7 +125,7 @@ def _read_dict(
 
 def _load_dict(
     langcode: str, listpath: str = "lists", silent: bool = True
-) -> Dict[ByteString, ByteString]:
+) -> dict[bytes, bytes]:
     filepath = _determine_path(listpath, langcode)
     return _read_dict(filepath, langcode, silent)
 
@@ -146,7 +143,7 @@ def _determine_pickle_path(langcode: str = "en", in_place: bool = False) -> str:
 def _pickle_dict(
     langcode: str = "en",
     listpath: str = "lists",
-    filepath: Optional[str] = None,
+    filepath: str | None = None,
     in_place: bool = False,
 ) -> None:
     mydict = _load_dict(langcode, listpath)

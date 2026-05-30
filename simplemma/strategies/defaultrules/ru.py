@@ -1,5 +1,4 @@
 import re
-from typing import Optional
 
 from .generic import apply_rules
 
@@ -9,7 +8,7 @@ DEFAULT_RULES = {
 }
 
 
-def apply_ru(token: str) -> Optional[str]:
+def apply_ru(token: str) -> str | None:
     "Apply pre-defined rules for Russian."
     if token.endswith("ё"):
         return token.replace("ё", "е")

@@ -3,8 +3,6 @@ This module defines the `DefaultStrategy` class, which is a concrete implementat
 It provides lemmatization using a combination of different strategies such as dictionary lookup, hyphen removal, rule-based lemmatization, prefix decomposition, and affix decomposition.
 """
 
-from typing import Optional
-
 from .affix_decomposition import AffixDecompositionStrategy
 from .dictionaries.dictionary_factory import DefaultDictionaryFactory, DictionaryFactory
 from .dictionary_lookup import DictionaryLookupStrategy
@@ -44,7 +42,6 @@ class DefaultStrategy(LemmatizationStrategy):
                 Defaults to [`DefaultDictionaryFactory()`][simplemma.strategies.dictionaries.dictionary_factory.DefaultDictionaryFactory]..
 
         """
-        self._greedy = greedy
         self._dictionary_lookup = DictionaryLookupStrategy(dictionary_factory)
         self._hyphen_search = HyphenRemovalStrategy(self._dictionary_lookup)
         self._rules_search = RulesStrategy()
@@ -58,7 +55,7 @@ class DefaultStrategy(LemmatizationStrategy):
 
         self._greedy_dictionary_lookup = greedy_dictionary_lookup if greedy else None
 
-    def get_lemma(self, token: str, lang: str) -> Optional[str]:
+    def get_lemma(self, token: str, lang: str) -> str | None:
         """
         Get the lemma for a given token and language using the combination of different lemmatization techniques.
 
@@ -67,7 +64,7 @@ class DefaultStrategy(LemmatizationStrategy):
             lang (str): The language of the token.
 
         Returns:
-            Optional[str]: The lemma of the token, or None if no lemma is found.
+            str | None: The lemma of the token, or None if no lemma is found.
 
         """
         # filters

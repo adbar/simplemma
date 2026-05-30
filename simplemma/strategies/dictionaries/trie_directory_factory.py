@@ -2,7 +2,8 @@ import logging
 from collections.abc import MutableMapping
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Iterator, List, Mapping, Optional
+from typing import Any
+from collections.abc import Iterator, Mapping
 
 try:
     from marisa_trie import BytesTrie, HUGE_CACHE  # type: ignore[import-not-found]
@@ -24,8 +25,10 @@ from simplemma.strategies.dictionaries.dictionary_factory import (
 logger = logging.getLogger(__name__)
 
 
-class TrieWrapDict(MutableMapping):  # Python > 3.8: [str, Any]
+class TrieWrapDict(MutableMapping[str, Any]):
     """Wrapper around BytesTrie to make them behave like dicts."""
+
+    __slots__ = ("_trie",)
 
     def __init__(self, trie: BytesTrie) -> None:
         self._trie = trie
@@ -55,13 +58,13 @@ class TrieDictionaryFactory(DictionaryFactory):
     lookup performance isn't as good as with dicts.
     """
 
-    __slots__: List[str] = ["cache_max_size", "disk_cache_dir", "use_disk_cache"]
+    __slots__: list[str] = ["_cache_dir", "_use_disk_cache", "_get_dictionary"]
 
     def __init__(
         self,
         cache_max_size: int = 8,
         use_disk_cache: bool = True,
-        disk_cache_dir: Optional[str] = None,
+        disk_cache_dir: str | None = None,
     ) -> None:
         """Initialize the TrieDictionaryFactory.
 
@@ -70,7 +73,7 @@ class TrieDictionaryFactory(DictionaryFactory):
                 keep in memory. Defaults to `8`.
             use_disk_cache (bool): Whether to cache the tries on disk to
                 speed up loading time. Defaults to `True`.
-            disk_cache_dir (Optional[str]): Path where the generated
+            disk_cache_dir (str | None): Path where the generated
                 tries should be stored in. Defaults to a Simplemma-
                 specific subdirectory of the user's cache directory.
         """
