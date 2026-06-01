@@ -12,7 +12,7 @@ try:
 except ImportError:
     HAS_MARISA = False
 
-from simplemma.strategies.dictionaries.trie_directory_factory import TrieWrapDict
+from simplemma.strategies.dictionaries.trie_dictionary_factory import TrieWrapDict
 from simplemma.strategies import TrieDictionaryFactory
 
 if not HAS_MARISA:

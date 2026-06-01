@@ -65,6 +65,6 @@ nav:
       - Dictionaries:
         - Dictionary Factory: reference/strategies/dictionaries/dictionary_factory.md
         - Trie Dictionary Factory: reference/strategies/dictionaries/trie_dictionary_factory.md
-  - Languages Supported: supported-languages.md
+  - Supported languages: supported-languages.md
   - Contributing: contributing.md
-  - Credit & Licenses: credit-and-licenses.md
+  - Credits and licenses: credit-and-licenses.md

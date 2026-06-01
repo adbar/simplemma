@@ -3,7 +3,6 @@
 [![Python package](https://img.shields.io/pypi/v/simplemma.svg)](https://pypi.python.org/pypi/simplemma)
 [![Python versions](https://img.shields.io/pypi/pyversions/simplemma.svg)](https://pypi.python.org/pypi/simplemma)
 [![Code Coverage](https://img.shields.io/codecov/c/github/adbar/simplemma.svg)](https://codecov.io/gh/adbar/simplemma)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Reference DOI: 10.5281/zenodo.4673264](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.4673264-brightgreen)](https://doi.org/10.5281/zenodo.4673264)
 
 
@@ -43,7 +42,6 @@ Currently, 50 languages are partly or fully supported (see the list of supported
 The current library is written in pure Python with no dependencies:
 `pip install simplemma`
 
-- `pip3` where applicable
 - `pip install -U simplemma` for updates
 - `pip install git+https://github.com/adbar/simplemma` for the cutting-edge version
 
@@ -314,7 +312,7 @@ will take a few seconds and use as much memory as loading the Python
 dicts for the language requires. For further invocations the trie
 dictionaries get cached on disk.
 
-If the computer supposed to run Simplemma doesn't have enough memory to
+If the machine that will run Simplemma doesn't have enough memory to
 generate the trie dictionaries, they can also be generated on another
 computer with the same CPU architecture and copied over to the cache
 directory.
@@ -340,8 +338,8 @@ dictionary, while *Lemmata* counts the distinct base forms they map to
 morphology rather than a data error.
 
 
-| Code | Language | Forms (10³) | Lemmata (10³) | Acc. | Comments |
-| ---- | -------- | ----------- | ------------- | ---- | -------- |
+| Code | Language | Forms (10³) | Lemm. (10³) | Acc. | Comments |
+| ---- | -------- | ----------- | ------------| ---- | -------- |
 | `ast` | Asturian | 154 | 36 | 
 | `bg` | Bulgarian | 215 | 18 | 
 | `ca` | Catalan | 640 | 63 | 
@@ -497,8 +495,7 @@ To cite this software:
 [![Reference DOI: 10.5281/zenodo.4673264](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.4673264-brightgreen)](https://doi.org/10.5281/zenodo.4673264)
 
 Barbaresi A. (*year*). Simplemma: a simple multilingual lemmatizer for
-Python [Computer software] (Version *version number*). Berlin,
-Germany: Berlin-Brandenburg Academy of Sciences. Available from
+Python [Computer software] (Version *version number*). Available from
 <https://github.com/adbar/simplemma> DOI: 10.5281/zenodo.4673264
 
 This work draws from lexical analysis algorithms used in:

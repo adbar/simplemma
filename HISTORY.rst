@@ -9,6 +9,8 @@ History
 - Security: fix arbitrary file write during tarfile extraction in training (#165)
 - Maintenance: fix file opening in ``training/download-eval-data.py`` (#164)
 - Update setup and modernize code
+- Breaking: rename the ``trie_directory_factory`` module to
+  ``trie_dictionary_factory`` (the ``TrieDictionaryFactory`` class is unchanged)
 
 
 1.1.2
