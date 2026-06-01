@@ -5,12 +5,12 @@ History
 1.2.0
 -----
 
-- Add support for Esperanto (#167)
+- Add support for Esperanto @axel584 (#167)
+- Update setup and docs, modernize code (#168, #169)
 - Security: fix arbitrary file write during tarfile extraction in training (#165)
 - Maintenance: fix file opening in ``training/download-eval-data.py`` (#164)
-- Update setup and modernize code
 - Breaking: rename the ``trie_directory_factory`` module to
-  ``trie_dictionary_factory`` (the ``TrieDictionaryFactory`` class is unchanged)
+  ``trie_dictionary_factory``
 
 
 1.1.2
