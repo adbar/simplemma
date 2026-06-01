@@ -3,10 +3,10 @@
 [![Python package](https://img.shields.io/pypi/v/simplemma.svg)](https://pypi.python.org/pypi/simplemma)
 [![Python versions](https://img.shields.io/pypi/pyversions/simplemma.svg)](https://pypi.python.org/pypi/simplemma)
 [![Code Coverage](https://img.shields.io/codecov/c/github/adbar/simplemma.svg)](https://codecov.io/gh/adbar/simplemma)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Reference DOI: 10.5281/zenodo.4673264](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.4673264-brightgreen)](https://doi.org/10.5281/zenodo.4673264)
 
 
+<!-- include:intro:start -->
 ## Purpose
 
 [Lemmatization](https://en.wikipedia.org/wiki/Lemmatisation) is the
@@ -34,7 +34,7 @@ speed and simplicity matter, in low-resource contexts, for educational
 purposes, or as a baseline system for lemmatization and morphological
 analysis.
 
-Currently, 50 languages are partly or fully supported (see table below).
+Currently, 50 languages are partly or fully supported (see the list of supported languages).
 
 
 ## Installation
@@ -42,7 +42,6 @@ Currently, 50 languages are partly or fully supported (see table below).
 The current library is written in pure Python with no dependencies:
 `pip install simplemma`
 
-- `pip3` where applicable
 - `pip install -U simplemma` for updates
 - `pip install git+https://github.com/adbar/simplemma` for the cutting-edge version
 
@@ -132,8 +131,10 @@ A simple tokenization function is provided for convenience:
 >>> from simplemma import simple_tokenizer
 >>> simple_tokenizer('Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.')
 ['Lorem', 'ipsum', 'dolor', 'sit', 'amet', ',', 'consectetur', 'adipiscing', 'elit', ',', 'sed', 'do', 'eiusmod', 'tempor', 'incididunt', 'ut', 'labore', 'et', 'dolore', 'magna', 'aliqua', '.']
-# use iterator instead
->>> simple_tokenizer('Lorem ipsum dolor sit amet', iterate=True)
+# for an iterator instead of a list, use the RegexTokenizer directly
+>>> from simplemma import RegexTokenizer
+>>> RegexTokenizer().split_text('Lorem ipsum dolor sit amet')
+<generator object ...>
 ```
 
 The functions `text_lemmatizer()` and `lemma_iterator()` chain
@@ -187,14 +188,17 @@ page](https://github.com/adbar/simplemma/issues) are welcome.
 
 ### Language detection
 
-Language detection works by providing a text and tuple `lang` consisting
-of a series of languages of interest. Scores between 0 and 1 are
-returned.
+Language detection works by providing a text and a tuple `lang` consisting
+of a series of languages of interest. Each score is a proportion between 0
+and 1. The proportions are computed independently per language, so a token
+recognized in several languages counts towards each of them and the scores
+need not sum to 1.
 
 The `langdetect()` function returns a list of language codes along
-with their corresponding scores, appending "unk" for unknown or
-out-of-vocabulary words. The latter can also be calculated by using
-the function `in_target_language()` which returns a ratio.
+with their corresponding scores, appending "unk" for the proportion of
+unknown or out-of-vocabulary tokens. The proportion of tokens that belong
+to the target language(s) can also be obtained directly with the
+`in_target_language()` function, which returns a single ratio.
 
 ``` python
 # import necessary functions
@@ -308,13 +312,15 @@ will take a few seconds and use as much memory as loading the Python
 dicts for the language requires. For further invocations the trie
 dictionaries get cached on disk.
 
-If the computer supposed to run Simplemma doesn't have enough memory to
+If the machine that will run Simplemma doesn't have enough memory to
 generate the trie dictionaries, they can also be generated on another
 computer with the same CPU architecture and copied over to the cache
 directory.
 
 
+<!-- include:intro:end -->
 ## Supported languages
+<!-- include:languages:start -->
 
 The following languages are available, identified by their [BCP 47
 language tag](https://en.wikipedia.org/wiki/IETF_language_tag), which
@@ -332,8 +338,8 @@ dictionary, while *Lemmata* counts the distinct base forms they map to
 morphology rather than a data error.
 
 
-| Code | Language | Forms (10³) | Lemmata (10³) | Acc. | Comments |
-| ---- | -------- | ----------- | ------------- | ---- | -------- |
+| Code | Language | Forms (10³) | Lemm. (10³) | Acc. | Comments |
+| ---- | -------- | ----------- | ------------| ---- | -------- |
 | `ast` | Asturian | 154 | 36 | 
 | `bg` | Bulgarian | 215 | 18 | 
 | `ca` | Catalan | 640 | 63 | 
@@ -409,6 +415,7 @@ words such as pronouns can be further mapped by hand to enhance
 performance.
 
 
+<!-- include:languages:end -->
 ## Speed
 
 The following orders of magnitude are provided for reference only and
@@ -430,6 +437,7 @@ package run faster.
 
 
 ## Credits and licenses
+<!-- include:credits:start -->
 
 The software is licensed under the MIT license. For information on the
 licenses of the linguistic information databases, see the `licenses` folder.
@@ -451,7 +459,9 @@ from the following sources, listed in order of relative importance:
     Metheniti (CC BY 4.0 License)
 
 
+<!-- include:credits:end -->
 ## Contributions
+<!-- include:contributions:start -->
 
 This package has been first created and published by Adrien Barbaresi.
 It has then benefited from extensive refactoring by Juanjo Diaz (especially the new classes).
@@ -468,6 +478,7 @@ hinting with [mypy](https://github.com/python/mypy), included tests with
 [pytest](https://pytest.org).
 
 
+<!-- include:contributions:end -->
 ## Other solutions
 
 See lists: [German-NLP](https://github.com/adbar/German-NLP) and [other
@@ -484,8 +495,7 @@ To cite this software:
 [![Reference DOI: 10.5281/zenodo.4673264](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.4673264-brightgreen)](https://doi.org/10.5281/zenodo.4673264)
 
 Barbaresi A. (*year*). Simplemma: a simple multilingual lemmatizer for
-Python [Computer software] (Version *version number*). Berlin,
-Germany: Berlin-Brandenburg Academy of Sciences. Available from
+Python [Computer software] (Version *version number*). Available from
 <https://github.com/adbar/simplemma> DOI: 10.5281/zenodo.4673264
 
 This work draws from lexical analysis algorithms used in:

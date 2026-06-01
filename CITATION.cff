@@ -1,7 +1,11 @@
 authors:
   - family-names: Barbaresi
     given-names: Adrien
+  - family-names: Diaz
+    given-names: Juanjo
 cff-version: 1.2.0
+version: 1.2.0
+repository-code: "https://github.com/adbar/simplemma"
 identifiers:
   - description: "This is the collection of archived snapshots of all versions of Simplemma"
     type: doi

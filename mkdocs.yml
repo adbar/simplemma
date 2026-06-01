@@ -1,13 +1,15 @@
 site_name: Simplemma
+site_description: A lightweight toolkit for multilingual lemmatization and language detection.
+site_url: https://adbar.github.io/simplemma/
 
 theme:
   name: "material"
-  palette: 
+  palette:
 
     # Palette toggle for light mode
     - scheme: default
       toggle:
-        icon: material/weather-night 
+        icon: material/weather-night
         name: Switch to dark mode
 
     # Palette toggle for dark mode
@@ -24,10 +26,13 @@ extra_css:
   - css/mkdocstrings.css
 
 repo_url: https://github.com/adbar/simplemma
+repo_name: adbar/simplemma
+edit_uri: edit/main/docs/
 
 plugins:
   - search:
       lang: en
+  - include-markdown
   - mkdocstrings:
       handlers:
         python:
@@ -59,6 +64,7 @@ nav:
         - Raise Error Strategy: reference/strategies/fallback/raise_error.md
       - Dictionaries:
         - Dictionary Factory: reference/strategies/dictionaries/dictionary_factory.md
-  - Languages Supported: supported-languages.md
+        - Trie Dictionary Factory: reference/strategies/dictionaries/trie_dictionary_factory.md
+  - Supported languages: supported-languages.md
   - Contributing: contributing.md
-  - Credit & Licenses: credit-and-licenses.md
+  - Credits and licenses: credit-and-licenses.md

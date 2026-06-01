@@ -10,7 +10,8 @@ license = { text = "MIT License" }
 dynamic = ["version"]
 requires-python = ">=3.10"
 authors = [
-  {name = "Adrien Barbaresi", email = "barbaresi@bbaw.de"}
+  {name = "Adrien Barbaresi"},
+  {name = "Juanjo Diaz"},
 ]
 keywords=[
     "language detection",
@@ -122,6 +123,7 @@ dev = [
 docs = [
     "mkdocs",
     "mkdocs-material",
+    "mkdocs-include-markdown-plugin",
     "mkdocstrings",
     "mkdocstrings-python",
 ]
@@ -129,7 +131,6 @@ docs = [
 [tool.mypy]
 python_version = "3.10"
 files = ["simplemma", "training", "tests"]
-# the shipped library is held to a strict bar
 strict = true
 
 [[tool.mypy.overrides]]
