@@ -6,7 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
+        <meta name="description" content="A lightweight toolkit for multilingual lemmatization and language detection.">
       
+      
+      
+        <link rel="canonical" href="https://adbar.github.io/simplemma/reference/language_detector/">
       
       
         <link rel="prev" href="../lemmatizer/">
@@ -15,8 +19,11 @@
         <link rel="next" href="../tokenizer/">
       
       
+        
+      
+      
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.34">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -24,10 +31,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.35f28582.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -54,7 +61,6 @@
     
       
 
-    
     
     
   </head>
@@ -150,11 +156,13 @@
     
     
     
-      <label class="md-header__button md-icon" for="__search">
-        
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
-      </label>
-      <div class="md-search" data-md-component="search" role="dialog">
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
@@ -186,16 +194,17 @@
     </div>
   </div>
 </div>
+      
     
     
       <div class="md-header__source">
         <a href="https://github.com/adbar/simplemma" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
   </div>
   <div class="md-source__repository">
-    GitHub
+    adbar/simplemma
   </div>
 </a>
       </div>
@@ -238,10 +247,10 @@
       <a href="https://github.com/adbar/simplemma" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
   </div>
   <div class="md-source__repository">
-    GitHub
+    adbar/simplemma
   </div>
 </a>
     </div>
@@ -258,9 +267,16 @@
       <a href="../.." class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Introduction
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -280,6 +296,7 @@
     
     
     
+    
     <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
@@ -290,9 +307,16 @@
           <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
             
   
+  
   <span class="md-ellipsis">
+    
+  
     Reference
+  
+
+    
   </span>
+  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -301,7 +325,11 @@
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
-            Reference
+            
+  
+    Reference
+  
+
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -315,9 +343,16 @@
       <a href="../lemmatizer/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Lemmatizer
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -343,9 +378,16 @@
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
   
+  
   <span class="md-ellipsis">
+    
+  
     Language Detector
+  
+
+    
   </span>
+  
   
 
           <span class="md-nav__icon md-icon"></span>
@@ -354,9 +396,16 @@
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Language Detector
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -377,7 +426,9 @@
         <li class="md-nav__item">
   <a href="#simplemma.language_detector" class="md-nav__link">
     <span class="md-ellipsis">
-      language_detector
+      
+        language_detector
+      
     </span>
   </a>
   
@@ -386,7 +437,9 @@
         <li class="md-nav__item">
   <a href="#simplemma.language_detector-classes" class="md-nav__link">
     <span class="md-ellipsis">
-      Classes
+      
+        Classes
+      
     </span>
   </a>
   
@@ -396,7 +449,9 @@
           <li class="md-nav__item">
   <a href="#simplemma.language_detector.LanguageDetector" class="md-nav__link">
     <span class="md-ellipsis">
-      LanguageDetector
+      
+        LanguageDetector
+      
     </span>
   </a>
   
@@ -406,7 +461,9 @@
           <li class="md-nav__item">
   <a href="#simplemma.language_detector.LanguageDetector-functions" class="md-nav__link">
     <span class="md-ellipsis">
-      Functions
+      
+        Functions
+      
     </span>
   </a>
   
@@ -416,7 +473,9 @@
           <li class="md-nav__item">
   <a href="#simplemma.language_detector.LanguageDetector.__init__" class="md-nav__link">
     <span class="md-ellipsis">
-      __init__
+      
+        __init__
+      
     </span>
   </a>
   
@@ -425,7 +484,9 @@
           <li class="md-nav__item">
   <a href="#simplemma.language_detector.LanguageDetector.main_language" class="md-nav__link">
     <span class="md-ellipsis">
-      main_language
+      
+        main_language
+      
     </span>
   </a>
   
@@ -434,7 +495,9 @@
           <li class="md-nav__item">
   <a href="#simplemma.language_detector.LanguageDetector.proportion_in_each_language" class="md-nav__link">
     <span class="md-ellipsis">
-      proportion_in_each_language
+      
+        proportion_in_each_language
+      
     </span>
   </a>
   
@@ -443,7 +506,9 @@
           <li class="md-nav__item">
   <a href="#simplemma.language_detector.LanguageDetector.proportion_in_target_languages" class="md-nav__link">
     <span class="md-ellipsis">
-      proportion_in_target_languages
+      
+        proportion_in_target_languages
+      
     </span>
   </a>
   
@@ -467,7 +532,9 @@
         <li class="md-nav__item">
   <a href="#simplemma.language_detector-functions" class="md-nav__link">
     <span class="md-ellipsis">
-      Functions
+      
+        Functions
+      
     </span>
   </a>
   
@@ -477,7 +544,9 @@
           <li class="md-nav__item">
   <a href="#simplemma.language_detector.in_target_language" class="md-nav__link">
     <span class="md-ellipsis">
-      in_target_language
+      
+        in_target_language
+      
     </span>
   </a>
   
@@ -486,7 +555,9 @@
           <li class="md-nav__item">
   <a href="#simplemma.language_detector.langdetect" class="md-nav__link">
     <span class="md-ellipsis">
-      langdetect
+      
+        langdetect
+      
     </span>
   </a>
   
@@ -516,9 +587,16 @@
       <a href="../tokenizer/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Tokenizer
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -537,9 +615,16 @@
       <a href="../token_sampler/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     TokenSampler
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -558,9 +643,16 @@
       <a href="../utils/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Utils
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -579,6 +671,7 @@
     
     
     
+    
     <li class="md-nav__item md-nav__item--nested">
       
         
@@ -589,9 +682,16 @@
           <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
             
   
+  
   <span class="md-ellipsis">
+    
+  
     Strategies
+  
+
+    
   </span>
+  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -600,7 +700,11 @@
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2_6">
             <span class="md-nav__icon md-icon"></span>
-            Strategies
+            
+  
+    Strategies
+  
+
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -614,9 +718,16 @@
       <a href="../strategies/lemmatization_strategy/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Lemmatization Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -635,9 +746,16 @@
       <a href="../strategies/dictionary_lookup/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Dictionary Lookup Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -656,9 +774,16 @@
       <a href="../strategies/greedy_dictionary_lookup/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Greedy Dictionary Lookup Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -677,9 +802,16 @@
       <a href="../strategies/hyphen_removal/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Hyphen removal Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -698,9 +830,16 @@
       <a href="../strategies/rules/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Rules Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -719,9 +858,16 @@
       <a href="../strategies/prefix_decomposition/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Prefix Decomposition Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -740,9 +886,16 @@
       <a href="../strategies/affix_decomposition/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Affix Decomposition Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -761,9 +914,16 @@
       <a href="../strategies/default/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Default Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -782,6 +942,7 @@
     
     
     
+    
     <li class="md-nav__item md-nav__item--nested">
       
         
@@ -792,9 +953,16 @@
           <label class="md-nav__link" for="__nav_2_6_9" id="__nav_2_6_9_label" tabindex="0">
             
   
+  
   <span class="md-ellipsis">
+    
+  
     Fallback Strategies
+  
+
+    
   </span>
+  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -803,7 +971,11 @@
         <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_6_9_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2_6_9">
             <span class="md-nav__icon md-icon"></span>
-            Fallback Strategies
+            
+  
+    Fallback Strategies
+  
+
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -817,9 +989,16 @@
       <a href="../strategies/fallback/lemmatization_fallback_strategy/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Lemmatization Fallback Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -838,9 +1017,16 @@
       <a href="../strategies/fallback/to_lowercase/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     To Lowercase Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -859,9 +1045,16 @@
       <a href="../strategies/fallback/raise_error/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Raise Error Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -888,6 +1081,7 @@
     
     
     
+    
     <li class="md-nav__item md-nav__item--nested">
       
         
@@ -898,9 +1092,16 @@
           <label class="md-nav__link" for="__nav_2_6_10" id="__nav_2_6_10_label" tabindex="0">
             
   
+  
   <span class="md-ellipsis">
+    
+  
     Dictionaries
+  
+
+    
   </span>
+  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -909,7 +1110,11 @@
         <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_6_10_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2_6_10">
             <span class="md-nav__icon md-icon"></span>
-            Dictionaries
+            
+  
+    Dictionaries
+  
+
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -923,9 +1128,44 @@
       <a href="../strategies/dictionaries/dictionary_factory/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Dictionary Factory
+  
+
+    
   </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../strategies/dictionaries/trie_dictionary_factory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trie Dictionary Factory
+  
+
+    
+  </span>
+  
   
 
       </a>
@@ -967,9 +1207,16 @@
       <a href="../../supported-languages/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
-    Languages Supported
+    
+  
+    Supported languages
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -987,9 +1234,16 @@
       <a href="../../contributing/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Contributing
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -1007,9 +1261,16 @@
       <a href="../../credit-and-licenses/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
-    Credit & Licenses
+    
+  
+    Credits and licenses
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -1044,7 +1305,9 @@
         <li class="md-nav__item">
   <a href="#simplemma.language_detector" class="md-nav__link">
     <span class="md-ellipsis">
-      language_detector
+      
+        language_detector
+      
     </span>
   </a>
   
@@ -1053,7 +1316,9 @@
         <li class="md-nav__item">
   <a href="#simplemma.language_detector-classes" class="md-nav__link">
     <span class="md-ellipsis">
-      Classes
+      
+        Classes
+      
     </span>
   </a>
   
@@ -1063,7 +1328,9 @@
           <li class="md-nav__item">
   <a href="#simplemma.language_detector.LanguageDetector" class="md-nav__link">
     <span class="md-ellipsis">
-      LanguageDetector
+      
+        LanguageDetector
+      
     </span>
   </a>
   
@@ -1073,7 +1340,9 @@
           <li class="md-nav__item">
   <a href="#simplemma.language_detector.LanguageDetector-functions" class="md-nav__link">
     <span class="md-ellipsis">
-      Functions
+      
+        Functions
+      
     </span>
   </a>
   
@@ -1083,7 +1352,9 @@
           <li class="md-nav__item">
   <a href="#simplemma.language_detector.LanguageDetector.__init__" class="md-nav__link">
     <span class="md-ellipsis">
-      __init__
+      
+        __init__
+      
     </span>
   </a>
   
@@ -1092,7 +1363,9 @@
           <li class="md-nav__item">
   <a href="#simplemma.language_detector.LanguageDetector.main_language" class="md-nav__link">
     <span class="md-ellipsis">
-      main_language
+      
+        main_language
+      
     </span>
   </a>
   
@@ -1101,7 +1374,9 @@
           <li class="md-nav__item">
   <a href="#simplemma.language_detector.LanguageDetector.proportion_in_each_language" class="md-nav__link">
     <span class="md-ellipsis">
-      proportion_in_each_language
+      
+        proportion_in_each_language
+      
     </span>
   </a>
   
@@ -1110,7 +1385,9 @@
           <li class="md-nav__item">
   <a href="#simplemma.language_detector.LanguageDetector.proportion_in_target_languages" class="md-nav__link">
     <span class="md-ellipsis">
-      proportion_in_target_languages
+      
+        proportion_in_target_languages
+      
     </span>
   </a>
   
@@ -1134,7 +1411,9 @@
         <li class="md-nav__item">
   <a href="#simplemma.language_detector-functions" class="md-nav__link">
     <span class="md-ellipsis">
-      Functions
+      
+        Functions
+      
     </span>
   </a>
   
@@ -1144,7 +1423,9 @@
           <li class="md-nav__item">
   <a href="#simplemma.language_detector.in_target_language" class="md-nav__link">
     <span class="md-ellipsis">
-      in_target_language
+      
+        in_target_language
+      
     </span>
   </a>
   
@@ -1153,7 +1434,9 @@
           <li class="md-nav__item">
   <a href="#simplemma.language_detector.langdetect" class="md-nav__link">
     <span class="md-ellipsis">
-      langdetect
+      
+        langdetect
+      
     </span>
   </a>
   
@@ -1174,9 +1457,11 @@
           
           
             <div class="md-content" data-md-component="content">
+              
               <article class="md-content__inner md-typeset">
                 
                   
+
 
   
   
@@ -1189,19 +1474,27 @@
 
 
 <a id="simplemma.language_detector"></a>
-  <div class="doc doc-contents first">
-  
-      <p>Lemmatizer module.
+    <div class="doc doc-contents first">
+
+        <p>Lemmatizer module.
 Provides classes for text language detection using lemmatization and token sampling.</p>
 <ul>
 <li><a class="autorefs autorefs-internal" href="#simplemma.language_detector.LanguageDetector">LanguageDetector</a>: Class for performing language detection using lemmatization and token sampling.</li>
-<li><a class="autorefs autorefs-internal" href="#simplemma.language_detector.in_target_language">in_target_language()</a>: A legacy function that wraps the LanguageDetector's <a class="autorefs autorefs-internal" href="#simplemma.language_detector.LanguageDetector.proportion_in_each_language">is_known()</a> method.</li>
-<li><a class="autorefs autorefs-internal" href="#simplemma.language_detector.langdetect">langdetect()</a>: A legacy function that wraps the LanguageDetector's <a class="autorefs autorefs-internal" href="#simplemma.language_detector.LanguageDetector.proportion_in_target_languages">is_known()</a> method.</li>
+<li><a class="autorefs autorefs-internal" title="in_target_language(text, lang, greedy=False, token_sampler=MostCommonTokenSampler())" href="#simplemma.language_detector.in_target_language">in_target_language()</a>: A legacy function that wraps the LanguageDetector's <a class="autorefs autorefs-internal" title="proportion_in_each_language(text)" href="#simplemma.language_detector.LanguageDetector.proportion_in_each_language">is_known()</a> method.</li>
+<li><a class="autorefs autorefs-internal" title="langdetect(text, lang, greedy=False, token_samplers=[MostCommonTokenSampler(), RelaxedMostCommonTokenSampler()])" href="#simplemma.language_detector.langdetect">langdetect()</a>: A legacy function that wraps the LanguageDetector's <a class="autorefs autorefs-internal" title="proportion_in_target_languages(text)" href="#simplemma.language_detector.LanguageDetector.proportion_in_target_languages">is_known()</a> method.</li>
 </ul>
 
-  
 
-  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
 
 
 
@@ -1215,20 +1508,29 @@ Provides classes for text language detection using lemmatization and token sampl
 
 
 <h3 id="simplemma.language_detector.LanguageDetector" class="doc doc-heading">
-          <code>LanguageDetector</code>
+            <code>LanguageDetector</code>
 
 
 </h3>
 
 
-  <div class="doc doc-contents ">
+    <div class="doc doc-contents ">
 
-  
-      <p>A class that performs language detection using lemmatization and token sampling.</p>
 
-            <details class="quote">
-              <summary>Source code in <code>simplemma/language_detector.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">105</span>
+
+        <p>A class that performs language detection using lemmatization and token sampling.</p>
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>simplemma/language_detector.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">104</span>
+<span class="normal">105</span>
 <span class="normal">106</span>
 <span class="normal">107</span>
 <span class="normal">108</span>
@@ -1355,8 +1657,7 @@ Provides classes for text language detection using lemmatization and token sampl
 <span class="normal">229</span>
 <span class="normal">230</span>
 <span class="normal">231</span>
-<span class="normal">232</span>
-<span class="normal">233</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">LanguageDetector</span><span class="p">:</span>
+<span class="normal">232</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span> <span class="nc">LanguageDetector</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A class that performs language detection using lemmatization and token sampling.&quot;&quot;&quot;</span>
 
     <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span>
@@ -1368,7 +1669,7 @@ Provides classes for text language detection using lemmatization and token sampl
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">lang</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
+        <span class="n">lang</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
         <span class="n">token_sampler</span><span class="p">:</span> <span class="n">TokenSampler</span> <span class="o">=</span> <span class="n">MostCommonTokenSampler</span><span class="p">(),</span>
         <span class="n">lemmatization_strategy</span><span class="p">:</span> <span class="n">LemmatizationStrategy</span> <span class="o">=</span> <span class="n">DefaultStrategy</span><span class="p">(),</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1376,7 +1677,7 @@ Provides classes for text language detection using lemmatization and token sampl
 <span class="sd">        Initialize the LanguageDetector.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            lang (Union[str, Tuple[str, ...]]): The target language or languages to detect.</span>
+<span class="sd">            lang (str | tuple[str, ...]): The target language or languages to detect.</span>
 <span class="sd">            token_sampler (TokenSampler, optional): The token sampling strategy to use.</span>
 <span class="sd">                Defaults to `MostCommonTokenSampler()`.</span>
 <span class="sd">            lemmatization_strategy (LemmatizationStrategy, optional): The lemmatization</span>
@@ -1394,7 +1695,7 @@ Provides classes for text language detection using lemmatization and token sampl
     <span class="k">def</span> <span class="nf">proportion_in_each_language</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculate the proportion of each language in the given text.</span>
 
@@ -1402,7 +1703,7 @@ Provides classes for text language detection using lemmatization and token sampl
 <span class="sd">            text (str): The input text to analyze.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Dict[str, float]: A dictionary containing the detected languages and</span>
+<span class="sd">            dict[str, float]: A dictionary containing the detected languages and</span>
 <span class="sd">                their respective proportions.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_token_sampler</span><span class="o">.</span><span class="n">sample_text</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
@@ -1423,10 +1724,10 @@ Provides classes for text language detection using lemmatization and token sampl
             <span class="k">if</span> <span class="ow">not</span> <span class="n">token_found</span><span class="p">:</span>
                 <span class="n">unknown_tokens_count</span> <span class="o">+=</span> <span class="mi">1</span>
 
-        <span class="n">results</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">lang_code</span><span class="p">,</span> <span class="n">token_count</span> <span class="o">/</span> <span class="n">total_tokens</span><span class="p">)</span>
+        <span class="n">results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">lang_code</span><span class="p">:</span> <span class="n">token_count</span> <span class="o">/</span> <span class="n">total_tokens</span>
             <span class="k">for</span> <span class="p">(</span><span class="n">lang_code</span><span class="p">,</span> <span class="n">token_count</span><span class="p">)</span> <span class="ow">in</span> <span class="n">known_tokens_count</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-        <span class="p">)</span>
+        <span class="p">}</span>
         <span class="n">results</span><span class="p">[</span><span class="s2">&quot;unk&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">unknown_tokens_count</span> <span class="o">/</span> <span class="n">total_tokens</span>
         <span class="k">return</span> <span class="n">results</span>
 
@@ -1459,7 +1760,7 @@ Provides classes for text language detection using lemmatization and token sampl
     <span class="k">def</span> <span class="nf">main_language</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">additional_token_samplers</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">TokenSampler</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">additional_token_samplers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">TokenSampler</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">RelaxedMostCommonTokenSampler</span><span class="p">()</span>
         <span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -1468,7 +1769,7 @@ Provides classes for text language detection using lemmatization and token sampl
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (str): The input text to analyze.</span>
-<span class="sd">            additional_token_samplers (List[TokenSampler], optional): Additional token</span>
+<span class="sd">            additional_token_samplers (list[TokenSampler], optional): Additional token</span>
 <span class="sd">                sampling strategies to use. Defaults to `[RelaxedMostCommonTokenSampler()]`.</span>
 
 <span class="sd">        Returns:</span>
@@ -1486,11 +1787,12 @@ Provides classes for text language detection using lemmatization and token sampl
         <span class="bp">self</span><span class="o">.</span><span class="n">_restore_token_sampler</span><span class="p">()</span>
         <span class="k">return</span> <span class="s2">&quot;unk&quot;</span>
 </code></pre></div></td></tr></table></div>
-            </details>
+              </details>
 
-  
 
-  <div class="doc doc-children">
+
+<div class="doc doc-children">
+
 
 
 
@@ -1500,84 +1802,89 @@ Provides classes for text language detection using lemmatization and token sampl
 
 <h4 id="simplemma.language_detector.LanguageDetector-functions">Functions</h4>
 
-
 <div class="doc doc-object doc-function">
 
 
-
 <h5 id="simplemma.language_detector.LanguageDetector.__init__" class="doc doc-heading">
-          <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="n">token_sampler</span><span class="o">=</span><span class="n">MostCommonTokenSampler</span><span class="p">(),</span> <span class="n">lemmatization_strategy</span><span class="o">=</span><span class="n">DefaultStrategy</span><span class="p">())</span></code>
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="n">token_sampler</span><span class="o">=</span><span class="n">MostCommonTokenSampler</span><span class="p">(),</span> <span class="n">lemmatization_strategy</span><span class="o">=</span><span class="n">DefaultStrategy</span><span class="p">())</span></code>
 
 </h5>
 
 
-  <div class="doc doc-contents ">
-  
-      <p>Initialize the LanguageDetector.</p>
+    <div class="doc doc-contents ">
+
+        <p>Initialize the LanguageDetector.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>lang</code></td>
-          <td>
-                <code><span title="typing.Union">Union</span>[str, <span title="typing.Tuple">Tuple</span>[str, ...]]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The target language or languages to detect.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>token_sampler</code></td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="simplemma.token_sampler.TokenSampler" href="../token_sampler/#simplemma.token_sampler.TokenSampler">TokenSampler</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The token sampling strategy to use.
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>lang</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="tuple">tuple</span>[<span title="str">str</span>, ...]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The target language or languages to detect.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>token_sampler</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="TokenSampler (simplemma.token_sampler.TokenSampler)" href="../token_sampler/#simplemma.token_sampler.TokenSampler">TokenSampler</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The token sampling strategy to use.
 Defaults to <code>MostCommonTokenSampler()</code>.</p>
-            </div>
-          </td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="simplemma.token_sampler.MostCommonTokenSampler" href="../token_sampler/#simplemma.token_sampler.MostCommonTokenSampler">MostCommonTokenSampler</a>()</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>lemmatization_strategy</code></td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="simplemma.strategies.LemmatizationStrategy" href="../strategies/lemmatization_strategy/#simplemma.strategies.lemmatization_strategy.LemmatizationStrategy">LemmatizationStrategy</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The lemmatization
+              </div>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="MostCommonTokenSampler (simplemma.token_sampler.MostCommonTokenSampler)" href="../token_sampler/#simplemma.token_sampler.MostCommonTokenSampler">MostCommonTokenSampler</a>()</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>lemmatization_strategy</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="LemmatizationStrategy (simplemma.strategies.LemmatizationStrategy)" href="../strategies/lemmatization_strategy/#simplemma.strategies.lemmatization_strategy.LemmatizationStrategy">LemmatizationStrategy</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The lemmatization
 strategy to use. <code>Defaults to DefaultStrategy()</code>.</p>
-            </div>
-          </td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="simplemma.strategies.DefaultStrategy" href="../strategies/default/#simplemma.strategies.default.DefaultStrategy">DefaultStrategy</a>()</code>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="DefaultStrategy (simplemma.strategies.DefaultStrategy)" href="../strategies/default/#simplemma.strategies.default.DefaultStrategy">DefaultStrategy</a>()</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-          <details class="quote">
-            <summary>Source code in <code>simplemma/language_detector.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">115</span>
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>simplemma/language_detector.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">114</span>
+<span class="normal">115</span>
 <span class="normal">116</span>
 <span class="normal">117</span>
 <span class="normal">118</span>
@@ -1596,10 +1903,9 @@ strategy to use. <code>Defaults to DefaultStrategy()</code>.</p>
 <span class="normal">131</span>
 <span class="normal">132</span>
 <span class="normal">133</span>
-<span class="normal">134</span>
-<span class="normal">135</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+<span class="normal">134</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
-    <span class="n">lang</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
+    <span class="n">lang</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
     <span class="n">token_sampler</span><span class="p">:</span> <span class="n">TokenSampler</span> <span class="o">=</span> <span class="n">MostCommonTokenSampler</span><span class="p">(),</span>
     <span class="n">lemmatization_strategy</span><span class="p">:</span> <span class="n">LemmatizationStrategy</span> <span class="o">=</span> <span class="n">DefaultStrategy</span><span class="p">(),</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1607,7 +1913,7 @@ strategy to use. <code>Defaults to DefaultStrategy()</code>.</p>
 <span class="sd">    Initialize the LanguageDetector.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        lang (Union[str, Tuple[str, ...]]): The target language or languages to detect.</span>
+<span class="sd">        lang (str | tuple[str, ...]): The target language or languages to detect.</span>
 <span class="sd">        token_sampler (TokenSampler, optional): The token sampling strategy to use.</span>
 <span class="sd">            Defaults to `MostCommonTokenSampler()`.</span>
 <span class="sd">        lemmatization_strategy (LemmatizationStrategy, optional): The lemmatization</span>
@@ -1619,98 +1925,100 @@ strategy to use. <code>Defaults to DefaultStrategy()</code>.</p>
     <span class="bp">self</span><span class="o">.</span><span class="n">_orig_token_sampler</span> <span class="o">=</span> <span class="n">token_sampler</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_lemmatization_strategy</span> <span class="o">=</span> <span class="n">lemmatization_strategy</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h5 id="simplemma.language_detector.LanguageDetector.main_language" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">main_language</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">additional_token_samplers</span><span class="o">=</span><span class="p">[</span><span class="n">RelaxedMostCommonTokenSampler</span><span class="p">()])</span></code>
+            <code class="highlight language-python"><span class="n">main_language</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">additional_token_samplers</span><span class="o">=</span><span class="p">[</span><span class="n">RelaxedMostCommonTokenSampler</span><span class="p">()])</span></code>
 
 </h5>
 
 
-  <div class="doc doc-contents ">
-  
-      <p>Determine the main language of the given text.</p>
+    <div class="doc doc-contents ">
+
+        <p>Determine the main language of the given text.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>text</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The input text to analyze.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>additional_token_samplers</code></td>
-          <td>
-                <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="simplemma.token_sampler.TokenSampler" href="../token_sampler/#simplemma.token_sampler.TokenSampler">TokenSampler</a>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Additional token
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>text</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The input text to analyze.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>additional_token_samplers</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="TokenSampler (simplemma.token_sampler.TokenSampler)" href="../token_sampler/#simplemma.token_sampler.TokenSampler">TokenSampler</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Additional token
 sampling strategies to use. Defaults to <code>[RelaxedMostCommonTokenSampler()]</code>.</p>
-            </div>
-          </td>
-          <td>
-                <code>[<a class="autorefs autorefs-internal" title="simplemma.token_sampler.RelaxedMostCommonTokenSampler" href="../token_sampler/#simplemma.token_sampler.RelaxedMostCommonTokenSampler">RelaxedMostCommonTokenSampler</a>()]</code>
-          </td>
+              </div>
+            </td>
+            <td>
+                  <code>[<a class="autorefs autorefs-internal" title="RelaxedMostCommonTokenSampler (simplemma.token_sampler.RelaxedMostCommonTokenSampler)" href="../token_sampler/#simplemma.token_sampler.RelaxedMostCommonTokenSampler">RelaxedMostCommonTokenSampler</a>()]</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>str</code></td>            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The main language of the text.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>str</code></td>          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The main language of the text.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-
-          <details class="quote">
-            <summary>Source code in <code>simplemma/language_detector.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">205</span>
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>simplemma/language_detector.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">204</span>
+<span class="normal">205</span>
 <span class="normal">206</span>
 <span class="normal">207</span>
 <span class="normal">208</span>
@@ -1737,11 +2045,10 @@ sampling strategies to use. Defaults to <code>[RelaxedMostCommonTokenSampler()]<
 <span class="normal">229</span>
 <span class="normal">230</span>
 <span class="normal">231</span>
-<span class="normal">232</span>
-<span class="normal">233</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">main_language</span><span class="p">(</span>
+<span class="normal">232</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">main_language</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">additional_token_samplers</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">TokenSampler</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">additional_token_samplers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">TokenSampler</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">RelaxedMostCommonTokenSampler</span><span class="p">()</span>
     <span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -1750,7 +2057,7 @@ sampling strategies to use. Defaults to <code>[RelaxedMostCommonTokenSampler()]<
 
 <span class="sd">    Args:</span>
 <span class="sd">        text (str): The input text to analyze.</span>
-<span class="sd">        additional_token_samplers (List[TokenSampler], optional): Additional token</span>
+<span class="sd">        additional_token_samplers (list[TokenSampler], optional): Additional token</span>
 <span class="sd">            sampling strategies to use. Defaults to `[RelaxedMostCommonTokenSampler()]`.</span>
 
 <span class="sd">    Returns:</span>
@@ -1768,84 +2075,84 @@ sampling strategies to use. Defaults to <code>[RelaxedMostCommonTokenSampler()]<
     <span class="bp">self</span><span class="o">.</span><span class="n">_restore_token_sampler</span><span class="p">()</span>
     <span class="k">return</span> <span class="s2">&quot;unk&quot;</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h5 id="simplemma.language_detector.LanguageDetector.proportion_in_each_language" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">proportion_in_each_language</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">proportion_in_each_language</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></code>
 
 </h5>
 
 
-  <div class="doc doc-contents ">
-  
-      <p>Calculate the proportion of each language in the given text.</p>
+    <div class="doc doc-contents ">
+
+        <p>Calculate the proportion of each language in the given text.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>text</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The input text to analyze.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>text</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The input text to analyze.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="typing.Dict">Dict</span>[str, float]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Dict[str, float]: A dictionary containing the detected languages and
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="dict">dict</span>[<span title="str">str</span>, <span title="float">float</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>dict[str, float]: A dictionary containing the detected languages and
 their respective proportions.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-          <details class="quote">
-            <summary>Source code in <code>simplemma/language_detector.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">140</span>
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>simplemma/language_detector.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">139</span>
+<span class="normal">140</span>
 <span class="normal">141</span>
 <span class="normal">142</span>
 <span class="normal">143</span>
@@ -1881,11 +2188,10 @@ their respective proportions.</p>
 <span class="normal">173</span>
 <span class="normal">174</span>
 <span class="normal">175</span>
-<span class="normal">176</span>
-<span class="normal">177</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">proportion_in_each_language</span><span class="p">(</span>
+<span class="normal">176</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">proportion_in_each_language</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Calculate the proportion of each language in the given text.</span>
 
@@ -1893,7 +2199,7 @@ their respective proportions.</p>
 <span class="sd">        text (str): The input text to analyze.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Dict[str, float]: A dictionary containing the detected languages and</span>
+<span class="sd">        dict[str, float]: A dictionary containing the detected languages and</span>
 <span class="sd">            their respective proportions.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_token_sampler</span><span class="o">.</span><span class="n">sample_text</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
@@ -1914,90 +2220,90 @@ their respective proportions.</p>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">token_found</span><span class="p">:</span>
             <span class="n">unknown_tokens_count</span> <span class="o">+=</span> <span class="mi">1</span>
 
-    <span class="n">results</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">lang_code</span><span class="p">,</span> <span class="n">token_count</span> <span class="o">/</span> <span class="n">total_tokens</span><span class="p">)</span>
+    <span class="n">results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">lang_code</span><span class="p">:</span> <span class="n">token_count</span> <span class="o">/</span> <span class="n">total_tokens</span>
         <span class="k">for</span> <span class="p">(</span><span class="n">lang_code</span><span class="p">,</span> <span class="n">token_count</span><span class="p">)</span> <span class="ow">in</span> <span class="n">known_tokens_count</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-    <span class="p">)</span>
+    <span class="p">}</span>
     <span class="n">results</span><span class="p">[</span><span class="s2">&quot;unk&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">unknown_tokens_count</span> <span class="o">/</span> <span class="n">total_tokens</span>
     <span class="k">return</span> <span class="n">results</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h5 id="simplemma.language_detector.LanguageDetector.proportion_in_target_languages" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">proportion_in_target_languages</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">proportion_in_target_languages</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></code>
 
 </h5>
 
 
-  <div class="doc doc-contents ">
-  
-      <p>Calculate the proportion of text in the target language.</p>
+    <div class="doc doc-contents ">
+
+        <p>Calculate the proportion of text in the target language.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>text</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The input text to analyze.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>text</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The input text to analyze.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>float</code></td>          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The proportion of text in the target language(s).</p>
-            </div>
-          </td>
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>float</code></td>            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The proportion of text in the target language(s).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-          <details class="quote">
-            <summary>Source code in <code>simplemma/language_detector.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">179</span>
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>simplemma/language_detector.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">178</span>
+<span class="normal">179</span>
 <span class="normal">180</span>
 <span class="normal">181</span>
 <span class="normal">182</span>
@@ -2020,8 +2326,7 @@ their respective proportions.</p>
 <span class="normal">199</span>
 <span class="normal">200</span>
 <span class="normal">201</span>
-<span class="normal">202</span>
-<span class="normal">203</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">proportion_in_target_languages</span><span class="p">(</span>
+<span class="normal">202</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">proportion_in_target_languages</span><span class="p">(</span>
     <span class="bp">self</span><span class="p">,</span>
     <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
@@ -2047,8 +2352,8 @@ their respective proportions.</p>
                 <span class="k">break</span>
     <span class="k">return</span> <span class="n">in_target</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
 
@@ -2056,127 +2361,132 @@ their respective proportions.</p>
 
   </div>
 
-  </div>
-
+    </div>
 
 </div>
 <h2 id="simplemma.language_detector-functions">Functions</h2>
 
-
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="simplemma.language_detector.in_target_language" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">in_target_language</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">lang</span><span class="p">,</span> <span class="n">greedy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">token_sampler</span><span class="o">=</span><span class="n">MostCommonTokenSampler</span><span class="p">())</span></code>
+            <code class="highlight language-python"><span class="n">in_target_language</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">lang</span><span class="p">,</span> <span class="n">greedy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">token_sampler</span><span class="o">=</span><span class="n">MostCommonTokenSampler</span><span class="p">())</span></code>
 
 </h3>
 
 
-  <div class="doc doc-contents ">
-  
-      <p>Calculate the proportion of text in the target language(s).</p>
+    <div class="doc doc-contents ">
+
+        <p>Calculate the proportion of text in the target language(s).</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>text</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The input text to analyze.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>lang</code></td>
-          <td>
-                <code><span title="typing.Union">Union</span>[str, <span title="typing.Tuple">Tuple</span>[str, ...]]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The target language(s) to compare against.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>greedy</code></td>
-          <td>
-                <code>bool</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Whether to use greedy lemmatization. Defaults to <code>False</code>.</p>
-            </div>
-          </td>
-          <td>
-                <code>False</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>token_sampler</code></td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="simplemma.token_sampler.TokenSampler" href="../token_sampler/#simplemma.token_sampler.TokenSampler">TokenSampler</a></code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The token sampling strategy to use.
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>text</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The input text to analyze.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>lang</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="tuple">tuple</span>[<span title="str">str</span>, ...]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The target language(s) to compare against.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>greedy</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to use greedy lemmatization. Defaults to <code>False</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>token_sampler</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="TokenSampler (simplemma.token_sampler.TokenSampler)" href="../token_sampler/#simplemma.token_sampler.TokenSampler">TokenSampler</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The token sampling strategy to use.
 Defaults to <code>MostCommonTokenSampler()</code>.</p>
-            </div>
-          </td>
-          <td>
-                <code><a class="autorefs autorefs-internal" title="simplemma.token_sampler.MostCommonTokenSampler" href="../token_sampler/#simplemma.token_sampler.MostCommonTokenSampler">MostCommonTokenSampler</a>()</code>
-          </td>
+              </div>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="MostCommonTokenSampler (simplemma.token_sampler.MostCommonTokenSampler)" href="../token_sampler/#simplemma.token_sampler.MostCommonTokenSampler">MostCommonTokenSampler</a>()</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>float</code></td>            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The proportion of text in the target language(s).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-<th>Name</th>        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-<td><code>float</code></td>          <td>
-                <code>float</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The proportion of text in the target language(s).</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
-
-          <details class="quote">
-            <summary>Source code in <code>simplemma/language_detector.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">22</span>
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>simplemma/language_detector.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">21</span>
+<span class="normal">22</span>
 <span class="normal">23</span>
 <span class="normal">24</span>
 <span class="normal">25</span>
@@ -2197,10 +2507,9 @@ Defaults to <code>MostCommonTokenSampler()</code>.</p>
 <span class="normal">40</span>
 <span class="normal">41</span>
 <span class="normal">42</span>
-<span class="normal">43</span>
-<span class="normal">44</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">in_target_language</span><span class="p">(</span>
+<span class="normal">43</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">in_target_language</span><span class="p">(</span>
     <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">lang</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
+    <span class="n">lang</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
     <span class="n">greedy</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">token_sampler</span><span class="p">:</span> <span class="n">TokenSampler</span> <span class="o">=</span> <span class="n">MostCommonTokenSampler</span><span class="p">(),</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
@@ -2209,7 +2518,7 @@ Defaults to <code>MostCommonTokenSampler()</code>.</p>
 
 <span class="sd">    Args:</span>
 <span class="sd">        text (str): The input text to analyze.</span>
-<span class="sd">        lang (Union[str, Tuple[str, ...]]): The target language(s) to compare against.</span>
+<span class="sd">        lang (str | tuple[str, ...]): The target language(s) to compare against.</span>
 <span class="sd">        greedy (bool, optional): Whether to use greedy lemmatization. Defaults to `False`.</span>
 <span class="sd">        token_sampler (TokenSampler, optional): The token sampling strategy to use.</span>
 <span class="sd">            Defaults to `MostCommonTokenSampler()`.</span>
@@ -2222,127 +2531,133 @@ Defaults to <code>MostCommonTokenSampler()</code>.</p>
         <span class="n">lang</span><span class="p">,</span> <span class="n">token_sampler</span><span class="p">,</span> <span class="n">DefaultStrategy</span><span class="p">(</span><span class="n">greedy</span><span class="p">)</span>
     <span class="p">)</span><span class="o">.</span><span class="n">proportion_in_target_languages</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
-
 
 <div class="doc doc-object doc-function">
 
 
-
 <h3 id="simplemma.language_detector.langdetect" class="doc doc-heading">
-          <code class="highlight language-python"><span class="n">langdetect</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">lang</span><span class="p">,</span> <span class="n">greedy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">token_samplers</span><span class="o">=</span><span class="p">[</span><span class="n">MostCommonTokenSampler</span><span class="p">(),</span> <span class="n">RelaxedMostCommonTokenSampler</span><span class="p">()])</span></code>
+            <code class="highlight language-python"><span class="n">langdetect</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">lang</span><span class="p">,</span> <span class="n">greedy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">token_samplers</span><span class="o">=</span><span class="p">[</span><span class="n">MostCommonTokenSampler</span><span class="p">(),</span> <span class="n">RelaxedMostCommonTokenSampler</span><span class="p">()])</span></code>
 
 </h3>
 
 
-  <div class="doc doc-contents ">
-  
-      <p>Detect the language(s) of the given text and their proportions.</p>
+    <div class="doc doc-contents ">
+
+        <p>Detect the language(s) of the given text and their proportions.</p>
 
 
-
-  <p><span class="doc-section-title">Parameters:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Description</th>
-        <th>Default</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td><code>text</code></td>
-          <td>
-                <code>str</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The input text to analyze.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
         </tr>
-        <tr class="doc-section-item">
-          <td><code>lang</code></td>
-          <td>
-                <code><span title="typing.Union">Union</span>[str, <span title="typing.Tuple">Tuple</span>[str, ...]]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The target language(s) to compare against.</p>
-            </div>
-          </td>
-          <td>
-              <em>required</em>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>greedy</code></td>
-          <td>
-                <code>bool</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>Whether to use greedy lemmatization. Defaults to <code>False</code>.</p>
-            </div>
-          </td>
-          <td>
-                <code>False</code>
-          </td>
-        </tr>
-        <tr class="doc-section-item">
-          <td><code>token_samplers</code></td>
-          <td>
-                <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="simplemma.token_sampler.TokenSampler" href="../token_sampler/#simplemma.token_sampler.TokenSampler">TokenSampler</a>]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>The list of token sampling strategies
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>text</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The input text to analyze.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>lang</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="tuple">tuple</span>[<span title="str">str</span>, ...]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The target language(s) to compare against.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>greedy</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to use greedy lemmatization. Defaults to <code>False</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>token_samplers</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="TokenSampler (simplemma.token_sampler.TokenSampler)" href="../token_sampler/#simplemma.token_sampler.TokenSampler">TokenSampler</a>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The list of token sampling strategies
 to use. Defaults to <code>[MostCommonTokenSampler(), RelaxedMostCommonTokenSampler()]</code>.</p>
-            </div>
-          </td>
-          <td>
-                <code>[<a class="autorefs autorefs-internal" title="simplemma.token_sampler.MostCommonTokenSampler" href="../token_sampler/#simplemma.token_sampler.MostCommonTokenSampler">MostCommonTokenSampler</a>(), <a class="autorefs autorefs-internal" title="simplemma.token_sampler.RelaxedMostCommonTokenSampler" href="../token_sampler/#simplemma.token_sampler.RelaxedMostCommonTokenSampler">RelaxedMostCommonTokenSampler</a>()]</code>
-          </td>
+              </div>
+            </td>
+            <td>
+                  <code>[<a class="autorefs autorefs-internal" title="MostCommonTokenSampler (simplemma.token_sampler.MostCommonTokenSampler)" href="../token_sampler/#simplemma.token_sampler.MostCommonTokenSampler">MostCommonTokenSampler</a>(), <a class="autorefs autorefs-internal" title="RelaxedMostCommonTokenSampler (simplemma.token_sampler.RelaxedMostCommonTokenSampler)" href="../token_sampler/#simplemma.token_sampler.RelaxedMostCommonTokenSampler">RelaxedMostCommonTokenSampler</a>()]</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
         </tr>
-    </tbody>
-  </table>
-
-
-
-  <p><span class="doc-section-title">Returns:</span></p>
-  <table>
-    <thead>
-      <tr>
-        <th>Type</th>
-        <th>Description</th>
-      </tr>
-    </thead>
-    <tbody>
-        <tr class="doc-section-item">
-          <td>
-                <code><span title="typing.List">List</span>[<span title="typing.Tuple">Tuple</span>[str, float]]</code>
-          </td>
-          <td>
-            <div class="doc-md-description">
-              <p>List[Tuple[str, float]]: A list of tuples containing the detected language(s)
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="list">list</span>[<span title="tuple">tuple</span>[<span title="str">str</span>, <span title="float">float</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>list[tuple[str, float]]: A list of tuples containing the detected language(s)
 and their respective proportions.</p>
-            </div>
-          </td>
-        </tr>
-    </tbody>
-  </table>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
-          <details class="quote">
-            <summary>Source code in <code>simplemma/language_detector.py</code></summary>
-            <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">47</span>
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>simplemma/language_detector.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">46</span>
+<span class="normal">47</span>
 <span class="normal">48</span>
 <span class="normal">49</span>
 <span class="normal">50</span>
@@ -2374,28 +2689,27 @@ and their respective proportions.</p>
 <span class="normal">76</span>
 <span class="normal">77</span>
 <span class="normal">78</span>
-<span class="normal">79</span>
-<span class="normal">80</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">langdetect</span><span class="p">(</span>
+<span class="normal">79</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span> <span class="nf">langdetect</span><span class="p">(</span>
     <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">lang</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
+    <span class="n">lang</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
     <span class="n">greedy</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">token_samplers</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">TokenSampler</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">token_samplers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">TokenSampler</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">MostCommonTokenSampler</span><span class="p">(),</span>
         <span class="n">RelaxedMostCommonTokenSampler</span><span class="p">(),</span>
     <span class="p">],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Detect the language(s) of the given text and their proportions.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        text (str): The input text to analyze.</span>
-<span class="sd">        lang (Union[str, Tuple[str, ...]]): The target language(s) to compare against.</span>
+<span class="sd">        lang (str | tuple[str, ...]): The target language(s) to compare against.</span>
 <span class="sd">        greedy (bool, optional): Whether to use greedy lemmatization. Defaults to `False`.</span>
-<span class="sd">        token_samplers (List[TokenSampler], optional): The list of token sampling strategies</span>
+<span class="sd">        token_samplers (list[TokenSampler], optional): The list of token sampling strategies</span>
 <span class="sd">            to use. Defaults to `[MostCommonTokenSampler(), RelaxedMostCommonTokenSampler()]`.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        List[Tuple[str, float]]: A list of tuples containing the detected language(s)</span>
+<span class="sd">        list[tuple[str, float]]: A list of tuples containing the detected language(s)</span>
 <span class="sd">            and their respective proportions.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -2410,8 +2724,8 @@ and their respective proportions.</p>
             <span class="k">return</span> <span class="n">list_results</span>
     <span class="k">return</span> <span class="n">list_results</span>
 </code></pre></div></td></tr></table></div>
-          </details>
-  </div>
+            </details>
+    </div>
 
 </div>
 
@@ -2419,7 +2733,7 @@ and their respective proportions.</p>
 
   </div>
 
-  </div>
+    </div>
 
 </div>
 
@@ -2468,10 +2782,13 @@ and their respective proportions.</p>
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant", "navigation.tracking", "toc.follow"], "search": "../../assets/javascripts/workers/search.07f07601.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../assets/javascripts/bundle.56dfad97.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>

@@ -6,15 +6,22 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
+        <meta name="description" content="A lightweight toolkit for multilingual lemmatization and language detection.">
       
+      
+      
+        <link rel="canonical" href="https://adbar.github.io/simplemma/">
       
       
       
         <link rel="next" href="reference/lemmatizer/">
       
       
+        
+      
+      
       <link rel="icon" href="assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.34">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
@@ -22,10 +29,10 @@
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.35f28582.min.css">
+      <link rel="stylesheet" href="assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -52,7 +59,6 @@
     
       
 
-    
     
     
   </head>
@@ -148,11 +154,13 @@
     
     
     
-      <label class="md-header__button md-icon" for="__search">
-        
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
-      </label>
-      <div class="md-search" data-md-component="search" role="dialog">
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
@@ -184,16 +192,17 @@
     </div>
   </div>
 </div>
+      
     
     
       <div class="md-header__source">
         <a href="https://github.com/adbar/simplemma" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
   </div>
   <div class="md-source__repository">
-    GitHub
+    adbar/simplemma
   </div>
 </a>
       </div>
@@ -236,10 +245,10 @@
       <a href="https://github.com/adbar/simplemma" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.6.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
   </div>
   <div class="md-source__repository">
-    GitHub
+    adbar/simplemma
   </div>
 </a>
     </div>
@@ -265,9 +274,16 @@
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
   
+  
   <span class="md-ellipsis">
+    
+  
     Introduction
+  
+
+    
   </span>
+  
   
 
           <span class="md-nav__icon md-icon"></span>
@@ -276,9 +292,16 @@
       <a href="." class="md-nav__link md-nav__link--active">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Introduction
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -301,7 +324,9 @@
         <li class="md-nav__item">
   <a href="#purpose" class="md-nav__link">
     <span class="md-ellipsis">
-      Purpose
+      
+        Purpose
+      
     </span>
   </a>
   
@@ -310,7 +335,9 @@
         <li class="md-nav__item">
   <a href="#installation" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation
+      
+        Installation
+      
     </span>
   </a>
   
@@ -319,7 +346,9 @@
         <li class="md-nav__item">
   <a href="#usage" class="md-nav__link">
     <span class="md-ellipsis">
-      Usage
+      
+        Usage
+      
     </span>
   </a>
   
@@ -329,7 +358,97 @@
           <li class="md-nav__item">
   <a href="#word-by-word" class="md-nav__link">
     <span class="md-ellipsis">
-      Word-by-word
+      
+        Word-by-word
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chaining-languages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chaining languages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#greedier-decomposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Greedier decomposition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#is_known" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_known()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tokenization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tokenization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caveats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caveats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#language-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Language detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advanced-usage-via-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advanced usage via classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reducing-memory-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reducing memory usage
+      
     </span>
   </a>
   
@@ -358,6 +477,7 @@
     
     
     
+    
     <li class="md-nav__item md-nav__item--nested">
       
         
@@ -368,9 +488,16 @@
           <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
             
   
+  
   <span class="md-ellipsis">
+    
+  
     Reference
+  
+
+    
   </span>
+  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -379,7 +506,11 @@
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
-            Reference
+            
+  
+    Reference
+  
+
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -393,9 +524,16 @@
       <a href="reference/lemmatizer/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Lemmatizer
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -414,9 +552,16 @@
       <a href="reference/language_detector/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Language Detector
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -435,9 +580,16 @@
       <a href="reference/tokenizer/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Tokenizer
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -456,9 +608,16 @@
       <a href="reference/token_sampler/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     TokenSampler
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -477,9 +636,16 @@
       <a href="reference/utils/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Utils
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -498,6 +664,7 @@
     
     
     
+    
     <li class="md-nav__item md-nav__item--nested">
       
         
@@ -508,9 +675,16 @@
           <label class="md-nav__link" for="__nav_2_6" id="__nav_2_6_label" tabindex="0">
             
   
+  
   <span class="md-ellipsis">
+    
+  
     Strategies
+  
+
+    
   </span>
+  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -519,7 +693,11 @@
         <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2_6">
             <span class="md-nav__icon md-icon"></span>
-            Strategies
+            
+  
+    Strategies
+  
+
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -533,9 +711,16 @@
       <a href="reference/strategies/lemmatization_strategy/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Lemmatization Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -554,9 +739,16 @@
       <a href="reference/strategies/dictionary_lookup/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Dictionary Lookup Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -575,9 +767,16 @@
       <a href="reference/strategies/greedy_dictionary_lookup/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Greedy Dictionary Lookup Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -596,9 +795,16 @@
       <a href="reference/strategies/hyphen_removal/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Hyphen removal Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -617,9 +823,16 @@
       <a href="reference/strategies/rules/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Rules Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -638,9 +851,16 @@
       <a href="reference/strategies/prefix_decomposition/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Prefix Decomposition Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -659,9 +879,16 @@
       <a href="reference/strategies/affix_decomposition/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Affix Decomposition Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -680,9 +907,16 @@
       <a href="reference/strategies/default/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Default Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -701,6 +935,7 @@
     
     
     
+    
     <li class="md-nav__item md-nav__item--nested">
       
         
@@ -711,9 +946,16 @@
           <label class="md-nav__link" for="__nav_2_6_9" id="__nav_2_6_9_label" tabindex="0">
             
   
+  
   <span class="md-ellipsis">
+    
+  
     Fallback Strategies
+  
+
+    
   </span>
+  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -722,7 +964,11 @@
         <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_6_9_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2_6_9">
             <span class="md-nav__icon md-icon"></span>
-            Fallback Strategies
+            
+  
+    Fallback Strategies
+  
+
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -736,9 +982,16 @@
       <a href="reference/strategies/fallback/lemmatization_fallback_strategy/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Lemmatization Fallback Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -757,9 +1010,16 @@
       <a href="reference/strategies/fallback/to_lowercase/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     To Lowercase Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -778,9 +1038,16 @@
       <a href="reference/strategies/fallback/raise_error/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Raise Error Strategy
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -807,6 +1074,7 @@
     
     
     
+    
     <li class="md-nav__item md-nav__item--nested">
       
         
@@ -817,9 +1085,16 @@
           <label class="md-nav__link" for="__nav_2_6_10" id="__nav_2_6_10_label" tabindex="0">
             
   
+  
   <span class="md-ellipsis">
+    
+  
     Dictionaries
+  
+
+    
   </span>
+  
   
 
             <span class="md-nav__icon md-icon"></span>
@@ -828,7 +1103,11 @@
         <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_2_6_10_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2_6_10">
             <span class="md-nav__icon md-icon"></span>
-            Dictionaries
+            
+  
+    Dictionaries
+  
+
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
@@ -842,9 +1121,44 @@
       <a href="reference/strategies/dictionaries/dictionary_factory/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Dictionary Factory
+  
+
+    
   </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="reference/strategies/dictionaries/trie_dictionary_factory/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trie Dictionary Factory
+  
+
+    
+  </span>
+  
   
 
       </a>
@@ -886,9 +1200,16 @@
       <a href="supported-languages/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
-    Languages Supported
+    
+  
+    Supported languages
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -906,9 +1227,16 @@
       <a href="contributing/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
+    
+  
     Contributing
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -926,9 +1254,16 @@
       <a href="credit-and-licenses/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
-    Credit & Licenses
+    
+  
+    Credits and licenses
+  
+
+    
   </span>
+  
   
 
       </a>
@@ -965,7 +1300,9 @@
         <li class="md-nav__item">
   <a href="#purpose" class="md-nav__link">
     <span class="md-ellipsis">
-      Purpose
+      
+        Purpose
+      
     </span>
   </a>
   
@@ -974,7 +1311,9 @@
         <li class="md-nav__item">
   <a href="#installation" class="md-nav__link">
     <span class="md-ellipsis">
-      Installation
+      
+        Installation
+      
     </span>
   </a>
   
@@ -983,7 +1322,9 @@
         <li class="md-nav__item">
   <a href="#usage" class="md-nav__link">
     <span class="md-ellipsis">
-      Usage
+      
+        Usage
+      
     </span>
   </a>
   
@@ -993,7 +1334,97 @@
           <li class="md-nav__item">
   <a href="#word-by-word" class="md-nav__link">
     <span class="md-ellipsis">
-      Word-by-word
+      
+        Word-by-word
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chaining-languages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chaining languages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#greedier-decomposition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Greedier decomposition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#is_known" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        is_known()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tokenization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tokenization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#caveats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Caveats
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#language-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Language detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advanced-usage-via-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advanced usage via classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reducing-memory-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reducing memory usage
+      
     </span>
   </a>
   
@@ -1014,9 +1445,11 @@
           
           
             <div class="md-content" data-md-component="content">
+              
               <article class="md-content__inner md-typeset">
                 
                   
+
 
   
   
@@ -1024,38 +1457,246 @@
 
 <h1 id="introduction">Introduction</h1>
 <h2 id="purpose">Purpose</h2>
-<p><a href="https://en.wikipedia.org/wiki/Lemmatisation">Lemmatization</a> is the process of grouping together the inflected forms of a word so they can be analysed as a single item, identified by the word's lemma, or dictionary form. Unlike stemming, lemmatization outputs word units that are still valid linguistic forms.</p>
-<p>In modern natural language processing (NLP), this task is often indirectly tackled by more complex systems encompassing a whole processing pipeline. However, it appears that there is no straightforward way to address lemmatization in Python although this task can be crucial in fields such as information retrieval and NLP.</p>
-<p><strong>Simplemma</strong> provides a simple and multilingual approach to look for base forms or lemmata. It may not be as powerful as full-fledged solutions but it is generic, easy to install and straightforward to use. In particular, it does not need morphosyntactic information and can process a raw series of tokens or even a text with its built-in tokenizer. By design it should be reasonably fast and work in a large majority of cases, without being perfect.</p>
-<p>With its comparatively small footprint it is especially useful when speed and simplicity matter, in low-resource contexts, for educational purposes, or as a baseline system for lemmatization and morphological analysis.</p>
-<p>Currently, 48 languages are partly or fully supported (see table below).</p>
+<p><a href="https://en.wikipedia.org/wiki/Lemmatisation">Lemmatization</a> is the
+process of grouping together the inflected forms of a word so they can
+be analysed as a single item, identified by the word's lemma, or
+dictionary form. Unlike stemming, lemmatization outputs word units that
+are still valid linguistic forms.</p>
+<p>In modern natural language processing (NLP), this task is often
+indirectly tackled by more complex systems encompassing a whole
+processing pipeline. However, it appears that there is no
+straightforward way to address lemmatization in Python although this
+task can be crucial in fields such as information retrieval and NLP.</p>
+<p><em>Simplemma</em> provides a simple and multilingual approach to look for base
+forms or lemmata. It may not be as powerful as full-fledged solutions
+but it is generic, easy to install and straightforward to use. In
+particular, it does not need morphosyntactic information and can process
+a raw series of tokens or even a text with its built-in tokenizer. By
+design it should be reasonably fast and work in a large majority of
+cases, without being perfect.</p>
+<p>With its comparatively small footprint it is especially useful when
+speed and simplicity matter, in low-resource contexts, for educational
+purposes, or as a baseline system for lemmatization and morphological
+analysis.</p>
+<p>Currently, 50 languages are partly or fully supported (see the list of supported languages).</p>
 <h2 id="installation">Installation</h2>
-<p>The current library is written in pure Python with no dependencies:</p>
-<p><code>pip install simplemma</code></p>
+<p>The current library is written in pure Python with no dependencies:
+<code>pip install simplemma</code></p>
 <ul>
-<li><code>pip3</code> where applicable</li>
 <li><code>pip install -U simplemma</code> for updates</li>
+<li><code>pip install git+https://github.com/adbar/simplemma</code> for the cutting-edge version</li>
 </ul>
+<p>The last version supporting Python 3.6 and 3.7 is <code>simplemma==1.0.0</code>.</p>
 <h2 id="usage">Usage</h2>
 <h3 id="word-by-word">Word-by-word</h3>
-<p>Simplemma is used by selecting a language of interest and then applying the data on a list of words.</p>
-<pre><code class="language-python">    &gt;&gt;&gt; import simplemma
-    # get a word
-    myword = 'masks'
-    # decide which language to use and apply it on a word form
-    &gt;&gt;&gt; simplemma.lemmatize(myword, lang='en')
-    'mask'
-    # grab a list of tokens
-    &gt;&gt;&gt; mytokens = ['Hier', 'sind', 'Vaccines']
-    &gt;&gt;&gt; for token in mytokens:
-    &gt;&gt;&gt;     simplemma.lemmatize(token, lang='de')
-    'hier'
-    'sein'
-    'Vaccines'
-    # list comprehensions can be faster
-    &gt;&gt;&gt; [simplemma.lemmatize(t, lang='de') for t in mytokens]
-    ['hier', 'sein', 'Vaccines']
+<p>Simplemma is used by selecting a language of interest and then applying
+the data on a list of words.</p>
+<pre><code class="language-python">&gt;&gt;&gt; import simplemma
+# get a word
+myword = 'masks'
+# decide which language to use and apply it on a word form
+&gt;&gt;&gt; simplemma.lemmatize(myword, lang='en')
+'mask'
+# apply it on a list of tokens
+&gt;&gt;&gt; mytokens = ['Hier', 'sind', 'Vaccines']
+&gt;&gt;&gt; [simplemma.lemmatize(t, lang='de') for t in mytokens]
+['hier', 'sein', 'Vaccines']
 </code></pre>
+<h3 id="chaining-languages">Chaining languages</h3>
+<p>Chaining several languages can improve coverage, they are used in
+sequence:</p>
+<pre><code class="language-python">&gt;&gt;&gt; from simplemma import lemmatize
+&gt;&gt;&gt; lemmatize('Vaccines', lang=('de', 'en'))
+'vaccine'
+&gt;&gt;&gt; lemmatize('spaghettis', lang='it')
+'spaghettis'
+&gt;&gt;&gt; lemmatize('spaghettis', lang=('it', 'fr'))
+'spaghetti'
+&gt;&gt;&gt; lemmatize('spaghetti', lang=('it', 'fr'))
+'spaghetto'
+</code></pre>
+<h3 id="greedier-decomposition">Greedier decomposition</h3>
+<p>For certain languages a greedier decomposition is activated by default
+as it can be beneficial, mostly due to a certain capacity to address
+affixes in an unsupervised way. This can be triggered manually by
+setting the <code>greedy</code> parameter to <code>True</code>.</p>
+<p>This option also triggers a stronger reduction through an additional
+iteration of the search algorithm, e.g. "angekündigten" →
+"angekündigt" (standard) → "ankündigen" (greedy). In some cases it
+may be closer to stemming than to lemmatization.</p>
+<pre><code class="language-python"># same example as before, comes to this result in one step
+&gt;&gt;&gt; simplemma.lemmatize('spaghettis', lang=('it', 'fr'), greedy=True)
+'spaghetto'
+# German case described above
+&gt;&gt;&gt; simplemma.lemmatize('angekündigten', lang='de', greedy=True)
+'ankündigen' # 2 steps: reduction to infinitive verb
+&gt;&gt;&gt; simplemma.lemmatize('angekündigten', lang='de', greedy=False)
+'angekündigt' # 1 step: reduction to past participle
+</code></pre>
+<h3 id="is_known">is_known()</h3>
+<p>The additional function <code>is_known()</code> checks if a given word is present
+in the language data:</p>
+<pre><code class="language-python">&gt;&gt;&gt; from simplemma import is_known
+&gt;&gt;&gt; is_known('spaghetti', lang='it')
+True
+</code></pre>
+<h3 id="tokenization">Tokenization</h3>
+<p>A simple tokenization function is provided for convenience:</p>
+<pre><code class="language-python">&gt;&gt;&gt; from simplemma import simple_tokenizer
+&gt;&gt;&gt; simple_tokenizer('Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.')
+['Lorem', 'ipsum', 'dolor', 'sit', 'amet', ',', 'consectetur', 'adipiscing', 'elit', ',', 'sed', 'do', 'eiusmod', 'tempor', 'incididunt', 'ut', 'labore', 'et', 'dolore', 'magna', 'aliqua', '.']
+# for an iterator instead of a list, use the RegexTokenizer directly
+&gt;&gt;&gt; from simplemma import RegexTokenizer
+&gt;&gt;&gt; RegexTokenizer().split_text('Lorem ipsum dolor sit amet')
+&lt;generator object ...&gt;
+</code></pre>
+<p>The functions <code>text_lemmatizer()</code> and <code>lemma_iterator()</code> chain
+tokenization and lemmatization. They accept the same <code>greedy</code> argument
+as <code>lemmatize()</code>:</p>
+<pre><code class="language-python">&gt;&gt;&gt; from simplemma import text_lemmatizer
+&gt;&gt;&gt; sentence = 'Sou o intervalo entre o que desejo ser e os outros me fizeram.'
+&gt;&gt;&gt; text_lemmatizer(sentence, lang='pt')
+# caveat: desejo is also a noun, should be desejar here
+['ser', 'o', 'intervalo', 'entre', 'o', 'que', 'desejo', 'ser', 'e', 'o', 'outro', 'me', 'fazer', '.']
+# same principle, returns a generator and not a list
+&gt;&gt;&gt; from simplemma import lemma_iterator
+&gt;&gt;&gt; lemma_iterator(sentence, lang='pt')
+</code></pre>
+<h3 id="caveats">Caveats</h3>
+<pre><code class="language-python"># don't expect too much though
+# this diminutive form isn't in the model data
+&gt;&gt;&gt; simplemma.lemmatize('spaghettini', lang='it')
+'spaghettini' # should read 'spaghettino'
+# the algorithm cannot choose between valid alternatives yet
+&gt;&gt;&gt; simplemma.lemmatize('son', lang='es')
+'son' # valid common name, but what about the verb form?
+</code></pre>
+<p>As the focus lies on overall coverage, some short frequent words
+(typically: pronouns and conjunctions) may need post-processing, this
+generally concerns a few dozens of tokens per language.</p>
+<p>The current absence of morphosyntactic information is an advantage in
+terms of simplicity. However, it is also an impassable frontier regarding
+lemmatization accuracy, for example when it comes to disambiguating
+between past participles and adjectives derived from verbs in Germanic
+and Romance languages. In most cases, <code>simplemma</code> often does not change
+such input words.</p>
+<p>The greedy algorithm seldom produces invalid forms. It is designed to
+work best in the low-frequency range, notably for compound words and
+neologisms. Aggressive decomposition is only useful as a general
+approach in the case of morphologically-rich languages, where it can
+also act as a linguistically motivated stemmer.</p>
+<p>Bug reports over the <a href="https://github.com/adbar/simplemma/issues">issues
+page</a> are welcome.</p>
+<h3 id="language-detection">Language detection</h3>
+<p>Language detection works by providing a text and a tuple <code>lang</code> consisting
+of a series of languages of interest. Each score is a proportion between 0
+and 1. The proportions are computed independently per language, so a token
+recognized in several languages counts towards each of them and the scores
+need not sum to 1.</p>
+<p>The <code>langdetect()</code> function returns a list of language codes along
+with their corresponding scores, appending "unk" for the proportion of
+unknown or out-of-vocabulary tokens. The proportion of tokens that belong
+to the target language(s) can also be obtained directly with the
+<code>in_target_language()</code> function, which returns a single ratio.</p>
+<pre><code class="language-python"># import necessary functions
+&gt;&gt;&gt; from simplemma import in_target_language, langdetect
+# language detection
+&gt;&gt;&gt; langdetect('&quot;Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce.&quot;', lang=(&quot;cs&quot;, &quot;sk&quot;))
+[(&quot;cs&quot;, 0.75), (&quot;sk&quot;, 0.125), (&quot;unk&quot;, 0.25)]
+# proportion of known words
+&gt;&gt;&gt; in_target_language(&quot;opera post physica posita (τὰ μετὰ τὰ φυσικά)&quot;, lang=&quot;la&quot;)
+0.5
+</code></pre>
+<p>The <code>greedy</code> argument (<code>extensive</code> in past software versions) triggers
+use of the greedier decomposition algorithm described above, thus
+extending word coverage and recall of detection at the potential cost of
+a lesser accuracy.</p>
+<h3 id="advanced-usage-via-classes">Advanced usage via classes</h3>
+<p>The functions described above are suitable for simple usage, but you
+can have more control by instantiating Simplemma classes and calling
+their methods instead. Lemmatization is handled by the <code>Lemmatizer</code>
+class, while language detection is handled by the <code>LanguageDetector</code>
+class. These in turn rely on different lemmatization strategies, which
+are implementations of the <code>LemmatizationStrategy</code> protocol. The
+<code>DefaultStrategy</code> implementation uses a combination of different
+strategies, one of which is <code>DictionaryLookupStrategy</code>. It looks up
+tokens in a dictionary created by a <code>DictionaryFactory</code>.</p>
+<p>For example, it is possible to conserve RAM by limiting the number of
+cached language dictionaries (default: 8) by creating a custom
+<code>DefaultDictionaryFactory</code> with a specific <code>cache_max_size</code> setting,
+creating a <code>DefaultStrategy</code> using that factory, and then creating a
+<code>Lemmatizer</code> and/or a <code>LanguageDetector</code> using that strategy:</p>
+<pre><code class="language-python"># import necessary classes
+&gt;&gt;&gt; from simplemma import LanguageDetector, Lemmatizer
+&gt;&gt;&gt; from simplemma.strategies import DefaultStrategy
+&gt;&gt;&gt; from simplemma.strategies.dictionaries import DefaultDictionaryFactory
+
+LANG_CACHE_SIZE = 5  # How many language dictionaries to keep in memory at once (max)
+&gt;&gt;&gt; dictionary_factory = DefaultDictionaryFactory(cache_max_size=LANG_CACHE_SIZE)
+&gt;&gt;&gt; lemmatization_strategy = DefaultStrategy(dictionary_factory=dictionary_factory)
+
+# lemmatize using the above customized strategy
+&gt;&gt;&gt; lemmatizer = Lemmatizer(lemmatization_strategy=lemmatization_strategy)
+&gt;&gt;&gt; lemmatizer.lemmatize('doughnuts', lang='en')
+'doughnut'
+
+# detect languages using the above customized strategy
+&gt;&gt;&gt; language_detector = LanguageDetector('la', lemmatization_strategy=lemmatization_strategy)
+&gt;&gt;&gt; language_detector.proportion_in_target_languages(&quot;opera post physica posita (τὰ μετὰ τὰ φυσικά)&quot;)
+0.5
+</code></pre>
+<p>For more information see the
+<a href="https://adbar.github.io/simplemma/">extended documentation</a>.</p>
+<h3 id="reducing-memory-usage">Reducing memory usage</h3>
+<p>Simplemma provides an alternative solution for situations where low
+memory usage and fast initialization time are more important than
+lemmatization and language detection performance. This solution uses a
+<code>DictionaryFactory</code> that employs a trie as its underlying data structure,
+rather than a Python dict.</p>
+<p>The <code>TrieDictionaryFactory</code> reduces memory usage by an average of
+20x and initialization time by 100x, but this comes at the cost of
+potentially reducing performance by 50% or more, depending on the
+specific usage.</p>
+<p>To use the <code>TrieDictionaryFactory</code> you have to install Simplemma with
+the <code>marisa-trie</code> extra dependency (available from version 1.1.0):</p>
+<pre><code class="language-bash">pip install simplemma[marisa-trie]
+</code></pre>
+<p>Then you have to create a custom strategy using the
+<code>TrieDictionaryFactory</code> and use that for <code>Lemmatizer</code> and
+<code>LanguageDetector</code> instances:</p>
+<pre><code class="language-python">&gt;&gt;&gt; from simplemma import LanguageDetector, Lemmatizer
+&gt;&gt;&gt; from simplemma.strategies import DefaultStrategy
+&gt;&gt;&gt; from simplemma.strategies.dictionaries import TrieDictionaryFactory
+
+&gt;&gt;&gt; lemmatization_strategy = DefaultStrategy(dictionary_factory=TrieDictionaryFactory())
+
+&gt;&gt;&gt; lemmatizer = Lemmatizer(lemmatization_strategy=lemmatization_strategy)
+&gt;&gt;&gt; lemmatizer.lemmatize('doughnuts', lang='en')
+'doughnut'
+
+&gt;&gt;&gt; language_detector = LanguageDetector('la', lemmatization_strategy=lemmatization_strategy)
+&gt;&gt;&gt; language_detector.proportion_in_target_languages(&quot;opera post physica posita (τὰ μετὰ τὰ φυσικά)&quot;)
+0.5
+</code></pre>
+<p>While memory usage and initialization time when using the
+<code>TrieDictionaryFactory</code> are significantly lower compared to the
+<code>DefaultDictionaryFactory</code>, that's only true if the trie dictionaries
+are available on disk. That's not the case when using the
+<code>TrieDictionaryFactory</code> for the first time, as Simplemma only ships
+the dictionaries as Python dicts. The trie dictionaries have to be
+generated once from the Python dicts. That happens on-the-fly when
+using the <code>TrieDictionaryFactory</code> for the first time for a language and
+will take a few seconds and use as much memory as loading the Python
+dicts for the language requires. For further invocations the trie
+dictionaries get cached on disk.</p>
+<p>If the machine that will run Simplemma doesn't have enough memory to
+generate the trie dictionaries, they can also be generated on another
+computer with the same CPU architecture and copied over to the cache
+directory.</p>
+<p>For the full set of examples (language chaining, greedy decomposition,
+tokenization, language detection and class-based usage), see the project
+<a href="https://github.com/adbar/simplemma#usage">README</a> and the API
+<a href="reference/lemmatizer/">Reference</a>.</p>
 
 
 
@@ -1102,10 +1743,13 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": ".", "features": ["navigation.instant", "navigation.tracking", "toc.follow"], "search": "assets/javascripts/workers/search.07f07601.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.instant", "navigation.tracking", "toc.follow"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.56dfad97.min.js"></script>
+      <script src="assets/javascripts/bundle.79ae519e.min.js"></script>
       
     
   </body>
