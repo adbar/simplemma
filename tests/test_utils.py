@@ -1,29 +1,37 @@
 """Tests for `simplemma.utils`."""
 
+import unicodedata
+
 import pytest
 
-from simplemma import is_known
-from simplemma.utils import levenshtein_dist, validate_lang_input
+from simplemma import is_known, lemmatize
+from simplemma.utils import levenshtein_dist, normalize_token, validate_lang_input
+
+
+def test_normalize_token() -> None:
+    # decomposed (NFD) input is recomposed to NFC
+    nfd = unicodedata.normalize("NFD", "Häuser")
+    assert nfd != "Häuser"  # the two byte sequences genuinely differ
+    assert normalize_token(nfd) == "Häuser"
+    # already-NFC input is returned byte-identical (idempotent)
+    assert normalize_token("Häuser") == "Häuser"
+    assert normalize_token(normalize_token(nfd)) == normalize_token(nfd)
+    # NFC, not NFKC: compatibility characters are preserved, not folded
+    assert normalize_token("ﬁ") == "ﬁ"  # ligature stays, would become "fi" under NFKC
 
 
 def test_validate_lang_input() -> None:
-    # a string is wrapped into a one-element tuple
     assert validate_lang_input("en") == ("en",)
-    # a tuple is passed through unchanged
     assert validate_lang_input(("de", "en")) == ("de", "en")
-    # an empty tuple is passed through unchanged (there is no guard against it;
-    # downstream this makes the lemmatizer fallback raise StopIteration on
-    # next(iter(lang)))
-    assert validate_lang_input(()) == ()
-    # non-str / non-tuple inputs raise TypeError. This branch is otherwise
-    # never reached through lemmatize(), where an unhashable lang argument
-    # fails earlier in the lru_cache rather than in validate_lang_input.
+    # empty lang must fail cleanly, not as a downstream StopIteration
+    with pytest.raises(ValueError):
+        validate_lang_input(())
+    with pytest.raises(ValueError):
+        lemmatize("test", ())
     with pytest.raises(TypeError):
         validate_lang_input(123)  # type: ignore[arg-type]
-    # a list is the realistic mistake (mutable, looks tuple-like)
     with pytest.raises(TypeError):
         validate_lang_input(["en"])  # type: ignore[arg-type]
-    # end-to-end through is_known(), which validates directly without caching
     with pytest.raises(TypeError):
         is_known("test", lang=123)  # type: ignore[arg-type]
 

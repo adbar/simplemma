@@ -15,7 +15,7 @@ from .token_sampler import (
     RelaxedMostCommonTokenSampler,
     TokenSampler,
 )
-from .utils import validate_lang_input
+from .utils import normalize_token, validate_lang_input
 
 
 def in_target_language(
@@ -67,6 +67,7 @@ def langdetect(
             and their respective proportions.
     """
 
+    list_results: list[tuple[str, float]] = []
     for token_sampler in token_samplers:
         results = LanguageDetector(
             lang, token_sampler, DefaultStrategy(greedy)
@@ -159,6 +160,7 @@ class LanguageDetector:
         known_tokens_count = dict.fromkeys(self._lang, 0)
         unknown_tokens_count = 0
         for token in tokens:
+            token = normalize_token(token)
             token_found = False
             for lang_code in self._lang:
                 candidate = self._lemmatization_strategy.get_lemma(token, lang_code)
@@ -194,6 +196,7 @@ class LanguageDetector:
 
         in_target = 0
         for token in tokens:
+            token = normalize_token(token)
             for lang_code in self._lang:
                 candidate = self._lemmatization_strategy.get_lemma(token, lang_code)
                 if candidate is not None:

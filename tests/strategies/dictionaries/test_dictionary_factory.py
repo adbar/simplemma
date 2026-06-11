@@ -36,8 +36,7 @@ def test_dictionary_cache() -> None:
     for _ in range(iterations):
         dictionaries.get_dictionary("en")
         dictionaries.get_dictionary("de")
-    assert dictionaries._load_dictionary_from_disk.cache_info().misses == 2
-    assert (
-        dictionaries._load_dictionary_from_disk.cache_info().hits
-        == (iterations - 1) * 2
-    )
+    assert dictionaries._get_dictionary.cache_info().misses == 2
+    assert dictionaries._get_dictionary.cache_info().hits == (iterations - 1) * 2
+    # the cached wrapper itself is reused, not just the underlying dict
+    assert dictionaries.get_dictionary("en") is dictionaries.get_dictionary("en")

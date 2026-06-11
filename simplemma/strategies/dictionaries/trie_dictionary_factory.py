@@ -36,6 +36,11 @@ class TrieWrapDict(MutableMapping[str, Any]):
     def __getitem__(self, item: str) -> Any:
         return self._trie[item][0].decode()
 
+    def get(self, key: str, default: Any = None) -> Any:
+        # Avoids MutableMapping.get's EAFP path (a KeyError raised on every miss).
+        value = self._trie.get(key)
+        return value[0].decode() if value else default
+
     def __setitem__(self, key: Any, value: Any) -> None:
         raise NotImplementedError
 

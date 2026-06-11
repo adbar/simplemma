@@ -13,11 +13,14 @@ import pickle
 from abc import abstractmethod
 from functools import lru_cache
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, TypeVar, overload
 from collections.abc import Iterator, Mapping
 
+_T = TypeVar("_T")
+
 DATA_FOLDER = Path(__file__).parent / "data"
-SUPPORTED_LANGUAGES = [f.stem for f in DATA_FOLDER.glob("*.plzma")]
+# frozenset: O(1) membership, checked on every get_dictionary call.
+SUPPORTED_LANGUAGES = frozenset(f.stem for f in DATA_FOLDER.glob("*.plzma"))
 
 
 def _load_dictionary_from_disk(langcode: str) -> dict[bytes, bytes]:
@@ -86,6 +89,16 @@ class MappingStrToByteString(Mapping[str, str]):
     def __getitem__(self, item: str) -> str:
         return self._dict[item.encode()].decode()
 
+    # The overloads mirror Mapping.get's signature for strict mypy.
+    @overload
+    def get(self, key: str) -> str | None: ...
+    @overload
+    def get(self, key: str, default: str | _T) -> str | _T: ...
+    def get(self, key: str, default: str | _T | None = None) -> str | _T | None:
+        # Avoids Mapping.get's EAFP path (a KeyError raised on every miss).
+        value = self._dict.get(key.encode())
+        return value.decode() if value is not None else default
+
     def __iter__(self) -> Iterator[str]:
         for key in self._dict:
             yield key.decode()
@@ -102,7 +115,7 @@ class DefaultDictionaryFactory(DictionaryFactory):
     It provides functionality for loading and caching dictionaries from disk that are included in Simplemma.
     """
 
-    __slots__ = ["_load_dictionary_from_disk"]
+    __slots__ = ["_get_dictionary"]
 
     def __init__(self, cache_max_size: int = 8) -> None:
         """
@@ -112,9 +125,17 @@ class DefaultDictionaryFactory(DictionaryFactory):
             cache_max_size (int): The maximum size of the cache for loaded dictionaries.
                 Defaults to `8`.
         """
-        self._load_dictionary_from_disk = lru_cache(maxsize=cache_max_size)(
-            _load_dictionary_from_disk
+        # Cache the wrapper, not the raw dict, to avoid re-wrapping on every
+        # call; the lru evicts wrapper and dict together, bounding memory.
+        self._get_dictionary = lru_cache(maxsize=cache_max_size)(
+            self._get_dictionary_uncached
         )
+
+    def _get_dictionary_uncached(self, lang: str) -> Mapping[str, str]:
+        """Build the dictionary for a language, without caching."""
+        if lang not in SUPPORTED_LANGUAGES:
+            raise ValueError(f"Unsupported language: {lang}")
+        return MappingStrToByteString(_load_dictionary_from_disk(lang))
 
     def get_dictionary(
         self,
@@ -132,6 +153,4 @@ class DefaultDictionaryFactory(DictionaryFactory):
         Raises:
             ValueError: If the specified language is not supported.
         """
-        if lang not in SUPPORTED_LANGUAGES:
-            raise ValueError(f"Unsupported language: {lang}")
-        return MappingStrToByteString(self._load_dictionary_from_disk(lang))
+        return self._get_dictionary(lang)

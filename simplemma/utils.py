@@ -4,7 +4,23 @@ Contains utility functions for language processing.
 
 - [levenshtein_dist][simplemma.utils.levenshtein_dist]: Calculates the Levenshtein distance between two strings.
 - [validate_lang_input][simplemma.utils.validate_lang_input]: Validates the language input and ensures it is a valid tuple.
+- [normalize_token][simplemma.utils.normalize_token]: Normalizes a token to Unicode NFC form.
 """
+
+import unicodedata
+
+
+def normalize_token(token: str) -> str:
+    """
+    Normalize a token to Unicode NFC, matching the shipped dictionaries.
+
+    Args:
+        token (str): The input token.
+
+    Returns:
+        str: The token in NFC form.
+    """
+    return unicodedata.normalize("NFC", token)
 
 
 def validate_lang_input(lang: str | tuple[str, ...]) -> tuple[str, ...]:
@@ -19,6 +35,7 @@ def validate_lang_input(lang: str | tuple[str, ...]) -> tuple[str, ...]:
 
     Raises:
         TypeError: If the lang argument is not a tuple or a string.
+        ValueError: If the lang argument is empty.
 
     """
     # convert string
@@ -26,6 +43,8 @@ def validate_lang_input(lang: str | tuple[str, ...]) -> tuple[str, ...]:
         lang = (lang,)
     if not isinstance(lang, tuple):
         raise TypeError("lang argument must be a two-letter language code")
+    if not lang:
+        raise ValueError("lang argument is empty: provide at least one language code")
     return lang
 
 

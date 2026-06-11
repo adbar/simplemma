@@ -6,6 +6,11 @@ from simplemma.strategies import DefaultStrategy
 from .test_token_sampler import CustomTokenSampler
 
 
+def test_langdetect_no_samplers() -> None:
+    # no samplers means no results, not an UnboundLocalError
+    assert langdetect("Dies ist ein Test.", lang=("de", "en"), token_samplers=[]) == []
+
+
 def test_proportion_in_each_language() -> None:
     # sanity checks
     assert LanguageDetector(

@@ -150,7 +150,7 @@ class MostCommonTokenSampler(BaseTokenSampler):
         counter = Counter(tokens)
 
         if self._capitalized_threshold > 0:
-            deletions = [token for token in counter if token[0].isupper()]
+            deletions = [token for token in counter if token and token[0].isupper()]
             if len(deletions) < self._capitalized_threshold * len(counter):
                 for token in deletions:
                     del counter[token]
