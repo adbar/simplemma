@@ -55,8 +55,7 @@ def test_search() -> None:
 
     assert AffixDecompositionStrategy(greedy=True).get_lemma("ccc", "de") is None
 
-    # tokens longer than the safety cap are rejected outright (guards against
-    # the quadratic blow-up that would otherwise hang on hostile/long input)
+    # tokens over the safety cap are rejected outright (quadratic blow-up guard)
     affix = AffixDecompositionStrategy(greedy=True)
     assert affix.get_lemma("a" * 101, "fi") is None
     assert affix.get_lemma("a" * 100000, "fi") is None
@@ -65,12 +64,7 @@ def test_search() -> None:
 
 
 def test_affix_decomposition() -> None:
-    """Regression anchors for the long-affix languages (max_affix_len=5).
-
-    These guard the single-pass affix decomposition: each token is resolved by
-    stripping a multi-character affix, the path that the former decreasing-affixlen
-    loop exercised.
-    """
+    """Single-pass affix decomposition resolves multi-character affixes (max_affix_len=5)."""
     affix = AffixDecompositionStrategy(greedy=True)
     assert affix.get_lemma("kissammeko", "fi") == "kissa"  # FI "and our cat?" -> cat
     assert affix.get_lemma("könyveiteket", "hu") == "könyv"  # HU "your books" -> book

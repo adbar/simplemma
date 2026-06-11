@@ -39,12 +39,10 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
             str | None: The lemma for the token, or `None` if not found in the dictionary.
 
         """
-        if not token:
-            return None
         # Search the language data, reverse case to extend coverage.
         dictionary = self._dictionary_factory.get_dictionary(lang)
         if result := dictionary.get(token):
             return result
-        # Try upper or lowercase.
-        token = token.lower() if token[0].isupper() else token.capitalize()
+        # Try upper or lowercase (token[:1] stays empty-safe for empty input).
+        token = token.lower() if token[:1].isupper() else token.capitalize()
         return dictionary.get(token)

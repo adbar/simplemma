@@ -9,13 +9,10 @@ from simplemma.utils import levenshtein_dist, normalize_token, validate_lang_inp
 
 
 def test_normalize_token() -> None:
-    # decomposed (NFD) input is recomposed to NFC
     nfd = unicodedata.normalize("NFD", "Häuser")
-    assert nfd != "Häuser"  # the two byte sequences genuinely differ
+    assert nfd != "Häuser"
     assert normalize_token(nfd) == "Häuser"
-    # already-NFC input is returned byte-identical (idempotent)
     assert normalize_token("Häuser") == "Häuser"
-    assert normalize_token(normalize_token(nfd)) == normalize_token(nfd)
     # NFC, not NFKC: compatibility characters are preserved, not folded
     assert normalize_token("ﬁ") == "ﬁ"  # ligature stays, would become "fi" under NFKC
 

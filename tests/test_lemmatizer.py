@@ -588,26 +588,16 @@ def test_get_lemmas_in_text() -> None:
 
 def test_nfc_normalization() -> None:
     """Decomposed (NFD) input must lemmatize like its composed (NFC) form."""
-    nfc = "Häuser"
-    nfd = unicodedata.normalize("NFD", nfc)
-    assert nfd != nfc  # genuinely different byte sequences
-    # both forms resolve to the same lemma (previously NFD silently failed)
-    assert lemmatize(nfd, lang="de") == lemmatize(nfc, lang="de") == "Haus"
-    # is_known agrees on both forms
-    assert is_known(nfd, lang="de") == is_known(nfc, lang="de") is True
+    nfd = unicodedata.normalize("NFD", "Häuser")
+    assert lemmatize(nfd, lang="de") == lemmatize("Häuser", lang="de") == "Haus"
+    assert is_known(nfd, lang="de") == is_known("Häuser", lang="de") is True
     # output is always NFC, even when the input was decomposed
-    café_nfd = unicodedata.normalize("NFD", "café")
-    assert lemmatize(café_nfd, lang="fr") == unicodedata.normalize(
-        "NFC", lemmatize(café_nfd, lang="fr")
-    )
+    out = lemmatize(unicodedata.normalize("NFD", "café"), lang="fr")
+    assert out == unicodedata.normalize("NFC", out)
 
 
 def test_long_token_does_not_hang() -> None:
     """A pathologically long token must return quickly, not trigger O(n²) decomposition."""
-    # Before the affix-length cap this hung for ~minutes; it must now be instant
-    # and fall through to the fallback (the token is unknown), returned unchanged.
-    long_token = "a" * 50000
-    assert lemmatize(long_token, lang="fi") == long_token
-    # a token just over the cap is also handled, while normal-length input still lemmatizes
+    assert lemmatize("a" * 50000, lang="fi") == "a" * 50000  # was minutes, now instant
     assert lemmatize("a" * 101, lang="fi") == "a" * 101
     assert lemmatize("masks", lang="en") == "mask"
