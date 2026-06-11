@@ -34,7 +34,7 @@ def _load_dictionary_from_disk(langcode: str) -> dict[bytes, bytes]:
         dict[str, str]: The loaded dictionary.
 
     Raises:
-        AssertionError: If the loaded object is not a dictionary.
+        TypeError: If the loaded object is not a dictionary.
 
     Note:
         This function assumes that the dictionary file is stored in the 'data' folder relative to this module.

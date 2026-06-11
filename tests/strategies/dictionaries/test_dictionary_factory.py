@@ -1,7 +1,19 @@
 import pytest
 
 from simplemma.strategies import DefaultDictionaryFactory
-from simplemma.strategies.dictionaries.dictionary_factory import MappingStrToByteString
+from simplemma.strategies.dictionaries.dictionary_factory import (
+    MappingStrToByteString,
+    _load_dictionary_from_disk,
+)
+
+
+def test_load_dictionary_rejects_non_dict(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "simplemma.strategies.dictionaries.dictionary_factory.pickle.load",
+        lambda _filehandle: ["not", "a", "dict"],
+    )
+    with pytest.raises(TypeError, match="unexpected data"):
+        _load_dictionary_from_disk("en")
 
 
 def test_mapping_str_to_bytestring() -> None:
