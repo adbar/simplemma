@@ -43,7 +43,8 @@ def _load_dictionary_from_disk(langcode: str) -> dict[bytes, bytes]:
     filepath = DATA_FOLDER / f"{langcode}.plzma"
     with lzma.open(filepath, "rb") as filehandle:
         pickled_dict = pickle.load(filehandle)
-        assert isinstance(pickled_dict, dict)
+        if not isinstance(pickled_dict, dict):
+            raise TypeError(f"unexpected data in {filepath}: {type(pickled_dict)}")
         return pickled_dict
 
 

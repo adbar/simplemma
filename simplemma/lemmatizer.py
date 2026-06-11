@@ -158,6 +158,7 @@ _legacy_greedy_lemmatizer = Lemmatizer(
         greedy=True, dictionary_factory=_legacy_dictionary_factory
     )
 )
+_legacy_dictionary_lookup = DictionaryLookupStrategy(_legacy_dictionary_factory)
 
 
 def is_known(token: str, lang: str | tuple[str, ...]) -> bool:
@@ -175,9 +176,9 @@ def is_known(token: str, lang: str | tuple[str, ...]) -> bool:
     token = normalize_token(token)
     lang = validate_lang_input(lang)
 
-    dictionary_lookup = DictionaryLookupStrategy(_legacy_dictionary_factory)
     return any(
-        dictionary_lookup.get_lemma(token, lang_code) is not None for lang_code in lang
+        _legacy_dictionary_lookup.get_lemma(token, lang_code) is not None
+        for lang_code in lang
     )
 
 

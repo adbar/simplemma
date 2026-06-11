@@ -3,7 +3,7 @@ This file defines the `AffixDecompositionStrategy` class, which implements an af
 """
 
 from .dictionary_lookup import DictionaryLookupStrategy
-from .greedy_dictionary_lookup import SHORTER_GREEDY, GreedyDictionaryLookupStrategy
+from .greedy_dictionary_lookup import GreedyDictionaryLookupStrategy, greedy_min_length
 from .lemmatization_strategy import LemmatizationStrategy
 
 # TODO: This custom behavior has to be simplified before it becomes unmaintainable
@@ -75,10 +75,9 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
         Returns:
             str | None: The lemma of the token if found, or None otherwise.
         """
-        limit = 6 if lang in SHORTER_GREEDY else 8
         if (
             (not self._greedy and lang not in AFFIX_LANGS)
-            or len(token) <= limit
+            or len(token) <= greedy_min_length(lang)
             or len(token) > MAXLEN
         ):
             return None
@@ -158,7 +157,7 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
             suffix = self._dictionary_lookup.get_lemma(
                 token[-count:].capitalize(), lang
             )
-            if suffix is not None and len(suffix) <= len(token[-count:]):
+            if suffix is not None and len(suffix) <= count:
                 return token[:-count] + suffix.lower()
 
         return None

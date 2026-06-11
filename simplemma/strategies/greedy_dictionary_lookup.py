@@ -10,6 +10,11 @@ from .lemmatization_strategy import LemmatizationStrategy
 SHORTER_GREEDY = {"bg", "et", "fi", "lv"}
 
 
+def greedy_min_length(lang: str) -> int:
+    """Shortest token worth decomposing; shorter ones are returned/skipped as-is."""
+    return 6 if lang in SHORTER_GREEDY else 8
+
+
 class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
     """
     This class represents a lemmatization strategy that performs lemmatization using a greedy dictionary lookup strategy.
@@ -53,8 +58,7 @@ class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
             str: The lemma for the token.
 
         """
-        limit = 6 if lang in SHORTER_GREEDY else 8
-        if len(token) <= limit:
+        if len(token) <= greedy_min_length(lang):
             return token
 
         dictionary = self._dictionary_factory.get_dictionary(lang)
