@@ -190,12 +190,11 @@ def test_corrupted_disk_cache() -> None:
                 f.write(b"corrupted trie dictionary")
             dictionaries._get_dictionary.cache_clear()
 
-            # Loading a corrupted hash should regenerate it.
-            with pytest.raises(RuntimeError):
-                dictionaries.get_dictionary("en")
+            # Loading a corrupted file should regenerate it.
+            dictionaries.get_dictionary("en")
 
-            create_trie_mock.assert_not_called()
-            write_trie_mock.assert_not_called()
+            create_trie_mock.assert_called_once_with("en")
+            write_trie_mock.assert_called_once()
 
             assert sorted(tmp_dir_path.iterdir()) == [tmp_dir_path / "en.dic"]
 
