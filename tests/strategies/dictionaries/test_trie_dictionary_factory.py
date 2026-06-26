@@ -223,7 +223,9 @@ def test_write_failure_still_returns_dictionary() -> None:
     with TemporaryDirectory() as tmp_dir:
         dictionaries = TrieDictionaryFactory(disk_cache_dir=tmp_dir)
         with patch.object(
-            TrieDictionaryFactory, "_write_trie_to_disk", side_effect=OSError("disk full")
+            TrieDictionaryFactory,
+            "_write_trie_to_disk",
+            side_effect=OSError("disk full"),
         ):
             result = dictionaries.get_dictionary("en")
         assert result.get("balconies") == "balcony"
