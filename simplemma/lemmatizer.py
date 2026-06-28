@@ -22,7 +22,7 @@ from .strategies import (
     ToLowercaseFallbackStrategy,
 )
 from .tokenizer import RegexTokenizer, Tokenizer
-from .utils import validate_lang_input
+from .utils import normalize_token, validate_lang_input
 
 PUNCTUATION = {".", "?", "!", "…", "¿", "¡"}
 
@@ -41,7 +41,7 @@ def _control_input_type(token: Any) -> None:
     if not isinstance(token, str):
         raise TypeError(f"Wrong input type, expected string, got {type(token)}")
     if token == "":
-        raise ValueError("Wrong input type: empty string")
+        raise ValueError("Wrong input value: empty string")
 
 
 class Lemmatizer:
@@ -56,7 +56,7 @@ class Lemmatizer:
 
     def __init__(
         self,
-        cache_max_size: int = 1048576,
+        cache_max_size: int = 65536,
         tokenizer: Tokenizer = RegexTokenizer(),
         lemmatization_strategy: LemmatizationStrategy = DefaultStrategy(),
         fallback_lemmatization_strategy: LemmatizationFallbackStrategy = ToLowercaseFallbackStrategy(),
@@ -66,7 +66,7 @@ class Lemmatizer:
 
         Args:
             cache_max_size (int, optional): The maximum size of the cache for the lemmatization results.
-                Defaults to `1048576`.
+                Defaults to `65536`.
             tokenizer (Tokenizer, optional): The tokenizer to use for tokenization.
                 Defaults to `RegexTokenizer()`.
             lemmatization_strategy (LemmatizationStrategy, optional): The lemmatization strategy to use.
@@ -94,7 +94,8 @@ class Lemmatizer:
         Returns:
             str: The lemmatized form of the token.
         """
-        return self._cached_lemmatize(token, lang)
+        # NFC before caching: canonical key, matches the NFC dictionaries.
+        return self._cached_lemmatize(normalize_token(token), lang)
 
     def _lemmatize(
         self,
@@ -102,6 +103,10 @@ class Lemmatizer:
         lang: str | tuple[str, ...],
     ) -> str:
         """Internal method to lemmatize a token in the specified language(s).
+
+        The token arrives NFC-normalized by ``lemmatize``. Input validation
+        happens here so it only runs on cache misses, keeping hits cheap
+        (exceptions are never cached by ``lru_cache``).
 
         Args:
             token: The token to lemmatize.
@@ -153,6 +158,7 @@ _legacy_greedy_lemmatizer = Lemmatizer(
         greedy=True, dictionary_factory=_legacy_dictionary_factory
     )
 )
+_legacy_dictionary_lookup = DictionaryLookupStrategy(_legacy_dictionary_factory)
 
 
 def is_known(token: str, lang: str | tuple[str, ...]) -> bool:
@@ -167,11 +173,12 @@ def is_known(token: str, lang: str | tuple[str, ...]) -> bool:
     """
 
     _control_input_type(token)
+    token = normalize_token(token)
     lang = validate_lang_input(lang)
 
-    dictionary_lookup = DictionaryLookupStrategy(_legacy_dictionary_factory)
     return any(
-        dictionary_lookup.get_lemma(token, lang_code) is not None for lang_code in lang
+        _legacy_dictionary_lookup.get_lemma(token, lang_code) is not None
+        for lang_code in lang
     )
 
 

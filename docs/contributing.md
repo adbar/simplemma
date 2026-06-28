@@ -22,7 +22,7 @@ checks that CI runs:
 # Code style
 black --check --diff simplemma training tests
 # Linting
-flake8 simplemma training tests
+ruff check .
 # Type checking
 mypy -p simplemma -p training -p tests
 # Tests

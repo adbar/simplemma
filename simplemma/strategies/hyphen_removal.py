@@ -53,8 +53,10 @@ class HyphenRemovalStrategy(LemmatizationStrategy):
             str | None: The lemma for the token, or None if no lemma is found.
 
         """
+        if not any(hyphen in token for hyphen in HYPHENS):
+            return None
         token_parts = HYPHEN_REGEX.split(token)
-        if len(token_parts) <= 1 or not token_parts[-1]:
+        if not token_parts[-1]:
             return None
 
         # try to find a word form without hyphen

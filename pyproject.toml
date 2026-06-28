@@ -116,8 +116,8 @@ test = [
 dev = [
     "simplemma[test]",
     "black == 26.5.1",
-    "flake8 == 7.3.0",
     "mypy == 2.1.0",
+    "ruff == 0.15.16",
     "types-requests == 2.33.0.20260518",
 ]
 docs = [
@@ -139,6 +139,13 @@ module = ["tests.*", "training.*"]
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 check_untyped_defs = false
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+# Linting uses ruff's default rule set (E4, E7, E9, F): pyflakes plus the
+# import, statement and runtime-error pycodestyle checks. Formatting is handled
+# by black.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
