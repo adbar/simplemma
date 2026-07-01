@@ -6,8 +6,8 @@ from typing import Any
 from collections.abc import Iterator, Mapping
 
 try:
-    from marisa_trie import BytesTrie, HUGE_CACHE  # type: ignore[import-not-found]
-    from platformdirs import user_cache_dir  # type: ignore[import-not-found]
+    from marisa_trie import BytesTrie, HUGE_CACHE
+    from platformdirs import user_cache_dir
 except ImportError:
 
     class BytesTrie:  # type: ignore[no-redef]

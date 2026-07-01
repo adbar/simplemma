@@ -6,7 +6,7 @@ from unittest.mock import call, patch
 import pytest
 
 try:
-    from marisa_trie import BytesTrie  # type: ignore[import-not-found]
+    from marisa_trie import BytesTrie
 
     HAS_MARISA = True
 except ImportError:
