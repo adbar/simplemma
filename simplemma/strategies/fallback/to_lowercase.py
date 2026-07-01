@@ -20,7 +20,7 @@ class ToLowercaseFallbackStrategy(LemmatizationFallbackStrategy):
         Initialize the ToLowercaseFallbackStrategy with the specified set of languages to convert to lowercase.
 
         Args:
-            langs_to_lower (Set[str]): The set of languages for which tokens should be converted to lowercase.
+            langs_to_lower (set[str]): The set of languages for which tokens should be converted to lowercase.
                 Defaults to `BETTER_LOWER`.
 
         """

@@ -7,7 +7,7 @@ from collections.abc import Iterator, Mapping
 
 try:
     from marisa_trie import BytesTrie, HUGE_CACHE  # type: ignore[import-not-found]
-    from platformdirs import user_cache_dir
+    from platformdirs import user_cache_dir  # type: ignore[import-not-found]
 except ImportError:
 
     class BytesTrie:  # type: ignore[no-redef]
@@ -63,7 +63,7 @@ class TrieDictionaryFactory(DictionaryFactory):
     lookup performance isn't as good as with dicts.
     """
 
-    __slots__: list[str] = ["_cache_dir", "_use_disk_cache", "_get_dictionary"]
+    __slots__ = ["_cache_dir", "_use_disk_cache", "_get_dictionary"]
 
     def __init__(
         self,

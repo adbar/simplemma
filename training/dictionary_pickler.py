@@ -4,6 +4,7 @@ Input format: lemma, tab, word, newline
 Output format: pickled Python dictionary compressed with lzma.
 """
 
+import argparse
 import logging
 import lzma
 import pickle
@@ -89,9 +90,10 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> dict[bytes, bytes]
             # process
             if columns[1] in mydict and mydict[columns[1]] != columns[0]:
                 # prevent mistakes and noise coming from the lists
-                dist1, dist2 = levenshtein_dist(
-                    columns[1], mydict[columns[1]]
-                ), levenshtein_dist(columns[1], columns[0])
+                dist1, dist2 = (
+                    levenshtein_dist(columns[1], mydict[columns[1]]),
+                    levenshtein_dist(columns[1], columns[0]),
+                )
                 # fail-safe: delete potential false entry
                 # if dist1 >= len(columns[1]) and dist2 >= len(columns[1]):
                 #    del mydict[columns[1]]
@@ -131,12 +133,22 @@ def _load_dict(
 
 
 def _determine_pickle_path(langcode: str = "en", in_place: bool = False) -> str:
-    filename = f"strategies/dictionaries/data/{langcode}.plzma"
-    directory = (
-        Path(simplemma.__file__).parent
-        if in_place
-        else Path(__file__).parent.parent / "simplemma"
-    )
+    """Determine where a pickled dictionary should be written to.
+
+    Args:
+        langcode: The language code.
+        in_place: If True, write into the installed/imported simplemma
+            package's data directory, i.e. overwrite the SHIPPED
+            dictionary. Defaults to False, which writes to a scratch
+            `training/output/` directory instead, so regenerating a
+            dictionary never clobbers shipped data by accident.
+    """
+    filename = f"{langcode}.plzma"
+    if in_place:
+        directory = Path(simplemma.__file__).parent / "strategies/dictionaries/data"
+    else:
+        directory = Path(__file__).parent / "output"
+        directory.mkdir(parents=True, exist_ok=True)
     return str(directory / filename)
 
 
@@ -158,6 +170,16 @@ def _pickle_dict(
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--in-place",
+        action="store_true",
+        help="Write into the installed simplemma package's data directory, "
+        "overwriting shipped dictionaries. Without this flag, output goes "
+        "to training/output/ instead.",
+    )
+    args = parser.parse_args()
+
     logging.basicConfig(level=logging.DEBUG)
     for listcode in sorted(SUPPORTED_LANGUAGES):
-        _pickle_dict(listcode)
+        _pickle_dict(listcode, in_place=args.in_place)
