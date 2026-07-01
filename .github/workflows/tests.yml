@@ -49,7 +49,7 @@ jobs:
 
     - name: Install full dependencies
       if: ${{ matrix.env.MINIMAL == 'false'}}
-      run: uv sync --extra marisa-trie
+      run: uv sync --extra dev --extra marisa-trie
 
     # tests
     - name: Lint with ruff
