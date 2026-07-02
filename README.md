@@ -473,9 +473,14 @@ issues](https://github.com/adbar/simplemma/issues/) for feedback, bug
 reports, or links to further lemmatization lists, rules and tests.
 
 Contributions by pull requests ought to follow the following
-conventions: code style with [black](https://github.com/psf/black), type
+conventions: code style and linting with [ruff](https://github.com/astral-sh/ruff), type
 hinting with [mypy](https://github.com/python/mypy), included tests with
 [pytest](https://pytest.org).
+
+Running `pytest` after a plain `pip install ".[dev]"` skips the `marisa-trie`
+test module and under-reports coverage; install the extra as well
+(`pip install ".[dev,marisa-trie]"` or `uv sync --extra dev --extra marisa-trie`)
+to run the full suite and match CI's coverage numbers.
 
 
 <!-- include:contributions:end -->

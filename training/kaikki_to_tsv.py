@@ -17,37 +17,58 @@ from typing import Any
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-# Kaikki "forms" rows carrying either of these tags are structural
-# placeholders (a table's own header/template name), not real inflected
-# forms — e.g. form="no-table-tags" (tag "table-tags") or a literal
-# template name like form="ro-noun-n-uri" (tag "inflection-template").
-_META_TAGS = frozenset({"table-tags", "inflection-template"})
+# Never real inflected forms: structural placeholders/template names
+# ("table-tags", "inflection-template"), a verb-class label ("class"), or
+# a transliteration into another script ("romanization"/"transliteration").
+_UNCONDITIONAL_DROP_TAGS = frozenset(
+    {
+        "table-tags",
+        "inflection-template",
+        "class",
+        "romanization",
+        "transliteration",
+    }
+)
 
-# Literal placeholder used in declension tables for a form that doesn't
-# exist for this word (e.g. an adjective with no definite form). Distinct
-# from the "error-unrecognized-form" tag, which mostly flags real forms
-# the parser merely wasn't fully confident about and must not be filtered.
+# Marks a whole-paradigm cross-reference row (e.g. a pronoun's page listing
+# other pronouns, or a verb's auxiliary) rather than an inflection of the
+# entry. Only drop when the form differs from the entry's own word: a
+# genuine self-mapping must keep its vote in dictionary_pickler's
+# evidence-count resolution, or an unrelated candidate can win instead.
+_CROSS_REFERENCE_TAGS = frozenset({"pronoun", "possessive", "auxiliary"})
+
+# Placeholder for a form that doesn't exist for this word in a declension
+# table (distinct from "error-unrecognized-form", which flags real forms).
 _PLACEHOLDER_FORM = "-"
+
+# Cyrillic word-stress combining accents, absent from running text. Deleted
+# as literal codepoints rather than via an NFD/NFC round-trip: Latin
+# precomposed accents (café) would decompose into the same codepoints and
+# get stripped too.
+_STRESS_MARKS_TABLE = str.maketrans("", "", "̀́")
+
+
+def _strip_stress_marks(text: str) -> str:
+    return text.translate(_STRESS_MARKS_TABLE)
 
 
 def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
     """Yield (lemma, word_form) pairs for a single kaikki.org entry.
 
-    Prefers explicit inflection relations (`form_of`/`alt_of`, either on the
-    entry itself or nested in one of its `senses`, meaning the entry is an
-    inflected form); falls back to the entry's own `forms` table only if
-    none were found, since `forms` also lists non-inflectional rows for
-    entries that are themselves lemmas.
+    Prefers explicit `form_of`/`alt_of` relations; falls back to the
+    entry's own `forms` table only if none were found, since `forms` also
+    lists non-inflectional rows for entries that are themselves lemmas.
     """
     word = entry.get("word")
     if not word:
         return
+    stripped_word = _strip_stress_marks(word)
 
     found_relation = False
     for relation_source in (entry, *entry.get("senses", ())):
         refs = relation_source.get("form_of") or relation_source.get("alt_of")
         if refs and refs[0].get("word"):
-            yield (refs[0]["word"], word)
+            yield (_strip_stress_marks(refs[0]["word"]), stripped_word)
             found_relation = True
 
     if found_relation:
@@ -55,13 +76,15 @@ def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
 
     for form in entry.get("forms", ()):
         word_form = form.get("form")
+        tags = form.get("tags", ())
         if (
             not word_form
             or word_form == _PLACEHOLDER_FORM
-            or _META_TAGS.intersection(form.get("tags", ()))
+            or _UNCONDITIONAL_DROP_TAGS.intersection(tags)
+            or (word_form != word and _CROSS_REFERENCE_TAGS.intersection(tags))
         ):
             continue
-        yield (word, word_form)
+        yield (stripped_word, _strip_stress_marks(word_form))
 
 
 def main(input_path: Path, output_path: Path) -> None:

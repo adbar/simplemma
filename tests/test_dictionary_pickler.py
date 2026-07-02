@@ -21,18 +21,21 @@ def _read(tmp_path, lang: str, text: str) -> dict[bytes, bytes]:
 
 def test_logic(tmp_path) -> None:
     """Test if certain code parts correspond to the intended logic."""
-    # dict generation
+    # dict generation. 4 entries: valid-word, closeones -> closeone, and an
+    # identity for each claimed lemma (closeone AND closeon — a lemma keeps
+    # its identity entry even when it loses a conflict, now that resolution
+    # no longer depends on which line came first).
     testfile = str(TEST_DIR / "data/zz.txt")
     # simple generation, silent mode
     mydict = dictionary_pickler._read_dict(testfile, "zz", silent=True)
-    assert len(mydict) == 3
+    assert len(mydict) == 4
     mydict = dictionary_pickler._load_dict(
         "zz", listpath=str(TEST_DIR / "data"), silent=True
     )
-    assert len(mydict) == 3
+    assert len(mydict) == 4
     # log warning (silent=False branch)
     mydict = dictionary_pickler._read_dict(testfile, "zz", silent=False)
-    assert len(mydict) == 3
+    assert len(mydict) == 4
 
     # file I/O
     assert dictionary_pickler._determine_path("lists", "de").endswith("de.txt")
@@ -44,7 +47,7 @@ def test_logic(tmp_path) -> None:
     with lzma.open(temp_outputfile, "rb") as f:
         roundtripped = pickle.load(f)
     assert isinstance(roundtripped, dict)
-    assert len(roundtripped) == 3
+    assert len(roundtripped) == 4
     assert all(isinstance(k, bytes) for k in roundtripped)
 
     dictionary_pickler._pickle_dict("zz", listpath, in_place=True)
@@ -63,15 +66,58 @@ def test_read_dict_filtering(tmp_path) -> None:
         "foo,bar\tbaz\n"  # punctuation -> dropped
         "a\tverylongword\n"  # lemma length 1 & word > 6 -> dropped
         "verylonglemma\tx\n"  # lemma > 6 & word length 1 -> dropped
-        "run\trunning\n"  # sets running -> run
-        "xunning\trunning\n",  # conflict: closer lemma wins
+        "run\trunning\n"  # candidate for running (1 line)
+        "xunning\trunning\n",  # conflict: counts tie, closer lemma wins
     )
     assert result == {
         b"dog": b"dog",
         b"dogs": b"dog",
         b"run": b"run",
         b"running": b"xunning",
+        b"xunning": b"xunning",  # losing a conflict doesn't cost the identity
     }
+
+
+def test_read_dict_order_independent(tmp_path) -> None:
+    """The same line SET produces the same dictionary in any line order.
+
+    Regression test for the old first-pass resolution, where a stored
+    identity mapping was overwritten by whichever candidate came later:
+    these lines used to yield de -> een in this order but de -> de reversed.
+    """
+    lines = ["de\tde\n", "een\tde\n", "dog\tdogs\n"]
+    forward = _read(tmp_path, "de", "".join(lines))
+    reverse = _read(tmp_path, "de", "".join(reversed(lines)))
+    assert forward == reverse
+    assert forward[b"de"] == b"de"
+
+
+def test_read_dict_attested_identity_beats_lone_challenger(tmp_path) -> None:
+    """One stray line cannot overwrite an explicitly attested identity
+    (the corruption class where a single bad pair hijacked a top-frequency
+    function word)."""
+    result = _read(tmp_path, "de", "de\tde\neen\tde\n")
+    assert result[b"de"] == b"de"
+
+
+def test_read_dict_attestation_count_beats_distance(tmp_path) -> None:
+    """The lemma attested by more input lines wins the conflict even when a
+    rarer candidate is closer in edit distance — duplicates are evidence."""
+    result = _read(
+        tmp_path,
+        "en",
+        "run\trunning\n" * 2 + "runninx\trunning\n",
+    )
+    assert result[b"running"] == b"run"
+
+
+def test_read_dict_unattested_identity_yields_to_reduction(tmp_path) -> None:
+    """A form that is also a lemma elsewhere, but never maps to itself in
+    the data, still reduces to its attested lemma: identity competes as a
+    zero-count candidate, it is not forced."""
+    result = _read(tmp_path, "en", "lansa\tlansat\nlansat\tlansare\n")
+    assert result[b"lansat"] == b"lansa"
+    assert result[b"lansare"] == b"lansat"
 
 
 def test_read_dict_voc_limit(tmp_path) -> None:

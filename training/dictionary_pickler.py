@@ -9,6 +9,7 @@ import logging
 import lzma
 import pickle
 import re
+from collections import Counter, defaultdict
 from operator import itemgetter
 from pathlib import Path
 
@@ -50,12 +51,18 @@ def _determine_path(listpath: str, langcode: str) -> str:
     return str(Path(__file__).parent / filename)
 
 
-def _read_dict(filepath: str, langcode: str, silent: bool) -> dict[bytes, bytes]:
-    mydict: dict[str, str] = {}
-    myadditions: list[str] = []
-    i: int = 0
+def _collect_candidates(
+    filepath: str, langcode: str, silent: bool
+) -> tuple[dict[str, Counter[str]], set[str]]:
+    """First pass: filter the input lines and gather every candidate lemma
+    per word form, counting how many lines attest each (form, lemma) pair.
+
+    Duplicate lines are deliberately counted, not deduplicated: the counts
+    are the evidence `_resolve_candidates` uses to settle conflicts.
+    """
+    candidates: defaultdict[str, Counter[str]] = defaultdict(Counter)
+    lemmas: set[str] = set()
     leftlimit = 1 if langcode in SAFE_LIMIT else 2
-    # load data from list
     with open(filepath, encoding="utf-8") as filehandle:
         for line in filehandle:
             # skip potentially invalid lines, e.g. with punctuation
@@ -87,42 +94,63 @@ def _read_dict(filepath: str, langcode: str, silent: bool) -> dict[bytes, bytes]
                 rule = DEFAULT_RULES[langcode](columns[1])
                 if rule and rule != columns[0]:
                     print(columns[1], columns[0], rule)
-            # process
-            if columns[1] in mydict and mydict[columns[1]] != columns[0]:
-                # prevent mistakes and noise coming from the lists
-                dist1, dist2 = (
-                    levenshtein_dist(columns[1], mydict[columns[1]]),
-                    levenshtein_dist(columns[1], columns[0]),
-                )
-                # fail-safe: delete potential false entry
-                # if dist1 >= len(columns[1]) and dist2 >= len(columns[1]):
-                #    del mydict[columns[1]]
-                #    continue
-                if dist1 == 0 or dist2 < dist1:  # dist1 < 2
-                    mydict[columns[1]] = columns[0]
-                elif not silent:
-                    LOGGER.warning(
-                        "diverging: %s %s | %s %s",
-                        columns[1],
-                        mydict[columns[1]],
-                        columns[1],
-                        columns[0],
-                    )
-                    LOGGER.debug("distances: %s %s", dist1, dist2)
-            else:
-                mydict[columns[1]] = columns[0]
-                # deal with verbal forms (mostly)
-                if langcode in BUFFER_HACK:
-                    myadditions.append(columns[0])
-                elif columns[0] not in mydict:
-                    mydict[columns[0]] = columns[0]
-                i += 1
-    # overwrite
-    for word in myadditions:
-        mydict[word] = word
-    LOGGER.debug("%s %s", langcode, i)
+            candidates[columns[1]][columns[0]] += 1
+            lemmas.add(columns[0])
+    return candidates, lemmas
+
+
+def _resolve_candidates(
+    candidates: dict[str, Counter[str]],
+    lemmas: set[str],
+    langcode: str,
+    silent: bool,
+) -> dict[bytes, bytes]:
+    """Second pass: pick one lemma per form, independently of input order.
+
+    A form that is also a known lemma competes as its own zero-count
+    candidate. Winner: most attestations, then smallest Levenshtein
+    distance, then alphabetical.
+    """
+    mydict: dict[str, str] = {}
+    for word_form, counts in candidates.items():
+        options = dict(counts)
+        if word_form in lemmas:
+            options.setdefault(word_form, 0)
+        # the vast majority of forms have a single candidate
+        if len(options) == 1:
+            mydict[word_form] = next(iter(options))
+            continue
+        best = min(
+            options.items(),
+            key=lambda item: (
+                -item[1],
+                levenshtein_dist(word_form, item[0]),
+                item[0],
+            ),
+        )[0]
+        if not silent:
+            LOGGER.warning(
+                "diverging: %s -> %s | candidates: %s",
+                word_form,
+                best,
+                sorted(options.items()),
+            )
+        mydict[word_form] = best
+    # lemma identities (deal with verbal forms, mostly)
+    if langcode in BUFFER_HACK:
+        for word in lemmas:
+            mydict[word] = word
+    else:
+        for word in lemmas:
+            mydict.setdefault(word, word)
+    LOGGER.debug("%s %s", langcode, len(mydict))
     # sort and convert to bytestrings
     return {k.encode("utf-8"): v.encode("utf-8") for k, v in sorted(mydict.items())}
+
+
+def _read_dict(filepath: str, langcode: str, silent: bool) -> dict[bytes, bytes]:
+    candidates, lemmas = _collect_candidates(filepath, langcode, silent)
+    return _resolve_candidates(candidates, lemmas, langcode, silent)
 
 
 def _load_dict(
@@ -133,15 +161,11 @@ def _load_dict(
 
 
 def _determine_pickle_path(langcode: str = "en", in_place: bool = False) -> str:
-    """Determine where a pickled dictionary should be written to.
+    """Where to write a pickled dictionary.
 
-    Args:
-        langcode: The language code.
-        in_place: If True, write into the installed/imported simplemma
-            package's data directory, i.e. overwrite the SHIPPED
-            dictionary. Defaults to False, which writes to a scratch
-            `training/output/` directory instead, so regenerating a
-            dictionary never clobbers shipped data by accident.
+    in_place=True writes into the installed package's data directory,
+    overwriting shipped data; the default writes to a scratch
+    `training/output/` directory instead.
     """
     filename = f"{langcode}.plzma"
     if in_place:

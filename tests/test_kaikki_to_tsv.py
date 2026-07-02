@@ -138,6 +138,94 @@ def test_extract_pairs_skips_placeholder_form():
     assert list(extract_pairs(entry)) == [("gratis", "gratis")]
 
 
+def test_extract_pairs_strips_stress_marks_from_forms():
+    """Bulgarian/Russian/Ukrainian mark stress with combining accents in
+    inflection tables (never in the page title) — confirmed on a real
+    kaikki.org Bulgarian entry ('указ' -> 'у́кази', combining U+0301)."""
+    entry = {"word": "указ", "forms": [{"form": "у́кази"}]}
+    assert list(extract_pairs(entry)) == [("указ", "укази")]
+
+
+def test_extract_pairs_strips_stress_marks_from_relations():
+    entry = {"word": "у́кази", "form_of": [{"word": "у́каз"}]}
+    assert list(extract_pairs(entry)) == [("указ", "укази")]
+
+
+def test_extract_pairs_skips_romanization_forms():
+    """A 'romanization' row transliterates the headword into Latin script
+    instead of giving a real inflected form — confirmed on a real
+    kaikki.org Bulgarian entry ('указ' -> 'úkaz', tagged only 'romanization')."""
+    entry = {
+        "word": "указ",
+        "forms": [
+            {"form": "úkaz", "tags": ["romanization"]},
+            {"form": "у́кази", "tags": ["indefinite", "plural"]},
+        ],
+    }
+    assert list(extract_pairs(entry)) == [("указ", "укази")]
+
+
+def test_extract_pairs_skips_transliteration_forms():
+    entry = {
+        "word": "x",
+        "forms": [{"form": "y", "tags": ["transliteration"]}, {"form": "z"}],
+    }
+    assert list(extract_pairs(entry)) == [("x", "z")]
+
+
+def test_extract_pairs_skips_class_forms():
+    """A 'class' row is a verb-conjugation-class label, not a word form —
+    confirmed on a real kaikki.org German entry ('sehen' -> '5 strong')."""
+    entry = {
+        "word": "sehen",
+        "forms": [
+            {"form": "5 strong", "tags": ["class"]},
+            {"form": "sieht", "tags": ["present"]},
+        ],
+    }
+    assert list(extract_pairs(entry)) == [("sehen", "sieht")]
+
+
+def test_extract_pairs_skips_pronoun_cross_reference():
+    """German's personal-pronoun overview template lists every pronoun as
+    a cross-referenced cell on each pronoun's own page — confirmed on a
+    real kaikki.org German entry ('er' listing 'ich' as tagged 'pronoun').
+    Only the cross-reference is dropped; the entry's own identity survives."""
+    entry = {
+        "word": "er",
+        "forms": [
+            {"form": "ich", "tags": ["pronoun", "first-person"]},
+            {"form": "er", "tags": ["pronoun", "third-person", "masculine"]},
+        ],
+    }
+    assert list(extract_pairs(entry)) == [("er", "er")]
+
+
+def test_extract_pairs_skips_possessive_cross_reference():
+    """Same pathology for the possessive-determiner overview template —
+    confirmed on a real kaikki.org German entry ('sein' listing 'mein')."""
+    entry = {
+        "word": "sein",
+        "forms": [
+            {"form": "mein", "tags": ["possessive", "first-person"]},
+            {"form": "sein", "tags": ["possessive", "third-person"]},
+        ],
+    }
+    assert list(extract_pairs(entry)) == [("sein", "sein")]
+
+
+def test_extract_pairs_skips_auxiliary_cross_reference():
+    """An 'auxiliary' row names the verb ('sein'/'haben') used to build the
+    perfect tense, not an inflected form — confirmed on a real kaikki.org
+    German entry ('ausgehen' -> 'sein'). A verb using itself as its own
+    auxiliary ('sein' -> 'sein') is a real self-mapping and must survive."""
+    entry = {"word": "ausgehen", "forms": [{"form": "sein", "tags": ["auxiliary"]}]}
+    assert list(extract_pairs(entry)) == []
+
+    entry = {"word": "sein", "forms": [{"form": "sein", "tags": ["auxiliary"]}]}
+    assert list(extract_pairs(entry)) == [("sein", "sein")]
+
+
 def test_extract_pairs_handles_missing_data():
     assert list(extract_pairs({})) == []
     assert list(extract_pairs({"word": "x", "senses": [{}]})) == []
