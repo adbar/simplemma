@@ -104,7 +104,9 @@ def main(
         results_folder.rmdir()
     results_folder.mkdir()
 
-    with open(results_folder / "results_summary.csv", "w") as csv_results_file:
+    with open(
+        results_folder / "results_summary.csv", "w", newline="", encoding="utf-8"
+    ) as csv_results_file:
         csv_results_file_writer = csv.writer(csv_results_file)
         csv_results_file_writer.writerow(
             (
@@ -162,6 +164,7 @@ def main(
             with open(
                 results_folder / filename.replace("conllu", "csv"),
                 "w",
+                newline="",
                 encoding="utf-8",
             ) as csvfile:
                 writer = csv.writer(csvfile)
