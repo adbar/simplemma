@@ -13,7 +13,7 @@ def apply_ru(token: str) -> str | None:
     if token.endswith("ё"):
         return token.replace("ё", "е")
 
-    if len(token) < 10 or token[0].isupper() or "-" in token:
+    if len(token) < 9 or token[0].isupper() or "-" in token:
         return None
 
     # token = token.replace("а́", "a")

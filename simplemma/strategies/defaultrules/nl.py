@@ -10,22 +10,10 @@ def apply_nl(token: str) -> str | None:
         # mogelijkheden => mogelijkheid
         if token.endswith("heden") and "scheden" not in token:
             return token[:-5] + "heid"
-        # boerderijen => boerderij
-        if token.endswith("ijen"):
+        # boerderijen => boerderij (vrijen/vlijen are verb infinitives)
+        if token.endswith("ijen") and not token.endswith(("vrijen", "vlijen")):
             return token[:-2]
-        # brieven => brief
-        if token.endswith("ieven"):
-            return token[:-3] + "f"
-        # too much noise:
-        # bacteriën => bacterie
-        # if token.endswith("iën"):
-        #    return token[:-2] + "e"
-        # flessen => fles
-        # if token.endswith("essen"):
-        #    return token[:-3]
-        # chinezen => chinees
-        # if token.endswith("ezen") and token[-5] not in VOWELS:
-        #    return token[:-4] + "ees"
-        # if token.endswith("bele"):
-        #    return token[:-1]
+        # below the 99% bar, left out:
+        # "ieven"->[:-3]+"f" 96% (-ieve adjective plurals: executieven, retrospectieven)
+        # "iën"->[:-2]+"e", "essen"->[:-3], "ezen"->[:-4]+"ees", "bele"->[:-1]
     return None

@@ -2,32 +2,40 @@ import re
 
 from .generic import apply_rules
 
-## Just a demo, the rules are really basic and coverage is not good
-
+# Pruned to the cells that hold >=99% in-dict: the short elative/illative forms
+# (-mist/-misse/-list/-ikus/-dus*) collide with plain nouns, and the -dus
+# paradigm collapses under -dune adjective homography, so both are dropped.
+# UD validation (2026-07) found the BARE forms were rightly dropped
+# (list/umist stay <=72% in-dict) but several anchored variants clear the bar
+# and were missing: -lise/-lisele/-lisel (>=99.2%), -iliste/-likest (100%),
+# -amist (99.2%), -duses (100%), and stem-anchored -ilist (100%).
+# Deliberately left out despite UD value, just under the bar or needing
+# special-casing disproportionate to their size: -liste (98.5%),
+# -misega (99.0, -mis noun stems), -imist (96.8, -im/-žiim loans).
 
 DEFAULT_RULES = {
-    # adjectives
-    # https://en.wiktionary.org/wiki/-line
+    # adjectives -line https://en.wiktionary.org/wiki/-line
     re.compile(
-        r"(?:lise|list|lisse|lisesse|lises|lisest|lisele|lisel|liselt|liseks|liseni|lisena|liseta|lisega|lised|liste|lisi|listesse|lisisse|listes|lisis|listest|lisist|listele|lisile|listel|lisil|listelt|lisilt|listeks|lisiks|listeni|listena|listeta|listega)$"
+        r"(?:lisesse|lisest|liselt|lisele|lisil|lisel|lises|lised|lisi|lise)$"
     ): "line",
-    # https://en.wiktionary.org/wiki/-mine
+    re.compile(r"likest$"): "lik",
+    re.compile(r"duses$"): "dus",
+    # partitive -ilist only with >=5 stem chars: the short collisions
+    # (detailist, stiilist) are all short stems
+    re.compile(r"(.{5,})ilist$"): r"\1iline",
+    re.compile(r"(?:iliste)$"): "iline",
+    re.compile(r"(?:amist)$"): "amine",
+    # verbal nouns -mine https://en.wiktionary.org/wiki/-mine
     re.compile(
-        r"(?:mise|mist|misse|misesse|mises|misest|misele|misel|miselt|miseks|miseni|misena|miseta|misega|mised|miste|misi|mistesse|misisse|mistes|misis|mistest|misist|mistele|misile|mistel|misil|mistelt|misilt|misteks|misiks|misteni|mistena|misteta|mistega)$"
+        r"(?:mistesse|misteta|mistest|misteni|mistena|mistelt|mistele|misteks|mistega|misesse|mistes|mistel|miseta|misest|miseni|misena|miselt|misele|miseks|miste|mises|misel|mised|mise)$"
     ): "mine",
-    # nouns
-    # https://en.wiktionary.org/wiki/-dus
+    # -lik/-nik nouns https://en.wiktionary.org/wiki/-lik
     re.compile(
-        r"(?:duse|dust|dusse|dusesse|duses|dusest|dusele|dusel|duselt|duseks|duseni|dusena|duseta|dusega|dused|duste|dusi|dustesse|dusisse|dustes|dusis|dustest|dusist|dustele|dusile|dustel|dusil|dustelt|dusilt|dusteks|dusiks|dusteni|dustena|dusteta|dustega)$"
-    ): "dus",
-    # https://en.wiktionary.org/wiki/-lik
-    # https://en.wiktionary.org/wiki/-nik
-    re.compile(
-        r"(?:iku|ikku|ikusse|ikus|ikust|ikule|ikul|ikult|ikuks|ikuni|ikuna|ikuta|ikuga|ikud|ike|ikudde|ikke|ikusid|ikesse|ikkudesse|ikes|ikkudes|ikest|ikkudest|ikele|ikkudele|ikel|ikkudel|ikelt|ikkudelt|ikeks|ikkudeks|ikeni|ikkudeni|ikena|ikkudena|iketa|ikkudeta|ikega|ikkudega)$"
+        r"(?:ikkudele|ikkudel|ikuta|ikuni|ikuna|ikult|ikule|ikuks|ikuga|iketa|ikeni|ikena|ikelt|ikele|ikeks|ikul|ikud|ikku|ikke|iku)$"
     ): "ik",
-    # https://en.wiktionary.org/wiki/-kond
+    # -kond nouns https://en.wiktionary.org/wiki/-kond
     re.compile(
-        r"(?:konna|konda|konnasse|konnas|konnast|konnale|konnal|konnalt|konnaks|konnani|konnana|konnata|konnaga|konnad|kondade|kondi|kondasid|kondadesse|konnisse|kondades|konnis|kondadest|konnist|kondadele|konnile|kondadel|konnil|kondadelt|konnilt|kondadeks|konniks|kondadeni|kondadena|kondadeta|kondadega)$"
+        r"(?:kondadesse|kondadest|kondadelt|kondadele|kondadega|kondades|kondadel|konnata|konnast|konnalt|konnaks|konnaga|kondade|konnas|konnal|kondi|konda)$"
     ): "kond",
 }
 
