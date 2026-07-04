@@ -3,31 +3,64 @@ This file defines the `AffixDecompositionStrategy` class, which implements an af
 """
 
 from .dictionary_lookup import DictionaryLookupStrategy
-from .greedy_dictionary_lookup import GreedyDictionaryLookupStrategy, greedy_min_length
+
+# Shared with GreedyDictionaryLookupStrategy's gate on purpose -- retuning
+# it retunes both strategies.
+from .greedy_dictionary_lookup import greedy_min_length
 from .lemmatization_strategy import LemmatizationStrategy
 
-# TODO: This custom behavior has to be simplified before it becomes unmaintainable
-LONGER_AFFIXES = {"et", "fi", "hu", "lt"}
+# Membership and per-language values (max_affix_len) are UD-validated, not
+# guesswork -- an in-dict-only measurement is not sufficient evidence to
+# add or retune a language. See training/affixbuilder.py,
+# training/download_eval_data.py, and training/data/affix_eval/ to
+# regenerate/review the evidence. Rejected despite looking positive
+# in-dict: pt, es, ca, nl, en, la, gl, fr, it, ro (marginal), de
+# (confirmed harmful on de_hdt too, not just a de_gsd artifact:
+# inflected-adjective lemma convention + proper-noun mangling). is is
+# positive but held for a future rules-file carve-out.
 AFFIX_LANGS = {
-    "bg",
-    "cs",
-    "el",
-    "et",
-    "fi",
-    "hu",
-    "hy",
-    "lt",
-    "lv",
-    "nb",
-    "pl",
-    "ru",
-    "sk",
-    "tr",
-    "uk",
+    "bg": 2,
+    "cs": 2,
+    "da": 2,
+    "el": 2,
+    "et": 3,
+    "fi": 5,
+    "hu": 5,
+    "hy": 2,
+    "lt": 5,
+    "lv": 2,
+    "nb": 2,
+    "nn": 2,
+    "pl": 2,
+    "ru": 2,
+    "sk": 2,
+    "tr": 5,
+    "uk": 2,
 }
 
-AFFIXLEN = 2
-LONGAFFIXLEN = 5  # better for some languages
+# Languages excluded from greedy-mode decomposition: UD-measured harmful
+# (ca/en/es/gl/it/la/nl/pt), a measured wash (id), or typologically wrong
+# for a suffix-stripping algorithm (ms/sw/tl -- prefixing/mutating).
+# Non-greedy mode never reaches them (non-members). it: added once
+# CliticDecompositionStrategy claimed its main OOV class (verb+enclitic);
+# unclaimed affix decomposition was over-firing on nominal suffixes
+# (-ità/-ismo) and proper nouns (Afghanistan -> afghanistare).
+GREEDY_EXCLUDE = {
+    "ca",
+    "en",
+    "es",
+    "gl",
+    "id",
+    "it",
+    "la",
+    "ms",
+    "nl",
+    "pt",
+    "sw",
+    "tl",
+}
+
+AFFIXLEN = 2  # max_affix_len for languages without an AFFIX_LANGS entry (greedy mode)
 MINCOMPLEN = 4
 # Decomposition is ~O(len²); cap long tokens (longest real form is 86 chars).
 MAXLEN = 100
@@ -42,13 +75,12 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
     to suffix decomposition if affix decomposition fails.
     """
 
-    __slots__ = ["_greedy", "_dictionary_lookup", "_greedy_dictionary_lookup"]
+    __slots__ = ["_greedy", "_dictionary_lookup"]
 
     def __init__(
         self,
         greedy: bool,
         dictionary_lookup: DictionaryLookupStrategy = DictionaryLookupStrategy(),
-        greedy_dictionary_lookup: GreedyDictionaryLookupStrategy = GreedyDictionaryLookupStrategy(),
     ):
         """
         Initialize the Affix Decomposition Strategy.
@@ -57,12 +89,9 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
             greedy (bool): Flag indicating whether to use greedy decomposition.
             dictionary_lookup (DictionaryLookupStrategy): The dictionary lookup strategy to use.
                 Defaults to `DictionaryLookupStrategy()`.
-            greedy_dictionary_lookup (GreedyDictionaryLookupStrategy): The greedy dictionary lookup strategy to use.
-                Defaults to `GreedyDictionaryLookupStrategy()`.
         """
         self._greedy = greedy
         self._dictionary_lookup = dictionary_lookup
-        self._greedy_dictionary_lookup = greedy_dictionary_lookup
 
     def get_lemma(self, token: str, lang: str) -> str | None:
         """
@@ -75,17 +104,12 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
         Returns:
             str | None: The lemma of the token if found, or None otherwise.
         """
-        if (
-            (not self._greedy and lang not in AFFIX_LANGS)
-            or len(token) <= greedy_min_length(lang)
-            or len(token) > MAXLEN
-        ):
+        excluded = lang in GREEDY_EXCLUDE if self._greedy else lang not in AFFIX_LANGS
+        if excluded or len(token) <= greedy_min_length(lang) or len(token) > MAXLEN:
             return None
 
         # define parameters
-        max_affix_len = LONGAFFIXLEN if lang in LONGER_AFFIXES else AFFIXLEN
-        # greedier subword decomposition: suffix search with character in between
-        # then suffixes
+        max_affix_len = AFFIX_LANGS.get(lang, AFFIXLEN)
         return self._affix_decomposition(
             token, lang, max_affix_len, MINCOMPLEN
         ) or self._suffix_decomposition(token, lang, MINCOMPLEN)
@@ -126,11 +150,7 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
             lempart2 = self._dictionary_lookup.get_lemma(part2, lang)
             if lempart2 is None:
                 continue
-            # prefer a shorter greedy form of the second part
-            candidate = self._greedy_dictionary_lookup.get_lemma(part2, lang)
-            if candidate is not None and len(candidate) < len(part2):
-                return part1 + candidate.lower()
-            # backup: accept the dictionary form if not longer than the affix bound
+            # accept the dictionary form if not longer than the affix bound
             if len(lempart2) < len(part2) + max_affix_len:
                 return part1 + lempart2.lower()
         return None

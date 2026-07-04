@@ -1,6 +1,8 @@
 """Simplemma strategies module"""
 
 from .affix_decomposition import AffixDecompositionStrategy
+from .apostrophe_boundary import ApostropheBoundaryStrategy
+from .clitic_decomposition import CliticDecompositionStrategy
 from .default import DefaultStrategy
 from .dictionaries import (
     DefaultDictionaryFactory,
@@ -19,6 +21,8 @@ from .rules import RulesStrategy
 
 __all__ = [
     "AffixDecompositionStrategy",
+    "ApostropheBoundaryStrategy",
+    "CliticDecompositionStrategy",
     "DefaultStrategy",
     "DefaultDictionaryFactory",
     "DictionaryFactory",

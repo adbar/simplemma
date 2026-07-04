@@ -41,8 +41,22 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
         """
         # Search the language data, reverse case to extend coverage.
         dictionary = self._dictionary_factory.get_dictionary(lang)
-        if (result := dictionary.get(token)) is not None:
-            return result
-        # Try upper or lowercase (token[:1] stays empty-safe for empty input).
-        token = token.lower() if token[:1].isupper() else token.capitalize()
-        return dictionary.get(token)
+        # UD data and dictionary sources disagree on which apostrophe
+        # variant they use (straight "'" vs curly "'"; NFC does not
+        # unify them) -- cheap to check, only triggered for tokens that
+        # actually contain one.
+        variants: tuple[str, ...]
+        if "'" in token:
+            variants = (token, token.replace("'", "’"))
+        elif "’" in token:
+            variants = (token, token.replace("’", "'"))
+        else:
+            variants = (token,)
+        for variant in variants:
+            if (result := dictionary.get(variant)) is not None:
+                return result
+            # Try upper or lowercase (variant[:1] stays empty-safe for empty input).
+            cased = variant.lower() if variant[:1].isupper() else variant.capitalize()
+            if (result := dictionary.get(cased)) is not None:
+                return result
+        return None

@@ -93,7 +93,7 @@ def test_readme() -> None:
             "spaghettis", lang=("it", "fr")
         )
         == lemmatize("spaghettis", lang=("it", "fr"), greedy=True)
-        == "spaghetto"
+        == "spaghetti"
     )
     assert text_lemmatizer(
         "Sou o intervalo entre o que desejo ser e os outros me fizeram.", lang="pt"

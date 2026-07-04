@@ -1,43 +1,28 @@
 import re
 
-# 2-letter prefixes are theoretically already accounted for by the current AFFIXLEN parameter
+# UD-validated (training/data/affix_eval/, de_gsd tune / de_hdt confirm):
+# 27 entries that were proper prefixes of another entry above them were
+# statically unreachable under first-match alternation (e.g. "herab" could
+# never fire because "her" always won first) and "zu" fabricated lemmas for
+# lexicalized function words (zufolge -> zufolgen, 109 tokens on de_hdt).
+# Both removals verified 0-diff / net-positive. Regex below sorts by length
+# so a future addition can never be silently shadowed by a shorter existing
+# entry -- list order carries no meaning.
 GERMAN_PREFIXES = [
     "ab",
     "an",
     "auf",
     "aus",
     "be",
-    "bei",
     "da",
-    "dar",
-    "darin",
-    "davor",
     "durch",
     "ein",
     "ent",
-    "entgegen",
     "er",
     "gegen",
     "heim",
     "her",
-    "herab",
-    "heran",
-    "herauf",
-    "heraus",
-    "herbei",
-    "herein",
-    "herum",
-    "herunter",
-    "hervor",
     "hin",
-    "hinab",
-    "hinauf",
-    "hinaus",
-    "hinein",
-    "hinten",
-    "hinter",
-    "hinunter",
-    "hinweg",
     "hinzu",
     "innen",
     "los",
@@ -56,16 +41,14 @@ GERMAN_PREFIXES = [
     "unter",
     "ver",
     "vor",
-    "voran",
-    "voraus",
-    "vorbei",
-    "vorher",
-    "vorüber",
     "weg",
     "weiter",
     "wieder",
     "zer",
-    "zu",
 ]
 
-DE_PREFIX_REGEX = re.compile(r"^(" + "|".join(GERMAN_PREFIXES) + ")(?!zu)")
+# (?!zu) blocks prefix+zu-infinitive splits (abzuholen must not be read as
+# ab+zuholen) -- unrelated to the "zu" entry removed above.
+DE_PREFIX_REGEX = re.compile(
+    r"^(" + "|".join(sorted(GERMAN_PREFIXES, key=len, reverse=True)) + r")(?!zu)"
+)

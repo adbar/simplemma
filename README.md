@@ -102,7 +102,7 @@ may be closer to stemming than to lemmatization.
 ``` python
 # same example as before, comes to this result in one step
 >>> simplemma.lemmatize('spaghettis', lang=('it', 'fr'), greedy=True)
-'spaghetto'
+'spaghetti'
 # German case described above
 >>> simplemma.lemmatize('angekündigten', lang='de', greedy=True)
 'ankündigen' # 2 steps: reduction to infinitive verb

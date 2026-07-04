@@ -53,6 +53,8 @@ nav:
       - Lemmatization Strategy: reference/strategies/lemmatization_strategy.md
       - Dictionary Lookup Strategy: reference/strategies/dictionary_lookup.md
       - Greedy Dictionary Lookup Strategy: reference/strategies/greedy_dictionary_lookup.md
+      - Clitic Decomposition Strategy: reference/strategies/clitic_decomposition.md
+      - Apostrophe Boundary Strategy: reference/strategies/apostrophe_boundary.md
       - Hyphen removal Strategy: reference/strategies/hyphen_removal.md
       - Rules Strategy: reference/strategies/rules.md
       - Prefix Decomposition Strategy: reference/strategies/prefix_decomposition.md

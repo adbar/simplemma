@@ -1,9 +1,11 @@
 """
 This module defines the `DefaultStrategy` class, which is a concrete implementation of the `LemmatizationStrategy` protocol.
-It provides lemmatization using a combination of different strategies such as dictionary lookup, hyphen removal, rule-based lemmatization, prefix decomposition, and affix decomposition.
+It provides lemmatization using a combination of different strategies such as dictionary lookup, apostrophe-boundary splitting, clitic decomposition, hyphen removal, rule-based lemmatization, prefix decomposition, and affix decomposition.
 """
 
 from .affix_decomposition import AffixDecompositionStrategy
+from .apostrophe_boundary import ApostropheBoundaryStrategy
+from .clitic_decomposition import CliticDecompositionStrategy
 from .dictionaries.dictionary_factory import DefaultDictionaryFactory, DictionaryFactory
 from .dictionary_lookup import DictionaryLookupStrategy
 from .greedy_dictionary_lookup import GreedyDictionaryLookupStrategy
@@ -24,6 +26,8 @@ class DefaultStrategy(LemmatizationStrategy):
         "_hyphen_search",
         "_rules_search",
         "_prefix_search",
+        "_clitic_search",
+        "_apostrophe_search",
         "_greedy_dictionary_lookup",
         "_affix_search",
     ]
@@ -48,10 +52,13 @@ class DefaultStrategy(LemmatizationStrategy):
         self._prefix_search = PrefixDecompositionStrategy(
             dictionary_lookup=self._dictionary_lookup
         )
+        self._clitic_search = CliticDecompositionStrategy(self._dictionary_lookup)
+        # Injected as a callback (self.get_lemma), not composed, so the
+        # head gets the full pipeline without a circular construction
+        # dependency (self isn't done building yet).
+        self._apostrophe_search = ApostropheBoundaryStrategy(self.get_lemma)
         greedy_dictionary_lookup = GreedyDictionaryLookupStrategy(dictionary_factory)
-        self._affix_search = AffixDecompositionStrategy(
-            greedy, self._dictionary_lookup, greedy_dictionary_lookup
-        )
+        self._affix_search = AffixDecompositionStrategy(greedy, self._dictionary_lookup)
 
         self._greedy_dictionary_lookup = greedy_dictionary_lookup if greedy else None
 
@@ -72,8 +79,21 @@ class DefaultStrategy(LemmatizationStrategy):
             return token
 
         candidate = (
+            # apostrophe_search must precede dictionary_lookup itself:
+            # dictionary_lookup's own reverse-case fallback resolves the
+            # WHOLE apostrophe-bearing token (case+apostrophe combos are
+            # densely populated in some dictionaries) before anything
+            # later in the chain ever gets a chance, and that fallback
+            # is exactly where it goes wrong for capitalized proper
+            # nouns (Erdoğan'ın -> erdoğan).
+            self._apostrophe_search.get_lemma(token, lang)
             # supervised searches
-            self._dictionary_lookup.get_lemma(token, lang)
+            or self._dictionary_lookup.get_lemma(token, lang)
+            # clitic_search must precede hyphen_search: a hyphenated
+            # clitic form's last part (e.g. "se", "ho") often resolves to
+            # itself in the dictionary, so hyphen_search's decompose
+            # branch would otherwise return the token unchanged first.
+            or self._clitic_search.get_lemma(token, lang)
             or self._hyphen_search.get_lemma(token, lang)
             or self._rules_search.get_lemma(token, lang)
             or self._prefix_search.get_lemma(token, lang)
