@@ -7,8 +7,7 @@ from simplemma.strategies.dictionaries import DefaultDictionaryFactory
 from training import evaluate_simplemma
 from training.evaluate_simplemma import evaluate_dataset
 
-# Single sentence: three base-form English tokens (form == lemma).
-# Avoids dependence on lemmatizer accuracy — tests the counting logic only.
+# base-form tokens (form == lemma): tests the counting logic, not accuracy
 CONLLU = (
     "1\trun\trun\tVERB\t_\t_\t0\troot\t_\t_\n"
     "2\tfast\tfast\tADJ\t_\t_\t1\tadvmod\t_\t_\n"
@@ -16,7 +15,7 @@ CONLLU = (
     "\n"
 )
 
-# OOV token with wrong gold lemma (guaranteed error) + token with lemma "_" (skipped).
+# OOV token (guaranteed error) + a lemma == "_" token (skipped)
 CONLLU_ERRORS = (
     "1\tqwxztest\tqwxzlemma\tVERB\t_\t_\t0\troot\t_\t_\n"
     "2\tword\t_\tNOUN\t_\t_\t1\tdep\t_\t_\n"
@@ -46,19 +45,19 @@ def test_evaluate_dataset(lemmatizers):
     result = evaluate_dataset(parse(CONLLU), lemmatizer, greedy_lemmatizer, "en")
 
     assert result["total"] == 3
-    assert result["zero"] == 3  # all form == lemma
-    assert result["focus_total"] == 2  # ADJ + NOUN
-    assert result["focus_zero"] == 2  # both have form == lemma
+    assert result["zero"] == 3
+    assert result["focus_total"] == 2
+    assert result["focus_zero"] == 2
 
 
 def test_evaluate_dataset_errors_and_skip(lemmatizers):
     lemmatizer, greedy_lemmatizer = lemmatizers
     result = evaluate_dataset(parse(CONLLU_ERRORS), lemmatizer, greedy_lemmatizer, "en")
 
-    assert result["total"] == 1  # "_" lemma token skipped
-    assert result["zero"] == 0  # OOV form != gold lemma
-    assert len(result["errors"]) == 1  # OOV mismatch recorded
-    assert result["errors"][0][0] == "qwxztest"  # (form, gold, candidate, greedy)
+    assert result["total"] == 1
+    assert result["zero"] == 0
+    assert len(result["errors"]) == 1
+    assert result["errors"][0][0] == "qwxztest"
 
 
 def test_main_writes_results(tmp_path):
@@ -72,9 +71,9 @@ def test_main_writes_results(tmp_path):
     evaluate_simplemma.main(clean, results)
 
     summary = (results / "results_summary.csv").read_text()
-    assert "dataset" in summary  # header row
-    assert "en_test" in summary  # one data row
-    assert (results / "en_test.csv").exists()  # per-dataset errors file
+    assert "dataset" in summary
+    assert "en_test" in summary
+    assert (results / "en_test.csv").exists()
 
 
 def test_main_requires_data(tmp_path):

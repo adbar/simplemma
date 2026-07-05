@@ -15,8 +15,7 @@ def test_apply_ru() -> None:
 
 
 def test_apply_ru_ye_reachable_through_pipeline() -> None:
-    """The ё->е rule fires through DefaultStrategy when the dictionary
-    doesn't resolve the token first."""
+    """The ё->е rule fires through DefaultStrategy when the dictionary misses."""
 
     class EmptyDictionaryFactory(DictionaryFactory):
         def get_dictionary(self, lang: str) -> Mapping[str, str]:

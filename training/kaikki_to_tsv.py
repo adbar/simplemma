@@ -17,9 +17,7 @@ from typing import Any
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-# Never real inflected forms: structural placeholders/template names
-# ("table-tags", "inflection-template"), a verb-class label ("class"), or
-# a transliteration into another script ("romanization"/"transliteration").
+# Tags marking rows that are never real inflected forms.
 _UNCONDITIONAL_DROP_TAGS = frozenset(
     {
         "table-tags",
@@ -30,21 +28,14 @@ _UNCONDITIONAL_DROP_TAGS = frozenset(
     }
 )
 
-# Marks a whole-paradigm cross-reference row (e.g. a pronoun's page listing
-# other pronouns, or a verb's auxiliary) rather than an inflection of the
-# entry. Only drop when the form differs from the entry's own word: a
-# genuine self-mapping must keep its vote in dictionary_pickler's
-# evidence-count resolution, or an unrelated candidate can win instead.
+# Cross-reference rows (e.g. a pronoun's page listing other pronouns);
+# dropped only when the form differs from the entry's own word, so a
+# genuine self-mapping keeps its vote in dictionary_pickler's resolution.
 _CROSS_REFERENCE_TAGS = frozenset({"pronoun", "possessive", "auxiliary"})
 
-# Placeholder for a form that doesn't exist for this word in a declension
-# table (distinct from "error-unrecognized-form", which flags real forms).
-_PLACEHOLDER_FORM = "-"
+_PLACEHOLDER_FORM = "-"  # marks a form that doesn't exist for this word
 
-# Cyrillic word-stress combining accents, absent from running text. Deleted
-# as literal codepoints rather than via an NFD/NFC round-trip: Latin
-# precomposed accents (café) would decompose into the same codepoints and
-# get stripped too.
+# literal codepoints, not NFD/NFC: that would also strip Latin precomposed accents
 _STRESS_MARKS_TABLE = str.maketrans("", "", "̀́")
 
 
@@ -53,12 +44,7 @@ def _strip_stress_marks(text: str) -> str:
 
 
 def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
-    """Yield (lemma, word_form) pairs for a single kaikki.org entry.
-
-    Prefers explicit `form_of`/`alt_of` relations; falls back to the
-    entry's own `forms` table only if none were found, since `forms` also
-    lists non-inflectional rows for entries that are themselves lemmas.
-    """
+    """Yield (lemma, word_form) pairs, preferring form_of/alt_of over forms."""
     word = entry.get("word")
     if not word:
         return

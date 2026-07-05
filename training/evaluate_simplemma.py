@@ -171,17 +171,6 @@ def main(
                 writer.writerow(("form", "lemma", "candidate", "greedy_candidate"))
                 writer.writerows(result["errors"])
 
-        # print("exec time:\t %.3f" % (time.time() - start))
-        # print("token count:\t", total)
-        # print("greedy:\t\t %.3f" % (greedy / total))
-        # print("non-greedy:\t %.3f" % (nongreedy / total))
-        # print("baseline:\t %.3f" % (zero / total))
-        # print("ADJ+NOUN greedy:\t\t %.3f" % (focus / focus_total))
-        # print("ADJ+NOUN non-greedy:\t\t %.3f" % (focus_nongreedy / focus_total))
-        # print("ADJ+NOUN baseline:\t\t %.3f" % (focus_zero / focus_total))
-        # mycounter = Counter(errors)
-        # print(mycounter.most_common(20))
-
 
 if __name__ == "__main__":
     main()

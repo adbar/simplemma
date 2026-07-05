@@ -54,12 +54,7 @@ def _determine_path(listpath: str, langcode: str) -> str:
 def _collect_candidates(
     filepath: str, langcode: str, silent: bool
 ) -> tuple[dict[str, Counter[str]], set[str]]:
-    """First pass: filter the input lines and gather every candidate lemma
-    per word form, counting how many lines attest each (form, lemma) pair.
-
-    Duplicate lines are deliberately counted, not deduplicated: the counts
-    are the evidence `_resolve_candidates` uses to settle conflicts.
-    """
+    """First pass: filter input lines, counting each (form, lemma) pair as evidence."""
     candidates: defaultdict[str, Counter[str]] = defaultdict(Counter)
     lemmas: set[str] = set()
     leftlimit = 1 if langcode in SAFE_LIMIT else 2
@@ -105,18 +100,12 @@ def _resolve_candidates(
     langcode: str,
     silent: bool,
 ) -> dict[bytes, bytes]:
-    """Second pass: pick one lemma per form, independently of input order.
-
-    A form that is also a known lemma competes as its own zero-count
-    candidate. Winner: most attestations, then smallest Levenshtein
-    distance, then alphabetical.
-    """
+    """Second pass: pick one lemma per form (most attestations, then distance)."""
     mydict: dict[str, str] = {}
     for word_form, counts in candidates.items():
         options = dict(counts)
         if word_form in lemmas:
             options.setdefault(word_form, 0)
-        # the vast majority of forms have a single candidate
         if len(options) == 1:
             mydict[word_form] = next(iter(options))
             continue
@@ -161,12 +150,7 @@ def _load_dict(
 
 
 def _determine_pickle_path(langcode: str = "en", in_place: bool = False) -> str:
-    """Where to write a pickled dictionary.
-
-    in_place=True writes into the installed package's data directory,
-    overwriting shipped data; the default writes to a scratch
-    `training/output/` directory instead.
-    """
+    """in_place=True overwrites shipped data; default writes to training/output/."""
     filename = f"{langcode}.plzma"
     if in_place:
         directory = Path(simplemma.__file__).parent / "strategies/dictionaries/data"

@@ -7,11 +7,7 @@ from training.kaikki_to_tsv import extract_pairs, main
 
 
 def _readme_example_pairs(item):
-    """Faithful transcription of training/README.rst's extraction example.
-
-    Used as a differential oracle against `extract_pairs` on well-formed
-    input, to confirm the two share the same core mapping logic.
-    """
+    """Transcription of training/README.rst's extraction example, used as an oracle."""
     pairs = []
     i = 0
     if "senses" in item:
@@ -55,13 +51,7 @@ def _readme_example_pairs(item):
     ],
 )
 def test_matches_readme_example_on_happy_path(entry):
-    """extract_pairs must agree with the README's example on well-formed input.
-
-    The two are known to diverge on malformed entries (extract_pairs is
-    crash-safe via `.get()`, the README example is not) and on meta-tagged
-    forms (extract_pairs filters `table-tags` noise, the README example
-    does not) — both intentional improvements, out of scope here.
-    """
+    """extract_pairs must agree with the README's example on well-formed input."""
     assert list(extract_pairs(entry)) == _readme_example_pairs(entry)
 
 
@@ -81,8 +71,7 @@ def test_extract_pairs_forms_fallback():
 
 
 def test_extract_pairs_top_level_form_of():
-    """form_of/alt_of can also appear directly on the entry, not just nested
-    in a sense (kaikki.org's WordData schema declares both places)."""
+    """form_of/alt_of can also appear directly on the entry, not nested in a sense."""
     entry = {"word": "Hunde", "form_of": [{"word": "Hund"}]}
     assert list(extract_pairs(entry)) == [("Hund", "Hunde")]
 
@@ -111,8 +100,7 @@ def test_extract_pairs_prefers_senses_over_forms():
 
 
 def test_extract_pairs_skips_meta_tagged_forms():
-    """table-tags and inflection-template rows are table/template headers,
-    not real word forms — confirmed on a real kaikki.org Romanian entry."""
+    """table-tags/inflection-template rows are template headers, not word forms."""
     entry = {
         "word": "Hund",
         "forms": [
@@ -125,9 +113,7 @@ def test_extract_pairs_skips_meta_tagged_forms():
 
 
 def test_extract_pairs_skips_placeholder_form():
-    """A literal "-" marks a form that doesn't exist for this word (e.g. an
-    adjective with no definite form) — must be dropped regardless of tags,
-    unlike "error-unrecognized-form" itself which mostly flags real forms."""
+    """A literal "-" marks a nonexistent form and must be dropped regardless of tags."""
     entry = {
         "word": "gratis",
         "forms": [
@@ -139,9 +125,7 @@ def test_extract_pairs_skips_placeholder_form():
 
 
 def test_extract_pairs_strips_stress_marks_from_forms():
-    """Bulgarian/Russian/Ukrainian mark stress with combining accents in
-    inflection tables (never in the page title) — confirmed on a real
-    kaikki.org Bulgarian entry ('указ' -> 'у́кази', combining U+0301)."""
+    """Cyrillic inflection tables mark stress with combining accents; strip them."""
     entry = {"word": "указ", "forms": [{"form": "у́кази"}]}
     assert list(extract_pairs(entry)) == [("указ", "укази")]
 
@@ -152,9 +136,7 @@ def test_extract_pairs_strips_stress_marks_from_relations():
 
 
 def test_extract_pairs_skips_romanization_forms():
-    """A 'romanization' row transliterates the headword into Latin script
-    instead of giving a real inflected form — confirmed on a real
-    kaikki.org Bulgarian entry ('указ' -> 'úkaz', tagged only 'romanization')."""
+    """A 'romanization' row transliterates the headword, it's not an inflected form."""
     entry = {
         "word": "указ",
         "forms": [
@@ -174,8 +156,7 @@ def test_extract_pairs_skips_transliteration_forms():
 
 
 def test_extract_pairs_skips_class_forms():
-    """A 'class' row is a verb-conjugation-class label, not a word form —
-    confirmed on a real kaikki.org German entry ('sehen' -> '5 strong')."""
+    """A 'class' row is a verb-conjugation-class label, not a word form."""
     entry = {
         "word": "sehen",
         "forms": [
@@ -187,10 +168,7 @@ def test_extract_pairs_skips_class_forms():
 
 
 def test_extract_pairs_skips_pronoun_cross_reference():
-    """German's personal-pronoun overview template lists every pronoun as
-    a cross-referenced cell on each pronoun's own page — confirmed on a
-    real kaikki.org German entry ('er' listing 'ich' as tagged 'pronoun').
-    Only the cross-reference is dropped; the entry's own identity survives."""
+    """A cross-referenced 'pronoun' row is dropped; the entry's own identity survives."""
     entry = {
         "word": "er",
         "forms": [
@@ -202,8 +180,7 @@ def test_extract_pairs_skips_pronoun_cross_reference():
 
 
 def test_extract_pairs_skips_possessive_cross_reference():
-    """Same pathology for the possessive-determiner overview template —
-    confirmed on a real kaikki.org German entry ('sein' listing 'mein')."""
+    """Same pathology as the pronoun template, for 'possessive' rows."""
     entry = {
         "word": "sein",
         "forms": [
@@ -215,10 +192,7 @@ def test_extract_pairs_skips_possessive_cross_reference():
 
 
 def test_extract_pairs_skips_auxiliary_cross_reference():
-    """An 'auxiliary' row names the verb ('sein'/'haben') used to build the
-    perfect tense, not an inflected form — confirmed on a real kaikki.org
-    German entry ('ausgehen' -> 'sein'). A verb using itself as its own
-    auxiliary ('sein' -> 'sein') is a real self-mapping and must survive."""
+    """An 'auxiliary' row names a helper verb, not an inflected form of the entry."""
     entry = {"word": "ausgehen", "forms": [{"form": "sein", "tags": ["auxiliary"]}]}
     assert list(extract_pairs(entry)) == []
 

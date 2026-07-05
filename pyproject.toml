@@ -140,9 +140,7 @@ disallow_incomplete_defs = false
 check_untyped_defs = false
 
 [[tool.mypy.overrides]]
-# optional backend deps (marisa-trie extra); absent in MINIMAL installs, so
-# the import must not error either way. Handled here rather than with inline
-# `type: ignore[import-not-found]`, which is unused when the deps ARE present.
+# optional deps, absent in MINIMAL installs: inline ignores would be unused when present
 module = ["marisa_trie", "platformdirs"]
 ignore_missing_imports = true
 
