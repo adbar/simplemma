@@ -14,15 +14,19 @@ from .lemmatization_strategy import LemmatizationStrategy
 # add or retune a language. See training/affixbuilder.py,
 # training/download_eval_data.py, and training/data/affix_eval/ to
 # regenerate/review the evidence. Rejected despite looking positive
-# in-dict: pt, es, ca, nl, en, la, gl, fr, it, ro (marginal), de
+# in-dict: pt, ca, nl, en, la, gl, fr, it, ro (marginal), de
 # (confirmed harmful on de_hdt too, not just a de_gsd artifact:
 # inflected-adjective lemma convention + proper-noun mangling). is is
-# positive but held for a future rules-file carve-out.
+# positive but held for a future rules-file carve-out. es was rejected
+# on UD v2.12 data, then accepted on v2.18: the old harm score was
+# inflated by es_gsd's since-fixed PROPN-lowercasing convention
+# (re-validated on es_gsd AND es_ancora, both modes, clean audits).
 AFFIX_LANGS = {
     "bg": 2,
     "cs": 2,
     "da": 2,
     "el": 2,
+    "es": 2,
     "et": 3,
     "fi": 5,
     "hu": 5,
@@ -39,16 +43,17 @@ AFFIX_LANGS = {
 }
 
 # Languages excluded from greedy-mode decomposition: UD-measured harmful
-# (ca/en/es/gl/it/la/nl/pt), a measured wash (id), or typologically wrong
+# (ca/en/gl/it/la/nl/pt), a measured wash (id), or typologically wrong
 # for a suffix-stripping algorithm (ms/sw/tl -- prefixing/mutating).
 # Non-greedy mode never reaches them (non-members). it: added once
 # CliticDecompositionStrategy claimed its main OOV class (verb+enclitic);
 # unclaimed affix decomposition was over-firing on nominal suffixes
 # (-ità/-ismo) and proper nouns (Afghanistan -> afghanistare).
+# es was removed from this list after the v2.18 re-validation cleared
+# it for both modes (see AFFIX_LANGS note above).
 GREEDY_EXCLUDE = {
     "ca",
     "en",
-    "es",
     "gl",
     "id",
     "it",

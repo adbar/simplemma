@@ -113,9 +113,18 @@ def test_affix_decomposition_greedy_exclude() -> None:
     assert affix._suffix_decomposition("-changanya", "sw", 4) is not None
     assert affix.get_lemma("-changanya", "sw") is None
     assert affix.get_lemma("supostamente", "pt") is None
-    assert affix.get_lemma("consistentemente", "es") is None
+    assert affix.get_lemma("virtualmente", "gl") is None
     # non-excluded languages still decompose in greedy mode
     assert affix.get_lemma("kissammeko", "fi") == "kissa"
+
+
+def test_affix_decomposition_es_membership() -> None:
+    """es was re-validated on UD v2.18 (es_gsd + es_ancora, both modes)
+    and admitted; the old rejection was an es_gsd PROPN-convention
+    artifact fixed upstream."""
+    affix = AffixDecompositionStrategy(greedy=False)
+    assert affix.get_lemma("microrregiones", "es") == "microrregión"
+    assert affix.get_lemma("estanquillas", "es") == "estanquilla"
 
 
 def test_clitic_decomposition() -> None:
@@ -138,6 +147,8 @@ def test_clitic_decomposition_guards() -> None:
     assert clitic.get_lemma("Paulo", "pt") is None  # would otherwise fabricate "paul"
     assert clitic.get_lemma("tê-lo", "pt") is None  # "ter" is under the stem floor
     assert clitic.get_lemma("fer-ho", "ca") is None  # "fer" is under the stem floor
+    # MAX_CLITICS strips succeed but no stem ever verifies in the dictionary
+    assert clitic.get_lemma("zzzzzzselo", "es") is None
 
 
 def test_clitic_decomposition_english_contractions() -> None:
