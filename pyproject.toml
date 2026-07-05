@@ -110,15 +110,14 @@ marisa-trie = [
     "platformdirs == 4.10.0",
 ]
 test = [
-    "pytest == 9.0.3",
+    "pytest == 9.1.1",
     "pytest-cov == 7.1.0",
+    "conllu == 6.0.0",
 ]
 dev = [
     "simplemma[test]",
-    "black == 26.5.1",
     "mypy == 2.1.0",
-    "ruff == 0.15.16",
-    "types-requests == 2.33.0.20260518",
+    "ruff == 0.15.20",
 ]
 docs = [
     "mkdocs",
@@ -140,12 +139,16 @@ disallow_untyped_defs = false
 disallow_incomplete_defs = false
 check_untyped_defs = false
 
+[[tool.mypy.overrides]]
+# optional deps, absent in MINIMAL installs: inline ignores would be unused when present
+module = ["marisa_trie", "platformdirs"]
+ignore_missing_imports = true
+
 [tool.ruff]
 target-version = "py310"
 line-length = 88
 # Linting uses ruff's default rule set (E4, E7, E9, F): pyflakes plus the
-# import, statement and runtime-error pycodestyle checks. Formatting is handled
-# by black.
+# import, statement and runtime-error pycodestyle checks. Formatting via ruff format.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -162,4 +165,5 @@ exclude_lines = [
     "pragma: no cover",
     "if __name__ == .__main__.:",
     "except .*ImportError.*:",
+    "raise NotImplementedError",
 ]

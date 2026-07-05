@@ -33,3 +33,5 @@ def test_apply_fi() -> None:
     assert rules_strategy.get_lemma("liikenaisetta", "fi") == "liikenainen"
     # other cases
     assert rules_strategy.get_lemma("zzzzztteja", "fi") == "zzzzztti"
+    assert rules_strategy.get_lemma("kissa", "fi") is None
+    assert rules_strategy.get_lemma("Liikenaisen", "fi") is None

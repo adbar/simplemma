@@ -7,4 +7,6 @@ def test_apply_nl() -> None:
     assert rules_strategy.get_lemma("achterpagina's", "nl") == "achterpagina"
     assert rules_strategy.get_lemma("mogelijkheden", "nl") == "mogelijkheid"
     assert rules_strategy.get_lemma("boerderijen", "nl") == "boerderij"
+    assert rules_strategy.get_lemma("hond", "nl") is None
+    assert rules_strategy.get_lemma("kastelen", "nl") is None
     assert rules_strategy.get_lemma("brieven", "nl") == "brief"

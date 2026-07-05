@@ -111,8 +111,11 @@ simplemma/lists/
 AUTHORS.rst
 CONTRIBUTING.rst
 Makefile
-.github/
 
 # eval
 UD/
 training/**/data
+training/output/
+
+# uv lockfile: pyproject.toml pins exact versions already
+uv.lock

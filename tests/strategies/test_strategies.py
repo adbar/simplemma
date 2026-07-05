@@ -20,6 +20,7 @@ def test_search() -> None:
 
     assert HyphenRemovalStrategy().get_lemma("magni-ficent", "en") == "magnificent"
     assert HyphenRemovalStrategy().get_lemma("magni-ficents", "en") is None
+    assert HyphenRemovalStrategy().get_lemma("magni-", "en") is None
 
     # assert simplemma.simplemma._greedy_dictionary_lookup('Ignorance-Tests') == 'Ignorance-Test'
     # don't lemmatize numbers

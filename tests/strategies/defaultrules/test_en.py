@@ -19,9 +19,9 @@ def test_apply_en() -> None:
     assert rules_strategy.get_lemma("hardships", "en") == "hardship"
     assert rules_strategy.get_lemma("atonements", "en") == "atonement"
     assert rules_strategy.get_lemma("nations", "en") == "nation"
+    assert rules_strategy.get_lemma("matrices", "en") == "matrix"
     # assert rules_strategy.get_lemma("nerves", "en") == "nerve"
     # assert rules_strategy.get_lemma("dwarves", "en") == "dwarf"
-    # assert rules_strategy.get_lemma("matrices", "en") == "matrix"
     # adjectives / verb forms
     # assert rules_strategy.get_lemma("vindicated", "en") == "vindicate"
     # assert rules_strategy.get_lemma("fastened", "en") == "fasten"
