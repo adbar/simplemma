@@ -1,7 +1,7 @@
 from collections.abc import ItemsView, KeysView
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import call, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -19,10 +19,19 @@ if not HAS_MARISA:
     pytest.skip("skipping marisa-trie tests", allow_module_level=True)
 
 
+def test_import_error_without_deps(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "simplemma.strategies.dictionaries.trie_dictionary_factory._TRIE_DEPS_AVAILABLE",
+        False,
+    )
+    with pytest.raises(ImportError, match="marisa_trie and platformdirs"):
+        TrieDictionaryFactory()
+
+
 def test_exceptions() -> None:
     # missing languages or faulty language codes
     dictionary_factory = TrieDictionaryFactory(use_disk_cache=False)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Unsupported language"):
         dictionary_factory.get_dictionary("abc")
 
 
@@ -190,14 +199,62 @@ def test_corrupted_disk_cache() -> None:
                 f.write(b"corrupted trie dictionary")
             dictionaries._get_dictionary.cache_clear()
 
-            # Loading a corrupted hash should regenerate it.
-            with pytest.raises(RuntimeError):
-                dictionaries.get_dictionary("en")
+            # Loading a corrupted file should regenerate it.
+            dictionaries.get_dictionary("en")
 
-            create_trie_mock.assert_not_called()
-            write_trie_mock.assert_not_called()
+            create_trie_mock.assert_called_once_with("en")
+            write_trie_mock.assert_called_once()
 
             assert sorted(tmp_dir_path.iterdir()) == [tmp_dir_path / "en.dic"]
+
+
+def test_write_failure_removes_partial_file() -> None:
+    with TemporaryDirectory() as tmp_dir:
+        tmp_dir_path = Path(tmp_dir)
+        dictionaries = TrieDictionaryFactory(disk_cache_dir=tmp_dir)
+        mock_trie = MagicMock()
+        mock_trie.save.side_effect = OSError("disk full")
+        with pytest.raises(OSError, match="disk full"):
+            dictionaries._write_trie_to_disk("en", mock_trie)
+        assert sorted(tmp_dir_path.iterdir()) == []
+
+
+def test_write_failure_still_returns_dictionary() -> None:
+    with TemporaryDirectory() as tmp_dir:
+        dictionaries = TrieDictionaryFactory(disk_cache_dir=tmp_dir)
+        with patch.object(
+            TrieDictionaryFactory,
+            "_write_trie_to_disk",
+            side_effect=OSError("disk full"),
+        ):
+            result = dictionaries.get_dictionary("en")
+        assert result.get("balconies") == "balcony"
+
+
+def test_disabled_disk_cache_ignores_existing_file() -> None:
+    with TemporaryDirectory() as tmp_dir:
+        # Pre-populate a cache file with a disk-cache-enabled factory.
+        TrieDictionaryFactory(disk_cache_dir=tmp_dir).get_dictionary("en")
+
+        dictionaries = TrieDictionaryFactory(
+            disk_cache_dir=tmp_dir, use_disk_cache=False
+        )
+        with patch.object(
+            TrieDictionaryFactory,
+            "_create_trie_from_pickled_dict",
+            wraps=dictionaries._create_trie_from_pickled_dict,
+        ) as create_trie_mock:
+            dictionaries.get_dictionary("en")
+        # use_disk_cache=False must rebuild, not load the existing file.
+        create_trie_mock.assert_called_once_with("en")
+
+
+def test_disk_cache_creates_nested_dir() -> None:
+    with TemporaryDirectory() as tmp_dir:
+        nested = Path(tmp_dir) / "a" / "b"
+        dictionaries = TrieDictionaryFactory(disk_cache_dir=str(nested))
+        dictionaries.get_dictionary("en")
+        assert (nested / "en.dic").exists()
 
 
 def test_dictionary_working_as_a_dict() -> None:
