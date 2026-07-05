@@ -1,36 +1,30 @@
 """
 Diff-token audit: the manual-inspection gate every accepted UD delta must
 pass (a harm class concentrated in one POS or lexical pattern is a red flag
-even when net counts look fine -- cf. the es/ca PROPN-dominated worsened
-sets, the is "-lega" class).
+even when net counts look fine).
 
-Two modes, one classifier:
+Three modes, one classifier:
 
 --config <cfg> <lang> <ud_prefix>
-    Diff the pipeline between baseline and a runtime-patched candidate
-    config (any string training/ud_end_to_end.patched() accepts).
+    Diff baseline vs. a runtime-patched candidate config (any string
+    training/ud_end_to_end.patched() accepts).
 
 --worktree <path> [lang ...]
-    Diff the current working tree against another simplemma checkout
-    (defaultrules/ changes; recipe v2, step 9). Each side runs in a
-    SUBPROCESS of this same file (the `dump` subcommand) with an explicit
-    package root: Python's module caching cannot hold two simplemma
-    versions in one process. Create the comparison worktree first:
+    Diff the current working tree against another simplemma checkout.
+    Each side runs in a SUBPROCESS (the `dump` subcommand) with an explicit
+    package root, since Python can't hold two simplemma versions in one
+    process. Create the comparison worktree first:
         git worktree add /tmp/simplemma_main_worktree <ref> --detach
-    (and remove it afterwards to avoid a dangling .git/worktrees/ entry).
-    The dump worker keeps its own conllu reader on purpose: importing
-    training.ud_eval inside the worker could resolve against the OTHER
-    tree, which may predate the module.
+    (remove it afterwards to avoid a dangling .git/worktrees/ entry). The
+    dump worker keeps its own conllu reader: importing training.ud_eval
+    there could resolve against the OTHER tree, which may predate it.
 
 --consistency <lang> <ud_prefix>
     Flag words the CURRENT rules module changes despite the treebank
-    showing them as consistently gold (n>=2 occurrences, single lemma
-    across every occurrence, over train+dev+test). Two classes: identity
-    -- gold lemma == form, i.e. stoplist candidates -- and mismatch --
-    gold has a consistent non-identity lemma the rules disagree with, i.e.
-    a genuine rule bug. A sometimes-reduced word (inconsistent gold) is
-    annotation noise, not a stoplist candidate (recipe v3, "consistency
-    triage before stoplisting").
+    showing them as consistently gold (n>=2, single lemma across every
+    occurrence). Identity mismatches are stoplist candidates; non-identity
+    mismatches are rule bugs. An inconsistent gold is annotation noise, not
+    a stoplist candidate.
 """
 
 import csv
@@ -45,27 +39,26 @@ sys.path.insert(0, str(REPO_ROOT))
 
 OUT_DIR = str(REPO_ROOT / "training" / "data" / "rules_eval" / "results")
 
-# lang -> UD prefix, for every rule language with a downloaded treebank.
-# mk/ms/eo have none (residual in-dict-only risk, documented).
+# lang -> UD prefix. ms has no treebank (in-dict-only risk).
 LANG_TREEBANKS = {
     "ca": "ca_ancora",
     "cs": "cs_cac",
     "en": "en_ewt",
-    "eo": "eo_prago",  # UD v2.18 addition; eo_cairo (175 tokens) also exists
+    "eo": "eo_prago",  # eo_cairo also exists, unused
     "es": "es_gsd",
     "et": "et_edt",
     "fi": "fi_tdt",
-    "gl": "gl_ctg",  # tune; gl_treegal used separately as confirm
-    "is": "is_modern",  # dict-convention agreement only ~59%, see ud_eval.reliability
-    "ka": "ka_glc",  # UD v2.18: gained train+dev (was test-only, 2335 tokens)
+    "gl": "gl_ctg",  # tune split; gl_treegal is the confirm set
+    "is": "is_modern",  # ~59% dict agreement, see ud_eval.reliability
+    "ka": "ka_glc",  # gained train+dev in UD v2.18
     "la": "la_ittb",
     "lb": "lb_luxbank",  # test-only treebank
     "lv": "lv_lvtb",
-    "mk": "mk_mtb",  # UD v2.18 addition
+    "mk": "mk_mtb",
     "nl": "nl_alpino",
     "nn": "no_nynorsk",
     "pl": "pl_pdb",
-    "pt": "pt_bosque",  # tune; pt_porttinari used separately as confirm
+    "pt": "pt_bosque",  # tune split; pt_porttinari is the confirm set
     "ro": "ro_rrt",  # ro_simonero/ro_nonstandard are domain-mismatch traps
     "ru": "ru_gsd",
     "se": "sme_giella",  # no dev split upstream
@@ -73,7 +66,7 @@ LANG_TREEBANKS = {
     "sl": "sl_ssj",
     "sv": "sv_talbanken",
     "uk": "uk_iu",
-    "de": "de_gsd",  # dev-only partial file, known compound-gold laziness
+    "de": "de_gsd",  # dev-only, compound-gold laziness
 }
 
 Row = tuple[str, str, str]  # (form, lemma, upos)

@@ -1,24 +1,19 @@
 """
 Fetch the Universal Dependencies treebank archive from LINDAT/CLARIAH-CZ and
-lay it out for both consumers: `evaluate_simplemma.py` (one concatenated
-train+dev+test file per treebank) and the `training.ud_eval`/`ud_end_to_end`/
-`diff_audit` toolkit (per-split files, needed for the tune/dev vs confirm/
-test protocol -- concatenation would erase that boundary).
+lay it out for both `evaluate_simplemma.py` (concatenated train+dev+test)
+and the `ud_eval`/`ud_end_to_end`/`diff_audit` toolkit (per-split files,
+needed to keep the tune/confirm split boundary).
 
-LINDAT migrated to DSpace 7 sometime after the original version of this
-script was written: the old `.../xmlui/bitstream/handle/<h>/<file>?sequence=N`
-URLs now silently redirect to the JS-rendered item page instead of the file
-(no error -- urlretrieve happily saves the HTML shell as if it were the
-archive, and tarfile.open() only fails later, confusingly, on extraction).
-The DSpace 7 REST API needs three hops: resolve the release HANDLE to an
-item UUID, list its ORIGINAL bundle, then match the bitstream by filename.
+LINDAT migrated to DSpace 7: the old bitstream URLs now silently redirect to
+an HTML item page instead of the file (no error -- tarfile.open() only fails
+later, confusingly, on extraction). The REST API needs three hops instead:
+resolve the release HANDLE to an item UUID, list its ORIGINAL bundle, then
+match the bitstream by filename.
 
-UD_HANDLE is the only thing that needs bumping to move to a newer release
--- find it at https://universaldependencies.org/, "released through
-LINDAT/CLARIAH-CZ" links to a handle of the form 11234/1-XXXX. Bumping it
-is a deliberate re-baselining act: rerun `training.ud_eval reliability`
-across the evaluation treebanks afterwards, since annotation conventions
-can change between releases (see the recorded UD quirks catalog).
+To move to a newer release, bump UD_HANDLE (find it at
+https://universaldependencies.org/, "released through LINDAT/CLARIAH-CZ",
+form 11234/1-XXXX) then rerun `training.ud_eval reliability` across the
+evaluation treebanks, since annotation conventions can change between releases.
 """
 
 import hashlib
@@ -102,11 +97,8 @@ def get_dirs(folder: Path) -> list[str]:
     return [d.name for d in folder.iterdir() if d.is_dir()]
 
 
-# UD's own file-prefix does not always match simplemma's ISO code: Nynorsk
-# treebanks are filed under the Norwegian macrolanguage code "no", North
-# Sami under "sme". Neither collides with a real SUPPORTED_LANGUAGES entry,
-# so without this map they are silently dropped (not misfiled) -- caught by
-# comparing output coverage against the expected language list.
+# UD's file-prefix isn't always simplemma's ISO code (Nynorsk="no", North
+# Sami="sme") -- without this map, both are silently dropped, not misfiled.
 _DATASET_LANG_OVERRIDES = {"no_nynorsk": "nn", "sme_giella": "se"}
 
 
@@ -171,15 +163,12 @@ def main() -> None:
         uncompressed_data_folder
     ):
         log.info(f"{lang} - {dataset_folder}")
-        # concatenated file for evaluate_simplemma.py, e.g. da_ddt.conllu
         lang_clean_data_file = CLEAN_DATA_FOLDER / f"{dataset_name}.conllu"
         with open(lang_clean_data_file, "wb") as outfile:
             for file in sorted(dataset_folder.glob("*.conllu")):
                 with open(file, "rb") as infile:
                     for line in infile:
                         outfile.write(line)
-        # per-split files for the tune(dev)/confirm(test) protocol, e.g.
-        # da_ddt-ud-train.conllu / -dev.conllu / -test.conllu
         for file in sorted(dataset_folder.glob("*.conllu")):
             (SPLITS_FOLDER / file.name).write_bytes(file.read_bytes())
 

@@ -1,12 +1,10 @@
 """
 Production-faithful UD evaluation of affix/rules config changes: runs the
-full non-greedy pipeline (fresh Lemmatizer per config) and reports accuracy
-plus improved/worsened diff counts for a runtime-patched candidate config
-against the unpatched baseline.
+full non-greedy pipeline and reports accuracy plus improved/worsened diff
+counts for a runtime-patched candidate config against the unpatched baseline.
 
-Config strings accepted by patched() -- both the pre- and post-
-fix/simplify_affixes shapes of AFFIX_LANGS are supported (set+LONGER_AFFIXES
-vs dict lang->max_affix_len), detected at run time:
+Config strings accepted by patched() (auto-detects pre-/post-
+fix/simplify_affixes AFFIX_LANGS shape):
   add:<lang>       lang added to AFFIX_LANGS (max_affix_len 2)
   remove:<lang>    lang removed from AFFIX_LANGS
   retune:<lang>N   lang's max_affix_len set to N
@@ -16,13 +14,11 @@ vs dict lang->max_affix_len), detected at run time:
   greedy_exclude:<lang>  lang added to GREEDY_EXCLUDE (post-affix-branch
                    shape only; a no-op question in non-greedy mode)
 
-The decision protocol lives here too (pre-registered, 2026-07-03): a change
-is ACCEPTed only if it wins the sign test on the TUNE split (dev) AND the
-CONFIRM split (test) agrees -- two independent samples, never one pooled
-number -- and no single systematic harm class dominates the worsened set
-(run training/diff_audit.py --config before trusting any verdict). Gate
-changes additionally need the greedy-mode regression leg (greedy_leg here):
-the gate is shared with GreedyDictionaryLookupStrategy by design.
+Decision protocol: ACCEPT only if the sign test wins on TUNE (dev) AND
+CONFIRM (test) agrees, with no systematic harm class in the worsened set
+(check via training/diff_audit.py --config). Gate changes also need the
+greedy-mode regression leg (greedy_leg): the gate is shared with
+GreedyDictionaryLookupStrategy.
 
 CLI: uv run python -m training.ud_end_to_end <lang> <ud_prefix> <config> [...]
 """
@@ -155,9 +151,7 @@ def diff_counts(
     splits: tuple[str, ...] = ("test", "dev"),
     greedy: bool = False,
 ) -> tuple[int, int]:
-    """Improved/worsened token counts, baseline vs config. NB: the strategies
-    read their config at CALL time, so the baseline pass runs entirely
-    OUTSIDE the patched() context and the candidate pass entirely inside."""
+    """Improved/worsened counts, baseline (outside patched()) vs config (inside)."""
     tokens = list(iter_eval_tokens(prefix, splits))
     base_lem = Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=greedy))
     base_out = [base_lem.lemmatize(form, lang=lang) for form, _ in tokens]
@@ -188,9 +182,8 @@ def verdict(
     confirm_improved: int,
     confirm_worsened: int,
 ) -> str:
-    """'reject' / 'borderline' / 'accept' per the pre-registered protocol
-    (see module docstring); 'borderline' needs the manual diff-token audit
-    before treating as a signal. Status quo wins all ties."""
+    """'reject'/'borderline'/'accept' per the module docstring's protocol;
+    'borderline' needs the manual diff-token audit before treating as signal."""
     if not passes_sign_test(tune_improved, tune_worsened):
         return "reject"
     confirm_net = confirm_improved - confirm_worsened
@@ -202,11 +195,9 @@ def verdict(
 
 
 def greedy_leg(lang: str, prefix: str, new_gate: int) -> bool:
-    """Greedy-mode regression check for a gate change: the gate is shared
-    with GreedyDictionaryLookupStrategy, so shipping it retunes greedy=True
-    users too. Patches BOTH modules (unlike the `gate:` config, which
-    correctly patches only the affix side for the non-greedy protocol).
-    Returns True if shippable (no regression beyond noise)."""
+    """Regression check for a gate change: patches BOTH modules, since the
+    gate is shared with GreedyDictionaryLookupStrategy (unlike `gate:`,
+    which patches only the affix side). True if shippable."""
     saved = (getattr(AD, "greedy_min_length"), GDL.greedy_min_length)
     base_fn = saved[0]
 

@@ -1,17 +1,11 @@
 """
 Mining/analysis tool for `simplemma/strategies/defaultrules/` candidate rules.
 
-Workflow: `mine(lang)` finds candidate suffix->replacement cells that clear
-the harness's precision bar in isolation; `build_rules()` consolidates them
-into one regex per target; `evaluate()` checks the FULL combined ruleset
-(cells can collide once combined, even if each was safe alone); once clean,
-`render_rules_dict()` emits the exact-order source for the module's
-DEFAULT_RULES -- write it directly into the file rather than hand-copying a
-printout, which can silently reorder first-match priority.
-
-Not a one-command generator: every language shipped so far needed real
-judgment calls (which alternatives to whitelist, which closed-class
-exceptions to carve out) that these numbers surface but don't resolve.
+Workflow: `mine()` finds candidate cells, `build_rules()` consolidates them,
+`evaluate()` checks the combined ruleset (cells can collide once combined),
+`render_rules_dict()` emits DEFAULT_RULES source -- write it directly rather
+than hand-copying a printout, which can silently reorder first-match priority.
+Not a one-command generator: every language needs real judgment calls.
 """
 
 import re
@@ -42,9 +36,7 @@ def _common_prefix_len(a: str, b: str) -> int:
 
 
 def _alts(pattern: re.Pattern[str]) -> list[str]:
-    """All literal suffixes a rule pattern can match: a flat alternation
-    `(?:a|b)$`, or a captured stem-class prefix followed by endings,
-    `(p|q)(?:a|b)$` (expanded as their product)."""
+    """Literal suffixes a rule pattern can match: `(?:a|b)$` or `(p|q)(?:a|b)$`."""
     s = pattern.pattern
     merged = re.fullmatch(r"\(([^()?][^()]*)\)\(\?:([^()]*)\)\$", s)
     if merged:
@@ -54,8 +46,7 @@ def _alts(pattern: re.Pattern[str]) -> list[str]:
 
 
 def _first_match(token: str, rules: Rules) -> tuple[str, str, str] | None:
-    """Like `apply_rules`, but also returns the matched alternative and
-    target so callers don't have to re-scan the rules to find out."""
+    """Like `apply_rules`, but also returns the matched alternative and target."""
     for pattern, repl in rules.items():
         out = pattern.sub(repl, token)
         if out != token:
@@ -97,9 +88,7 @@ def mine(
         if len(f) < min_len or (caps_guard and f[:1].isupper()):
             continue
         for length in lengths:
-            # No stem-length floor beyond a non-empty stem: apply_rules has
-            # none either, so a stricter floor here would look safe while
-            # mining but diverge from what the real rule does at runtime.
+            # no stem-length floor: matches apply_rules, which has none either
             if length >= len(f):
                 break
             suffix = f[-length:]
@@ -129,11 +118,8 @@ def build_rules(
     exclude_suffixes: Iterable[str] = (),
     exclude_targets: Iterable[str] = (),
 ) -> Rules:
-    """Consolidate mined cells into one compiled regex per target, ordered
-    by longest alternative first (a short alt in a big group can otherwise
-    shadow a longer, more specific alt in a smaller one). Not universal --
-    some languages need a broad cell checked first instead; confirm with
-    `evaluate()` on the combined ruleset."""
+    """One compiled regex per target, longest alternative first (else a short
+    alt can shadow a longer one) -- confirm with `evaluate()` on the combined set."""
     exclude_suffixes = set(exclude_suffixes)
     exclude_targets = set(exclude_targets)
     rules: Rules = {}
@@ -163,12 +149,9 @@ def evaluate(
     extra_guard: Callable[[str], bool] | None = None,
     verbose: bool = True,
 ) -> dict[str, object]:
-    """Precision, idempotence, and coverage of `rules` over the full
-    dictionary. Idempotence tolerates a rule changing its own output further
-    only when that intermediate isn't itself a dictionary entry -- the real
-    pipeline always tries a dictionary lookup before rules, so a genuine
-    word would never reach the rule a second time (matches
-    tests/strategies/defaultrules/test_precision.py)."""
+    """Precision, idempotence, and coverage of `rules` over the full dictionary.
+    Idempotence is skipped when the output is itself a dict entry: the real
+    pipeline tries dictionary lookup first, so a rule never re-fires on it."""
 
     def apply_fn(token: str) -> tuple[str, str, str] | None:
         if len(token) < min_len or (caps_guard and token[0].isupper()):
@@ -264,11 +247,9 @@ def cell_firing_counts(
 
 
 def trim_by_mass(cells: Cells, share: float = 0.90) -> Cells:
-    """Keep the highest-firing cells covering `share` of total firing mass
-    over the dictionary, dropping the long low-frequency tail (recipe v3
-    step 7). Safe by construction: it only turns fired->unfired, never
-    changes an output -- the only question is how much UD-improved
-    coverage the dropped tail was carrying, checked separately."""
+    """Keep the highest-firing cells covering `share` of total firing mass,
+    dropping the long low-frequency tail. Safe by construction: only turns
+    fired->unfired, never changes an output."""
     total = sum(cells.values())
     threshold = share * total
     kept: Cells = {}
@@ -288,17 +269,11 @@ def merge_stem_classes(
     caps_guard: bool = True,
     extra_guard: Callable[[str], bool] | None = None,
 ) -> Rules:
-    """Consolidate flat single-stem deletion groups -- groups whose target
-    is a literal prefix of every one of its own alternatives, i.e. plain
-    suffix-stripping with no phonological change, like sv's -ig/-lig/-sig
-    adjective comparison -- into one `(stemA|stemB|...)(?:endings)$` -> r"\\1"
-    rule wherever two or more such groups share an IDENTICAL ending set.
-    Each candidate merge is placed at its earliest source group's original
-    position (preserving first-match priority order relative to every
-    OTHER group) and rejected -- sources kept separate -- unless it
-    reproduces the exact same output for every dictionary entry (the sv
-    rat|rn hoist lesson: a merge can silently collide with an unrelated
-    group positioned in between; never trust one without this check)."""
+    """Merge plain suffix-stripping groups (target is a literal prefix of every
+    alternative, e.g. sv's -ig/-lig/-sig) that share an identical ending set,
+    at the earliest source group's position. Rejected unless it reproduces
+    the exact same output for every dictionary entry -- a merge can silently
+    collide with an unrelated group positioned in between (the sv rat|rn lesson)."""
     items = list(rules.items())
     deletion: dict[str, tuple[int, frozenset[str]]] = {}
     for i, (pattern, target) in enumerate(items):
@@ -338,9 +313,7 @@ def merge_stem_classes(
             if t not in targets or p is anchor_pattern
         }
         candidate[merged_pattern] = r"\1"
-        # rolling comparison against the last-accepted state is sufficient:
-        # `result` is already verified output-identical to the true
-        # baseline by induction over prior accepted merges.
+        # `result` stands in for the baseline: sound by induction, already verified
         if all(apply_fn(f, candidate) == apply_fn(f, result) for f in dictionary):
             result = candidate
     return result

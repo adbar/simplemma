@@ -1,14 +1,12 @@
 """
 UD treebank reading and data-quality diagnostics for the rules/affix
-evaluation toolkit (the promoted, committable home of what grew in
-git-ignored training/data/*/scripts/).
+evaluation toolkit.
 
 Conventions mirror training/evaluate_simplemma.py: skip lemma == "_",
-lowercase sentence-initial forms, exact-match scoring. Treebanks are
-fetched by training/download_eval_data.py into UD_DIR (the per-split
-files under training/data/UD/splits/, not the concatenated ones
-evaluate_simplemma.py itself consumes -- the tune/confirm protocol needs
-the dev/test split boundary preserved).
+lowercase sentence-initial forms, exact-match scoring. Reads the per-split
+files under training/data/UD/splits/ (fetched by download_eval_data.py),
+not the concatenated ones evaluate_simplemma.py consumes -- the tune/confirm
+protocol needs the dev/test split boundary preserved.
 
 CLI:
     uv run python -m training.ud_eval reliability <lang:prefix> [...]
@@ -66,10 +64,9 @@ def oov_types(
     dict_lookup: DictionaryLookupStrategy,
     capitalized: bool = False,
 ) -> list[tuple[str, str, int]]:
-    """Alphabetic types NOT resolved by dictionary lookup, with majority
-    gold lemma and token frequency. Lowercase-initial by default;
-    capitalized=True selects capitalized-initial types instead (relevant
-    for noun-capitalizing languages and proper nouns)."""
+    """Alphabetic types NOT resolved by dictionary lookup, with majority gold
+    lemma and token frequency. capitalized=True selects capitalized-initial
+    types instead of lowercase-initial."""
     gold: dict[str, Counter[str]] = defaultdict(Counter)
     for form, lemma, _ in iter_tokens(lang_prefix):
         if form.isalpha() and form[:1].isupper() == capitalized:
@@ -83,11 +80,9 @@ def oov_types(
 
 
 def reliability(lang: str, prefix: str) -> dict[str, float]:
-    """Annotation-quality profile of one treebank; consult before trusting a
-    UD verdict that falls in a known-noisy class (see the convention quirks
-    on record: es-GSD PROPN lowercasing, de-GSD compound-plural laziness).
-      inconsistency: share of tokens at (form, upos) types with >=5
-        occurrences NOT carrying the majority lemma
+    """Annotation-quality profile; consult before trusting a UD verdict that
+    falls in a known-noisy class (e.g. es-GSD PROPN lowercasing).
+      inconsistency: share of (form, upos) types (n>=5) off the majority lemma
       plur_id: NOUN Number=Plur tokens whose gold lemma == form
       propn_id: PROPN tokens whose gold lemma == form
       dict_agree: dict-resolved lowercase alpha tokens where gold == dict"""
@@ -145,9 +140,7 @@ _POS_ORDER = ("ADV", "FUNC", "NOUN", "VERB", "ADJ")
 
 
 def pos_coverage(lang: str, prefix: str) -> dict[str, tuple[float, float]]:
-    """Per-POS-group dictionary OOV rates (token%, type%): the diagnostic
-    that exposed the adverb/function-word extraction hole -- see the
-    dictionary-building notes, gap #4."""
+    """Per-POS-group dictionary OOV rates (token%, type%)."""
     lookup = DictionaryLookupStrategy()
     tok: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     typ: dict[str, list[int]] = defaultdict(lambda: [0, 0])
