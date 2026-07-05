@@ -182,9 +182,9 @@ def run_dump(pkg_root: str, lang: str, ud_dir: str, prefix: str, out_csv: str) -
 
     module_path = getattr(sys.modules["simplemma"], "__file__", None)
     assert module_path is not None
-    assert os.path.commonpath([module_path, pkg_root]) == os.path.normpath(
-        pkg_root
-    ), f"simplemma resolved outside {pkg_root}: {module_path}"
+    assert os.path.commonpath([module_path, pkg_root]) == os.path.normpath(pkg_root), (
+        f"simplemma resolved outside {pkg_root}: {module_path}"
+    )
 
     lemmatizer = Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=False))
     with open(out_csv, "w", newline="", encoding="utf-8") as fh:

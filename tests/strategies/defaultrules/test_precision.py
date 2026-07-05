@@ -102,9 +102,9 @@ def test_rule_quality(lang: str) -> None:
                     break
 
     prec = 100 * ok / fired if fired else 100.0
-    assert (
-        prec >= THRESHOLD
-    ), f"{lang}: aggregate precision {prec:.2f}% over {fired} firings"
+    assert prec >= THRESHOLD, (
+        f"{lang}: aggregate precision {prec:.2f}% over {fired} firings"
+    )
     bad = [
         f"-{alt}->-{repl} {100 * ok / n:.1f}% (n={n})"
         for (alt, repl), (n, ok) in cells.items()
@@ -122,7 +122,7 @@ def test_no_alternation_overlap(lang: str) -> None:
     seen: dict[str, str] = {}
     for pattern, repl in rules.items():
         for alt in _branches(pattern):
-            assert (
-                alt not in seen
-            ), f"{lang}: {alt!r} in two rules (->{seen[alt]} and ->{repl})"
+            assert alt not in seen, (
+                f"{lang}: {alt!r} in two rules (->{seen[alt]} and ->{repl})"
+            )
             seen[alt] = repl
