@@ -4,15 +4,65 @@ Running the evaluation
 The scores are calculated on `Universal Dependencies <https://universaldependencies.org/>`_ treebanks on single word tokens (including some contractions but not merged prepositions). They can be reproduced by the following steps:
 
 1. Install the evaluation dependencies, Python >= 3.10 required (``pip install ".[dev]"``)
-2. Update ``DATA_URL`` in ``training/download_eval_data.py`` to point to the latest treebanks archive from `Universal Dependencies <https://universaldependencies.org/#download>`_ (or the version that you wish to use).
-3. Run ``python3 training/download_eval_data.py`` which will
-  1. Download the archive
-  2. Extract relevant data (language and if applicable specific treebank, see notes in the results table)
-  3. Concatenate the train, dev and test data into a single file (e.g. ``de_gsd-ud-train.conllu``, ``de_gsd-ud-dev.conllu`` and ``de_gsd-ud-test.conllu`` into ``de_gsd.conllu``)
-  4. Store the files at the expected location (``training/data/UD/``)
-4. Run the script, e.g. from the home directory ``python3 training/evaluate_simplemma.py``
-5. Results are stored at ``training/data/results/results_summary.csv``. Also, errors are written in a CSV file for each dataset under the ``data/results`` folder.
+2. Run ``python3 -m training.download_eval_data``, which resolves the pinned
+   UD release (``UD_HANDLE`` in the script) via the LINDAT/CLARIAH-CZ REST
+   API, downloads and checksums the treebanks archive, and for every
+   supported language:
+  1. Concatenates the train, dev and test data into a single file (e.g. ``da_ddt.conllu``) at the expected location (``training/data/UD/``)
+  2. ALSO copies the individual train/dev/test files unmerged to ``training/data/UD/splits/`` (used by the ``training.ud_eval``/``ud_end_to_end``/``diff_audit`` toolkit below, which needs the dev/test split boundary preserved)
+   To move to a newer UD release, update ``UD_VERSION``/``UD_HANDLE`` at the
+   top of the script (find the new release's handle at
+   `Universal Dependencies <https://universaldependencies.org/#download>`_,
+   "released through LINDAT/CLARIAH-CZ") and delete ``training/data/UD/``
+   before re-running -- then rerun ``training.ud_eval reliability`` across
+   the evaluation treebanks, since annotation conventions can change
+   between releases.
+3. Run the script, e.g. from the home directory ``python3 training/evaluate_simplemma.py``
+4. Results are stored at ``training/data/results/results_summary.csv``. Also, errors are written in a CSV file for each dataset under the ``data/results``folder.
 
+
+Evaluating a candidate change (rules, affix config, new language)
+-----------------------------------------------------------------
+
+Any change to the OOV fallbacks (``strategies/defaultrules/``,
+``strategies/affix_decomposition.py``) or a new candidate language should be
+validated against real text, not only against the shipped dictionaries — the
+dictionaries underrepresent exactly what the fallbacks meet in production
+(function words, productive derivation, proper nouns). The toolkit:
+
+1. ``python -m training.download_eval_data`` — fetch the pinned UD release
+   (same one used above; run once, the data is git-ignored and reused
+   across sessions).
+2. ``python -m training.ud_eval reliability <lang:prefix>`` — annotation-quality
+   profile of the treebank FIRST; known convention quirks (e.g. proper-noun
+   lowercasing, compound-plural laziness) can fake or hide a regression.
+3. In-dict prefilter: ``python -m training.rulebuilder <lang>`` for rules
+   candidates (the per-cell precision gate is enforced by
+   ``tests/strategies/defaultrules/test_precision.py``).
+4. ``python -m training.ud_end_to_end <lang> <prefix> <config> [...]`` — accuracy
+   plus a tune (dev) / confirm (test) sign-test verdict for a runtime-patched
+   affix-config candidate.
+5. ``python -m training.diff_audit --config <cfg> <lang> <prefix>`` or
+   ``--worktree <path> [langs]`` (for defaultrules/ changes, against another
+   checkout) — inspect the worsened tokens before trusting ANY positive
+   delta: a harm class concentrated in one POS or lexical pattern is a red
+   flag even when the net counts look fine.
+6. ``python -m training.diff_audit --consistency <lang> <prefix>`` — the
+   stoplist-candidate finder: flags words the rules change despite the
+   treebank showing them as ALWAYS identity-gold (n>=2). Distinguishes a
+   genuine collision from annotation noise (a sometimes-reduced word isn't
+   a stoplist candidate).
+
+``defaultrules/`` policy: rules are meant to add a little coverage
+cheaply, not to be mined exhaustively. Trim to ~70-80% of firing mass
+(``rulebuilder.trim_by_mass``), not 100%, before merging
+(``rulebuilder.merge_stem_classes``); keep a language's stoplist small and
+FINITE — if a rule cell needs more than roughly a dozen exceptions, or the
+comment would have to say "more will likely need adding", drop that rule
+cell instead of growing the list (``rulebuilder.complexity_report()`` is
+the at-a-glance budget check: groups / alternatives / stoplist size per
+language). A language whose morphology needs an unreasonable amount of
+whitelisting to tame is a WONTFIX, not a "do it later".
 
 
 Building lemmatization dictionaries

@@ -16,10 +16,17 @@ DEFAULT_RULES = {
     re.compile(r"en$"): "e",
 }
 
+# invariant words whose tail collides with a grammatical ending (UD
+# validation, 2026-07): "tamen" (however) is not the -en directional-
+# accusative of a nonexistent "tame"; "neniu" (nobody), a correlative
+# pronoun already in its citation form, is not the -u imperative of a
+# nonexistent "nenii".
+_EXCLUDED = frozenset({"tamen", "neniu"})
+
 
 def apply_eo(token: str) -> str | None:
     "Apply pre-defined rules for Esperanto."
-    if len(token) < 4:
+    if len(token) < 4 or token in _EXCLUDED:
         return None
 
     return apply_rules(token, DEFAULT_RULES)

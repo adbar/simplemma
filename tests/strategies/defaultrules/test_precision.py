@@ -27,7 +27,9 @@ FACTORY = DefaultDictionaryFactory()
 
 def _rules_module(lang: str):
     """The lang's defaultrules submodule, or None if it's bespoke (no DEFAULT_RULES)."""
-    mod = importlib.import_module(f"simplemma.strategies.defaultrules.{lang}")
+    # "is" is a Python keyword and can't be a module name; the file is is_.py.
+    modname = "is_" if lang == "is" else lang
+    mod = importlib.import_module(f"simplemma.strategies.defaultrules.{modname}")
     return mod if hasattr(mod, "DEFAULT_RULES") else None
 
 
@@ -100,9 +102,9 @@ def test_rule_quality(lang: str) -> None:
                     break
 
     prec = 100 * ok / fired if fired else 100.0
-    assert prec >= THRESHOLD, (
-        f"{lang}: aggregate precision {prec:.2f}% over {fired} firings"
-    )
+    assert (
+        prec >= THRESHOLD
+    ), f"{lang}: aggregate precision {prec:.2f}% over {fired} firings"
     bad = [
         f"-{alt}->-{repl} {100 * ok / n:.1f}% (n={n})"
         for (alt, repl), (n, ok) in cells.items()
@@ -120,7 +122,7 @@ def test_no_alternation_overlap(lang: str) -> None:
     seen: dict[str, str] = {}
     for pattern, repl in rules.items():
         for alt in _branches(pattern):
-            assert alt not in seen, (
-                f"{lang}: {alt!r} in two rules (->{seen[alt]} and ->{repl})"
-            )
+            assert (
+                alt not in seen
+            ), f"{lang}: {alt!r} in two rules (->{seen[alt]} and ->{repl})"
             seen[alt] = repl

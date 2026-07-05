@@ -238,6 +238,130 @@ def evaluate(
     }
 
 
+def cell_firing_counts(
+    rules: Rules,
+    dictionary: dict[str, str],
+    min_len: int = MIN_LEN_DEFAULT,
+    caps_guard: bool = True,
+    extra_guard: Callable[[str], bool] | None = None,
+) -> Cells:
+    "Per-(alt, target) firing counts of an already-built ruleset -- the input to trim_by_mass."
+
+    def apply_fn(token: str) -> tuple[str, str, str] | None:
+        if len(token) < min_len or (caps_guard and token[0].isupper()):
+            return None
+        if extra_guard is not None and extra_guard(token):
+            return None
+        return _first_match(token, rules)
+
+    counts: Counter[tuple[str, str]] = Counter()
+    for f in dictionary:
+        match = apply_fn(f)
+        if match is not None:
+            _, alt, repl = match
+            counts[(alt, repl)] += 1
+    return dict(counts)
+
+
+def trim_by_mass(cells: Cells, share: float = 0.90) -> Cells:
+    """Keep the highest-firing cells covering `share` of total firing mass
+    over the dictionary, dropping the long low-frequency tail (recipe v3
+    step 7). Safe by construction: it only turns fired->unfired, never
+    changes an output -- the only question is how much UD-improved
+    coverage the dropped tail was carrying, checked separately."""
+    total = sum(cells.values())
+    threshold = share * total
+    kept: Cells = {}
+    running = 0
+    for cell, n in sorted(cells.items(), key=lambda kv: -kv[1]):
+        if running >= threshold:
+            break
+        kept[cell] = n
+        running += n
+    return kept
+
+
+def merge_stem_classes(
+    rules: Rules,
+    dictionary: dict[str, str],
+    min_len: int = MIN_LEN_DEFAULT,
+    caps_guard: bool = True,
+    extra_guard: Callable[[str], bool] | None = None,
+) -> Rules:
+    """Consolidate flat single-stem deletion groups -- groups whose target
+    is a literal prefix of every one of its own alternatives, i.e. plain
+    suffix-stripping with no phonological change, like sv's -ig/-lig/-sig
+    adjective comparison -- into one `(stemA|stemB|...)(?:endings)$` -> r"\\1"
+    rule wherever two or more such groups share an IDENTICAL ending set.
+    Each candidate merge is placed at its earliest source group's original
+    position (preserving first-match priority order relative to every
+    OTHER group) and rejected -- sources kept separate -- unless it
+    reproduces the exact same output for every dictionary entry (the sv
+    rat|rn hoist lesson: a merge can silently collide with an unrelated
+    group positioned in between; never trust one without this check)."""
+    items = list(rules.items())
+    deletion: dict[str, tuple[int, frozenset[str]]] = {}
+    for i, (pattern, target) in enumerate(items):
+        alts = _alts(pattern)
+        if all(a.startswith(target) and len(a) > len(target) for a in alts):
+            deletion[target] = (i, frozenset(a[len(target) :] for a in alts))
+
+    by_endings: dict[frozenset[str], list[str]] = defaultdict(list)
+    for target, (_, endings) in deletion.items():
+        by_endings[endings].append(target)
+
+    def apply_fn(token: str, active: Rules) -> str | None:
+        if len(token) < min_len or (caps_guard and token[0].isupper()):
+            return None
+        if extra_guard is not None and extra_guard(token):
+            return None
+        for pattern, repl in active.items():
+            out = pattern.sub(repl, token)
+            if out != token:
+                return out
+        return None
+
+    result = dict(items)
+    for endings, targets in by_endings.items():
+        if len(targets) < 2:
+            continue
+        earliest = min(deletion[t][0] for t in targets)
+        anchor_pattern = items[earliest][0]
+        stems = sorted(targets, key=len, reverse=True)
+        stem_pat = "|".join(re.escape(s) for s in stems)
+        end_pat = "|".join(sorted(endings, key=len, reverse=True))
+        merged_pattern = re.compile(rf"({stem_pat})(?:{end_pat})$")
+
+        candidate = {
+            (merged_pattern if p is anchor_pattern else p): t
+            for p, t in result.items()
+            if t not in targets or p is anchor_pattern
+        }
+        candidate[merged_pattern] = r"\1"
+        # rolling comparison against the last-accepted state is sufficient:
+        # `result` is already verified output-identical to the true
+        # baseline by induction over prior accepted merges.
+        if all(apply_fn(f, candidate) == apply_fn(f, result) for f in dictionary):
+            result = candidate
+    return result
+
+
+def complexity_report(langs: Iterable[str]) -> None:
+    "Groups / alternatives / stoplist size per rule language -- the lean-rules budget check."
+    import importlib
+
+    print(f"{'lang':4} {'groups':>7} {'alts':>6} {'stoplist':>9}")
+    for lang in sorted(langs):
+        modname = "is_" if lang == "is" else lang
+        mod = importlib.import_module(f"simplemma.strategies.defaultrules.{modname}")
+        if not hasattr(mod, "DEFAULT_RULES"):
+            print(f"{lang:4} {'bespoke':>7}")
+            continue
+        n_alts = sum(len(_alts(p)) for p in mod.DEFAULT_RULES)
+        n_stop = len(getattr(mod, "_EXCLUDED", ()))
+        print(f"{lang:4} {len(mod.DEFAULT_RULES):7d} {n_alts:6d} {n_stop:9d}")
+
+
 def render_rules_dict(rules: Rules, indent: str = "    ") -> str:
     "Render `rules` as Python source for a module's DEFAULT_RULES, in order."
     return "\n".join(

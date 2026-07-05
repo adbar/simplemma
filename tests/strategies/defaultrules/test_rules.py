@@ -69,3 +69,29 @@ def test_DEFAULT_RULES() -> None:
 
     assert rules_strategy.get_lemma("ackordssättningarna", "sv") == "ackordssättning"
     assert rules_strategy.get_lemma("lanterna", "sv") is None
+
+    assert rules_strategy.get_lemma("hegemônicos", "pt") == "hegemônico"
+    assert rules_strategy.get_lemma("superdegustadores", "pt") == "superdegustador"
+    assert rules_strategy.get_lemma("tenetehara-guajajara", "pt") is None
+
+    assert rules_strategy.get_lemma("crustáceos", "gl") == "crustáceo"
+    assert rules_strategy.get_lemma("párkinson", "gl") is None
+
+    assert rules_strategy.get_lemma("extracomunitaris", "ca") == "extracomunitari"
+    assert rules_strategy.get_lemma("mitjançant", "ca") is None
+
+    assert rules_strategy.get_lemma("nanoesporas", "es") == "nanoespora"
+    assert rules_strategy.get_lemma("mientras", "es") is None
+
+    assert rules_strategy.get_lemma("fagurfræðilegu", "is") == "fagurfræðilegur"
+    assert rules_strategy.get_lemma("vonandi", "is") is None
+
+    assert rules_strategy.get_lemma("institucionalnih", "sl") == "institucionalen"
+    assert rules_strategy.get_lemma("totalno", "sl") is None
+
+    assert rules_strategy.get_lemma("robotníkoch", "sk") == "robotník"
+    assert rules_strategy.get_lemma("slovenského", "sk") == "slovenský"
+    assert rules_strategy.get_lemma("naozaj", "sk") is None
+
+    assert rules_strategy.get_lemma("profesorului", "ro") == "profesor"
+    assert rules_strategy.get_lemma("explica", "ro") is None

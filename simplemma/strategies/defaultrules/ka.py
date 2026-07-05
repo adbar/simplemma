@@ -12,7 +12,7 @@ DEFAULT_RULES = {
     re.compile(r"(?:ტთა|ტმა|ტნი|ტნო|ტს)$"): "ტი",
     re.compile(r"(?:ლთა|ლმა|ლნი|ლნო|ლს)$"): "ლი",
     re.compile(r"(?:რთა|რნი|რნო|რს)$"): "რი",
-    re.compile(r"(?:ოებმა|ოები|ოებო|ოებს|ოთა|ოდ|ოვ|ომ)$"): "ო",
+    re.compile(r"(?:ოთა|ოდ|ოვ|ომ)$"): "ო",
     re.compile(r"(?:ორთა|ორნი|ორნო|ორო|ორს)$"): "ორი",
     re.compile(r"(?:სტთა|სტმა|სტნი|სტნო|სტს)$"): "სტი",
     re.compile(r"(?:იათა|იად|იავ|იამ|იას)$"): "ია",
@@ -28,8 +28,15 @@ DEFAULT_RULES = {
 
 # invariant adverbs/conjunctions whose tail happens to match a bare case
 # marker (UD validation, 2026-07 -- e.g. "მაგრამ" [but] was being stripped to
-# "მაგრა" by the -ამ case-ending rule), plus 2 verb forms colliding with the
-# nominal case markers.
+# "მაგრა" by the -ამ case-ending rule); proper nouns coinciding with a case
+# shape (Georgian has no letter-case to guard on, unlike Latin/Cyrillic
+# scripts, so PROPN forms stay in-scope); and a few verb 3rd-person-present
+# forms whose bare stem coincidentally matches a nominal case ending. The
+# causative/statal "-ოებ-" verb conjugation (აწარმოებს, საჭიროებს, ...),
+# which used to collide with the "-ო" noun class's dative plural and was
+# the single biggest driver of this list's growth, was fixed by dropping
+# those four endings from the rule instead of stoplisting instances (an
+# open-ended class, not a finite list) -- see the DEFAULT_RULES comment.
 _EXCLUDED = frozenset(
     {
         "სანამ",
@@ -44,15 +51,38 @@ _EXCLUDED = frozenset(
         "კიდევ",
         "მუდამ",
         "საკმაოდ",
-        "წარმოებს",
         "წერს",
+        "გურამ",
+        "დგას",
+        "ვინემ",
+        "ზემოდ",
+        "ისევ",
+        "კერძოდ",
+        "კონცერნი",
+        "მანამ",
+        "მჭიდროდ",
+        "ნაწარმოები",
+        "რათა",
+        "რატომ",
+        "საავტორო",
+        "სადღეისოდ",
+        "სატურნი",
+        "უგზოუკვლოდ",
+        "უილემ",
+        "უშუალოდ",
+        "ფერმა",
+        "ფრთა",
+        "შემდგომ",
+        "შოთა",
+        "შორს",
+        "წყვეტს",
     }
 )
 
 
 def apply_ka(token: str) -> str | None:
     "Apply pre-defined rules for Georgian."
-    if len(token) < 4 or token in _EXCLUDED:
+    if len(token) < 4 or "-" in token or token in _EXCLUDED:
         return None
 
     return apply_rules(token, DEFAULT_RULES)
