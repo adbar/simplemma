@@ -152,6 +152,8 @@ line-length = 88
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# the precision harness shares its predicate/pattern parser with training/rulebuilder.py
+pythonpath = ["."]
 
 [tool.coverage.run]
 source = ["simplemma"]

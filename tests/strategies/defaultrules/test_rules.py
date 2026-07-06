@@ -13,15 +13,15 @@ def test_DEFAULT_RULES() -> None:
 
     assert rules_strategy.get_lemma("mogelijkheden", "nl") == "mogelijkheid"
 
-    assert rules_strategy.get_lemma("liikenaisessa", "fi") == "liikenainen"
+    assert rules_strategy.get_lemma("kirjoituksen", "fi") == "kirjoitus"
 
     assert rules_strategy.get_lemma("pracowaliście", "pl") == "pracować"
 
     assert rules_strategy.get_lemma("безгра́мотностью", "ru") == "безгра́мотность"
 
     assert rules_strategy.get_lemma("Rīga", "lv") is None
-    assert rules_strategy.get_lemma("šķirkļiem", "lv") == "šķirklis"
-    assert rules_strategy.get_lemma("mācībām", "lv") == "mācība"
+    assert rules_strategy.get_lemma("labākajiem", "lv") == "labākais"
+    assert rules_strategy.get_lemma("baltajiem", "lv") == "baltais"
 
     assert rules_strategy.get_lemma("domojn", "eo") == "domo"
     assert rules_strategy.get_lemma("belajn", "eo") == "bela"
@@ -47,9 +47,6 @@ def test_DEFAULT_RULES() -> None:
     assert rules_strategy.get_lemma("luesteger", "lb") == "luesteg"
     assert rules_strategy.get_lemma("bequemer", "lb") is None
 
-    assert rules_strategy.get_lemma("addaledje", "se") == "addalit"
-    assert rules_strategy.get_lemma("albmadedje", "se") == "albmadit"
-
     assert rules_strategy.get_lemma("akslingane", "nn") == "aksling"
     assert rules_strategy.get_lemma("kaptein", "nn") is None
 
@@ -74,19 +71,20 @@ def test_DEFAULT_RULES() -> None:
     assert rules_strategy.get_lemma("superdegustadores", "pt") == "superdegustador"
     assert rules_strategy.get_lemma("tenetehara-guajajara", "pt") is None
 
-    assert rules_strategy.get_lemma("crustáceos", "gl") == "crustáceo"
+    # gl_ctg gold keeps this castellanized technical term as its own lemma
+    assert rules_strategy.get_lemma("crustáceos", "gl") is None
     assert rules_strategy.get_lemma("párkinson", "gl") is None
 
-    assert rules_strategy.get_lemma("extracomunitaris", "ca") == "extracomunitari"
+    assert rules_strategy.get_lemma("declaracions", "ca") == "declaració"
     assert rules_strategy.get_lemma("mitjançant", "ca") is None
 
-    assert rules_strategy.get_lemma("nanoesporas", "es") == "nanoespora"
+    assert rules_strategy.get_lemma("aplicaciones", "es") == "aplicación"
     assert rules_strategy.get_lemma("mientras", "es") is None
 
     assert rules_strategy.get_lemma("fagurfræðilegu", "is") == "fagurfræðilegur"
     assert rules_strategy.get_lemma("vonandi", "is") is None
 
-    assert rules_strategy.get_lemma("institucionalnih", "sl") == "institucionalen"
+    assert rules_strategy.get_lemma("ekonomskega", "sl") == "ekonomski"
     assert rules_strategy.get_lemma("totalno", "sl") is None
 
     assert rules_strategy.get_lemma("robotníkoch", "sk") == "robotník"

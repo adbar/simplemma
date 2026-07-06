@@ -1,26 +1,26 @@
 """Enforcement harness for the default rules: every rule must stay high-precision
 against the shipped dictionaries, be idempotent, and not overlap.
 
-The dictionaries are treated as ground truth. A rule's output counts as correct
-when it equals the dictionary lemma OR is itself a dictionary entry -- i.e. the
-rule produced a real word of the language, even where the dictionary files this
-inflected form under a different canonical lemma (pluralia, deverbal
-derivations, orthographic variants). Garbage (non-word) output is not excused,
-so a broken rule still fails; see strategies/defaultrules for the policy.
+The dictionaries are treated as ground truth. Policy (2026-07, lemma-first): a
+rule's output counts as correct only when it IS the dictionary lemma
+(accent-insensitive) -- rules exist to produce lemmas, not other inflected
+forms; see training/rulebuilder.output_is_lemma. _LEGACY_REAL_WORD_LANGS keeps
+the older tolerance (any dictionary-entry output counts): only Esperanto
+remains -- its base cells need a from-scratch rebuild to pass the strict bar.
 """
 
 import importlib
-import re
 
 import pytest
 
-from simplemma.strategies.defaultrules import DEFAULT_RULES as APPLY_FNS
+from simplemma.strategies.defaultrules import RULE_FUNCTIONS
 from simplemma.strategies.dictionaries.dictionary_factory import (
     DefaultDictionaryFactory,
 )
+from training.rulebuilder import output_is_lemma, pattern_alts
 
 RULE_LANGS = sorted(
-    APPLY_FNS
+    RULE_FUNCTIONS
 )  # every registered language, e.g. de en eo et fi lv nl pl ru
 FACTORY = DefaultDictionaryFactory()
 
@@ -44,23 +44,8 @@ THRESHOLD = 99.0
 # which one stray failure still passes. Systematically bad cells fire far more.
 MIN_SUPPORT = round(100 / (100 - THRESHOLD))  # 100 at THRESHOLD=99.0
 
-
-def _branches(pattern: re.Pattern[str]) -> list[str]:
-    """All literal suffixes a rule pattern can match: either a flat
-    alternation `(?:a|b)$` or a captured stem-class prefix followed by
-    endings, `(p|q)(?:a|b)$` (expanded as their product)."""
-    s = pattern.pattern
-    merged = re.fullmatch(r"\(([^()?][^()]*)\)\(\?:([^()]*)\)\$", s)
-    if merged:
-        prefixes, endings = merged.group(1).split("|"), merged.group(2).split("|")
-        return [p + e for p in prefixes for e in endings]
-    if s.endswith("$"):
-        s = s[:-1]
-    if s.startswith("(?:") and s.endswith(")"):
-        s = s[3:-1]
-    elif s.startswith("(") and s.endswith(")"):
-        s = s[1:-1]
-    return s.split("|")
+# Gate still accepts any dictionary-entry output for these (see docstring).
+_LEGACY_REAL_WORD_LANGS = frozenset({"eo"})
 
 
 @pytest.mark.parametrize("lang", RULE_LANGS)
@@ -68,9 +53,11 @@ def test_rule_quality(lang: str) -> None:
     """Single full-dictionary pass: aggregate precision, per-cell precision, and
     idempotence for one language's rules."""
     d = FACTORY.get_dictionary(lang)
-    fn = APPLY_FNS[lang]
+    fn = RULE_FUNCTIONS[lang]
     mod = _rules_module(lang)
     rules = mod.DEFAULT_RULES if mod is not None else None
+    branches = {p: pattern_alts(p) for p in rules} if rules is not None else {}
+    legacy = lang in _LEGACY_REAL_WORD_LANGS
     fired = ok = 0
     cells: dict[tuple[str, str], list[int]] = {}
     for f, gold in d.items():
@@ -78,7 +65,7 @@ def test_rule_quality(lang: str) -> None:
         if p is None:
             continue
         fired += 1
-        good = p == gold or d.get(p) is not None  # exact lemma, or a real word
+        good = output_is_lemma(p, gold) or (legacy and d.get(p) is not None)
         ok += good
         # idempotence: a produced lemma must be a fixed point, UNLESS it is
         # itself a real dictionary entry -- the real pipeline always tries
@@ -92,7 +79,7 @@ def test_rule_quality(lang: str) -> None:
             for pattern, repl in rules.items():
                 if pattern.sub(repl, f) != f:
                     alt = max(
-                        (a for a in _branches(pattern) if f.endswith(a)),
+                        (a for a in branches[pattern] if f.endswith(a)),
                         key=len,
                         default=pattern.pattern,
                     )
@@ -121,7 +108,7 @@ def test_no_alternation_overlap(lang: str) -> None:
     rules = mod.DEFAULT_RULES
     seen: dict[str, str] = {}
     for pattern, repl in rules.items():
-        for alt in _branches(pattern):
+        for alt in pattern_alts(pattern):
             assert alt not in seen, (
                 f"{lang}: {alt!r} in two rules (->{seen[alt]} and ->{repl})"
             )

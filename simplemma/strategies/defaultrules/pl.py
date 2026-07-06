@@ -21,7 +21,4 @@ DEFAULT_RULES = {
 
 def apply_pl(token: str) -> str | None:
     "Apply pre-defined rules for Polish."
-    if len(token) < 8 or token[0].isupper():
-        return None
-
-    return apply_rules(token, DEFAULT_RULES)
+    return apply_rules(token, DEFAULT_RULES, min_len=8, caps=True, hyphen=True)

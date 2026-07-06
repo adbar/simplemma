@@ -32,12 +32,14 @@ UD_DIR = str(REPO_ROOT / "training" / "data" / "UD" / "splits")
 Token = tuple[str, str, str]  # (form, lemma, upos)
 
 
-def iter_tokens(
+def _iter_rows(
     lang_prefix: str,
     splits: tuple[str, ...] = ("train", "dev", "test"),
     ud_dir: str = UD_DIR,
-) -> Iterator[Token]:
-    "Yield (form, lemma, upos) over the given splits of one treebank."
+) -> Iterator[list[str]]:
+    """Token rows (CONLL-U columns) with the toolkit's reading conventions
+    applied once: comments/MWT/empty nodes/lemma=='_' skipped,
+    sentence-initial forms lowercased."""
     files = sorted(
         f
         for split in splits
@@ -49,13 +51,22 @@ def iter_tokens(
             for line in fh:
                 if line.startswith("#") or not line.strip():
                     continue
-                cols = line.split("\t")
-                tid, form, lemma, upos = cols[0], cols[1], cols[2], cols[3]
-                if "-" in tid or "." in tid or lemma == "_":
+                cols = line.rstrip("\n").split("\t")
+                if "-" in cols[0] or "." in cols[0] or cols[2] == "_":
                     continue
-                if tid == "1":
-                    form = form.lower()
-                yield form, lemma, upos
+                if cols[0] == "1":
+                    cols[1] = cols[1].lower()
+                yield cols
+
+
+def iter_tokens(
+    lang_prefix: str,
+    splits: tuple[str, ...] = ("train", "dev", "test"),
+    ud_dir: str = UD_DIR,
+) -> Iterator[Token]:
+    "Yield (form, lemma, upos) over the given splits of one treebank."
+    for cols in _iter_rows(lang_prefix, splits, ud_dir):
+        yield cols[1], cols[2], cols[3]
 
 
 def oov_types(
@@ -87,31 +98,26 @@ def reliability(lang: str, prefix: str) -> dict[str, float]:
       propn_id: PROPN tokens whose gold lemma == form
       dict_agree: dict-resolved lowercase alpha tokens where gold == dict"""
     lookup = DictionaryLookupStrategy()
+    looked_up: dict[str, str | None] = {}
     lemmas_by_type: dict[tuple[str, str], Counter[str]] = defaultdict(Counter)
     n = plur = plur_id = propn = propn_id = indict = agree = 0
-    for path in sorted(glob.glob(os.path.join(UD_DIR, f"{prefix}-ud-*.conllu"))):
-        with open(path, encoding="utf-8") as fh:
-            for line in fh:
-                if line.startswith("#") or not line.strip():
-                    continue
-                cols = line.rstrip("\n").split("\t")
-                if "-" in cols[0] or "." in cols[0] or cols[2] == "_":
-                    continue
-                form = cols[1].lower() if cols[0] == "1" else cols[1]
-                lemma, upos, feats = cols[2], cols[3], cols[5]
-                n += 1
-                lemmas_by_type[(form, upos)][lemma] += 1
-                if upos == "NOUN" and "Number=Plur" in feats:
-                    plur += 1
-                    plur_id += lemma == form
-                elif upos == "PROPN":
-                    propn += 1
-                    propn_id += lemma == form
-                if form[:1].islower() and form.isalpha():
-                    d = lookup.get_lemma(form, lang)
-                    if d is not None:
-                        indict += 1
-                        agree += d == lemma
+    for cols in _iter_rows(prefix):
+        form, lemma, upos, feats = cols[1], cols[2], cols[3], cols[5]
+        n += 1
+        lemmas_by_type[(form, upos)][lemma] += 1
+        if upos == "NOUN" and "Number=Plur" in feats:
+            plur += 1
+            plur_id += lemma == form
+        elif upos == "PROPN":
+            propn += 1
+            propn_id += lemma == form
+        if form[:1].islower() and form.isalpha():
+            if form not in looked_up:
+                looked_up[form] = lookup.get_lemma(form, lang)
+            d = looked_up[form]
+            if d is not None:
+                indict += 1
+                agree += d == lemma
     big = {k: c for k, c in lemmas_by_type.items() if sum(c.values()) >= 5}
     tok = sum(sum(c.values()) for c in big.values())
     maj = sum(c.most_common(1)[0][1] for c in big.values())
@@ -142,6 +148,7 @@ _POS_ORDER = ("ADV", "FUNC", "NOUN", "VERB", "ADJ")
 def pos_coverage(lang: str, prefix: str) -> dict[str, tuple[float, float]]:
     """Per-POS-group dictionary OOV rates (token%, type%)."""
     lookup = DictionaryLookupStrategy()
+    is_oov: dict[str, bool] = {}
     tok: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     typ: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     seen: set[tuple[str, str]] = set()
@@ -149,7 +156,9 @@ def pos_coverage(lang: str, prefix: str) -> dict[str, tuple[float, float]]:
         group = _POS_GROUPS.get(upos)
         if group is None or not form.isalpha():
             continue
-        oov = lookup.get_lemma(form, lang) is None
+        if form not in is_oov:
+            is_oov[form] = lookup.get_lemma(form, lang) is None
+        oov = is_oov[form]
         tok[group][0] += 1
         tok[group][1] += oov
         if (form, group) not in seen:

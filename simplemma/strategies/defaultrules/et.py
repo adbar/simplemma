@@ -2,16 +2,10 @@ import re
 
 from .generic import apply_rules
 
-# Pruned to the cells that hold >=99% in-dict: the short elative/illative forms
-# (-mist/-misse/-list/-ikus/-dus*) collide with plain nouns, and the -dus
-# paradigm collapses under -dune adjective homography, so both are dropped.
-# UD validation (2026-07) found the BARE forms were rightly dropped
-# (list/umist stay <=72% in-dict) but several anchored variants clear the bar
-# and were missing: -lise/-lisele/-lisel (>=99.2%), -iliste/-likest (100%),
-# -amist (99.2%), -duses (100%), and stem-anchored -ilist (100%).
-# Deliberately left out despite UD value, just under the bar or needing
-# special-casing disproportionate to their size: -liste (98.5%),
-# -misega (99.0, -mis noun stems), -imist (96.8, -im/-žiim loans).
+# Pruned to the cells that hold >=99% in-dict: short elative/illative forms
+# collide with plain nouns and the -dus paradigm with -dune adjectives, so
+# both are dropped; only anchored variants that clear the bar are kept.
+# Left out despite UD value (just under the bar): -liste, -misega, -imist.
 
 DEFAULT_RULES = {
     # adjectives -line https://en.wiktionary.org/wiki/-line
@@ -42,7 +36,6 @@ DEFAULT_RULES = {
 
 def apply_et(token: str) -> str | None:
     "Apply pre-defined rules for Estonian."
-    if len(token) < 8 or token[0].isupper():
-        return None
-
-    return apply_rules(token, DEFAULT_RULES)
+    # UD gold for hyphenated compounds uses morpheme-boundary markers a
+    # suffix rule can never reproduce (44% on real text) -- skip
+    return apply_rules(token, DEFAULT_RULES, min_len=8, caps=True, hyphen=True)

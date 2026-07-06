@@ -2,61 +2,101 @@ import re
 
 from .generic import apply_rules
 
-# https://en.wiktionary.org/wiki/Category:Latvian_suffixes
-
+# Latvian: definite-adjective declension (-ais family), indefinite
+# adjectives (-isks/-īgs), and the -ums/-ija/-ība/-šana noun suffixes.
+# Lemma-first build plus a measured hand-recovery pass (the noun cells fell
+# to the trim cut-off or lie beyond mine()'s extension range; each recovered
+# cell re-measured >=99% strict in this combined set, ~1,200 UD tokens).
+# Deliberately absent: the bare "-ajiem" family (residue ~98%, low real-text
+# value), "-iju/-ijā" (collides with -ijs masculines), "-isko" (dict uses
+# definite "-iskais"), and every "-i"-shaped alternative -- Latvian's
+# productive adverb-from-adjective suffix, an open class UD keeps as its
+# own lemma (atbilstoši, pilnīgi, faktiski).
 DEFAULT_RULES = {
-    # feminine nouns
-    re.compile(r"(?:ieces|iecei|iecē|ieču|iecēm|iecēs)$"): "iece",
-    re.compile(r"(?:ietei|ietes|ietē|ietēm|ietēs)$"): "iete",
-    re.compile(r"(?:iju|ijas|ijai|ijā)$"): "ija",
-    re.compile(r"(?:ību|ības|ībai|ībā|ībām|ībās)$"): "ība",
-    re.compile(r"(?:šanu|šanas|šanai)$"): "šana",
-    # masculine nouns
-    re.compile(r"(?:umu|uma|umam|umā|umām|umās)$"): "ums",
-    re.compile(r"(?:klim|klī|kļa|kļi|kļiem|kļos|kļus)$"): "klis",
-    re.compile(r"(?:nieku|nieka|niekam|niekā|nieki|niekus|niekos)$"): "nieks",
-    # adjectives (this data lemmatises DEFINITE forms to the -ais form)
-    re.compile(r"(?:aja|ajā|ajai|ajam|ajām|ajos|ajiem|ajās)$"): "ais",
-    re.compile(r"āko$"): "ākais",
-    # indefinite adjective declension -> indefinite masculine (-īgs/-isks).
-    # These must precede the generic noun-case cells below, which would
-    # otherwise turn feminine forms into feminine citation forms (smirdīgās
-    # -> *smirdīga instead of smirdīgs) -- found via UD, invisible in-dict
-    # because the feminine form is itself a real dictionary word.
-    re.compile(r"(?:īgu|īga|īgam|īgi|īgus|īgiem|īgos|īgas|īgai|īgā|īgām|īgās)$"): "īgs",
-    re.compile(
-        r"(?:isku|iska|iskam|iskā|iski|iskus|iskiem|isko|iskos|iskai|iskas|iskām|iskās)$"
-    ): "isks",
-    # generic -a-stem case endings (genitive/accusative -as, locative -ā,
-    # dative-plural -ām, locative-plural -ās), UD-validated as the
-    # highest-value LV cells. The stem-length floors keep out the short
-    # collision classes (reflexive-verb "-as" forms like "atrodas",
-    # pluralia tantum like "kāzas"); the -ās lookbehinds skip reflexive
-    # forms (atcerējās, atcerēšanās); definite adjectives (-ajā/-ajām/-ajās)
-    # are claimed by the -ais rule above, jā- debitives by the guard below.
-    re.compile(r"(.{8,})as$"): r"\1a",
-    re.compile(r"(.{6,})ām$"): r"\1a",
-    re.compile(r"(.{6,})(?<!j)(?<!šan)ās$"): r"\1a",
-    re.compile(r"(.{7,})ā$"): r"\1a",
+    re.compile(r"(?:ākiem|ākam|ākas|āko)$"): "ākais",
+    re.compile(r"(?:ušajiem|ušajai|ušajam|ušajos|ušie|usī|ušo)$"): "ušais",
+    re.compile(r"(?:ošajiem|ošajam|ošajos|ošajai|ošie|ošo)$"): "ošais",
+    re.compile(r"(?:kajiem|kajai|kajam|kajos|kie)$"): "kais",
+    re.compile(r"(?:tajiem|tajam|tajos|tajai)$"): "tais",
+    re.compile(r"(?:majiem|majai|majam|majos|mie)$"): "mais",
+    re.compile(r"(?:ošiem|ošus|ošai|ošam|ošas|ošām|ošās|oša|ošā)$"): "ošs",
+    re.compile(r"(?:ajām|ajās|ajā)$"): "ais",
+    re.compile(r"(?:iskām|iskās|iskos|iskus|iska|isku|iskā)$"): "isks",
+    re.compile(r"(?:īgos|īgus|īgās|īga|īgu|īgā)$"): "īgs",
+    re.compile(r"(?:umam|uma|umu|umā)$"): "ums",
+    re.compile(r"(?:ības|ību|ībā|ībām|ībās)$"): "ība",
+    re.compile(r"(?:ijas|ijai)$"): "ija",
+    re.compile(r"(?:šanas|šanai|šanu|šani)$"): "šana",
+    re.compile(r"(?:amas|ama)$"): "ams",
 }
 
-# Capitalized tokens (mostly proper nouns: place names, surnames) decline
-# like nouns, so the noun-case cells apply cleanly, while the adjective
-# cells would mangle names ending in adjective-like letters
-# (Havajā -> *Havais).
-_ADJECTIVE_TARGETS = frozenset({"ais", "ākais", "īgs", "isks"})
+# Capitalized tokens decline like nouns, so most noun cells apply cleanly
+# (Latvijas -> Latvija); the adjective cells would mangle names, and "ums"
+# is excluded too (feminine surnames end in -a: Straujuma).
+_CAPS_UNSAFE_TARGETS = frozenset(
+    {
+        "ākais",
+        "ušais",
+        "ošais",
+        "kais",
+        "tais",
+        "mais",
+        "ošs",
+        "ais",
+        "ams",
+        "isks",
+        "īgs",
+        "ums",
+    }
+)
 _PROPER_NOUN_RULES = {
     pattern: repl
     for pattern, repl in DEFAULT_RULES.items()
-    if repl not in _ADJECTIVE_TARGETS
+    if repl not in _CAPS_UNSAFE_TARGETS
 }
+
+# Pluralia tantum whose citation form IS the plural, colliding with the
+# "-ība"/"-šana" singular cells (in-dict members are resolved by lookup
+# before rules; the OOV ones do reach the rules), plus two lexicalized
+# invariants (drīzumā, pretinflācijas).
+_EXCLUDED = frozenset(
+    {
+        "priekšvēlēšanu",
+        "vēlēšanas",
+        "vēlēšanu",
+        "vēlēšanām",
+        "ganības",
+        "ganību",
+        "ganībā",
+        "ganībām",
+        "ganībās",
+        "kristības",
+        "kristību",
+        "kristībā",
+        "kristībām",
+        "kristībās",
+        "tiesības",
+        "tiesību",
+        "tiesībā",
+        "tiesībām",
+        "tiesībās",
+        "dzemdības",
+        "dzemdību",
+        "dzemdībās",
+        "medības",
+        "medību",
+        "balsstiesības",
+        "drīzumā",
+        "pretinflācijas",
+    }
+)
 
 
 def apply_lv(token: str) -> str | None:
     "Apply pre-defined rules for Latvian."
-    # jā- is the debitive-mood verb marker: those are verb forms whose lemma
-    # is an infinitive, out of reach of these noun/adjective rules.
-    if len(token) < 5 or token.startswith("jā"):
+    # jā- marks debitive verb forms (infinitive lemma, out of reach here);
+    # min_len 6 matches the mining/validation floor.
+    if len(token) < 6 or token.startswith("jā") or token in _EXCLUDED:
         return None
 
     rules = _PROPER_NOUN_RULES if token[0].isupper() else DEFAULT_RULES

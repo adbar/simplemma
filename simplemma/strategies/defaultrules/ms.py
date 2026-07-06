@@ -14,7 +14,4 @@ def apply_ms(token: str) -> str | None:
     # short roots (baku, buku, ilmu, kamu, bangku, sesiku, ...) collide with
     # the clitics; a hyphen marks a reduplicated plural (buku-buku), whose
     # second half is not itself cliticised.
-    if len(token) < 7 or "-" in token:
-        return None
-
-    return apply_rules(token, DEFAULT_RULES)
+    return apply_rules(token, DEFAULT_RULES, min_len=7, hyphen=True)

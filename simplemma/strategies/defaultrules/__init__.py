@@ -24,13 +24,12 @@ from .pl import apply_pl
 from .pt import apply_pt
 from .ro import apply_ro
 from .ru import apply_ru
-from .se import apply_se
 from .sk import apply_sk
 from .sl import apply_sl
 from .sv import apply_sv
 from .uk import apply_uk
 
-DEFAULT_RULES: dict[str, Callable[[str], str | None]] = {
+RULE_FUNCTIONS: dict[str, Callable[[str], str | None]] = {
     "ca": apply_ca,
     "cs": apply_cs,
     "de": apply_de,
@@ -53,7 +52,6 @@ DEFAULT_RULES: dict[str, Callable[[str], str | None]] = {
     "pt": apply_pt,
     "ro": apply_ro,
     "ru": apply_ru,
-    "se": apply_se,
     "sk": apply_sk,
     "sl": apply_sl,
     "sv": apply_sv,

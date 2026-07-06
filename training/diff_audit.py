@@ -212,6 +212,12 @@ def _read_csv(path: str) -> list[dict[str, str]]:
 
 
 def audit_worktree(worktree: str, langs: list[str]) -> None:
+    unknown = sorted(set(langs) - set(LANG_TREEBANKS))
+    if unknown:
+        sys.exit(
+            f"no treebank mapping for: {', '.join(unknown)} "
+            f"(known: {', '.join(sorted(LANG_TREEBANKS))})"
+        )
     os.makedirs(OUT_DIR, exist_ok=True)
     for lang in langs or sorted(LANG_TREEBANKS):
         prefix = LANG_TREEBANKS[lang]
@@ -234,10 +240,12 @@ def audit_worktree(worktree: str, langs: list[str]) -> None:
 
 
 def audit_consistency(lang: str, prefix: str, n_examples: int = 20) -> None:
-    from simplemma.strategies.defaultrules import DEFAULT_RULES
+    from simplemma.strategies.defaultrules import RULE_FUNCTIONS
     from training.ud_eval import iter_tokens
 
-    apply_fn = DEFAULT_RULES[lang]
+    apply_fn = RULE_FUNCTIONS.get(lang)
+    if apply_fn is None:
+        sys.exit(f"no rules registered for {lang!r} in defaultrules/__init__.py")
     gold: dict[str, Counter[str]] = defaultdict(Counter)
     for form, lemma, _ in iter_tokens(prefix, splits=("train", "dev", "test")):
         gold[form][lemma] += 1

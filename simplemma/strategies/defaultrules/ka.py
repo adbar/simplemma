@@ -2,17 +2,19 @@ import re
 
 from .generic import apply_rules
 
-# Georgian nominal declension: case/number markers (-ს, -მა, -ნი, -ნო, -თა, ...)
-# attach directly to the bare stem, and the nominative citation form restores
-# the stem-final vowel. Anchored to the stem's own final consonant/vowel
-# cluster: the bare case markers alone (-ს, -მა, -ნო, ...) are too ambiguous,
-# since Georgian nouns fall into several historical stem classes that are not
-# predictable from the surface form without lexical knowledge.
+# Georgian nominal declension: case/number markers attach to the bare stem;
+# cells are anchored on the stem's final cluster since the bare markers are
+# too ambiguous across stem classes. Dropped after per-alternative UD
+# measurement: ედ/ევ/ომ (clipped bare-stem nominals whose gold RESTORES the
+# nominative -ი, unreachable by suffix stripping). Kept with stoplisted
+# collisions: ოდ (3 Greek loanwords), ემ (100% in-dict), რთა/რს (colliding
+# verbs would just cascade to broader alternatives if the cells were
+# dropped, so stoplisting is the only fix that removes the wrong outputs).
 DEFAULT_RULES = {
     re.compile(r"(?:ტთა|ტმა|ტნი|ტნო|ტს)$"): "ტი",
     re.compile(r"(?:ლთა|ლმა|ლნი|ლნო|ლს)$"): "ლი",
     re.compile(r"(?:რთა|რნი|რნო|რს)$"): "რი",
-    re.compile(r"(?:ოთა|ოდ|ოვ|ომ)$"): "ო",
+    re.compile(r"(?:ოთა|ოდ|ოვ)$"): "ო",
     re.compile(r"(?:ორთა|ორნი|ორნო|ორო|ორს)$"): "ორი",
     re.compile(r"(?:სტთა|სტმა|სტნი|სტნო|სტს)$"): "სტი",
     re.compile(r"(?:იათა|იად|იავ|იამ|იას)$"): "ია",
@@ -20,69 +22,91 @@ DEFAULT_RULES = {
     re.compile(r"(?:სთა|სნი|სნო|სს)$"): "სი",
     re.compile(r"(?:ერთა|ერმა|ერნი|ერნო|ერს)$"): "ერი",
     re.compile(r"(?:ართა|არმა|არნი|არნო|არს)$"): "არი",
-    re.compile(r"(?:ედ|ევ|ემ)$"): "ე",
+    re.compile(r"(?:ემ)$"): "ე",
     re.compile(r"(?:რამ|რას)$"): "რა",
     re.compile(r"(?:ათა|ამ|ას)$"): "ა",
     re.compile(r"(?:ნთა|ნმა|ნნი|ნნო)$"): "ნი",
 }
 
-# invariant adverbs/conjunctions whose tail happens to match a bare case
-# marker (UD validation, 2026-07 -- e.g. "მაგრამ" [but] was being stripped to
-# "მაგრა" by the -ამ case-ending rule); proper nouns coinciding with a case
-# shape (Georgian has no letter-case to guard on, unlike Latin/Cyrillic
-# scripts, so PROPN forms stay in-scope); and a few verb 3rd-person-present
-# forms whose bare stem coincidentally matches a nominal case ending. The
-# causative/statal "-ოებ-" verb conjugation (აწარმოებს, საჭიროებს, ...),
-# which used to collide with the "-ო" noun class's dative plural and was
-# the single biggest driver of this list's growth, was fixed by dropping
-# those four endings from the rule instead of stoplisting instances (an
-# open-ended class, not a finite list) -- see the DEFAULT_RULES comment.
+# Invariant adverbs/conjunctions, proper nouns (Georgian script has no
+# letter case to guard on), verb forms colliding with nominal case endings,
+# and two lexicalized -ნთა nouns. Larger than the usual exception budget
+# because the "-ას" dative cell is worth >1000 correct UD tokens (dropping
+# it: 0 improved / 226 worsened) and its collisions proved finite -- the
+# hybrid keep-with-stoplist rule, see training/README.rst.
 _EXCLUDED = frozenset(
     {
         "სანამ",
         "მხოლოდ",
         "მაგრამ",
-        "ამიტომ",
-        "სწორედ",
-        "იმიტომ",
         "საერთოდ",
         "სრულიად",
-        "არამედ",
-        "კიდევ",
         "მუდამ",
         "საკმაოდ",
         "წერს",
         "გურამ",
         "დგას",
-        "ვინემ",
+        "ზურგჩანთა",
+        "ჩანთა",
+        "ამას",
+        "იმას",
+        "იქნას",
+        "ათას",
+        "ითქვას",
+        "წარმოქმნას",
+        "შეიქმნას",
+        "ძვირფას",
+        "აიხსნას",
+        "თქვას",
+        "გახსნას",
+        "წარმოიქმნას",
+        "დაგვირგვინას",
+        "მიგნას",
+        "შედარას",
+        "დაატრიალას",
+        "ააშენას",
+        "დასურათას",
+        "ჩაიხუტას",
+        "მოგეტყნას",
+        "მოგვეტყნას",
+        "მოეტყნას",
+        "მომეტყნას",
+        "მოტყნას",
+        "დაუკრას",
+        "გაუშვას",
         "ზემოდ",
-        "ისევ",
         "კერძოდ",
         "კონცერნი",
         "მანამ",
         "მჭიდროდ",
-        "ნაწარმოები",
         "რათა",
-        "რატომ",
         "საავტორო",
         "სადღეისოდ",
         "სატურნი",
         "უგზოუკვლოდ",
-        "უილემ",
         "უშუალოდ",
         "ფერმა",
-        "ფრთა",
-        "შემდგომ",
         "შოთა",
         "შორს",
         "წყვეტს",
+        "პერიოდ",
+        "მეთოდ",
+        "ეპიზოდ",
+        "უილიამ",
+        "ვინემ",
+        "უილემ",
+        "ფრთა",
+        "აღწერს",
+        "მოიხმარს",
+        "გაიმართა",
     }
 )
 
 
 def apply_ka(token: str) -> str | None:
     "Apply pre-defined rules for Georgian."
-    if len(token) < 4 or "-" in token or token in _EXCLUDED:
+    # -ისას (genitive + adverbial) needs the whole sequence replaced to
+    # reach the citation form; a dedicated cell measures 97.3% -- abstain.
+    if token.endswith("ისას"):
         return None
-
-    return apply_rules(token, DEFAULT_RULES)
+    return apply_rules(token, DEFAULT_RULES, min_len=4, hyphen=True, excluded=_EXCLUDED)

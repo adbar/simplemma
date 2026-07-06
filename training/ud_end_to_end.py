@@ -23,7 +23,10 @@ GreedyDictionaryLookupStrategy.
 CLI: uv run python -m training.ud_end_to_end <lang> <ud_prefix> <config> [...]
 """
 
+import glob
 import math
+import os
+import re
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -40,9 +43,19 @@ from simplemma.strategies.default import DefaultStrategy  # noqa: E402
 from simplemma.strategies.dictionary_lookup import (  # noqa: E402
     DictionaryLookupStrategy,
 )
-from training.ud_eval import iter_tokens  # noqa: E402
+from training.ud_eval import UD_DIR, iter_tokens  # noqa: E402
 
 DICT_LOOKUP = DictionaryLookupStrategy()
+
+# retune:/gate: argument shape, e.g. "de2" or "es12" -> ("es", 12)
+_LANG_N = re.compile(r"([a-z_]+?)(\d+)")
+
+
+def _parse_lang_n(config: str, arg: str) -> tuple[str, int]:
+    m = _LANG_N.fullmatch(arg)
+    if m is None:
+        raise ValueError(config)
+    return m.group(1), int(m.group(2))
 
 
 def iter_eval_tokens(
@@ -85,9 +98,9 @@ def patched(config: str) -> Iterator[None]:
             else:
                 AD.AFFIX_LANGS = set(AD.AFFIX_LANGS) - {arg}
         elif kind == "retune":
-            _set_max_affix_len(arg[:-1], int(arg[-1]))
+            _set_max_affix_len(*_parse_lang_n(config, arg))
         elif kind == "gate":
-            lang, n = arg[:-1], int(arg[-1])
+            lang, n = _parse_lang_n(config, arg)
             base_fn = saved["greedy_min_length"]
 
             def _per_lang(lg: str, _n: int = n, _lang: str = lang) -> int:
@@ -144,6 +157,21 @@ def run(
     )
 
 
+def classify_diffs(
+    tokens: list[tuple[str, str]], base_out: list[str], cand_out: list[str]
+) -> tuple[int, int]:
+    "(improved, worsened) counts between two output columns; ties/neutral ignored."
+    improved = worsened = 0
+    for (_, lemma), b, a in zip(tokens, base_out, cand_out):
+        if a == b:
+            continue
+        if b == lemma and a != lemma:
+            worsened += 1
+        elif a == lemma and b != lemma:
+            improved += 1
+    return improved, worsened
+
+
 def diff_counts(
     lang: str,
     prefix: str,
@@ -158,15 +186,7 @@ def diff_counts(
     with patched(config):
         cand_lem = Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=greedy))
         cand_out = [cand_lem.lemmatize(form, lang=lang) for form, _ in tokens]
-    improved = worsened = 0
-    for (form, lemma), b, a in zip(tokens, base_out, cand_out):
-        if a == b:
-            continue
-        if b == lemma and a != lemma:
-            worsened += 1
-        elif a == lemma and b != lemma:
-            improved += 1
-    return improved, worsened
+    return classify_diffs(tokens, base_out, cand_out)
 
 
 def passes_sign_test(improved: int, worsened: int) -> bool:
@@ -215,14 +235,7 @@ def greedy_leg(lang: str, prefix: str, new_gate: int) -> bool:
     finally:
         setattr(AD, "greedy_min_length", saved[0])
         setattr(GDL, "greedy_min_length", saved[1])
-    improved = worsened = 0
-    for (form, lemma), b, a in zip(tokens, base_out, cand_out):
-        if a == b:
-            continue
-        if b == lemma and a != lemma:
-            worsened += 1
-        elif a == lemma and b != lemma:
-            improved += 1
+    improved, worsened = classify_diffs(tokens, base_out, cand_out)
     n = improved + worsened
     regression = n > 0 and worsened >= improved + 2 * math.sqrt(n)
     print(
@@ -236,6 +249,10 @@ def main() -> None:
         print(__doc__)
         sys.exit(1)
     lang, prefix = sys.argv[1], sys.argv[2]
+    tune_splits: tuple[str, ...] = ("dev",)
+    if not glob.glob(os.path.join(UD_DIR, f"{prefix}-ud-dev.conllu")):
+        tune_splits = ("test",)
+        print(f"note: {prefix} has no dev split; tune leg reuses test (tune==confirm)")
     print(
         f"{'config':16} {'tokens':>7} {'acc%':>8} {'oov_n':>6} {'oov_acc%':>8} "
         f"{'tune i/w':>9} {'confirm i/w':>11} {'verdict':>10}"
@@ -245,7 +262,7 @@ def main() -> None:
         if config == "baseline":
             print(f"{config:16} {total:7d} {acc:8.3f} {sub_n:6d} {sub_acc:8.2f}")
             continue
-        ti, tw = diff_counts(lang, prefix, config, splits=("dev",))
+        ti, tw = diff_counts(lang, prefix, config, splits=tune_splits)
         ci, cw = diff_counts(lang, prefix, config, splits=("test",))
         print(
             f"{config:16} {total:7d} {acc:8.3f} {sub_n:6d} {sub_acc:8.2f} "
