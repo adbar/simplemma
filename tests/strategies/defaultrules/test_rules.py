@@ -43,6 +43,8 @@ def test_DEFAULT_RULES() -> None:
 
     assert rules_strategy.get_lemma("ღვინოთა", "ka") == "ღვინო"
     assert rules_strategy.get_lemma("ტურისტმა", "ka") == "ტურისტი"
+    # -ისას abstains: the case cells cannot reach the citation form
+    assert rules_strategy.get_lemma("მოძრაობისას", "ka") is None
 
     assert rules_strategy.get_lemma("luesteger", "lb") == "luesteg"
     assert rules_strategy.get_lemma("bequemer", "lb") is None
