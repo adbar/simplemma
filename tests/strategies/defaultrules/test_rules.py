@@ -45,6 +45,8 @@ def test_DEFAULT_RULES() -> None:
     assert rules_strategy.get_lemma("ტურისტმა", "ka") == "ტურისტი"
     # -ისას abstains: the case cells cannot reach the citation form
     assert rules_strategy.get_lemma("მოძრაობისას", "ka") is None
+    # stem-final -ლთა nouns (not a case ending) stoplisted, not -> *კალი
+    assert rules_strategy.get_lemma("კალთა", "ka") is None
 
     assert rules_strategy.get_lemma("luesteger", "lb") == "luesteg"
     assert rules_strategy.get_lemma("bequemer", "lb") is None
@@ -65,6 +67,10 @@ def test_DEFAULT_RULES() -> None:
 
     assert rules_strategy.get_lemma("abalienabant", "la") == "abalieno"
     assert rules_strategy.get_lemma("Roma", "la") is None
+    # (?<=..) stem floor: whole-word match must not strip to a bare "o"
+    assert rules_strategy.get_lemma("abimus", "la") is None
+    # floor on all groups: 1-char-stem matches must not strip to bare targets
+    assert rules_strategy.get_lemma("antium", "la") is None
 
     assert rules_strategy.get_lemma("ackordssättningarna", "sv") == "ackordssättning"
     assert rules_strategy.get_lemma("lanterna", "sv") is None
@@ -76,6 +82,9 @@ def test_DEFAULT_RULES() -> None:
     # gl_ctg gold keeps this castellanized technical term as its own lemma
     assert rules_strategy.get_lemma("crustáceos", "gl") is None
     assert rules_strategy.get_lemma("párkinson", "gl") is None
+    # invariant -ais adverbs stoplisted, not -> *jamal/*xamal
+    assert rules_strategy.get_lemma("jamais", "gl") is None
+    assert rules_strategy.get_lemma("xamais", "gl") is None
 
     assert rules_strategy.get_lemma("declaracions", "ca") == "declaració"
     assert rules_strategy.get_lemma("mitjançant", "ca") is None

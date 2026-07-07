@@ -30,7 +30,8 @@ DEFAULT_RULES = {
 
 # Invariant adverbs/conjunctions, proper nouns (Georgian script has no
 # letter case to guard on), verb forms colliding with nominal case endings,
-# and two lexicalized -ნთა nouns. Larger than the usual exception budget
+# and lexicalized -ნთა/-ლთა nouns (ჩანთა, კალთა, ბალთა: stem-final -თა, not a
+# case ending). Larger than the usual exception budget
 # because the "-ას" dative cell is worth >1000 correct UD tokens (dropping
 # it: 0 improved / 226 worsened) and its collisions proved finite -- the
 # hybrid keep-with-stoplist rule, see training/README.rst.
@@ -48,6 +49,8 @@ _EXCLUDED = frozenset(
         "დგას",
         "ზურგჩანთა",
         "ჩანთა",
+        "ბალთა",
+        "კალთა",
         "ამას",
         "იმას",
         "იქნას",

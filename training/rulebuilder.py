@@ -5,11 +5,18 @@ Recipe: `mine()` finds candidate cells -> `trim_by_mass()` drops the
 low-frequency tail -> `refine()` builds rules and iterates dropping any cell
 that is imprecise or (once combined with the others) under-supported ->
 `subsume()` removes alternatives whose own group already produces them via a
-more general alternative -> `evaluate()` for the final human-readable report
--> `render_rules_dict()` emits DEFAULT_RULES source (write it directly rather
+more general alternative -> `evaluate()` for the dictionary report ->
+`ud_screen()` for per-cell precision on real UD text (surfaces the OOV
+collisions the dictionary sweep is blind to; read by hand, not a gate) ->
+`render_rules_dict()` emits DEFAULT_RULES source (write it directly rather
 than hand-copying a printout, which can silently reorder first-match
 priority). Not a one-command generator: every language needs real judgment
 calls (stoplists, structural guards) on top of this.
+
+`build_rules()` now emits a `(?<=..)` stem floor on every group; modules
+shipped before that (all current ones except la) lack it, so a regenerated
+module will differ from the checked-in one on whole-word matches --
+re-validate rather than assume parity.
 
 `score_cells()` is the one first-match scoring pass everything else is built
 from -- `refine()`'s loop and `evaluate()`'s final report both call it rather
@@ -17,6 +24,8 @@ than each rolling their own dictionary sweep.
 """
 
 import functools
+import glob
+import os
 import re
 import sys
 import unicodedata
@@ -34,6 +43,10 @@ FACTORY = DefaultDictionaryFactory()
 MIN_LEN_DEFAULT = 6
 SUPPORT_MIN_DEFAULT = 100
 PREC_MIN_DEFAULT = 99.0
+# stem chars required before a suffix match: mine()'s candidate extraction,
+# its scoring pass, and _compile_group()'s `(?<=..)` floor must all agree on
+# this, or the builder's stats stop describing what the compiled rule fires on.
+MIN_STEM_CHARS = 2
 
 
 def _strip_accents(s: str) -> str:
@@ -49,27 +62,24 @@ def output_is_lemma(out: str, gold: str) -> bool:
     return out == gold or _strip_accents(out) == _strip_accents(gold)
 
 
-def _common_prefix_len(a: str, b: str) -> int:
-    n = 0
-    for x, y in zip(a, b):
-        if x != y:
-            break
-        n += 1
-    return n
-
-
 _MERGED_SHAPE = re.compile(r"\(([^()?][^()]*)\)\(\?:([^()]*)\)\$")
-_FLAT_SHAPE = re.compile(r"\(\?:([^()]*)\)\$")
+# flat `(?:a|b)$`, optionally stem-floored `(?<=..)(?:a|b)$`
+_FLAT_SHAPE = re.compile(r"(?:\(\?<=\.\.\))?\(\?:([^()]*)\)\$")
 _STEM_FLOOR_SHAPE = re.compile(r"\(\.\{\d+,\}\)([^()|]+)\$")
 _LITERAL_SHAPE = re.compile(r"[^()\[\]{}|?*+.\\]+\$")
+
+# Regex metacharacters that must never appear in a mined literal suffix -- a
+# dictionary word-ending is plain text, so one here means bad input (e.g. an
+# abbreviation like "etc.") that would emit an over-matching or invalid pattern.
+_META = re.compile(r"[.^$*+?()\[\]{}|\\]")
 
 
 @functools.cache
 def pattern_alts(pattern: re.Pattern[str]) -> list[str]:
     """Literal suffixes a rule pattern can match. Handles the shipped shapes --
-    flat `(?:a|b)$`, merged stem-class `(p|q)(?:a|b)$`, stem-floor `(.{N,})a$`,
-    bare literal `a$` -- and falls back to the whole pattern string otherwise,
-    so attribution lumps rather than crashes."""
+    flat/stem-floored `(?:a|b)$` or `(?<=..)(?:a|b)$`, merged stem-class
+    `(p|q)(?:a|b)$`, stem-floor `(.{N,})a$`, bare literal `a$` -- and falls back
+    to the whole pattern string otherwise, so attribution lumps rather than crashes."""
     s = pattern.pattern
     if merged := _MERGED_SHAPE.fullmatch(s):
         prefixes, endings = merged.group(1).split("|"), merged.group(2).split("|")
@@ -86,14 +96,21 @@ def pattern_alts(pattern: re.Pattern[str]) -> list[str]:
 def _first_match(token: str, rules: Rules) -> tuple[str, str, str] | None:
     """Like `apply_rules`, but also returns the matched alternative and target."""
     for pattern, repl in rules.items():
+        match = pattern.search(token)
+        if match is None:
+            continue
         out = pattern.sub(repl, token)
-        if out != token:
-            alt = max(
-                (a for a in pattern_alts(pattern) if token.endswith(a)),
-                key=len,
-                default=pattern.pattern,
-            )
-            return out, alt, repl
+        if out == token:
+            continue
+        # attribute the alternative the engine matched, not the longest
+        # endswith candidate: the (?<=..) floor can backtrack past a long
+        # alt and fire a shorter same-target one (Xabitis matches -bitis)
+        alt = max(
+            (a for a in pattern_alts(pattern) if match.group(0).endswith(a)),
+            key=len,
+            default=pattern.pattern,
+        )
+        return out, alt, repl
     return None
 
 
@@ -110,12 +127,12 @@ def mine(
     for f, lemma in d.items():
         if f == lemma or len(f) < min_len or (caps_guard and f[:1].isupper()):
             continue
-        cp = _common_prefix_len(f, lemma)
-        if cp < 2 or len(f) - cp > 7 or len(lemma) - cp > 7:
+        cp = len(os.path.commonprefix((f, lemma)))
+        if cp < MIN_STEM_CHARS or len(f) - cp > 7 or len(lemma) - cp > 7:
             continue
         for ext in range(4):  # extend leftward through the shared stem
             start = cp - ext
-            if start < 2 or len(f) - start > 8:
+            if start < MIN_STEM_CHARS or len(f) - start > 8:
                 continue
             candidates[(f[start:], lemma[start:])] += 1
     kept_candidates = {k for k, v in candidates.items() if v >= support_min and k[0]}
@@ -130,8 +147,7 @@ def mine(
         if len(f) < min_len or (caps_guard and f[:1].isupper()):
             continue
         for length in lengths:
-            # no stem-length floor: matches apply_rules, which has none either
-            if length >= len(f):
+            if length > len(f) - MIN_STEM_CHARS:
                 break
             suffix = f[-length:]
             for s_to in by_len[length].get(suffix, ()):
@@ -155,15 +171,24 @@ def group_by_target(cells: Cells) -> dict[str, list[str]]:
     return dict(by_target)
 
 
-def build_rules(
-    cells: Cells,
-    exclude_suffixes: Iterable[str] = (),
-    exclude_targets: Iterable[str] = (),
-) -> Rules:
+def _compile_group(suffixes: list[str], target: str) -> re.Pattern[str]:
+    """Compile one target's alternation. The `(?<=..)` stem floor mirrors
+    mine()'s candidate support and scoring pass (both gated on MIN_STEM_CHARS)
+    so a whole-word match can't strip to a bare target (e.g. la `abimus`->`o`)
+    and compiled rules fire on exactly the firings mine() scored. Suffixes
+    must be metacharacter-free (they are dictionary word-endings) so the
+    alternation stays literal."""
+    for s in (*suffixes, target):
+        if _META.search(s):
+            raise ValueError(f"non-literal suffix/target {s!r} for target {target!r}")
+    kept = sorted(suffixes, key=len, reverse=True)
+    floor = f"(?<={'.' * MIN_STEM_CHARS})"
+    return re.compile(floor + r"(?:" + "|".join(kept) + r")$")
+
+
+def build_rules(cells: Cells) -> Rules:
     """One compiled regex per target, longest alternative first (else a short
     alt can shadow a longer one) -- confirm with `evaluate()` on the combined set."""
-    exclude_suffixes = set(exclude_suffixes)
-    exclude_targets = set(exclude_targets)
     rules: Rules = {}
     for target, suffixes in sorted(
         group_by_target(cells).items(),
@@ -172,13 +197,7 @@ def build_rules(
             -sum(cells[(s, kv[0])] for s in kv[1]),
         ),
     ):
-        if target in exclude_targets:
-            continue
-        kept = sorted(
-            (s for s in suffixes if s not in exclude_suffixes), key=len, reverse=True
-        )
-        if kept:
-            rules[re.compile(r"(?:" + "|".join(kept) + r")$")] = target
+        rules[_compile_group(suffixes, target)] = target
     return rules
 
 
@@ -198,6 +217,15 @@ def _make_apply_fn(
     return apply_fn
 
 
+def _score_cell(
+    cell_stats: dict[tuple[str, str], list[int]], alt: str, repl: str, good: bool
+) -> None:
+    "Update one cell's [fired, ok] counts -- the bookkeeping score_cells() and ud_screen() share."
+    cell = cell_stats.setdefault((alt, repl), [0, 0])
+    cell[0] += 1
+    cell[1] += good
+
+
 def score_cells(
     rules: Rules,
     dictionary: dict[str, str],
@@ -205,31 +233,43 @@ def score_cells(
     caps_guard: bool = True,
     extra_guard: Callable[[str], bool] | None = None,
     collect_nonword: bool = False,
-) -> tuple[dict[tuple[str, str], list[int]], list[tuple[str, str, str]]]:
+) -> tuple[dict[tuple[str, str], list[int]], list[tuple[str, str, str, str, str]]]:
     """One first-match pass over `dictionary`: per-(alt, target) [fired, ok]
     counts, the shared primitive `refine()`'s loop and `evaluate()`'s report
     both build on. `ok` uses `output_is_lemma` -- lemma-first policy, 2026-07.
 
-    When `collect_nonword`, also returns every (form, output, gold) firing
-    whose output is not itself a dictionary entry -- the only candidates for
-    idempotence chains and precision-failure samples, since the real pipeline
-    tries dictionary lookup before rules and would never re-fire a rule on a
-    dict-entry output."""
+    When `collect_nonword`, also returns every (form, output, gold, alt, target)
+    firing whose output is not itself a dictionary entry -- the only candidates
+    for idempotence chains and precision-failure samples, since the real
+    pipeline tries dictionary lookup before rules and would never re-fire a
+    rule on a dict-entry output."""
     apply_fn = _make_apply_fn(rules, min_len, caps_guard, extra_guard)
     cell_stats: dict[tuple[str, str], list[int]] = {}
-    nonword: list[tuple[str, str, str]] = []
+    nonword: list[tuple[str, str, str, str, str]] = []
     for f, lemma in dictionary.items():
         match = apply_fn(f)
         if match is None:
             continue
         p, alt, repl = match
         good = output_is_lemma(p, lemma)
-        cell = cell_stats.setdefault((alt, repl), [0, 0])
-        cell[0] += 1
-        cell[1] += good
+        _score_cell(cell_stats, alt, repl, good)
         if collect_nonword and p != f and dictionary.get(p) is None:
-            nonword.append((f, p, lemma))
+            nonword.append((f, p, lemma, alt, repl))
     return cell_stats, nonword
+
+
+def _worst_cells(
+    cell_stats: dict[tuple[str, str], list[int]], min_n: int
+) -> list[tuple[float, int, str, str]]:
+    "Per-cell (prec, n, alt, target) rows, worst first, for cells with n >= min_n."
+    return sorted(
+        (
+            (100 * ok / n, n, alt, repl)
+            for (alt, repl), (n, ok) in cell_stats.items()
+            if n >= min_n
+        ),
+        key=lambda row: row[0],
+    )
 
 
 def refine(
@@ -283,22 +323,25 @@ def subsume(
     output-equivalence, not a heuristic."""
     groups = list(rules.items())
     alts = [(i, a, t) for i, (p, t) in enumerate(groups) for a in pattern_alts(p)]
-    removable: set[tuple[int, str]] = set()
-    for i, a, t in alts:
-        for j, a2, t2 in alts:
-            if (i, a) == (j, a2) or not a.endswith(a2) or a == a2:
-                continue
-            if j < i or a[: len(a) - len(a2)] + t2 == t:
-                removable.add((i, a))
-                break
+    by_alt: dict[str, list[tuple[int, str]]] = defaultdict(list)
+    for j, a2, t2 in alts:
+        by_alt[a2].append((j, t2))
+    # `a` is redundant iff one of its proper suffixes is itself an alternative
+    # that either intercepts it earlier (j < i) or rewrites to the same output.
+    removable = {
+        (i, a)
+        for i, a, t in alts
+        for k in range(1, len(a))
+        for j, t2 in by_alt.get(a[k:], ())
+        if j < i or a[:k] + t2 == t
+    }
     if not removable:
         return rules
     new_rules: Rules = {}
     for i, (pattern, target) in enumerate(groups):
         kept = [a for a in pattern_alts(pattern) if (i, a) not in removable]
         if kept:
-            kept = sorted(kept, key=len, reverse=True)
-            new_rules[re.compile(r"(?:" + "|".join(kept) + r")$")] = target
+            new_rules[_compile_group(kept, target)] = target
 
     apply_fn = _make_apply_fn(rules, min_len, caps_guard, extra_guard)
     new_apply_fn = _make_apply_fn(new_rules, min_len, caps_guard, extra_guard)
@@ -322,12 +365,14 @@ def evaluate(
     min_len: int = MIN_LEN_DEFAULT,
     caps_guard: bool = True,
     extra_guard: Callable[[str], bool] | None = None,
-    verbose: bool = True,
-) -> dict[str, object]:
+) -> None:
     """Precision, idempotence, and coverage of `rules` over the full
     dictionary -- the final human-readable report, built on `score_cells()`.
     Idempotence is skipped when the output is itself a dict entry: the real
-    pipeline tries dictionary lookup first, so a rule never re-fires on it."""
+    pipeline tries dictionary lookup first, so a rule never re-fires on it.
+    Failures are grouped per cell: a small coherent word list is a finite
+    lexical collision (stoplist it in the module's _EXCLUDED), a large or
+    scattered one means the cell itself needs narrowing or dropping."""
     apply_fn = _make_apply_fn(rules, min_len, caps_guard, extra_guard)
     cell_stats, nonword = score_cells(
         rules, dictionary, min_len, caps_guard, extra_guard, collect_nonword=True
@@ -336,51 +381,82 @@ def evaluate(
     ok = sum(ok2 for _, ok2 in cell_stats.values())
 
     chains = 0
-    bad: list[tuple[str, str, str]] = []
+    bad: dict[tuple[str, str], list[tuple[str, str, str]]] = defaultdict(list)
     chain_ex: list[tuple[str, str, str, str]] = []
-    for f, p, lemma in nonword:
-        if not output_is_lemma(p, lemma) and len(bad) < 15:
-            bad.append((f, p, lemma))
+    for f, p, lemma, alt, repl in nonword:
+        if not output_is_lemma(p, lemma) and len(bad[(alt, repl)]) < 5:
+            bad[(alt, repl)].append((f, p, lemma))
         match2 = apply_fn(p)
         if match2 is not None and match2[0] != p:
             chains += 1
             if len(chain_ex) < 15:
                 chain_ex.append((f, p, match2[0], lemma))
+    # exact per-cell failure counts (n - ok covers even failures whose wrong
+    # output is a dict entry, which never enter `nonword` and have no sample)
+    fails = {cell: n - ok2 for cell, (n, ok2) in cell_stats.items() if n > ok2}
 
     prec = 100 * ok / fired if fired else 0.0
     coverage = 100 * fired / len(dictionary)
-    worst = sorted(
-        (
-            (100 * ok2 / n, n, alt, repl)
-            for (alt, repl), (n, ok2) in cell_stats.items()
-            if n >= SUPPORT_MIN_DEFAULT
-        ),
-        key=lambda row: row[0],
+    print(
+        f"{lang}: groups={len(rules)} fired={fired} prec={prec:.2f}% "
+        f"chains={chains} coverage={coverage:.2f}%"
     )
-    if verbose:
-        print(
-            f"{lang}: groups={len(rules)} fired={fired} prec={prec:.2f}% "
-            f"chains={chains} coverage={coverage:.2f}%"
-        )
-        print("  worst cells (n>=100):")
-        for cell_prec, n, alt, repl in worst[:15]:
-            tag = "<99!" if cell_prec < 99.0 else "ok"
-            print(f"    {tag} {cell_prec:5.1f}% n={n:5d} -{alt}->-{repl}")
-        if bad:
-            print("  precision failures (sample):", bad[:8])
-        if chain_ex:
-            print("  idempotence chains (sample):")
-            for f, p, p2, lemma in chain_ex:
-                print(f"    {f} -> {p} -> {p2}  (gold {lemma})")
-    return {
-        "fired": fired,
-        "prec": prec,
-        "chains": chains,
-        "coverage": coverage,
-        "worst": worst,
-        "bad": bad,
-        "chain_ex": chain_ex,
-    }
+    print("  worst cells (n>=100):")
+    for cell_prec, n, alt, repl in _worst_cells(cell_stats, SUPPORT_MIN_DEFAULT)[:15]:
+        tag = "<99!" if cell_prec < 99.0 else "ok"
+        print(f"    {tag} {cell_prec:5.1f}% n={n:5d} -{alt}->-{repl}")
+    if fails:
+        print("  precision failures by cell (few coherent words -> stoplist;")
+        print("  many/scattered -> narrow or drop the cell):")
+        for cell, n_bad in sorted(fails.items(), key=lambda kv: -kv[1]):
+            alt, repl = cell
+            print(f"    {n_bad:4d}  -{alt}->-{repl}  {bad.get(cell, [])}")
+    if chain_ex:
+        print("  idempotence chains (sample):")
+        for f, p, p2, lemma in chain_ex:
+            print(f"    {f} -> {p} -> {p2}  (gold {lemma})")
+
+
+def ud_screen(
+    lang: str,
+    rules: Rules,
+    min_len: int = MIN_LEN_DEFAULT,
+    caps_guard: bool = True,
+    extra_guard: Callable[[str], bool] | None = None,
+    min_n: int = 30,
+) -> None:
+    """Per-cell precision of `rules` over the UD treebanks in training/data/UD --
+    real running text, so it includes the OOV tokens the dictionary can never
+    witness (the in-dict blind spot behind sk `automobil`, gl `jamais`, ...).
+
+    Prints the worst cells with failure samples for HUMAN review; it is NOT a
+    gate. Treebank lemma conventions (negation stripping, compound `=` markers,
+    identity-lemma invariants) surface as failures alongside real bugs, so cells
+    are narrowed or stoplisted by judgment, not by an automatic threshold."""
+    ud_dir = os.path.join(os.path.dirname(__file__), "data", "UD")
+    apply_fn = _make_apply_fn(rules, min_len, caps_guard, extra_guard)
+    cell_stats: dict[tuple[str, str], list[int]] = {}
+    examples: dict[tuple[str, str], list[tuple[str, str, str]]] = defaultdict(list)
+    for path in sorted(glob.glob(os.path.join(ud_dir, f"{lang}_*.conllu"))):
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                if line.startswith("#") or not line.strip():
+                    continue
+                cols = line.rstrip("\n").split("\t")
+                if "-" in cols[0] or "." in cols[0] or cols[2] == "_":
+                    continue
+                form = cols[1].lower() if cols[0] == "1" else cols[1]
+                match = apply_fn(form)
+                if match is None:
+                    continue
+                out, alt, repl = match
+                good = output_is_lemma(out, cols[2])
+                _score_cell(cell_stats, alt, repl, good)
+                if not good and len(examples[(alt, repl)]) < 5:
+                    examples[(alt, repl)].append((form, out, cols[2]))
+    print(f"{lang}: UD per-cell precision (n>={min_n}), worst first:")
+    for prec, n, alt, repl in _worst_cells(cell_stats, min_n):
+        print(f"  {prec:5.1f}% n={n:5d} -{alt}->-{repl}  {examples[(alt, repl)]}")
 
 
 def trim_by_mass(cells: Cells, share: float = 0.90) -> Cells:
@@ -417,10 +493,12 @@ def complexity_report(langs: Iterable[str]) -> None:
 
 def render_rules_dict(rules: Rules, indent: str = "    ") -> str:
     "Render `rules` as Python source for a module's DEFAULT_RULES, in order."
-    return "\n".join(
-        f'{indent}re.compile(r"{pattern.pattern}"): r"{target}",'
-        for pattern, target in rules.items()
-    )
+    lines = []
+    for pattern, target in rules.items():
+        if '"' in pattern.pattern or '"' in target:  # would break the r"..." literal
+            raise ValueError(f"quote in rule {pattern.pattern!r} -> {target!r}")
+        lines.append(f'{indent}re.compile(r"{pattern.pattern}"): r"{target}",')
+    return "\n".join(lines)
 
 
 def print_groups(cells: Cells, top_n_per_target: int | None = None) -> None:

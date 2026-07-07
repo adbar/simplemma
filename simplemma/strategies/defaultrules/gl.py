@@ -43,6 +43,8 @@ _EXCLUDED = frozenset(
         "ademais",
         "demais",
         "quizais",
+        "jamais",
+        "xamais",
         "varios",
         "alomenos",
         "quando",
