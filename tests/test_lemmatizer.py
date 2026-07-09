@@ -9,6 +9,7 @@ from simplemma import Lemmatizer, is_known, lemma_iterator, lemmatize, text_lemm
 from simplemma.strategies import (
     DefaultStrategy,
     DictionaryFactory,
+    LemmatizationStrategy,
     RaiseErrorFallbackStrategy,
 )
 
@@ -608,6 +609,43 @@ def test_get_lemmas_in_text() -> None:
             ".",
         ]
     )
+
+
+def test_get_lemmas_in_text_initial_casing() -> None:
+    """Sentence-initial casing gate: allowlisted languages keep proper-noun
+    capitals and case-significant lemmas, but still lower common words and
+    all-caps forms; other languages lower unconditionally as before."""
+    lem = Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=False))
+
+    def first(text: str, lang: str) -> str:
+        return next(iter(lem.get_lemmas_in_text(text, lang)))
+
+    # en: proper noun kept, common word lowered
+    assert first("Iran is large.", "en") == "Iran"
+    assert first("The cat sleeps.", "en") == "the"
+    # de: all-caps recovered, adjective lowered, noun kept
+    assert first("BERLIN meldet Erfolg.", "de") == "Berlin"
+    assert first("Schöne Tage kommen.", "de") == "schön"
+    assert first("Häuser stehen dort.", "de") == "Haus"
+    assert first("MED venlig hilsen.", "da") == "med"  # da: all-caps still lowered
+    assert first("Pepa baila.", "es") == "pepa"  # non-gated lang: unchanged
+
+    # non-DefaultStrategy has no dictionary to probe, so the gate stays off
+    class _NullStrategy(LemmatizationStrategy):
+        def get_lemma(self, token: str, lang: str) -> str | None:
+            return None
+
+    custom = Lemmatizer(lemmatization_strategy=_NullStrategy())
+    assert next(iter(custom.get_lemmas_in_text("Iran is large.", "en"))) == "iran"
+
+
+def test_gated_langs_disjoint_from_fallback_lowering() -> None:
+    """A language the fallback already lowercases must not also be gated:
+    the two per-language casing policies would conflict."""
+    from simplemma.lemmatizer import GATED_INITIAL_LOWERING_LANGS
+    from simplemma.strategies.fallback.to_lowercase import BETTER_LOWER
+
+    assert GATED_INITIAL_LOWERING_LANGS.isdisjoint(BETTER_LOWER)
 
 
 def test_nfc_normalization() -> None:

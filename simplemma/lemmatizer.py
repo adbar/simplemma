@@ -26,6 +26,10 @@ from .utils import normalize_token, validate_lang_input
 
 PUNCTUATION = {".", "?", "!", "…", "¿", "¡"}
 
+# Languages where lowercasing a sentence-initial token would mangle proper
+# nouns; disjoint from BETTER_LOWER (see GH#93).
+GATED_INITIAL_LOWERING_LANGS = frozenset({"da", "de", "en"})
+
 
 def _control_input_type(token: Any) -> None:
     """Check the type of the input token.
@@ -139,9 +143,30 @@ class Lemmatizer:
         Yields:
             str: The lemmatized tokens in the text.
         """
+        langs = validate_lang_input(lang)
+        strategy = self._lemmatization_strategy
+        # Gating needs DefaultStrategy's dictionary; others keep the plain rule.
+        gated = (
+            strategy
+            if langs[0] in GATED_INITIAL_LOWERING_LANGS
+            and isinstance(strategy, DefaultStrategy)
+            else None
+        )
         initial = True
         for token in self._tokenizer.split_text(text):
-            yield self.lemmatize(token.lower() if initial else token, lang)
+            if initial:
+                lowered = token.lower()
+                if (
+                    gated is None
+                    or token.isupper()
+                    or gated.is_dictionary_member(lowered, langs[0])
+                ):
+                    surface = lowered
+                else:
+                    surface = token  # keep case (likely a proper noun)
+            else:
+                surface = token
+            yield self.lemmatize(surface, lang)
             initial = token in PUNCTUATION
 
 
