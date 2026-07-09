@@ -163,9 +163,10 @@ def test_clitic_decomposition_english_contractions() -> None:
     assert clitic.get_lemma("I'm", "en") == "I"
     assert clitic.get_lemma("you're", "en") == "you"
     assert clitic.get_lemma("isn't", "en") == "be"
-    # "'s"/"'d" are excluded: UD gold maps them to be/have/possessive
-    # depending on class -- genuinely multi-valued, not handled here.
-    assert clitic.get_lemma("it's", "en") is None
+    # "'s"/"'d" are multi-valued clitics; the stem lemma isn't
+    assert clitic.get_lemma("it's", "en") == "it"
+    assert clitic.get_lemma("company's", "en") == "company"
+    assert clitic.get_lemma("he'd", "en") == "he"
     # can't/won't/shan't are irregular exceptions: "can" is the only
     # English modal ending in "n", so stripping "n't" would leave "ca"
     # (itself a real, wrong dictionary entry) -- excluded, not mapped wrong.

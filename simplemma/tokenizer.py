@@ -18,7 +18,9 @@ TOKREGEX = re.compile(
     r"(?:"
     r"(?:[€$￥£+-]?[0-9][0-9.,:%/-]*|St\.)[\w_€-]+|"
     r"https?://[^ ]+|"
-    r"[€$￥£@#§]?\w[\w*_-]*|"
+    # letter-flanked apostrophes stay in the word (l'homme, don't) for the
+    # clitic strategies; digits excluded so ca "l'1" keeps its numeral
+    r"[€$￥£@#§]?\w(?:[\w*_-]|['’](?=[^\W\d_]))*|"
     r"[,;:\.?!¿¡‽⸮…()\[\]–{}—―/‒_“„”⹂‚‘’‛′″‟'\"«»‹›<>=+−×÷•·]+"
     r")"
 )

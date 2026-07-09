@@ -567,6 +567,22 @@ def test_get_lemmas_in_text() -> None:
             ".",
         ]
     )
+    # apostrophe-joined tokens reach the clitic/boundary strategies
+    assert text_lemmatizer("L'homme n'est qu'un roseau.", lang="fr") == [
+        "homme",
+        "être",
+        "un",
+        "roseau",
+        ".",
+    ]
+    assert text_lemmatizer("Ankara Türkiye’nin başkentidir.", lang="tr") == [
+        "ankara",
+        "Türkiye",
+        "başkent",
+        ".",
+    ]
+    assert "здоров'я" in text_lemmatizer("Це для здоров’я людини.", lang="uk")
+    assert "do" in text_lemmatizer("They don't sing.", lang="en")
     # test for Esperanto
     text = "Mi vidas la pomon."
     assert (

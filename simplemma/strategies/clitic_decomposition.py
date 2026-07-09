@@ -57,13 +57,12 @@ CLITIC_LANGS: dict[str, tuple[str, ...]] = {
     ),
     "it": ("gli", "vi", "ci", "si", "mi", "ti", "ne", "lo", "la", "le", "li"),
     "gl": ("lles", "lle", "nos", "vos", "me", "te", "se", "as", "os", "a", "o"),
-    # English auxiliary contractions. "'s"/"'d" excluded: UD MWT gold
-    # itself maps "'s" to be/have/literal-possessive depending on class
-    # -- genuinely multi-valued, no single lemma aligns with the
-    # treebank. "won't"/"can't"/"shan't" are irregular spellings (the
-    # stripped stem isn't the real word) -- a dictionary-entry gap, not
-    # a rule; not handled here.
-    "en": ("n't", "'re", "'ve", "'ll", "'m"),
+    # English auxiliary contractions and possessives. "'s"/"'d" are
+    # multi-valued as clitics (be/have/possessive) but the returned STEM
+    # lemma is single-valued (UD-validated, en_ewt+en_gum, W=482/L=0).
+    # "won't"/"can't"/"shan't" are irregular spellings -- a
+    # dictionary-entry gap, not a rule; not handled here.
+    "en": ("n't", "'re", "'ve", "'ll", "'m", "'s", "'d"),
 }
 # English's auxiliary stems (do/is/are/has/had/can/may, and "I" for
 # "'m") are far shorter than the Romance verb stems MIN_STEM_LEN was

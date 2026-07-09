@@ -112,3 +112,29 @@ def test_tokenizer() -> None:
             "“",
         ]
     )
+    # word-internal apostrophes stay; quotes and edge apostrophes split
+    text = "L'homme n'est qu'un roseau."
+    assert (
+        list(RegexTokenizer().split_text(text))
+        == simple_tokenizer(text)
+        == ["L'homme", "n'est", "qu'un", "roseau", "."]
+    )
+    # ca elides articles before numerals: the join must not eat the numeral
+    assert "11" in simple_tokenizer("l'11 de setembre")
+    text = "he said 'hello' about Türkiye’nin dogs' owners"
+    assert (
+        list(RegexTokenizer().split_text(text))
+        == simple_tokenizer(text)
+        == [
+            "he",
+            "said",
+            "'",
+            "hello",
+            "'",
+            "about",
+            "Türkiye’nin",
+            "dogs",
+            "'",
+            "owners",
+        ]
+    )
