@@ -1,3 +1,5 @@
+import unicodedata
+
 from simplemma import RegexTokenizer, simple_tokenizer
 
 
@@ -99,6 +101,59 @@ def test_tokenizer() -> None:
             "3/5",
             "-1.4",
         ]
+    )
+    # mixed punctuation splits; same-char runs stay whole
+    text = 'Er sagte: "Gut." Wirklich... ja?!'
+    assert (
+        list(RegexTokenizer().split_text(text))
+        == simple_tokenizer(text)
+        == ["Er", "sagte", ":", '"', "Gut", ".", '"', "Wirklich", "...", "ja", "?", "!"]
+    )
+    # standalone hyphens are tokens; hyphenated words stay whole
+    text = "Berlin - die Hauptstadt -- und mehr"
+    assert (
+        list(RegexTokenizer().split_text(text))
+        == simple_tokenizer(text)
+        == ["Berlin", "-", "die", "Hauptstadt", "--", "und", "mehr"]
+    )
+    # Devanagari: vowel signs stay inside the word, danda is a token
+    text = "वह घर जाता है। ठीक॥"
+    assert (
+        list(RegexTokenizer().split_text(text))
+        == simple_tokenizer(text)
+        == ["वह", "घर", "जाता", "है", "।", "ठीक", "॥"]
+    )
+    # NFD input: combining diacritics stay inside the word
+    text = unicodedata.normalize("NFD", "H\u00e4user stehen.")
+    assert (
+        list(RegexTokenizer().split_text(text))
+        == simple_tokenizer(text)
+        == [unicodedata.normalize("NFD", "H\u00e4user"), "stehen", "."]
+    )
+    # Persian: ZWNJ stays inside words, Arabic punctuation marks are tokens
+    text = "می‌روم و کتاب‌ها را می‌خوانم؟ بله، خوب؛"
+    assert (
+        list(RegexTokenizer().split_text(text))
+        == simple_tokenizer(text)
+        == [
+            "می‌روم",
+            "و",
+            "کتاب‌ها",
+            "را",
+            "می‌خوانم",
+            "؟",
+            "بله",
+            "،",
+            "خوب",
+            "؛",
+        ]
+    )
+    # Armenian full stop is a token of its own
+    text = "Նա ապրում է Երևանում։"
+    assert (
+        list(RegexTokenizer().split_text(text))
+        == simple_tokenizer(text)
+        == ["Նա", "ապրում", "է", "Երևանում", "։"]
     )
     # problem here: WDR5-„Morgenecho“
     text = "WDR5-„Morgenecho“"

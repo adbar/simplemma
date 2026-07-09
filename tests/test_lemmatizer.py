@@ -1,7 +1,7 @@
 """Tests for `simplemma` package."""
 
 import unicodedata
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 
 import pytest
 
@@ -665,9 +665,12 @@ def test_get_lemmas_in_text_allcaps_acronym() -> None:
     assert "СССР" in lemmas("Колишній Радянський Союз, або СССР, розпався.", "uk")
     assert "ASV" in lemmas("Viņš dzīvo ASV jau daudzus gadus.", "lv")
     assert "JAV" in lemmas("Šiaurės Amerikoje esanti JAV yra didelė valstybė.", "lt")
-    assert "ՀՀ" in lemmas(
-        "Կառավարությունը հրապարակեց, որ ՀՀ ստորագրեց փաստաթուղթը.", "hy"
+    # hy: the Armenian full stop '։' isolates the shouted heading from sentence 2
+    hy_out = lemmas(
+        "ՎՏԱՆԳ ԱՅՍՏԵՂ։ Կառավարությունը հրապարակեց, որ ՀՀ ստորագրեց փաստաթուղթը։",
+        "hy",
     )
+    assert "ՀՀ" in hy_out and "ԱՅՍՏԵՂ" not in hy_out
     # es/pt/ca: acronym kept instead of collapsing to a verb homograph
     assert "IVA" in lemmas("El PSOE negocia el IVA con la UE.", "es")
     assert "IBGE" in lemmas("O IBGE informou que os EUA assinaram.", "pt")
@@ -676,6 +679,13 @@ def test_get_lemmas_in_text_allcaps_acronym() -> None:
     assert lemmas("DENIC verwaltet die Domains.", "de")[0] == "DENIC"
     assert lemmas("BERLIN meldet einen Erfolg.", "de")[0] == "Berlin"
     assert lemmas("MIT dem Auto fahren.", "de")[0] == "mit"
+    # a lone acronym in a short sentence is not "shouting" (leave-one-out)
+    assert "СБУ" in lemmas("Це СБУ.", "uk")
+    # an opening quote neither shifts the initial position nor blocks the flush
+    assert lemmas("„MIT dem Auto fahren.“", "de")[1] == "mit"
+    # punctuation runs end the sentence: the shouted headline stays isolated
+    shout_out = lemmas("УВАГА НЕБЕЗПЕКА!!! Це звичайне речення про природу.", "uk")
+    assert "небезпека" in shout_out and "НЕБЕЗПЕКА" not in shout_out
     # non-allowlisted language: acronym still lowered as before
     fr_out = lemmas("Ils ont vu un OVNI hier soir.", "fr")
     assert "ovni" in fr_out and "OVNI" not in fr_out
@@ -690,12 +700,52 @@ def test_get_lemmas_in_text_allcaps_acronym() -> None:
     assert "mit" in custom_out and "MIT" not in custom_out
 
 
-def test_allcaps_keep_langs_overlap_better_lower() -> None:
-    """Overlap is deliberate: keeping acronyms bypasses BETTER_LOWER."""
-    from simplemma.lemmatizer import ALLCAPS_KEEP_LANGS
-    from simplemma.strategies.fallback.to_lowercase import BETTER_LOWER
+def test_lang_tuple_casing_follows_first_language() -> None:
+    """Documented semantics: the first language owns the casing policy."""
+    lem = Lemmatizer(lemmatization_strategy=DefaultStrategy())
+    text = "Ils ont vu un OVNI hier soir."
+    assert "OVNI" in list(lem.get_lemmas_in_text(text, ("de", "fr")))
+    assert "ovni" in list(lem.get_lemmas_in_text(text, ("fr", "de")))
 
-    assert ALLCAPS_KEEP_LANGS & BETTER_LOWER == {"es", "hy", "lt", "lv", "pt", "uk"}
+
+def test_gate_probes_nfc_normalized() -> None:
+    """Casing-gate dict probes must see NFC even if a tokenizer yields NFD."""
+    from simplemma.lemmatizer import _initial_surface
+
+    class _NFDTokenizer:
+        def split_text(self, text: str) -> Iterator[str]:
+            return (unicodedata.normalize("NFD", t) for t in text.split(" "))
+
+    strategy = DefaultStrategy()
+    lem = Lemmatizer(tokenizer=_NFDTokenizer(), lemmatization_strategy=strategy)
+    # buffered path: the NFD initial token is still found in the dict and lowered
+    assert list(lem.get_lemmas_in_text("Schöne Tage kommen .", "de"))[0] == "schön"
+    # streaming D' helper: same probe, NFD in, NFC lowered out
+    assert (
+        _initial_surface(unicodedata.normalize("NFD", "Schöne"), strategy, "de")
+        == "schöne"
+    )
+
+
+def test_allcaps_buffer_cap_keeps_streaming() -> None:
+    """Punctuation-free input must flush at the cap, not buffer until EOF."""
+    from simplemma.lemmatizer import _SENTENCE_BUFFER_CAP
+
+    consumed = 0
+
+    class _CountingTokenizer:
+        def split_text(self, text: str) -> Iterator[str]:
+            nonlocal consumed
+            for token in text.split():
+                consumed += 1
+                yield token
+
+    lem = Lemmatizer(
+        tokenizer=_CountingTokenizer(), lemmatization_strategy=DefaultStrategy()
+    )
+    out = lem.get_lemmas_in_text("Wort " * (3 * _SENTENCE_BUFFER_CAP), "de")
+    assert next(out) == "Wort"
+    assert consumed <= _SENTENCE_BUFFER_CAP
 
 
 def test_nfc_normalization() -> None:

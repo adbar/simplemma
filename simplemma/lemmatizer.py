@@ -25,7 +25,7 @@ from .strategies import (
 from .tokenizer import RegexTokenizer, Tokenizer
 from .utils import normalize_token, validate_lang_input
 
-PUNCTUATION = {".", "?", "!", "…", "¿", "¡"}
+PUNCTUATION = {".", "?", "!", "…", "¿", "¡", "։"}  # ։ = Armenian full stop
 
 # Languages where lowercasing a sentence-initial token would mangle proper
 # nouns; disjoint from BETTER_LOWER (see GH#93).
@@ -36,6 +36,8 @@ GATED_INITIAL_LOWERING_LANGS = frozenset({"da", "de", "en"})
 # fallback for acronyms is the point (GH#93).
 ALLCAPS_KEEP_LANGS = frozenset({"ca", "de", "es", "hy", "lt", "lv", "pt", "uk"})
 ALLCAPS_SHOUTING_THRESHOLD = 0.5
+# flush ceiling so punctuation-free input still streams
+_SENTENCE_BUFFER_CAP = 512
 
 # Roman numerals (XI, MCM...) aren't acronyms.
 _ROMAN_NUMERAL = re.compile(r"M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})")
@@ -68,7 +70,7 @@ def _keep_as_acronym(
 
 def _initial_surface(token: str, gated: DefaultStrategy | None, lang0: str) -> str:
     """Surface form for a sentence-initial token under the D' gate (GH#93)."""
-    lowered = token.lower()
+    lowered = normalize_token(token).lower()  # NFC: probes must match the dicts
     if gated is None or token.isupper() or gated.is_dictionary_member(lowered, lang0):
         return lowered
     return token  # keep case (likely a proper noun)
@@ -179,6 +181,10 @@ class Lemmatizer:
     ) -> Iterator[str]:
         """Get an iterator over lemmatized tokens in a text.
 
+        With several languages, the casing heuristics (sentence-initial
+        lowering, acronym keeping) follow the first one; lemma lookup
+        still tries all of them in order.
+
         Args:
             text: The text to process.
             lang: The language or languages for lemmatization.
@@ -219,15 +225,23 @@ class Lemmatizer:
         acronym-keep can see the whole sentence's shouting ratio first.
         Not constant-memory, unlike the default path."""
         sentence: list[str] = []
+        sentence_start = True
         for token in self._tokenizer.split_text(text):
-            sentence.append(token)
-            if token in PUNCTUATION:
+            # NFC once: gate probes and kept tokens must match the dictionaries
+            sentence.append(normalize_token(token))
+            # first char so runs and quote combos ('!!', '.“') flush too
+            boundary = token[0] in PUNCTUATION
+            if boundary or len(sentence) >= _SENTENCE_BUFFER_CAP:
                 yield from self._lemmatize_sentence(
-                    sentence, lang, lang0, gated, strategy
+                    sentence, lang, lang0, gated, strategy, sentence_start
                 )
                 sentence = []
+                # after a capped flush the next chunk is mid-sentence
+                sentence_start = boundary
         if sentence:
-            yield from self._lemmatize_sentence(sentence, lang, lang0, gated, strategy)
+            yield from self._lemmatize_sentence(
+                sentence, lang, lang0, gated, strategy, sentence_start
+            )
 
     def _lemmatize_sentence(
         self,
@@ -236,6 +250,7 @@ class Lemmatizer:
         lang0: str,
         gated: DefaultStrategy | None,
         strategy: DefaultStrategy,
+        sentence_start: bool,
     ) -> Iterator[str]:
         n_alpha = n_shout = 0
         for token in tokens:
@@ -244,11 +259,20 @@ class Lemmatizer:
                 # counts Roman numerals too -- don't fold into _is_keepable_allcaps
                 if len(token) >= 2 and token.isupper():
                     n_shout += 1
-        shouting = not n_alpha or n_shout / n_alpha >= ALLCAPS_SHOUTING_THRESHOLD
+        # leave-one-out ratio: a candidate must not count itself as shouting
+        shouting = (
+            n_alpha > 1 and (n_shout - 1) / (n_alpha - 1) >= ALLCAPS_SHOUTING_THRESHOLD
+        )
+        # initial = first word-like token, so opening quotes don't shift it
+        initial = (
+            next((i for i, t in enumerate(tokens) if t[0].isalnum()), -1)
+            if sentence_start
+            else -1
+        )
         for i, token in enumerate(tokens):
-            if _keep_as_acronym(token, i == 0, shouting, strategy, lang0):
-                yield normalize_token(token)
-            elif i == 0:
+            if _keep_as_acronym(token, i == initial, shouting, strategy, lang0):
+                yield token  # already NFC
+            elif i == initial:
                 yield self.lemmatize(_initial_surface(token, gated, lang0), lang)
             else:
                 yield self.lemmatize(token, lang)
