@@ -23,22 +23,64 @@ PLUR_ORTH_DE = re.compile(r"(?:Innen|\*innen|\*Innen|-innen|_innen)$")
 
 PP_DE = re.compile(r"^(.{2,}ge.+?[^aes]t)(?:e|em|er|es)$")
 
-# feminine plural -innen -> -in, minus stems where -innen is not that suffix
-# (Rinne, Sinn, Spinne, Beginn, Linnen, ...); -erinnen agents stay safe.
-INNEN_STOPS_DE = (
-    "rinnen",
-    "spinnen",
-    "kinnen",
-    "winnen",
-    "sinnen",
-    "dschinnen",
-    "zinnen",
-    "ginnen",
-    "linnen",
+# feminine agent plural -innen -> -in (Lehrerinnen -> Lehrerin). A word ends
+# -innen for two unrelated reasons, so non-agents are kept out two ways: the
+# productive -inn/-inne roots (Spinne, Gewinn, Dschinn) matched as suffixes,
+# plus a closed set of Rinne/Sinn/Beginn/Kinn/Linnen compounds whose dative
+# plural collides with the agent suffix. (Broad -rinnen/-sinnen/-ginnen stops
+# were dropped: they blocked ~440 real agents -- Autorinnen, Königinnen,
+# Archäologinnen -- to protect the ~40 non-agents now listed explicitly.)
+INNEN_STOPS_DE = ("spinnen", "winnen", "dschinnen")
+_INNEN_NONAGENT_DE = frozenset(
+    {
+        "Abflussrinnen",
+        "Ansinnen",
+        "Bardierinnen",
+        "Beginnen",
+        "Besinnen",
+        "Bettlinnen",
+        "Brautlinnen",
+        "Dachrinnen",
+        "Doppelkinnen",
+        "Entrinnen",
+        "Entsinnen",
+        "Ersinnen",
+        "Fahrrinnen",
+        "Fernsinnen",
+        "Frohsinnen",
+        "Frühlingsbeginnen",
+        "Gehörsinnen",
+        "Gerinnen",
+        "Geruchssinnen",
+        "Geschmackssinnen",
+        "Jahresbeginnen",
+        "Kursbeginnen",
+        "Linksinnen",
+        "Nachsinnen",
+        "Nahsinnen",
+        "Nebensinnen",
+        "Pinkelrinnen",
+        "Pissrinnen",
+        "Regenrinnen",
+        "Saisonbeginnen",
+        "Schulbeginnen",
+        "Schwachsinnen",
+        "Sehsinnen",
+        "Semesterbeginnen",
+        "Spurrinnen",
+        "Unterkinnen",
+        "Verkehrssinnen",
+        "Verrinnen",
+        "Wochenbeginnen",
+        "Zerrinnen",
+    }
 )
 
-# present participle / adjective declension: bedeutende -> bedeutend
-PART_END_DE = re.compile(r"^(.{2,}end)(?:e|en|em|es|er)$")
+# present-participle adjective declension: bedeutendem -> bedeutend. Only the
+# -em/-es/-er endings, which German verbs never take -- the bare -e/-en would
+# also strip the infinitive/1sg of -nd-stem verbs (versenden, verwende), an
+# unresolvable homograph (absende vs wachsende), so they are left alone.
+PART_END_DE = re.compile(r"^(.{2,}end)(?:em|es|er)$")
 
 ENDING_CHARS_DE = {"e", "m", "n", "r", "s"}
 
@@ -60,11 +102,11 @@ def apply_de(token: str) -> str | None:
         # Binnen-I: ArbeitnehmerInnenschutzgesetz?
         if PLUR_ORTH_DE.search(token):
             return PLUR_ORTH_DE.sub(":innen", token)
-        # feminine plural: Lehrerinnen -> Lehrerin
-        if token.endswith("innen"):
-            low = token.lower()
-            if low.endswith("erinnen") or not low.endswith(INNEN_STOPS_DE):
-                return token[:-3]
+        # feminine agent plural: Lehrerinnen -> Lehrerin
+        if token.endswith("innen") and not (
+            token.lower().endswith(INNEN_STOPS_DE) or token in _INNEN_NONAGENT_DE
+        ):
+            return token[:-3]
 
     # mostly adjectives and verbs
     elif token[-1] in ENDING_CHARS_DE:

@@ -20,7 +20,7 @@ DEFAULT_RULES = {
     re.compile(r"(?:orului|orul)$"): r"or",
     re.compile(r"(?:icului|icul)$"): r"ic",
     re.compile(r"(?:alului|alul|ali)$"): r"al",
-    re.compile(r"(?:oșilor|osul)$"): r"os",
+    re.compile(r"(?:osul)$"): r"os",
     re.compile(r"(?:arului|arul)$"): r"ar",
     re.compile(r"(?:erului|erul)$"): r"er",
     re.compile(r"(?:ivului|ivul)$"): r"iv",
@@ -42,8 +42,6 @@ DEFAULT_RULES = {
     re.compile(r"(?:atea)$"): r"ate",
     re.compile(r"(?:iată)$"): r"iat",
     re.compile(r"(?:lați)$"): r"lat",
-    re.compile(r"(?:nța)$"): r"nță",
-    re.compile(r"(?:iză)$"): r"iza",
 }
 
 # The dictionary's own lemma for the participle-as-adjective class is the
@@ -52,8 +50,7 @@ DEFAULT_RULES = {
 # difference, not a rules defect, so NOT stoplisted. Below: genuine
 # collisions only, each verified against the dictionary's own entry --
 # identity-lemma nouns/adverbs/pronouns, the -ește manner-adverb class, a
-# residual participle-vs-noun set (judecată, bucată, durată), "-nța" verb
-# infinitives already in citation form (finanța, anunța, ...), stem-vowel-
+# residual participle-vs-noun set (judecată, bucată, durată), stem-vowel-
 # changing plurals (țările), a few irregulars, and one idempotence fix
 # (înspăimânțaseși).
 _EXCLUDED = frozenset(
@@ -68,8 +65,6 @@ _EXCLUDED = frozenset(
         "destul",
         "stimul",
         "vehicul",
-        "analiză",
-        "surpriză",
         "tramvai",
         "mucegai",
         "program",
@@ -91,16 +86,9 @@ _EXCLUDED = frozenset(
         "dincolo",
         "încolo",
         "dumneata",
-        "potența",
         "sfărâmița",
         "turburatu",
         "endonimul",
-        "finanța",
-        "pronunța",
-        "renunța",
-        "amenința",
-        "încredința",
-        "anunța",
         "stabili",
     }
 )

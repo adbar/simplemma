@@ -7,7 +7,6 @@ DEFAULT_RULES = {
     re.compile(
         r"(?:owałem|owałam|owaliśmy|owałeś|owałaś|owaliście|owałbym|owałabym|owalibyśmy|owałbyś|owałabyś|owalibyście|owałby|owałaby|owałoby|owaliby|owałyby|owanie)$"
     ): "ować",
-    # re.compile(r"(?:skie|skiego|skiemu|skiej|skich|skim|skimi|ską|scy)$"): "ski",
     # past tense + conditional (aliście dropped: collides with -alista locatives)
     re.compile(r"(?:aliśmy|alibyście|alibyśmy)$"): "ać",
     re.compile(

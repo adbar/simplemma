@@ -15,7 +15,6 @@ DEFAULT_RULES = {
     re.compile(r"(?:lnými|lnému)$"): r"lný",
     re.compile(r"(?:ními|nímu)$"): r"ní",
     re.compile(r"(?:vého|vému|vém)$"): r"vý",
-    re.compile(r"(?:ivši|ivše)$"): r"it",
     re.compile(r"(?:kému)$"): r"ký",
     re.compile(r"(?:íma)$"): r"í",
 }

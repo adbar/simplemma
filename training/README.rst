@@ -60,9 +60,14 @@ dictionaries underrepresent exactly what the fallbacks meet in production
 
 ``defaultrules/`` policy: a rule's output must BE the lemma (2026-07,
 lemma-first). ``rulebuilder.mine``/``score_cells``/``evaluate`` and the CI
-precision harness all score with ``rulebuilder.output_is_lemma`` —
-accent-normalized exact match against the dictionary lemma; "the output is
-at least a real word" no longer counts. Languages built under the old
+precision harness all score with ``rulebuilder.output_is_lemma`` — exact
+match against the dictionary lemma; "the output is at least a real word" no
+longer counts. Combining accents are folded only for
+``_ACCENT_FOLD_LANGS`` (uk stress acute, la macron, sl tonal marks — each
+0% of UD lemmas but present in the dictionary, i.e. pedagogical marks real
+text drops); every other language is scored exact, so a standard
+orthographic letter (fi ä/ö, cs/sk long-vowel acute, es/pt lexical acute)
+that the rule gets wrong is no longer masked as a hit. Languages built under the old
 predicate are being rebuilt one by one; until then they sit in the harness's
 ``_LEGACY_REAL_WORD_LANGS`` set. Rules are meant to add a little coverage
 cheaply, not to be mined exhaustively.

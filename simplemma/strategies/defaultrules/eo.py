@@ -32,5 +32,8 @@ _EXCLUDED = frozenset({"tamen", "neniu", "konstanta"})
 def apply_eo(token: str) -> str | None:
     "Apply pre-defined rules for Esperanto."
     # hyphenated tokens are dominated by acronym compounds (KOVIM-19-on)
-    # the suffix rules mishandle -- skip.
-    return apply_rules(token, DEFAULT_RULES, min_len=4, hyphen=True, excluded=_EXCLUDED)
+    # the suffix rules mishandle -- skip. caps=True (as every other module):
+    # capitalized foreign proper nouns collide with the endings (London -> *Londo).
+    return apply_rules(
+        token, DEFAULT_RULES, min_len=4, caps=True, hyphen=True, excluded=_EXCLUDED
+    )

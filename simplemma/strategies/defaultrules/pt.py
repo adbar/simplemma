@@ -17,7 +17,6 @@ DEFAULT_RULES = {
         r"|ando|arem|aram|avam|arão|arás|asse|aste|ámos|armo|arde|ávei|árei"
         r"|ará|ava|ámo|are|ou|ai)$"
     ): r"ar",
-    re.compile(r"(?:díssimo|díssima)$"): r"do",
     re.compile(r"(?:zarias|zaras|zaria|zara|zá)$"): r"zar",
     re.compile(r"(?:izamos|izais|izamo|izam)$"): r"izar",
     re.compile(r"(?:dores|dora)$"): r"dor",
@@ -38,15 +37,12 @@ DEFAULT_RULES = {
     re.compile(r"(?:gos)$"): r"go",
 }
 
-# grandíssimo/a: irregular superlative whose strip leaves a non-word the
-# "-ar" cell re-fires on (idempotence). The rest via the UD consistency
-# scan + worktree diff: invariant words/loanwords/pluralia tantum, feminine
-# agent nouns kept as their own lemma, verb forms whose stem extends a
-# longer alternative, and sentence-initial-lowercased proper nouns.
+# Via the UD consistency scan + worktree diff: invariant words/loanwords/
+# pluralia tantum, feminine agent nouns kept as their own lemma, verb forms
+# whose stem extends a longer alternative, and sentence-initial-lowercased
+# proper nouns.
 _EXCLUDED = frozenset(
     {
-        "grandíssimo",
-        "grandíssima",
         "quando",
         "vários",
         "classe",

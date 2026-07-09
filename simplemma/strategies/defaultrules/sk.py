@@ -32,9 +32,7 @@ DEFAULT_RULES = {
     re.compile(r"(?:eného|enému|eným|ené)$"): r"ený",
     re.compile(r"(?:íkoch|íkom|íkov)$"): r"ík",
     re.compile(r"(?:čným)$"): r"čný",
-    re.compile(r"(?:hneme|hnete|hnem|hneš)$"): r"hnuť",
     re.compile(r"(?:ikoch|ikov)$"): r"ik",
-    re.compile(r"(?:knime|knite)$"): r"knuť",
     re.compile(r"(?:ajúc|ajme|ajte|ali|ala|alo|ajú|al)$"): r"ať",
     re.compile(r"(?:vého|vému|vým|vé)$"): r"vý",
     re.compile(r"(?:keho|kemu|kych|kymi|kym|ki)$"): r"ky",
@@ -52,15 +50,20 @@ DEFAULT_RULES = {
 
 # From the UD consistency scan: invariant adverbs/particles, noun/verb/
 # adjective homographs (správa, vrstva, kabala), one irregular verb
-# (prevzali), and a lowercased name (michal).
+# (prevzali), and a lowercased name (michal). The "-inou" block are
+# possessive adjectives (-in) and kinship/"only" forms whose lemma is not
+# the "-ina" noun the cell assumes (matkin, gazdiná, samojediný).
 _EXCLUDED = frozenset(
     {
         "anonym",
         "detail",
         "festival",
+        "gazdinou",
         "interval",
         "jedinou",
         "kabala",
+        "mamkinou",
+        "matkinou",
         "medzitým",
         "michal",
         "mnohými",
@@ -70,7 +73,11 @@ _EXCLUDED = frozenset(
         "príliš",
         "príval",
         "prostredníctvom",
+        "samojedinou",
         "správa",
+        "švagrinou",
+        "testinou",
+        "ujčinou",
         "väčšinou",
         "vrstiev",
         "vrstva",
