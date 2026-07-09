@@ -648,6 +648,56 @@ def test_gated_langs_disjoint_from_fallback_lowering() -> None:
     assert GATED_INITIAL_LOWERING_LANGS.isdisjoint(BETTER_LOWER)
 
 
+def test_get_lemmas_in_text_allcaps_acronym() -> None:
+    """ALL-CAPS tokens are likely acronyms in the allowlisted languages: kept
+    verbatim unless the sentence is shouted or the token is a Roman numeral."""
+    lem = Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=False))
+
+    def lemmas(text: str, lang: str) -> list[str]:
+        return list(lem.get_lemmas_in_text(text, lang))
+
+    # de: acronym kept mid-sentence, ordinary shouting sentence unaffected
+    assert "MIT" in lemmas("Die Firma heißt MIT und ist bekannt.", "de")
+    assert lemmas("WARNUNG VOR DEM HUNDE", "de") == ["Warnung", "vor", "der", "HUNDE"]
+    # Roman numerals are not acronyms, even all-caps and non-initial
+    assert "XII" in lemmas("Das steht in Kapitel XII.", "de")
+    # uk/hy/lt/lv: acronym kept mid-sentence
+    assert "СССР" in lemmas("Колишній Радянський Союз, або СССР, розпався.", "uk")
+    assert "ASV" in lemmas("Viņš dzīvo ASV jau daudzus gadus.", "lv")
+    assert "JAV" in lemmas("Šiaurės Amerikoje esanti JAV yra didelė valstybė.", "lt")
+    assert "ՀՀ" in lemmas(
+        "Կառավարությունը հրապարակեց, որ ՀՀ ստորագրեց փաստաթուղթը.", "hy"
+    )
+    # es/pt/ca: acronym kept instead of collapsing to a verb homograph
+    assert "IVA" in lemmas("El PSOE negocia el IVA con la UE.", "es")
+    assert "IBGE" in lemmas("O IBGE informou que os EUA assinaram.", "pt")
+    assert "USA" in lemmas("La FEDER i la USA financen el projecte.", "ca")
+    # initial acronym kept; dateline/shouted word still deferred to D'
+    assert lemmas("DENIC verwaltet die Domains.", "de")[0] == "DENIC"
+    assert lemmas("BERLIN meldet einen Erfolg.", "de")[0] == "Berlin"
+    assert lemmas("MIT dem Auto fahren.", "de")[0] == "mit"
+    # non-allowlisted language: acronym still lowered as before
+    fr_out = lemmas("Ils ont vu un OVNI hier soir.", "fr")
+    assert "ovni" in fr_out and "OVNI" not in fr_out
+
+    # custom strategy: acronym-keep stays off
+    class _LowerStrategy(LemmatizationStrategy):
+        def get_lemma(self, token: str, lang: str) -> str | None:
+            return token.lower()
+
+    custom = Lemmatizer(lemmatization_strategy=_LowerStrategy())
+    custom_out = list(custom.get_lemmas_in_text("Die Firma heißt MIT und.", "de"))
+    assert "mit" in custom_out and "MIT" not in custom_out
+
+
+def test_allcaps_keep_langs_overlap_better_lower() -> None:
+    """Overlap is deliberate: keeping acronyms bypasses BETTER_LOWER."""
+    from simplemma.lemmatizer import ALLCAPS_KEEP_LANGS
+    from simplemma.strategies.fallback.to_lowercase import BETTER_LOWER
+
+    assert ALLCAPS_KEEP_LANGS & BETTER_LOWER == {"es", "hy", "lt", "lv", "pt", "uk"}
+
+
 def test_nfc_normalization() -> None:
     """Decomposed (NFD) input must lemmatize like its composed (NFC) form."""
     nfd = unicodedata.normalize("NFD", "Häuser")

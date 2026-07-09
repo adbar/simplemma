@@ -9,6 +9,7 @@ Provides classes for lemmatizing token and full texts.
 - [lemma_iterator()][simplemma.lemmatizer.lemma_iterator]: A legacy function that wraps the Lemmatizer's [lemma_iterator()][simplemma.lemmatizer.Lemmatizer.get_lemmas_in_text] method.
 """
 
+import re
 from functools import lru_cache
 from typing import Any
 from collections.abc import Iterator
@@ -29,6 +30,48 @@ PUNCTUATION = {".", "?", "!", "…", "¿", "¡"}
 # Languages where lowercasing a sentence-initial token would mangle proper
 # nouns; disjoint from BETTER_LOWER (see GH#93).
 GATED_INITIAL_LOWERING_LANGS = frozenset({"da", "de", "en"})
+
+# Languages where an ALL-CAPS token is likely an acronym, kept verbatim
+# instead of lemmatized. Deliberately overlaps BETTER_LOWER -- bypassing that
+# fallback for acronyms is the point (GH#93).
+ALLCAPS_KEEP_LANGS = frozenset({"ca", "de", "es", "hy", "lt", "lv", "pt", "uk"})
+ALLCAPS_SHOUTING_THRESHOLD = 0.5
+
+# Roman numerals (XI, MCM...) aren't acronyms.
+_ROMAN_NUMERAL = re.compile(r"M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})")
+
+
+def _is_keepable_allcaps(token: str) -> bool:
+    """ALL-CAPS token worth keeping verbatim as a likely acronym."""
+    return (
+        len(token) >= 2
+        and token.isalpha()
+        and token.isupper()
+        and not _ROMAN_NUMERAL.fullmatch(token)
+    )
+
+
+def _keep_as_acronym(
+    token: str, initial: bool, shouting: bool, strategy: DefaultStrategy, lang0: str
+) -> bool:
+    """Whether to yield this ALL-CAPS token verbatim instead of lemmatizing.
+    Initial position also requires neither its Titlecase (e.g. BERLIN) nor
+    lowercase form to be a dictionary entry, else the D' gate runs instead."""
+    if shouting or not _is_keepable_allcaps(token):
+        return False
+    if not initial:
+        return True
+    return not strategy.is_dictionary_member(
+        token.capitalize(), lang0
+    ) and not strategy.is_dictionary_member(token.lower(), lang0)
+
+
+def _initial_surface(token: str, gated: DefaultStrategy | None, lang0: str) -> str:
+    """Surface form for a sentence-initial token under the D' gate (GH#93)."""
+    lowered = token.lower()
+    if gated is None or token.isupper() or gated.is_dictionary_member(lowered, lang0):
+        return lowered
+    return token  # keep case (likely a proper noun)
 
 
 def _control_input_type(token: Any) -> None:
@@ -152,22 +195,63 @@ class Lemmatizer:
             and isinstance(strategy, DefaultStrategy)
             else None
         )
+        # Only validated on the default pipeline, same guard as above.
+        if langs[0] in ALLCAPS_KEEP_LANGS and isinstance(strategy, DefaultStrategy):
+            yield from self._get_lemmas_allcaps_gated(
+                text, lang, langs[0], gated, strategy
+            )
+            return
         initial = True
         for token in self._tokenizer.split_text(text):
-            if initial:
-                lowered = token.lower()
-                if (
-                    gated is None
-                    or token.isupper()
-                    or gated.is_dictionary_member(lowered, langs[0])
-                ):
-                    surface = lowered
-                else:
-                    surface = token  # keep case (likely a proper noun)
-            else:
-                surface = token
+            surface = _initial_surface(token, gated, langs[0]) if initial else token
             yield self.lemmatize(surface, lang)
             initial = token in PUNCTUATION
+
+    def _get_lemmas_allcaps_gated(
+        self,
+        text: str,
+        lang: str | tuple[str, ...],
+        lang0: str,
+        gated: DefaultStrategy | None,
+        strategy: DefaultStrategy,
+    ) -> Iterator[str]:
+        """Same as `get_lemmas_in_text`, buffered one sentence at a time so
+        acronym-keep can see the whole sentence's shouting ratio first.
+        Not constant-memory, unlike the default path."""
+        sentence: list[str] = []
+        for token in self._tokenizer.split_text(text):
+            sentence.append(token)
+            if token in PUNCTUATION:
+                yield from self._lemmatize_sentence(
+                    sentence, lang, lang0, gated, strategy
+                )
+                sentence = []
+        if sentence:
+            yield from self._lemmatize_sentence(sentence, lang, lang0, gated, strategy)
+
+    def _lemmatize_sentence(
+        self,
+        tokens: list[str],
+        lang: str | tuple[str, ...],
+        lang0: str,
+        gated: DefaultStrategy | None,
+        strategy: DefaultStrategy,
+    ) -> Iterator[str]:
+        n_alpha = n_shout = 0
+        for token in tokens:
+            if token.isalpha():
+                n_alpha += 1
+                # counts Roman numerals too -- don't fold into _is_keepable_allcaps
+                if len(token) >= 2 and token.isupper():
+                    n_shout += 1
+        shouting = not n_alpha or n_shout / n_alpha >= ALLCAPS_SHOUTING_THRESHOLD
+        for i, token in enumerate(tokens):
+            if _keep_as_acronym(token, i == 0, shouting, strategy, lang0):
+                yield normalize_token(token)
+            elif i == 0:
+                yield self.lemmatize(_initial_surface(token, gated, lang0), lang)
+            else:
+                yield self.lemmatize(token, lang)
 
 
 # From here down are legacy function pre-1.0
