@@ -200,6 +200,58 @@ def test_extract_pairs_skips_auxiliary_cross_reference():
     assert list(extract_pairs(entry)) == [("sein", "sein")]
 
 
+def test_extract_pairs_emits_all_form_of_targets():
+    """A multi-target form_of must not silently discard candidates after the first."""
+    entry = {
+        "word": "colour",
+        "senses": [{"form_of": [{"word": "color"}, {"word": "colour2"}]}],
+    }
+    assert list(extract_pairs(entry)) == [("color", "colour"), ("colour2", "colour")]
+
+
+def test_extract_pairs_emits_all_alt_of_targets():
+    entry = {"word": "x", "alt_of": [{"word": "a"}, {"word": "b"}, {"word": "c"}]}
+    assert list(extract_pairs(entry)) == [("a", "x"), ("b", "x"), ("c", "x")]
+
+
+def test_extract_pairs_skips_targets_missing_word_but_keeps_others():
+    entry = {"word": "x", "form_of": [{}, {"word": "y"}]}
+    assert list(extract_pairs(entry)) == [("y", "x")]
+
+
+def test_extract_pairs_dedups_repeated_pair_across_senses():
+    """Two senses of the SAME entry reducing to the same lemma is not two
+    independent attestations -- dictionary_pickler's R2 treats line count
+    as evidence, so a single entry must contribute at most one line per pair."""
+    entry = {
+        "word": "Hunde",
+        "senses": [
+            {"form_of": [{"word": "Hund"}]},
+            {"form_of": [{"word": "Hund"}]},  # different sense, same relation
+        ],
+    }
+    assert list(extract_pairs(entry)) == [("Hund", "Hunde")]
+
+
+def test_extract_pairs_dedup_preserves_first_seen_order():
+    entry = {
+        "word": "x",
+        "senses": [
+            {"form_of": [{"word": "b"}]},
+            {"form_of": [{"word": "a"}]},
+            {"form_of": [{"word": "b"}]},
+        ],
+    }
+    assert list(extract_pairs(entry)) == [("b", "x"), ("a", "x")]
+
+
+def test_extract_pairs_dedup_does_not_affect_forms_fallback_duplicates():
+    """Genuinely repeated forms (not a same-relation artifact) still dedup;
+    forms fallback only runs when there's no relation at all."""
+    entry = {"word": "x", "forms": [{"form": "y"}, {"form": "y"}]}
+    assert list(extract_pairs(entry)) == [("x", "y")]
+
+
 def test_extract_pairs_handles_missing_data():
     assert list(extract_pairs({})) == []
     assert list(extract_pairs({"word": "x", "senses": [{}]})) == []

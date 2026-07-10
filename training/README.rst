@@ -168,3 +168,34 @@ This prefers explicit inflection relations (``form_of``/``alt_of``) and falls ba
 
 3. Don't deduplicate the output: ``dictionary_pickler.py`` counts repeated ``lemma\tword`` lines as evidence and uses that count to resolve conflicting lemmas for the same word form, so duplicates should be left as-is.
 4. Check the output by exploring the data by hand to spot inconsistencies; ``dictionary_pickler.py`` itself filters out lines that are too short or otherwise malformed once you run it.
+
+
+The v2.0 data pipeline
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Beyond the raw ``kaikki_to_tsv`` extraction above, the v2.0 dictionaries are
+prepared and validated with a few small standalone CLIs (their git-ignored
+inputs live under ``training/data/``):
+
+- ``clean_wordlist.py <in.tsv> <out.tsv>`` — language-independent character
+  hygiene between extraction and pickling: NFC-normalize, canonicalize curly
+  quotes, strip invisible characters, reject mojibake and control/unassigned
+  codepoints. Keeps duplicate lines (the pickler treats line count as
+  evidence) and exits nonzero if the reject rate exceeds ``--max-reject-pct``
+  (a data-drift alarm).
+- ``wikidata_lexemes.py <lang> <dump> <out.tsv>`` — extract extra
+  ``(lemma, form)`` pairs from a Wikidata lexeme dump as an OOV *fill* layered
+  onto (never overriding) the shipped dictionary; ``--prune`` drops pairs the
+  shipped dict + rules/affix chain already reproduces.
+- ``build_override.py <lang> <train.conllu> <out.tsv>`` — mine a closed-class
+  override lexicon (pronouns, determiners, adpositions, …) from a UD train
+  split, the one place Wiktionary is systematically thin.
+- ``eval_gate.py <lang> <baseline.tsv> <candidate.tsv>`` — release gate:
+  refuse a candidate that regresses token- OR type-level accuracy on any UD
+  test treebank for the language (cross-treebank is automatic).
+
+``ud_conllu.py`` holds the shared UD conventions (the dataset-name → language
+map and the gold-token iteration rule) these tools read with. Finally,
+``dictionary_pickler.py --frontcode`` writes the smaller front-coded
+byte-stream format instead of a pickle; simplemma reads both, so existing
+``.plzma`` files keep working.

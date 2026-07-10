@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
+from training.ud_conllu import DATASET_LANG_OVERRIDES
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -90,11 +91,6 @@ def get_dirs(folder: Path) -> list[str]:
     return [d.name for d in folder.iterdir() if d.is_dir()]
 
 
-# UD's file-prefix isn't always simplemma's ISO code (Norwegian="no", North
-# Sami="sme") -- without this map, these are silently dropped, not misfiled.
-_DATASET_LANG_OVERRIDES = {"no_bokmaal": "nb", "no_nynorsk": "nn", "sme_giella": "se"}
-
-
 def get_relevant_language_data_folders(
     data_folder: Path,
 ) -> Iterable[tuple[str, str, Path]]:
@@ -106,7 +102,7 @@ def get_relevant_language_data_folders(
         matches_files = re.search(r"^(.+)-ud", conllu_files[0].name)
         if matches_files is not None:
             dataset_name = matches_files.groups()[0]
-            lang = _DATASET_LANG_OVERRIDES.get(dataset_name, dataset_name.split("_")[0])
+            lang = DATASET_LANG_OVERRIDES.get(dataset_name, dataset_name.split("_")[0])
 
             if lang in SUPPORTED_LANGUAGES:
                 yield (lang, dataset_name, lang_data_folder)

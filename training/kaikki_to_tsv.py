@@ -43,8 +43,11 @@ def _strip_stress_marks(text: str) -> str:
     return text.translate(_STRESS_MARKS_TABLE)
 
 
-def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
-    """Yield (lemma, word_form) pairs, preferring form_of/alt_of over forms."""
+def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
+    """Yield (lemma, word_form) pairs, preferring form_of/alt_of over forms.
+
+    May repeat a pair across senses of the same entry -- extract_pairs dedups.
+    """
     word = entry.get("word")
     if not word:
         return
@@ -53,9 +56,11 @@ def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
     found_relation = False
     for relation_source in (entry, *entry.get("senses", ())):
         refs = relation_source.get("form_of") or relation_source.get("alt_of")
-        if refs and refs[0].get("word"):
-            yield (_strip_stress_marks(refs[0]["word"]), stripped_word)
-            found_relation = True
+        for ref in refs or ():
+            ref_word = ref.get("word")
+            if ref_word:
+                yield (_strip_stress_marks(ref_word), stripped_word)
+                found_relation = True
 
     if found_relation:
         return
@@ -71,6 +76,17 @@ def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
         ):
             continue
         yield (stripped_word, _strip_stress_marks(word_form))
+
+
+def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
+    """Yield (lemma, word_form) pairs, preferring form_of/alt_of over forms.
+
+    Deduplicates pairs repeated across senses of the SAME entry, so a pair's
+    line count in the output TSV reflects independent attestations --
+    dictionary_pickler's R2 resolution treats line count as evidence, and a
+    single entry describing its own relation twice is not two attestations.
+    """
+    yield from dict.fromkeys(_extract_pairs_raw(entry))
 
 
 def main(input_path: Path, output_path: Path) -> None:

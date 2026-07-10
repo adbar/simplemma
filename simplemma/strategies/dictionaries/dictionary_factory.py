@@ -8,13 +8,25 @@ It loads the dictionaries that are shipped with simplemma and caches them as con
 
 """
 
-import lzma
 import pickle
 from abc import abstractmethod
 from functools import lru_cache
 from pathlib import Path
 from typing import Protocol, TypeVar, overload
 from collections.abc import Iterator, Mapping
+
+try:
+    import lzma
+except ImportError as error:
+    raise ImportError(
+        "simplemma's dictionaries are lzma-compressed, but the 'lzma' module "
+        "is unavailable. This usually means Python was built without "
+        "liblzma support (common on from-source builds missing the "
+        "liblzma-dev/xz headers at compile time). Reinstall Python with "
+        "liblzma development headers present, then rebuild."
+    ) from error
+
+from . import frontcode
 
 _T = TypeVar("_T")
 
@@ -42,10 +54,17 @@ def _load_dictionary_from_disk(langcode: str) -> dict[bytes, bytes]:
     """
     filepath = DATA_FOLDER / f"{langcode}.plzma"
     with lzma.open(filepath, "rb") as filehandle:
+        # Peek at the header to pick a format, then rewind. The legacy pickle
+        # path then streams; only the front-coded format is read whole (it has
+        # to be — the decoder needs the full stream).
+        is_frontcoded = frontcode.is_frontcoded(filehandle.read(len(frontcode.MAGIC)))
+        filehandle.seek(0)
+        if is_frontcoded:
+            return frontcode.decode_stream(filehandle.read())
         pickled_dict = pickle.load(filehandle)
-        if not isinstance(pickled_dict, dict):
-            raise TypeError(f"unexpected data in {filepath}: {type(pickled_dict)}")
-        return pickled_dict
+    if not isinstance(pickled_dict, dict):
+        raise TypeError(f"unexpected data in {filepath}: {type(pickled_dict)}")
+    return pickled_dict
 
 
 class DictionaryFactory(Protocol):

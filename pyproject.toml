@@ -130,6 +130,7 @@ docs = [
 [tool.mypy]
 python_version = "3.10"
 files = ["simplemma", "training", "tests"]
+exclude = ["training/data/"]  # downloaded UD/Kaikki/Wikidata artifacts, not our code
 strict = true
 exclude = ["training/local/", "training/data/"]
 

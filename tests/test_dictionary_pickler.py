@@ -159,3 +159,46 @@ def test_generated_plzma_loads_through_real_reader(tmp_path, monkeypatch) -> Non
         lemmatization_strategy=DefaultStrategy(dictionary_factory=GeneratedFactory())
     )
     assert lemmatizer.lemmatize("dogs", lang="zz") == "dog"
+
+
+def test_generated_frontcoded_plzma_loads_through_real_reader(
+    tmp_path, monkeypatch
+) -> None:
+    """A front-coded .plzma loads via the production reader and lemmatizes
+    identically to the legacy pickle format."""
+    (tmp_path / "zz.txt").write_text("dog\tdogs\ncat\tcats\n", encoding="utf-8")
+    dictionary_pickler._pickle_dict(
+        "zz",
+        listpath=str(tmp_path),
+        filepath=str(tmp_path / "zz.plzma"),
+        use_frontcode=True,
+    )
+
+    monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
+    raw = dictionary_factory._load_dictionary_from_disk("zz")
+    assert raw == {b"dog": b"dog", b"dogs": b"dog", b"cat": b"cat", b"cats": b"cat"}
+
+    class GeneratedFactory(DictionaryFactory):
+        def get_dictionary(self, lang: str) -> MappingStrToByteString:
+            return MappingStrToByteString(raw)
+
+    lemmatizer = Lemmatizer(
+        lemmatization_strategy=DefaultStrategy(dictionary_factory=GeneratedFactory())
+    )
+    assert lemmatizer.lemmatize("dogs", lang="zz") == "dog"
+
+
+def test_pickle_dict_frontcode_smaller_than_legacy(tmp_path) -> None:
+    """Sanity check: front-coding a realistic-shaped wordlist doesn't grow it."""
+    lines = "".join(f"form{i}\tlemma{i % 20}\n" for i in range(500))
+    (tmp_path / "zz.txt").write_text(lines, encoding="utf-8")
+
+    legacy_path = tmp_path / "legacy.plzma"
+    frontcoded_path = tmp_path / "frontcoded.plzma"
+    dictionary_pickler._pickle_dict(
+        "zz", listpath=str(tmp_path), filepath=str(legacy_path)
+    )
+    dictionary_pickler._pickle_dict(
+        "zz", listpath=str(tmp_path), filepath=str(frontcoded_path), use_frontcode=True
+    )
+    assert frontcoded_path.stat().st_size < legacy_path.stat().st_size

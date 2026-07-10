@@ -15,8 +15,14 @@ from pathlib import Path
 
 import simplemma
 from simplemma.strategies.defaultrules import RULE_FUNCTIONS
+from simplemma.strategies.dictionaries import frontcode
 from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
 from simplemma.utils import levenshtein_dist
+
+# Swahili's inflection is prefixal (subject/TAM/object markers prepended), so
+# forms of one lemma share a common ENDING, not a common start; front-coding
+# the reversed bytes exposes that shared structure instead of missing it.
+FRONTCODE_REVERSE_KEY_LANGS = {"sw"}
 
 LOGGER = logging.getLogger(__name__)
 
@@ -165,15 +171,20 @@ def _pickle_dict(
     listpath: str = "lists",
     filepath: str | None = None,
     in_place: bool = False,
+    use_frontcode: bool = False,
 ) -> None:
     mydict = _load_dict(langcode, listpath)
-    # sort dictionary to help saving space during compression
-    if langcode not in ("lt", "sw"):
-        mydict = dict(sorted(mydict.items(), key=itemgetter(1)))
     if filepath is None:
         filepath = _determine_pickle_path(langcode, in_place)
-    with lzma.open(filepath, "wb") as filehandle:  # , filters=my_filters, preset=9
-        pickle.dump(mydict, filehandle, protocol=5)
+    if use_frontcode:
+        reverse_key = langcode in FRONTCODE_REVERSE_KEY_LANGS
+        Path(filepath).write_bytes(frontcode.encode(mydict, reverse_key=reverse_key))
+    else:
+        # sort dictionary to help saving space during compression
+        if langcode not in ("lt", "sw"):
+            mydict = dict(sorted(mydict.items(), key=itemgetter(1)))
+        with lzma.open(filepath, "wb") as filehandle:  # , filters=my_filters, preset=9
+            pickle.dump(mydict, filehandle, protocol=5)
     LOGGER.debug("%s %s", langcode, len(mydict))
 
 
@@ -186,8 +197,14 @@ if __name__ == "__main__":
         "overwriting shipped dictionaries. Without this flag, output goes "
         "to training/output/ instead.",
     )
+    parser.add_argument(
+        "--frontcode",
+        action="store_true",
+        help="Write the front-coded byte-stream format instead of a pickle "
+        "(smaller on disk, requires a simplemma release that can read it).",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.DEBUG)
     for listcode in sorted(SUPPORTED_LANGUAGES):
-        _pickle_dict(listcode, in_place=args.in_place)
+        _pickle_dict(listcode, in_place=args.in_place, use_frontcode=args.frontcode)
