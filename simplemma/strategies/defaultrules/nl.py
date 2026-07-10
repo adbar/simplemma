@@ -1,3 +1,19 @@
+# closed set of -ijen tokens whose -ij strip is wrong: verb infinitives
+# (vrijen) and -ije nouns (balijen)
+NL_IJEN_STOPS = (
+    "vrijen",
+    "vlijen",
+    "benedijen",
+    "betijen",
+    "gedijen",
+    "uitdijen",
+    "verdijen",
+    "vermaledijen",
+    "balijen",
+    "librijen",
+)
+
+
 def apply_nl(token: str) -> str | None:
     "Apply pre-defined rules for Dutch."
     # inspired by:
@@ -11,21 +27,6 @@ def apply_nl(token: str) -> str | None:
         if token.endswith("heden") and "scheden" not in token:
             return token[:-5] + "heid"
         # boerderijen => boerderij
-        if token.endswith("ijen"):
+        if token.endswith("ijen") and not token.endswith(NL_IJEN_STOPS):
             return token[:-2]
-        # brieven => brief
-        if token.endswith("ieven"):
-            return token[:-3] + "f"
-        # too much noise:
-        # bacteriën => bacterie
-        # if token.endswith("iën"):
-        #    return token[:-2] + "e"
-        # flessen => fles
-        # if token.endswith("essen"):
-        #    return token[:-3]
-        # chinezen => chinees
-        # if token.endswith("ezen") and token[-5] not in VOWELS:
-        #    return token[:-4] + "ees"
-        # if token.endswith("bele"):
-        #    return token[:-1]
     return None

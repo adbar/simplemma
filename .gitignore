@@ -116,6 +116,8 @@ Makefile
 UD/
 training/**/data
 training/output/
+# local-only dev tooling (audit/eval scripts), never shipped
+training/local/
 
 # uv lockfile: pyproject.toml pins exact versions already
 uv.lock

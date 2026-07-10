@@ -14,7 +14,7 @@ from operator import itemgetter
 from pathlib import Path
 
 import simplemma
-from simplemma.strategies.defaultrules import DEFAULT_RULES
+from simplemma.strategies.defaultrules import RULE_FUNCTIONS
 from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
 from simplemma.utils import levenshtein_dist
 
@@ -83,10 +83,10 @@ def _collect_candidates(
             # print line if the rule is wrong
             if (
                 len(columns[1]) > 6
-                and langcode in DEFAULT_RULES
+                and langcode in RULE_FUNCTIONS
                 and columns[1] != columns[0]
             ):
-                rule = DEFAULT_RULES[langcode](columns[1])
+                rule = RULE_FUNCTIONS[langcode](columns[1])
                 if rule and rule != columns[0]:
                     print(columns[1], columns[0], rule)
             candidates[columns[1]][columns[0]] += 1

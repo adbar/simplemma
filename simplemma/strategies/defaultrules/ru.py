@@ -13,15 +13,4 @@ def apply_ru(token: str) -> str | None:
     if token.endswith("ё"):
         return token.replace("ё", "е")
 
-    if len(token) < 10 or token[0].isupper() or "-" in token:
-        return None
-
-    # token = token.replace("а́", "a")
-    # token = token.replace("о́", "o")
-    # token = token.replace("и́", "и")
-    # if RUSSIAN_ENDINGS_OCTB.search(token):
-    #     return RUSSIAN_ENDINGS_OCTB.sub("ость", token)
-    # if RUSSIAN_ENDINGS_CTBO.search(token):
-    #     return RUSSIAN_ENDINGS_CTBO.sub("ство", token)
-
-    return apply_rules(token, DEFAULT_RULES)
+    return apply_rules(token, DEFAULT_RULES, min_len=9, caps=True, hyphen=True)

@@ -2,43 +2,69 @@ import re
 
 from .generic import apply_rules
 
-# https://en.wiktionary.org/wiki/Category:Latvian_suffixes
-
+# Latvian: indefinite adjectives (-isks/-īgs) and -ums/-ija/-ība/-šana nouns,
+# each cell >=99% precise. Deliberately absent: -iju/-ijā (collides with -ijs
+# masculines), -i adverbs (open class UD lemmatizes as-is), and the whole
+# definite-adjective declension family -- >=99% in-dict but 85-100% wrong on
+# UD real text (OOV firings are participles or indefinite adjectives, never
+# the definite citation form).
 DEFAULT_RULES = {
-    # feminine nouns
-    re.compile(r"(?:āju|ājas|ājai|ājam|ājās)$"): "āja",
-    re.compile(r"(?:ēju|ējas|ējai|ējam|ējās)$"): "ēja",
-    re.compile(r"(?:ieci|ieces|iecei|iecē|ieču|iecēm|iecēs)$"): "iece",
-    re.compile(r"(?:ieti|ietes|ietei|ietē|ietes|iešu|ietēm|ietēs)$"): "iete",
-    re.compile(r"(?:iju|ijas|ijai|ijam)$"): "ija",
-    re.compile(r"(?:ību|ības|ībai|ībām|ībās)$"): "ība",
-    re.compile(r"(?:īgu|īga|īgam|īgi|īgus|īgiem|īgos|īgas|īgai|īgā|īgām|īgās)$"): "īgs",
-    re.compile(r"(?:īva|īvu|īvam|īvas|īvai|īvus|īviem|īvos|īvā|īvām|īvās)$"): "īvs",
-    re.compile(r"(?:šanu|šanas|šanai|šanā|šanām|šanās)$"): "šana",
-    re.compile(r"(?:umu|uma|umam|umā|umām|umās)$"): "ums",  # |um
-    # masculine nouns
-    re.compile(r"(?:āju|āja|ājam|āj|āji|ājus|ājiem|ājos)$"): "ājs",
-    re.compile(r"(?:iņu|iņa|iņam|iņ|iņi|iņus|iņiem|iņos)$"): "iņš",
-    re.compile(
-        r"(?:isku|iska|iskam|iskā|iski|iskus|iskiem|isko|iskos|iskai|iskas|iskām|iskās)$"
-    ): "isks",
-    re.compile(r"(?:ismu|isma|ismam|ismā|iski|ism)$"): "isms",
-    re.compile(r"(?:īti|īša|ītim|ītī|īt|īši|īšus|īšu|īšiem|īšos)$"): "ītis",
-    re.compile(r"(?:kli|kļa|klim|klī|kļi|kļus|kļiem|kļos)$"): "klis",
-    re.compile(r"(?:nieku|nieka|niekam|niekā|nieki|niekus|niekiem|niekos)$"): "nieks",
-    re.compile(r"(?:ni|ņa|nim|nī|ņi|ņus|ņu|ņiem|ņos)$"): "nis",
-    # fallback
-    re.compile(r"(?:as|ai|ā|ām|ās)$"): "a",
-    re.compile(r"(?:ei|es|ē|ēm|ēs)$"): "e",
-    re.compile(r"(?:is|im|ī|iem|īs)$"): "is",
-    # re.compile(r"(?:os|us)$"): "s",
-    # re.compile(r"(?:ēto|ēts)$"): "ēt",
+    re.compile(r"(?:iskām|iskās|iskos|iskus|iska|isku|iskā)$"): "isks",
+    re.compile(r"(?:īgos|īgus|īgās|īga|īgu|īgā)$"): "īgs",
+    re.compile(r"(?:umam|uma|umu|umā)$"): "ums",
+    re.compile(r"(?:ības|ību|ībā|ībām|ībās)$"): "ība",
+    re.compile(r"(?:ijas|ijai)$"): "ija",
+    re.compile(r"(?:šanas|šanai|šanu|šani)$"): "šana",
 }
+
+# capitalized tokens decline like nouns (Latvijas -> Latvija); "ums" excluded
+# (feminine surnames end in -a: Straujuma)
+_CAPS_UNSAFE_TARGETS = frozenset({"isks", "īgs", "ums"})
+_PROPER_NOUN_RULES = {
+    pattern: repl
+    for pattern, repl in DEFAULT_RULES.items()
+    if repl not in _CAPS_UNSAFE_TARGETS
+}
+
+# pluralia tantum colliding with the -ība/-šana singular cells, plus two
+# lexicalized invariants
+_EXCLUDED = frozenset(
+    {
+        "priekšvēlēšanu",
+        "vēlēšanas",
+        "vēlēšanu",
+        "ganības",
+        "ganību",
+        "ganībā",
+        "ganībām",
+        "ganībās",
+        "kristības",
+        "kristību",
+        "kristībā",
+        "kristībām",
+        "kristībās",
+        "tiesības",
+        "tiesību",
+        "tiesībā",
+        "tiesībām",
+        "tiesībās",
+        "dzemdības",
+        "dzemdību",
+        "dzemdībās",
+        "medības",
+        "medību",
+        "balsstiesības",
+        "drīzumā",
+        "pretinflācijas",
+    }
+)
 
 
 def apply_lv(token: str) -> str | None:
     "Apply pre-defined rules for Latvian."
-    if len(token) < 5:
+    # jā- marks debitive verb forms (infinitive lemma, out of reach here)
+    if len(token) < 6 or token.startswith("jā") or token in _EXCLUDED:
         return None
 
-    return apply_rules(token, DEFAULT_RULES)
+    rules = _PROPER_NOUN_RULES if token[0].isupper() else DEFAULT_RULES
+    return apply_rules(token, rules)

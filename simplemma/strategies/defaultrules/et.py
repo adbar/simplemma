@@ -2,39 +2,36 @@ import re
 
 from .generic import apply_rules
 
-## Just a demo, the rules are really basic and coverage is not good
-
+# Pruned to the cells that hold >=99%: short elative/illative forms collide
+# with plain nouns and the -dus paradigm with -dune adjectives.
 
 DEFAULT_RULES = {
-    # adjectives
-    # https://en.wiktionary.org/wiki/-line
+    # adjectives -line https://en.wiktionary.org/wiki/-line
     re.compile(
-        r"(?:lise|list|lisse|lisesse|lises|lisest|lisele|lisel|liselt|liseks|liseni|lisena|liseta|lisega|lised|liste|lisi|listesse|lisisse|listes|lisis|listest|lisist|listele|lisile|listel|lisil|listelt|lisilt|listeks|lisiks|listeni|listena|listeta|listega)$"
+        r"(?:lisesse|lisest|liselt|lisele|lisil|lisel|lises|lised|lisi|lise)$"
     ): "line",
-    # https://en.wiktionary.org/wiki/-mine
+    re.compile(r"likest$"): "lik",
+    re.compile(r"duses$"): "dus",
+    # partitive -ilist only with >=5 stem chars (short collisions: detailist)
+    re.compile(r"(.{5,})ilist$"): r"\1iline",
+    re.compile(r"(?:iliste)$"): "iline",
+    re.compile(r"(?:amist)$"): "amine",
+    # verbal nouns -mine https://en.wiktionary.org/wiki/-mine
     re.compile(
-        r"(?:mise|mist|misse|misesse|mises|misest|misele|misel|miselt|miseks|miseni|misena|miseta|misega|mised|miste|misi|mistesse|misisse|mistes|misis|mistest|misist|mistele|misile|mistel|misil|mistelt|misilt|misteks|misiks|misteni|mistena|misteta|mistega)$"
+        r"(?:mistesse|misteta|mistest|misteni|mistena|mistelt|mistele|misteks|mistega|misesse|mistes|mistel|miseta|misest|miseni|misena|miselt|misele|miseks|miste|mises|misel|mised|mise)$"
     ): "mine",
-    # nouns
-    # https://en.wiktionary.org/wiki/-dus
+    # -lik/-nik nouns https://en.wiktionary.org/wiki/-lik
     re.compile(
-        r"(?:duse|dust|dusse|dusesse|duses|dusest|dusele|dusel|duselt|duseks|duseni|dusena|duseta|dusega|dused|duste|dusi|dustesse|dusisse|dustes|dusis|dustest|dusist|dustele|dusile|dustel|dusil|dustelt|dusilt|dusteks|dusiks|dusteni|dustena|dusteta|dustega)$"
-    ): "dus",
-    # https://en.wiktionary.org/wiki/-lik
-    # https://en.wiktionary.org/wiki/-nik
-    re.compile(
-        r"(?:iku|ikku|ikusse|ikus|ikust|ikule|ikul|ikult|ikuks|ikuni|ikuna|ikuta|ikuga|ikud|ike|ikudde|ikke|ikusid|ikesse|ikkudesse|ikes|ikkudes|ikest|ikkudest|ikele|ikkudele|ikel|ikkudel|ikelt|ikkudelt|ikeks|ikkudeks|ikeni|ikkudeni|ikena|ikkudena|iketa|ikkudeta|ikega|ikkudega)$"
+        r"(?:ikkudele|ikkudel|ikuta|ikuni|ikuna|ikult|ikule|ikuks|ikuga|iketa|ikeni|ikena|ikelt|ikele|ikeks|ikul|ikud|ikku|ikke|iku)$"
     ): "ik",
-    # https://en.wiktionary.org/wiki/-kond
+    # -kond nouns https://en.wiktionary.org/wiki/-kond
     re.compile(
-        r"(?:konna|konda|konnasse|konnas|konnast|konnale|konnal|konnalt|konnaks|konnani|konnana|konnata|konnaga|konnad|kondade|kondi|kondasid|kondadesse|konnisse|kondades|konnis|kondadest|konnist|kondadele|konnile|kondadel|konnil|kondadelt|konnilt|kondadeks|konniks|kondadeni|kondadena|kondadeta|kondadega)$"
+        r"(?:kondadesse|kondadest|kondadelt|kondadele|kondadega|kondades|kondadel|konnata|konnast|konnalt|konnaks|konnaga|kondade|konnas|konnal|kondi|konda)$"
     ): "kond",
 }
 
 
 def apply_et(token: str) -> str | None:
     "Apply pre-defined rules for Estonian."
-    if len(token) < 8 or token[0].isupper():
-        return None
-
-    return apply_rules(token, DEFAULT_RULES)
+    # hyphenated-compound gold uses morpheme markers suffix rules can't reproduce
+    return apply_rules(token, DEFAULT_RULES, min_len=8, caps=True, hyphen=True)

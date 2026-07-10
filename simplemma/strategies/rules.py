@@ -5,7 +5,7 @@ It provides lemmatization by applying pre-defined rules for each language.
 
 from collections.abc import Callable
 
-from .defaultrules import DEFAULT_RULES
+from .defaultrules import RULE_FUNCTIONS
 from .lemmatization_strategy import LemmatizationStrategy
 
 
@@ -17,13 +17,13 @@ class RulesStrategy(LemmatizationStrategy):
 
     __slots__ = ["_rules"]
 
-    def __init__(self, rules: dict[str, Callable[[str], str | None]] = DEFAULT_RULES):
+    def __init__(self, rules: dict[str, Callable[[str], str | None]] = RULE_FUNCTIONS):
         """
         Initialize the Rules Strategy.
 
         Args:
             rules (dict[str, Callable[[str], str | None]]): A dictionary of pre-defined rules for various languages.
-                Defaults to `DEFAULT_RULES`.
+                Defaults to `RULE_FUNCTIONS`.
 
         """
         self._rules = rules
@@ -46,7 +46,5 @@ class RulesStrategy(LemmatizationStrategy):
             str | None: The lemma for the token, or None if no lemma is found.
 
         """
-        if lang not in self._rules:
-            return None
-
-        return self._rules[lang](token)
+        rule_fn = self._rules.get(lang)
+        return rule_fn(token) if rule_fn is not None else None
