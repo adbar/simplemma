@@ -2,9 +2,8 @@ import re
 
 from .generic import apply_rules
 
-# Czech: verb conjugation (-ovat/-it families) and adjective declension
-# (-ský/-cký/-ický/-ný families). Lemma-first build (mine -> trim(0.70) ->
-# refine -> subsume): 10 groups, 9.95% coverage, 99.35% in-dict.
+# Czech verb conjugation and adjective declension, mined lemma-first
+# (99.35% in-dict).
 DEFAULT_RULES = {
     re.compile(r"(?:ického|ickou|ickém|ická)$"): r"ický",
     re.compile(
@@ -22,6 +21,5 @@ DEFAULT_RULES = {
 
 def apply_cs(token: str) -> str | None:
     "Apply pre-defined rules for Czech."
-    # hyphenated compounds only get their tail lemmatized
-    # (vězni-straníci), an error class rules can never fix -- skip
+    # hyphenated-compound gold is out of reach for suffix rules -- skip
     return apply_rules(token, DEFAULT_RULES, min_len=6, caps=True, hyphen=True)

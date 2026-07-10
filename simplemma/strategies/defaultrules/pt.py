@@ -2,9 +2,8 @@ import re
 
 from .generic import apply_rules
 
-# Portuguese: -ar/-er/-ir verb conjugation (per-consonant sub-classes) and
-# noun/adjective plural-gender endings. Lemma-first build (mine -> trim(0.70)
-# -> refine -> subsume): 25 groups, 48.54% coverage, 99.72% in-dict.
+# Portuguese verb conjugation and noun/adjective endings, mined lemma-first
+# (99.72% in-dict).
 DEFAULT_RULES = {
     re.compile(r"(?:tara|tá)$"): r"tar",
     re.compile(r"(?:raras|rara)$"): r"rar",
@@ -37,10 +36,8 @@ DEFAULT_RULES = {
     re.compile(r"(?:gos)$"): r"go",
 }
 
-# Via the UD consistency scan + worktree diff: invariant words/loanwords/
-# pluralia tantum, feminine agent nouns kept as their own lemma, verb forms
-# whose stem extends a longer alternative, and sentence-initial-lowercased
-# proper nouns.
+# invariant words, feminine agent nouns kept as their own lemma,
+# stem-extending verb forms, and lowercased proper nouns
 _EXCLUDED = frozenset(
     {
         "quando",

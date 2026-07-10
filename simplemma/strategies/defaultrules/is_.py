@@ -2,10 +2,8 @@ import re
 
 from .generic import apply_rules
 
-# Icelandic: adjective declension/comparison (-egur/-legur families) and
-# definite-article-suffixed noun forms. Lemma-first build: 7 groups, 5.86%
-# coverage, 99.70% in-dict. NB: is_modern's dict agreement is only ~59%,
-# so only the diff-token audit is a meaningful UD signal here.
+# Icelandic adjective declension/comparison and definite noun forms, mined
+# lemma-first (99.70% in-dict).
 DEFAULT_RULES = {
     re.compile(
         r"(?:egastrar|egastur|egastan|egastar|egastir|egastra|egastri"

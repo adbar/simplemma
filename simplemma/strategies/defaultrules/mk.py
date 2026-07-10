@@ -2,9 +2,8 @@ import re
 
 from .generic import apply_rules
 
-# Macedonian definite-article and plural declension. Lemma-first build
-# (mine -> trim(0.70) -> refine -> subsume): 9 groups, 11.43% coverage,
-# 99.28% in-dict.
+# Macedonian definite-article and plural declension, mined lemma-first
+# (99.28% in-dict).
 DEFAULT_RULES = {
     re.compile(r"(?:ствава|ствана|ствата|ства)$"): r"ство",
     re.compile(r"(?:ации)$"): r"ација",

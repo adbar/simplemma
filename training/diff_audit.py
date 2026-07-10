@@ -3,28 +3,17 @@ Diff-token audit: the manual-inspection gate every accepted UD delta must
 pass (a harm class concentrated in one POS or lexical pattern is a red flag
 even when net counts look fine).
 
-Three modes, one classifier:
-
 --config <cfg> <lang> <ud_prefix>
-    Diff baseline vs. a runtime-patched candidate config (any string
-    training/ud_end_to_end.patched() accepts).
+    Diff baseline vs. a runtime-patched config (ud_end_to_end.patched()).
 
 --worktree <path> [lang ...]
-    Diff the current working tree against another simplemma checkout.
-    Each side runs in a SUBPROCESS (the `dump` subcommand) with an explicit
-    package root, since Python can't hold two simplemma versions in one
-    process. Create the comparison worktree first:
-        git worktree add /tmp/simplemma_main_worktree <ref> --detach
-    (remove it afterwards to avoid a dangling .git/worktrees/ entry). The
-    dump worker keeps its own conllu reader: importing training.ud_eval
-    there could resolve against the OTHER tree, which may predate it.
+    Diff the working tree against another simplemma checkout (create it with
+    `git worktree add ... --detach`). Each side runs in a subprocess, since
+    Python can't hold two simplemma versions in one process.
 
 --consistency <lang> <ud_prefix>
-    Flag words the CURRENT rules module changes despite the treebank
-    showing them as consistently gold (n>=2, single lemma across every
-    occurrence). Identity mismatches are stoplist candidates; non-identity
-    mismatches are rule bugs. An inconsistent gold is annotation noise, not
-    a stoplist candidate.
+    Flag words the current rules change despite consistent treebank gold:
+    identity mismatches are stoplist candidates, others rule bugs.
 """
 
 import csv

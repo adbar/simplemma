@@ -20,9 +20,7 @@ def test_DEFAULT_RULES() -> None:
     assert rules_strategy.get_lemma("безгра́мотностью", "ru") == "безгра́мотность"
 
     assert rules_strategy.get_lemma("Rīga", "lv") is None
-    # definite-adjective declension dropped 2026-07: 85-100% wrong on UD
-    # real text (verb participle or indefinite adjective, not the
-    # definite citation form), see simplemma/strategies/defaultrules/lv.py
+    # definite-adjective declension dropped, see lv.py
     assert rules_strategy.get_lemma("labākajiem", "lv") is None
     assert rules_strategy.get_lemma("baltajiem", "lv") is None
     assert rules_strategy.get_lemma("risinājumu", "lv") == "risinājums"

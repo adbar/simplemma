@@ -1,12 +1,8 @@
 """
 UD treebank reading and data-quality diagnostics for the rules/affix
-evaluation toolkit.
-
-Conventions mirror training/evaluate_simplemma.py: skip lemma == "_",
-lowercase sentence-initial forms, exact-match scoring. Reads the per-split
-files under training/data/UD/splits/ (fetched by download_eval_data.py),
-not the concatenated ones evaluate_simplemma.py consumes -- the tune/confirm
-protocol needs the dev/test split boundary preserved.
+evaluation toolkit. Conventions mirror training/evaluate_simplemma.py;
+reads the per-split files (download_eval_data.py) to preserve the
+tune/confirm boundary.
 
 CLI:
     uv run python -m training.ud_eval reliability <lang:prefix> [...]

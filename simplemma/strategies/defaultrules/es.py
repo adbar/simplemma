@@ -2,9 +2,8 @@ import re
 
 from .generic import apply_rules
 
-# Spanish: -ar/-er/-ir verb conjugation (per-consonant sub-classes) and
-# noun/adjective plural endings. Lemma-first build (mine -> trim(0.70) ->
-# refine -> subsume): 24 groups, 31.46% coverage, 99.81% in-dict.
+# Spanish verb conjugation and noun/adjective plural endings, mined
+# lemma-first (99.81% in-dict).
 DEFAULT_RULES = {
     re.compile(
         r"(?:earíamos|earemos|earíais|easteis|eábamos|eáramos|eáremos|eásemos"
@@ -71,10 +70,8 @@ DEFAULT_RULES = {
     re.compile(r"(?:gos)$"): r"go",
 }
 
-# Via the UD consistency scan + worktree diff: invariant words/pluralia
-# tantum, no-accent variants of adverbs and -ían imperfects colliding with
-# the "-iar" cell, the -eer verb class colliding with -ear endings, the
-# bueno/buen allomorphy, and lowercased proper nouns.
+# invariant words, no-accent variants colliding with the -iar cell, the
+# -eer verb class vs -ear endings, and lowercased proper nouns
 _EXCLUDED = frozenset(
     {
         "varios",

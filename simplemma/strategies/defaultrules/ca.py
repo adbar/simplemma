@@ -2,9 +2,8 @@ import re
 
 from .generic import apply_rules
 
-# Catalan: -ar/-ir verb conjugation (per-consonant sub-classes) and
-# noun/adjective plural endings. Lemma-first build (mine -> trim(0.70) ->
-# refine -> subsume): 23 groups, 39.46% coverage, 99.81% in-dict.
+# Catalan verb conjugation and noun/adjective plural endings, mined
+# lemma-first (99.81% in-dict).
 DEFAULT_RULES = {
     re.compile(
         r"(?:egessen|egesses|egessin|egessis|egéssem|egésseu|egéssim|egéssiu"
@@ -54,11 +53,8 @@ DEFAULT_RULES = {
     re.compile(r"(?:gs)$"): r"g",
 }
 
-# The bare "z"->"zar" alt was dropped: its real-text firings were all
-# Spanish surnames (Fernández), not verbs. Below, finite collisions from
-# the consistency scan + worktree diff: invariant words/pluralia tantum,
-# irregular-verb forms (anar, fer), verb forms whose stem extends a longer
-# alternative, and proper nouns.
+# finite collisions: invariant words, irregular-verb forms (anar, fer),
+# stem-extending verb forms, and proper nouns
 _EXCLUDED = frozenset(
     {
         "relleu",

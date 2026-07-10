@@ -2,12 +2,9 @@ import re
 
 from .generic import apply_rules
 
-# Norwegian Nynorsk: -ing nominalizations, -ar agent nouns, -isk adjectives,
-# borrowed suffix families (-jon, -nar), definite/plural declension.
-# "-arar" was dropped: it collides with the open class of -a verb presents
-# (svarar) and its real-text value (33 tokens) is under the keep bar.
-# "-aren"/"-arane" kept: their collisions are a finite set of -are nouns,
-# stoplisted below.
+# Norwegian Nynorsk noun/adjective declension. "-arar" dropped (collides with
+# the open class of -a verb presents); "-aren"/"-arane" kept, their finite
+# -are noun collisions stoplisted below.
 DEFAULT_RULES = {
     re.compile(r"(?:ingane|ingar|ingen|inga)$"): "ing",
     re.compile(r"(?:arane|aren)$"): "ar",
@@ -47,8 +44,7 @@ _EXCLUDED = frozenset(
         "jegarane",
         "berlinbuarane",
         "kosovoalbanarane",
-        # -ing cells vs -a verb infinitives whose stem ends -ing
-        # (tvinga -> tvinge), plus one identity-gold noun
+        # -ing cells vs -a verb infinitives (tvinga -> tvinge)
         "tvinga",
         "betinga",
         "springa",
@@ -60,8 +56,7 @@ _EXCLUDED = frozenset(
 
 def apply_nn(token: str) -> str | None:
     "Apply pre-defined rules for Norwegian Nynorsk."
-    # hyphenated compounds are mostly lowercased proper-noun heads
-    # (Hardanger-ordførar): 84.7% on real text, under the bar -- skip.
+    # hyphenated compounds are mostly proper-noun heads -- skip
     return apply_rules(
         token, DEFAULT_RULES, min_len=6, caps=True, hyphen=True, excluded=_EXCLUDED
     )

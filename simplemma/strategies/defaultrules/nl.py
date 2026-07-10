@@ -1,6 +1,5 @@
-# -ijen tokens whose -ij strip is wrong: verb infinitives (lemma IS the -ijen
-# form) and -ije nouns (plural -ijen, lemma keeps the -e). A closed set, since
-# -ijen is otherwise the productive -ij noun plural (897 clean strips).
+# closed set of -ijen tokens whose -ij strip is wrong: verb infinitives
+# (vrijen) and -ije nouns (balijen)
 NL_IJEN_STOPS = (
     "vrijen",
     "vlijen",

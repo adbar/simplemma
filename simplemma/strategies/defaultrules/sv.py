@@ -2,10 +2,8 @@ import re
 
 from .generic import apply_rules
 
-# Swedish: noun definite/plural declension (-ing/-het/-bar families),
-# adjective comparison, and verb conjugation. Lemma-first build (mine ->
-# trim(0.70) -> refine -> subsume): 11 groups, 22.01% coverage, 99.76%
-# in-dict.
+# Swedish noun declension, adjective comparison, and verb conjugation,
+# mined lemma-first (99.76% in-dict).
 DEFAULT_RULES = {
     re.compile(
         r"(?:barastes|barares|baraste|barasts|barare|barast|bares|baras"
@@ -25,9 +23,7 @@ DEFAULT_RULES = {
     re.compile(r"(?:els)$"): r"el",
 }
 
-# Most "-igt/-iskt" worktree hits agree with the dictionary's own lemma
-# (neuter adjective doubling as adverb -- dict-vs-UD convention, kept).
-# These three are OOV and invariant.
+# OOV invariants
 _EXCLUDED = frozenset({"enligt", "antingen", "enbart"})
 
 

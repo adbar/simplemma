@@ -2,10 +2,7 @@ import re
 
 from .generic import apply_rules
 
-# Luxembourgish adjective declension: comparative/superlative markers
-# attached to adjective-forming suffixes. Lemma-first build (mine ->
-# trim(0.70) -> refine -> subsume): 11 groups, 9.65% coverage, 99.75%
-# in-dict.
+# Luxembourgish adjective declension, mined lemma-first (99.75% in-dict).
 DEFAULT_RULES = {
     re.compile(r"(?:ertstem|ertsten|ertster|ertste|erten|ertem|erter|ertst)$"): r"ert",
     re.compile(r"(?:schstem|schsten|schster|schste|scher|schem|schst)$"): r"sch",

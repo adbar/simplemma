@@ -2,9 +2,8 @@ import re
 
 from .generic import apply_rules
 
-# Polish: -ość noun declension and -ować/-ać/-ić/-yć past-tense verb
-# conjugation. Lemma-first build (mine -> trim(0.70) -> refine -> subsume):
-# 5 groups, 8.10% coverage, 99.95% in-dict.
+# Polish -ość noun declension and -ować/-ać/-ić/-yć past-tense verb
+# conjugation, mined lemma-first (99.95% in-dict).
 DEFAULT_RULES = {
     re.compile(r"(?:ościach|ościami|ościom)$"): "ość",  # removed: "ością", "ości"
     re.compile(

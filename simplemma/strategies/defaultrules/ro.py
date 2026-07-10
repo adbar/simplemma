@@ -2,10 +2,8 @@ import re
 
 from .generic import apply_rules
 
-# Romanian: -a/-i verb conjugation and noun/adjective case-and-number
-# endings (definite article fused forms included). Lemma-first build
-# (mine -> trim(0.70) -> refine -> subsume): 37 groups, 22.57% coverage,
-# 99.73% in-dict.
+# Romanian verb conjugation and noun/adjective endings (fused definite
+# articles included), mined lemma-first (99.73% in-dict).
 DEFAULT_RULES = {
     re.compile(r"(?:tase|tai|tam|tăm|tau|tez)$"): r"ta",
     re.compile(r"(?:zează|zară|zase|zași|zezi|zeze|zau|zai|zam|zăm|zez)$"): r"za",
@@ -44,14 +42,9 @@ DEFAULT_RULES = {
     re.compile(r"(?:lați)$"): r"lat",
 }
 
-# The dictionary's own lemma for the participle-as-adjective class is the
-# participle itself (modificată -> modificat), matching the cells above; UD
-# sometimes prefers the verb infinitive -- an annotation-convention
-# difference, not a rules defect, so NOT stoplisted. Below: genuine
-# collisions only, each verified against the dictionary's own entry --
-# identity-lemma nouns/adverbs/pronouns, a residual participle-vs-noun set
-# (judecată, bucată), stem-vowel-changing plurals (țările), a few
-# irregulars, and one idempotence fix (înspăimânțaseși).
+# genuine collisions only (identity lemmas, participle-vs-noun homographs,
+# vowel-changing plurals, irregulars); UD preferring the infinitive over the
+# dict's participle lemma is a convention difference, not stoplisted
 _EXCLUDED = frozenset(
     {
         "înspăimânțaseși",

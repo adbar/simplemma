@@ -2,20 +2,11 @@ import re
 
 from .generic import apply_rules
 
-# Finnish nominal/verbal suffix classes (-nen/-Us/-minen/-ja family nouns,
-# -taa/-tää/-ata/-oida/... verb conjugations). Lemma-first build (mine ->
-# trim(0.70) -> refine -> subsume): 97 groups, 19.66% coverage, 99.72%
-# in-dict. Only harmony-determinate cells survive: a kept suffix fixes the
-# back/front variant by its own vowels (uks->us vs yks->ys, tämällä->tää vs
-# tamalla->taa). Harmony-neutral suffixes (dettiin, vine, ...) were dropped
-# -- a flat suffix rule can't read stem harmony to pick -taa vs -tää, so
-# those cells emitted the wrong-harmony (non-lemma) variant. min_len=10 (not
-# the usual 6): shorter tokens are dominated by hyphen-elliptic/compound
-# collisions, see the hyphen-guard rationale below. A handful of TU/VA-
-# participle oblique-case alternatives (tujen/tuna/vansa/vani/yjen/vänä/vää)
-# were later dropped: UD real text showed they almost always want the verb
-# infinitive, not the bare participle -- see training/review_ladder.py rung 2
-# "harmful chains" and training/README.rst.
+# Finnish nominal/verbal suffix classes, mined lemma-first (99.72% in-dict).
+# Only harmony-determinate cells survive (a suffix's own vowels fix -taa vs
+# -tää); TU/VA-participle oblique cells were dropped (UD wants the verb
+# infinitive, not the bare participle). min_len=10: shorter tokens are
+# dominated by hyphen-elliptic/compound collisions.
 DEFAULT_RULES = {
     re.compile(
         r"(?:misineen|miseksi|miselle|misiksi|misille|misemme|misenne|misella|miselta|misessa|misesta|misetta|misilla|misilta|misissa|misista|misitta|misensa|misillä|misiltä|misissä|misistä|misittä|miseen|misiin|misten|miseni|misesi|misien|misena|misina|misinä|misen|miset|misin|misia|misiä)$"
@@ -141,9 +132,8 @@ DEFAULT_RULES = {
     re.compile(r"(?:ntimme|ntinne|ntinsa|ntini|ntisi)$"): r"nti",
     re.compile(r"(?:kkoon)$"): r"kko",
     re.compile(r"(?:ttomme|ttonne|ttonsa|ttona|ttoni|ttosi|ttoa)$"): r"tto",
-    # avaan/avana/avasi/avaa (-> ava) dropped: the AVA-participle oblique
-    # forms want the verb infinitive on UD real text (huomautettavaa -> gold
-    # huomauttaa, not huomautettava), same gap as tujen/tuna/vansa/vani.
+    # avaan/avana/avasi/avaa (-> ava) dropped: participle obliques want the
+    # verb infinitive on UD (huomautettavaa -> huomauttaa)
     re.compile(r"(?:smimme|sminne|sminsa|smini|smisi|smit)$"): r"smi",
     re.compile(r"(?:stinne|stinsa|stini|stisi|steja)$"): r"sti",
     re.compile(r"(?:ikanne|ikojen|ikoja)$"): r"ika",
@@ -159,16 +149,10 @@ DEFAULT_RULES = {
     ): r"jä",
     re.compile(r"(?:iamme|iansa|ianne|iani|iasi)$"): r"ia",
     re.compile(r"(?:komme|konne|konsa|kosi)$"): r"ko",
-    # vansa/vani dropped: same VA-participle-vs-verb-infinitive gap as
-    # tujen/tuna above (joutuvansa -> gold joutua, not joutuva). vamme has
-    # no counter-evidence, kept.
+    # vansa/vani dropped (same participle gap: joutuvansa -> joutua); vamme kept
     re.compile(r"(?:vamme)$"): r"va",
     re.compile(r"(?:töön)$"): r"tö",
-    # tujen/tuna dropped: UD real text shows the TU-participle oblique forms
-    # almost always want the verb infinitive (puhdistettuna -> gold puhdistaa,
-    # not puhdistettu), and where the dictionary itself has an entry for the
-    # bare participle it usually redirects there too -- the rule stopped one
-    # derivational step short. tunsa/tuni/tusi have no counter-evidence, kept.
+    # tujen/tuna dropped (puhdistettuna -> puhdistaa); tunsa/tuni/tusi kept
     re.compile(r"(?:tunsa|tuni|tusi)$"): r"tu",
     re.compile(r"(?:yöhön|yöllä|yöltä|yössä|yöstä|yöttä)$"): r"yö",
     re.compile(r"(?:pujen|pumme|punne|punsa|puni|pusi)$"): r"pu",
@@ -184,9 +168,7 @@ DEFAULT_RULES = {
     re.compile(r"(?:risin)$"): r"rinen",
     re.compile(r"(?:ömme|önsä|önne|ösi|önä|öni|ötä|öä)$"): r"ö",
     re.compile(r"(?:toon)$"): r"to",
-    # yjen (-> y) and vänä/vää (-> vä) dropped: same VA/TU-participle-vs-
-    # verb-infinitive gap (käärittyjen -> gold kääriä, ikääntyvää -> gold
-    # ikääntyä), not verb, and not the participle's own dict identity form.
+    # yjen/vänä/vää dropped (same participle gap: käärittyjen -> kääriä)
     re.compile(r"(?:loon)$"): r"lo",
     re.compile(r"(?:suun)$"): r"su",
     re.compile(r"(?:ikot)$"): r"ikko",
@@ -194,9 +176,7 @@ DEFAULT_RULES = {
     re.compile(r"(?:mää)$"): r"mä",
 }
 
-# "-laisia"-class possessives reduce to a non-word the "lainen" cell
-# re-fires on (idempotence), plus one "-jälsi" noun; naimisissa/keskuudessa
-# are identity lemmas in the dictionary itself; the rest are OOV invariants.
+# idempotence chains, identity lemmas, and OOV invariants
 _EXCLUDED = frozenset(
     {
         "heidänlaisiansa",
@@ -217,8 +197,7 @@ _EXCLUDED = frozenset(
 
 def apply_fi(token: str) -> str | None:
     "Apply pre-defined rules for Finnish."
-    # hyphen-elliptic compounds and '#'-marked UD compound lemmas are
-    # unreachable by suffix rules (0/47 on real text despite 98.9% in-dict).
+    # hyphen-elliptic compound lemmas are unreachable by suffix rules
     return apply_rules(
         token, DEFAULT_RULES, min_len=10, caps=True, hyphen=True, excluded=_EXCLUDED
     )

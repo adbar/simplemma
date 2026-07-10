@@ -1,24 +1,20 @@
 """
-Production-faithful UD evaluation of affix/rules config changes: runs the
-full non-greedy pipeline and reports accuracy plus improved/worsened diff
-counts for a runtime-patched candidate config against the unpatched baseline.
+Production-faithful UD evaluation of affix/rules config changes: full
+pipeline accuracy plus improved/worsened diff counts for a runtime-patched
+candidate config vs the baseline.
 
-Config strings accepted by patched() (auto-detects pre-/post-
-fix/simplify_affixes AFFIX_LANGS shape):
+Config strings accepted by patched():
   add:<lang>       lang added to AFFIX_LANGS (max_affix_len 2)
   remove:<lang>    lang removed from AFFIX_LANGS
   retune:<lang>N   lang's max_affix_len set to N
   gate:<lang>N     lang's affix ENTRY gate set to N (affix side only)
   gate-affix:N     entry gate set to N for ALL langs
   gate-both:N      entry gate AND greedy-lookup gate set to N, ALL langs
-  greedy_exclude:<lang>  lang added to GREEDY_EXCLUDE (post-affix-branch
-                   shape only; a no-op question in non-greedy mode)
+  greedy_exclude:<lang>  lang added to GREEDY_EXCLUDE
 
 Decision protocol: ACCEPT only if the sign test wins on TUNE (dev) AND
 CONFIRM (test) agrees, with no systematic harm class in the worsened set
-(check via training/diff_audit.py --config). Gate changes also need the
-greedy-mode regression leg (greedy_leg): the gate is shared with
-GreedyDictionaryLookupStrategy.
+(training/diff_audit.py --config); gate changes also need greedy_leg().
 
 CLI: uv run python -m training.ud_end_to_end <lang> <ud_prefix> <config> [...]
 """
