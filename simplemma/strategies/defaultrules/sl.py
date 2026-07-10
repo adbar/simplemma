@@ -2,9 +2,8 @@ import re
 
 from .generic import apply_rules
 
-# Slovenian: adjective declension (-ski/-ten/-an/-en/-alen families) and a
-# handful of noun/verb suffixes. Lemma-first build (mine -> trim(0.70) ->
-# refine -> subsume): 20 groups, 7.69% coverage, 99.73% in-dict.
+# Slovenian adjective declension and a handful of noun/verb suffixes,
+# mined lemma-first (99.73% in-dict).
 DEFAULT_RULES = {
     re.compile(r"(?:nska)$"): r"nski",
     re.compile(r"(?:jenih)$"): r"jen",
@@ -28,9 +27,7 @@ DEFAULT_RULES = {
     re.compile(r"(?:tva)$"): r"tvo",
 }
 
-# Most "-alno" hits agree with the dictionary's own lemma (dict-vs-UD
-# convention, kept). eventualno/epiduralno/totalno are OOV invariants;
-# počitnice is a pluralia-tantum in-dict conflict.
+# OOV invariants plus one pluralia-tantum conflict
 _EXCLUDED = frozenset({"eventualno", "epiduralno", "totalno", "počitnice"})
 
 

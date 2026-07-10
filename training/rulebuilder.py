@@ -6,8 +6,6 @@ low-frequency tail -> `refine()` builds rules and iterates dropping any cell
 that is imprecise or (once combined with the others) under-supported ->
 `subsume()` removes alternatives whose own group already produces them via a
 more general alternative -> `evaluate()` for the dictionary report ->
-`ud_screen()` for per-cell precision on real UD text (surfaces the OOV
-collisions the dictionary sweep is blind to; read by hand, not a gate) ->
 `render_rules_dict()` emits DEFAULT_RULES source (write it directly rather
 than hand-copying a printout, which can silently reorder first-match
 priority). Not a one-command generator: every language needs real judgment
@@ -24,7 +22,6 @@ than each rolling their own dictionary sweep.
 """
 
 import functools
-import glob
 import os
 import re
 import sys
@@ -55,11 +52,26 @@ def _strip_accents(s: str) -> str:
     )
 
 
-def output_is_lemma(out: str, gold: str) -> bool:
+# Languages whose reference data carries a PEDAGOGICAL diacritic that normal
+# running text omits, so an exact output==gold test spuriously fails and
+# folding is warranted. Evidence (2026-07), each verified 0% in UD lemmas
+# (real text) but present in the dictionary: uk vowel-stress acute (Євро́па,
+# UD form схо́дили), la macron (abacinātūrum), sl tonal inverted-breve/dot
+# (dẹ̑lati). Everything else is scored EXACT -- fi ä/ö (18% of UD lemmas),
+# cs/sk long-vowel acute (30%/21%) and es/pt lexical acute are STANDARD
+# orthographic letters, so folding them would hide genuine wrong-letter
+# outputs (aavikoittää != aavikoittaa, bachnuť != bachnúť) -- the optimism
+# this set removes. (mk's only U+0301 is inside the letters Ѓ/Ќ, never folded.)
+_ACCENT_FOLD_LANGS = frozenset({"uk", "la", "sl"})
+
+
+def output_is_lemma(out: str, gold: str, *, fold_accents: bool = False) -> bool:
     """Lemma-first predicate (2026-07 policy): a rule output is correct only if
-    it IS the gold lemma. Accent-insensitive because some dictionaries carry
-    stress marks on lemmas that surface forms lack (uk)."""
-    return out == gold or _strip_accents(out) == _strip_accents(gold)
+    it IS the gold lemma. Exact match by default; `fold_accents` relaxes it to
+    ignore combining accents, and must be set ONLY for `_ACCENT_FOLD_LANGS`."""
+    if out == gold:
+        return True
+    return fold_accents and _strip_accents(out) == _strip_accents(gold)
 
 
 _MERGED_SHAPE = re.compile(r"\(([^()?][^()]*)\)\(\?:([^()]*)\)\$")
@@ -122,6 +134,7 @@ def mine(
     caps_guard: bool = True,
 ) -> tuple[Cells, dict[str, str]]:
     "Mine suffix->replacement cells, each individually >=prec_min precise."
+    fold = lang in _ACCENT_FOLD_LANGS
     d = dict(FACTORY.get_dictionary(lang))
     candidates: Counter[tuple[str, str]] = Counter()
     for f, lemma in d.items():
@@ -154,7 +167,7 @@ def mine(
                 out = f[:-length] + s_to
                 st = stats.setdefault((suffix, s_to), [0, 0])
                 st[0] += 1
-                st[1] += output_is_lemma(out, lemma)
+                st[1] += output_is_lemma(out, lemma, fold_accents=fold)
 
     cells = {
         (sf, st): n
@@ -220,7 +233,7 @@ def _make_apply_fn(
 def _score_cell(
     cell_stats: dict[tuple[str, str], list[int]], alt: str, repl: str, good: bool
 ) -> None:
-    "Update one cell's [fired, ok] counts -- the bookkeeping score_cells() and ud_screen() share."
+    "Update one cell's [fired, ok] counts -- the bookkeeping score_cells() uses."
     cell = cell_stats.setdefault((alt, repl), [0, 0])
     cell[0] += 1
     cell[1] += good
@@ -233,6 +246,7 @@ def score_cells(
     caps_guard: bool = True,
     extra_guard: Callable[[str], bool] | None = None,
     collect_nonword: bool = False,
+    fold_accents: bool = False,
 ) -> tuple[dict[tuple[str, str], list[int]], list[tuple[str, str, str, str, str]]]:
     """One first-match pass over `dictionary`: per-(alt, target) [fired, ok]
     counts, the shared primitive `refine()`'s loop and `evaluate()`'s report
@@ -251,7 +265,7 @@ def score_cells(
         if match is None:
             continue
         p, alt, repl = match
-        good = output_is_lemma(p, lemma)
+        good = output_is_lemma(p, lemma, fold_accents=fold_accents)
         _score_cell(cell_stats, alt, repl, good)
         if collect_nonword and p != f and dictionary.get(p) is None:
             nonword.append((f, p, lemma, alt, repl))
@@ -281,6 +295,7 @@ def refine(
     prec_min: float = PREC_MIN_DEFAULT,
     support_min: int = SUPPORT_MIN_DEFAULT,
     max_iters: int = 8,
+    fold_accents: bool = False,
 ) -> Rules:
     """Batch drop-bad-cells loop: build rules from `cells`, drop every cell
     that is either imprecise (<prec_min) or -- once combined with the rest --
@@ -293,7 +308,14 @@ def refine(
     swing it), so it must not be left to fire ungated in the shipped rules."""
     for _ in range(max_iters):
         rules = build_rules(cells)
-        cell_stats, _ = score_cells(rules, dictionary, min_len, caps_guard, extra_guard)
+        cell_stats, _ = score_cells(
+            rules,
+            dictionary,
+            min_len,
+            caps_guard,
+            extra_guard,
+            fold_accents=fold_accents,
+        )
         bad = {
             cell
             for cell, (n, ok) in cell_stats.items()
@@ -373,9 +395,16 @@ def evaluate(
     Failures are grouped per cell: a small coherent word list is a finite
     lexical collision (stoplist it in the module's _EXCLUDED), a large or
     scattered one means the cell itself needs narrowing or dropping."""
+    fold = lang in _ACCENT_FOLD_LANGS
     apply_fn = _make_apply_fn(rules, min_len, caps_guard, extra_guard)
     cell_stats, nonword = score_cells(
-        rules, dictionary, min_len, caps_guard, extra_guard, collect_nonword=True
+        rules,
+        dictionary,
+        min_len,
+        caps_guard,
+        extra_guard,
+        collect_nonword=True,
+        fold_accents=fold,
     )
     fired = sum(n for n, _ in cell_stats.values())
     ok = sum(ok2 for _, ok2 in cell_stats.values())
@@ -384,7 +413,10 @@ def evaluate(
     bad: dict[tuple[str, str], list[tuple[str, str, str]]] = defaultdict(list)
     chain_ex: list[tuple[str, str, str, str]] = []
     for f, p, lemma, alt, repl in nonword:
-        if not output_is_lemma(p, lemma) and len(bad[(alt, repl)]) < 5:
+        if (
+            not output_is_lemma(p, lemma, fold_accents=fold)
+            and len(bad[(alt, repl)]) < 5
+        ):
             bad[(alt, repl)].append((f, p, lemma))
         match2 = apply_fn(p)
         if match2 is not None and match2[0] != p:
@@ -415,48 +447,6 @@ def evaluate(
         print("  idempotence chains (sample):")
         for f, p, p2, lemma in chain_ex:
             print(f"    {f} -> {p} -> {p2}  (gold {lemma})")
-
-
-def ud_screen(
-    lang: str,
-    rules: Rules,
-    min_len: int = MIN_LEN_DEFAULT,
-    caps_guard: bool = True,
-    extra_guard: Callable[[str], bool] | None = None,
-    min_n: int = 30,
-) -> None:
-    """Per-cell precision of `rules` over the UD treebanks in training/data/UD --
-    real running text, so it includes the OOV tokens the dictionary can never
-    witness (the in-dict blind spot behind sk `automobil`, gl `jamais`, ...).
-
-    Prints the worst cells with failure samples for HUMAN review; it is NOT a
-    gate. Treebank lemma conventions (negation stripping, compound `=` markers,
-    identity-lemma invariants) surface as failures alongside real bugs, so cells
-    are narrowed or stoplisted by judgment, not by an automatic threshold."""
-    ud_dir = os.path.join(os.path.dirname(__file__), "data", "UD")
-    apply_fn = _make_apply_fn(rules, min_len, caps_guard, extra_guard)
-    cell_stats: dict[tuple[str, str], list[int]] = {}
-    examples: dict[tuple[str, str], list[tuple[str, str, str]]] = defaultdict(list)
-    for path in sorted(glob.glob(os.path.join(ud_dir, f"{lang}_*.conllu"))):
-        with open(path, encoding="utf-8") as fh:
-            for line in fh:
-                if line.startswith("#") or not line.strip():
-                    continue
-                cols = line.rstrip("\n").split("\t")
-                if "-" in cols[0] or "." in cols[0] or cols[2] == "_":
-                    continue
-                form = cols[1].lower() if cols[0] == "1" else cols[1]
-                match = apply_fn(form)
-                if match is None:
-                    continue
-                out, alt, repl = match
-                good = output_is_lemma(out, cols[2])
-                _score_cell(cell_stats, alt, repl, good)
-                if not good and len(examples[(alt, repl)]) < 5:
-                    examples[(alt, repl)].append((form, out, cols[2]))
-    print(f"{lang}: UD per-cell precision (n>={min_n}), worst first:")
-    for prec, n, alt, repl in _worst_cells(cell_stats, min_n):
-        print(f"  {prec:5.1f}% n={n:5d} -{alt}->-{repl}  {examples[(alt, repl)]}")
 
 
 def trim_by_mass(cells: Cells, share: float = 0.90) -> Cells:
@@ -518,7 +508,7 @@ if __name__ == "__main__":
     for language in sys.argv[1:]:
         mined_cells, mined_dict = mine(language)
         trimmed = trim_by_mass(mined_cells, 0.70)
-        rules = refine(trimmed, mined_dict)
+        rules = refine(trimmed, mined_dict, fold_accents=language in _ACCENT_FOLD_LANGS)
         rules = subsume(rules, mined_dict)
         evaluate(language, rules, mined_dict)
         print()

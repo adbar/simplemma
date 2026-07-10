@@ -1,3 +1,19 @@
+# closed set of -ijen tokens whose -ij strip is wrong: verb infinitives
+# (vrijen) and -ije nouns (balijen)
+NL_IJEN_STOPS = (
+    "vrijen",
+    "vlijen",
+    "benedijen",
+    "betijen",
+    "gedijen",
+    "uitdijen",
+    "verdijen",
+    "vermaledijen",
+    "balijen",
+    "librijen",
+)
+
+
 def apply_nl(token: str) -> str | None:
     "Apply pre-defined rules for Dutch."
     # inspired by:
@@ -10,10 +26,7 @@ def apply_nl(token: str) -> str | None:
         # mogelijkheden => mogelijkheid
         if token.endswith("heden") and "scheden" not in token:
             return token[:-5] + "heid"
-        # boerderijen => boerderij (vrijen/vlijen are verb infinitives)
-        if token.endswith("ijen") and not token.endswith(("vrijen", "vlijen")):
+        # boerderijen => boerderij
+        if token.endswith("ijen") and not token.endswith(NL_IJEN_STOPS):
             return token[:-2]
-        # below the 99% bar, left out:
-        # "ieven"->[:-3]+"f" 96% (-ieve adjective plurals: executieven, retrospectieven)
-        # "iën"->[:-2]+"e", "essen"->[:-3], "ezen"->[:-4]+"ees", "bele"->[:-1]
     return None

@@ -2,13 +2,9 @@ import re
 
 from .generic import apply_rules
 
-# Latin: verb conjugation (1st principal part -o, per-conjugation stem
-# classes) and noun/adjective declension (-turus/-andus/-tio/-ior/-tas
-# families). Lemma-first build (mine -> trim(0.70) -> refine -> subsume):
-# 32 groups, 26.61% coverage, 99.69% in-dict. Every group carries the
-# builder's (?<=..) stem floor: without it, whole-word or 1-char-stem
-# matches strip to a bare target (abimus -> *o, antium -> *ans, cantis
-# -> *cans); requiring >=2 stem chars matches mine()'s support (start>=2).
+# Latin verb conjugation and noun/adjective declension, mined lemma-first
+# (99.69% in-dict). The (?<=..) stem floor keeps whole-word or 1-char-stem
+# matches from stripping to a bare target (abimus -> *o, antium -> *ans).
 DEFAULT_RULES = {
     re.compile(r"(?<=..)(?:tionis|tione)$"): r"tio",
     re.compile(r"(?<=..)(?:ientis|ientem|ientes|ienti|iente)$"): r"iens",
@@ -50,9 +46,7 @@ DEFAULT_RULES = {
     re.compile(r"(?<=..)(?:rati)$"): r"ratus",
 }
 
-# Words that reduce to a non-word intermediate a second cell re-fires on
-# (idempotence: centēsimō -> centēsimo -> *centēsimus), plus fortasse
-# (invariant, OOV). "quanto" agrees with the dict's lemma (quantus): kept.
+# idempotence chains (centēsimō -> centēsimo -> *centēsimus) plus one invariant
 _EXCLUDED = frozenset(
     {
         "centēsimō",

@@ -2,14 +2,11 @@ import re
 
 from .generic import apply_rules
 
-# Esperanto inflection is fully regular: strip the grammatical endings back to
-# the part-of-speech citation form (-o noun, -a adjective, -i verb, -e adverb).
-# Participles reduce to the verb infinitive per the dictionary's convention
-# (kurantojn -> kuri), but only 9 of the 54 (series x ending) cells clear the
-# 99% bar -- the "-e" adverb forms plus the active-series bare "-a"; the rest
-# collide with lexicalized non-participle words (diamanto, Esperanto) and fall
-# through to the generic cells below. The stem floors keep unmeasured 4-5
-# char tokens out (monte -> *mi).
+# Esperanto: strip the regular grammatical endings back to the citation form
+# (-o noun, -a adjective, -i verb, -e adverb). Only the participle cells that
+# clear the 99% bar reduce to the infinitive; the rest (colliding with
+# lexicalized words like Esperanto) fall through to the generic cells. The
+# stem floors keep unmeasured 4-5 char tokens out (monte -> *mi).
 DEFAULT_RULES = {
     re.compile(r"(.{2,})(?:ante|inte|onte)$"): r"\1i",
     re.compile(r"(.{3,})(?:ate|ite|ote)$"): r"\1i",
@@ -24,13 +21,14 @@ DEFAULT_RULES = {
     re.compile(r"en$"): "e",
 }
 
-# invariant words whose tail matches a grammatical ending: tamen (however),
-# neniu (nobody), konstanta (lexicalized adjective, no verb *konsti).
+# invariant words whose tail matches a grammatical ending
 _EXCLUDED = frozenset({"tamen", "neniu", "konstanta"})
 
 
 def apply_eo(token: str) -> str | None:
     "Apply pre-defined rules for Esperanto."
-    # hyphenated tokens are dominated by acronym compounds (KOVIM-19-on)
-    # the suffix rules mishandle -- skip.
-    return apply_rules(token, DEFAULT_RULES, min_len=4, hyphen=True, excluded=_EXCLUDED)
+    # hyphen: acronym compounds (KOVIM-19-on); caps: foreign proper nouns
+    # collide with the endings (London -> *Londo)
+    return apply_rules(
+        token, DEFAULT_RULES, min_len=4, caps=True, hyphen=True, excluded=_EXCLUDED
+    )

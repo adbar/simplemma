@@ -2,9 +2,8 @@ import re
 
 from .generic import apply_rules
 
-# Portuguese: -ar/-er/-ir verb conjugation (per-consonant sub-classes) and
-# noun/adjective plural-gender endings. Lemma-first build (mine -> trim(0.70)
-# -> refine -> subsume): 25 groups, 48.54% coverage, 99.72% in-dict.
+# Portuguese verb conjugation and noun/adjective endings, mined lemma-first
+# (99.72% in-dict).
 DEFAULT_RULES = {
     re.compile(r"(?:tara|tá)$"): r"tar",
     re.compile(r"(?:raras|rara)$"): r"rar",
@@ -17,7 +16,6 @@ DEFAULT_RULES = {
         r"|ando|arem|aram|avam|arão|arás|asse|aste|ámos|armo|arde|ávei|árei"
         r"|ará|ava|ámo|are|ou|ai)$"
     ): r"ar",
-    re.compile(r"(?:díssimo|díssima)$"): r"do",
     re.compile(r"(?:zarias|zaras|zaria|zara|zá)$"): r"zar",
     re.compile(r"(?:izamos|izais|izamo|izam)$"): r"izar",
     re.compile(r"(?:dores|dora)$"): r"dor",
@@ -38,15 +36,10 @@ DEFAULT_RULES = {
     re.compile(r"(?:gos)$"): r"go",
 }
 
-# grandíssimo/a: irregular superlative whose strip leaves a non-word the
-# "-ar" cell re-fires on (idempotence). The rest via the UD consistency
-# scan + worktree diff: invariant words/loanwords/pluralia tantum, feminine
-# agent nouns kept as their own lemma, verb forms whose stem extends a
-# longer alternative, and sentence-initial-lowercased proper nouns.
+# invariant words, feminine agent nouns kept as their own lemma,
+# stem-extending verb forms, and lowercased proper nouns
 _EXCLUDED = frozenset(
     {
-        "grandíssimo",
-        "grandíssima",
         "quando",
         "vários",
         "classe",

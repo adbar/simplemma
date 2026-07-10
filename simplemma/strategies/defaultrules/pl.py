@@ -2,12 +2,13 @@ import re
 
 from .generic import apply_rules
 
+# Polish -ość noun declension and -ować/-ać/-ić/-yć past-tense verb
+# conjugation, mined lemma-first (99.95% in-dict).
 DEFAULT_RULES = {
     re.compile(r"(?:ościach|ościami|ościom)$"): "ość",  # removed: "ością", "ości"
     re.compile(
         r"(?:owałem|owałam|owaliśmy|owałeś|owałaś|owaliście|owałbym|owałabym|owalibyśmy|owałbyś|owałabyś|owalibyście|owałby|owałaby|owałoby|owaliby|owałyby|owanie)$"
     ): "ować",
-    # re.compile(r"(?:skie|skiego|skiemu|skiej|skich|skim|skimi|ską|scy)$"): "ski",
     # past tense + conditional (aliście dropped: collides with -alista locatives)
     re.compile(r"(?:aliśmy|alibyście|alibyśmy)$"): "ać",
     re.compile(

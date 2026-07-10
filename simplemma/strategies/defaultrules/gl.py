@@ -2,9 +2,8 @@ import re
 
 from .generic import apply_rules
 
-# Galician: -ar verb conjugation (per-consonant sub-classes) and
-# noun/adjective plural endings. Lemma-first build (mine -> trim(0.70) ->
-# refine -> subsume): 20 groups, 46.53% coverage, 99.67% in-dict.
+# Galician verb conjugation and noun/adjective plural endings, mined
+# lemma-first (99.67% in-dict).
 DEFAULT_RULES = {
     re.compile(r"(?:laras|lara|lase|lade|lei)$"): r"lar",
     re.compile(r"(?:tei)$"): r"tar",
@@ -33,11 +32,8 @@ DEFAULT_RULES = {
     re.compile(r"(?:ns)$"): r"n",
 }
 
-# Invariant adverbs/quantifiers colliding with the -ais/-ando/-nos cells,
-# rare future/conditional forms this treebank keeps as identity lemmas, and
-# three words the short "-ar" alternatives over-strip. The castellanized
-# technical "-ais/-ares" class (estructurais, ...) is gl_ctg domain noise,
-# deliberately not stoplisted.
+# invariant words colliding with the -ais/-ando/-nos cells and a few forms
+# the short -ar alternatives over-strip
 _EXCLUDED = frozenset(
     {
         "ademais",

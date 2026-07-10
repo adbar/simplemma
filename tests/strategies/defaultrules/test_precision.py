@@ -1,12 +1,7 @@
 """Enforcement harness for the default rules: every rule must stay high-precision
-against the shipped dictionaries, be idempotent, and not overlap.
-
-The dictionaries are treated as ground truth. Policy (2026-07, lemma-first): a
-rule's output counts as correct only when it IS the dictionary lemma
-(accent-insensitive) -- rules exist to produce lemmas, not other inflected
-forms; see training/rulebuilder.output_is_lemma. _LEGACY_REAL_WORD_LANGS keeps
-the older tolerance (any dictionary-entry output counts): only Esperanto
-remains -- its base cells need a from-scratch rebuild to pass the strict bar.
+against the shipped dictionaries (lemma-first: the output must BE the dict
+lemma), be idempotent, and not overlap. _LEGACY_REAL_WORD_LANGS (eo only)
+keeps the older any-dictionary-entry tolerance.
 """
 
 import importlib
@@ -17,7 +12,7 @@ from simplemma.strategies.defaultrules import RULE_FUNCTIONS
 from simplemma.strategies.dictionaries.dictionary_factory import (
     DefaultDictionaryFactory,
 )
-from training.rulebuilder import output_is_lemma, pattern_alts
+from training.rulebuilder import _ACCENT_FOLD_LANGS, output_is_lemma, pattern_alts
 
 RULE_LANGS = sorted(
     RULE_FUNCTIONS
@@ -38,10 +33,7 @@ def _rules_module(lang: str):
 DATA_DRIVEN = sorted(lang for lang in RULE_LANGS if _rules_module(lang) is not None)
 
 THRESHOLD = 99.0
-# Below this a single idiosyncratic dictionary entry (loanword, pluralia tantum,
-# proper-noun artifact) already breaches the threshold, so the cell's precision
-# is not a reliable signal; 1/(1 - THRESHOLD/100) is the smallest support at
-# which one stray failure still passes. Systematically bad cells fire far more.
+# smallest support at which one stray dictionary artifact still passes the bar
 MIN_SUPPORT = round(100 / (100 - THRESHOLD))  # 100 at THRESHOLD=99.0
 
 # Gate still accepts any dictionary-entry output for these (see docstring).
@@ -58,6 +50,7 @@ def test_rule_quality(lang: str) -> None:
     rules = mod.DEFAULT_RULES if mod is not None else None
     branches = {p: pattern_alts(p) for p in rules} if rules is not None else {}
     legacy = lang in _LEGACY_REAL_WORD_LANGS
+    fold = lang in _ACCENT_FOLD_LANGS
     fired = ok = 0
     cells: dict[tuple[str, str], list[int]] = {}
     for f, gold in d.items():
@@ -65,12 +58,12 @@ def test_rule_quality(lang: str) -> None:
         if p is None:
             continue
         fired += 1
-        good = output_is_lemma(p, gold) or (legacy and d.get(p) is not None)
+        good = output_is_lemma(p, gold, fold_accents=fold) or (
+            legacy and d.get(p) is not None
+        )
         ok += good
-        # idempotence: a produced lemma must be a fixed point, UNLESS it is
-        # itself a real dictionary entry -- the real pipeline always tries
-        # dictionary lookup before rules, so such a lemma would never reach
-        # this rule again.
+        # idempotence: a produced lemma must be a fixed point unless it is a
+        # dict entry (the pipeline tries dictionary lookup before rules)
         if p != f and d.get(p) is None:
             p2 = fn(p)
             assert p2 is None or p2 == p, f"{lang}: not idempotent: {f} -> {p} -> {p2}"
@@ -102,14 +95,25 @@ def test_rule_quality(lang: str) -> None:
 
 @pytest.mark.parametrize("lang", DATA_DRIVEN)
 def test_no_alternation_overlap(lang: str) -> None:
-    """A suffix must not appear in two rules (would shadow the later one)."""
+    """No suffix in two rules, and an earlier rule's shorter suffix that
+    intercepts a later rule's longer one must produce the same output."""
     mod = _rules_module(lang)
     assert mod is not None
     rules = mod.DEFAULT_RULES
+    alts = [
+        (i, a, t) for i, (p, t) in enumerate(rules.items()) for a in pattern_alts(p)
+    ]
     seen: dict[str, str] = {}
-    for pattern, repl in rules.items():
-        for alt in pattern_alts(pattern):
-            assert alt not in seen, (
-                f"{lang}: {alt!r} in two rules (->{seen[alt]} and ->{repl})"
-            )
-            seen[alt] = repl
+    for _, alt, repl in alts:
+        assert alt not in seen, (
+            f"{lang}: {alt!r} in two rules (->{seen[alt]} and ->{repl})"
+        )
+        seen[alt] = repl
+    for j, long, t_long in alts:
+        for i, short, t_short in alts:
+            if i < j and long.endswith(short) and long != short:
+                got = long[: len(long) - len(short)] + t_short
+                assert got == t_long, (
+                    f"{lang}: -{short}->-{t_short} shadows -{long}->-{t_long} "
+                    f"(produces {got!r})"
+                )

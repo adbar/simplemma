@@ -2,10 +2,8 @@ import re
 
 from .generic import apply_rules
 
-# Romanian: -a/-i verb conjugation and noun/adjective case-and-number
-# endings (definite article fused forms included). Lemma-first build
-# (mine -> trim(0.70) -> refine -> subsume): 37 groups, 22.57% coverage,
-# 99.73% in-dict.
+# Romanian verb conjugation and noun/adjective endings (fused definite
+# articles included), mined lemma-first (99.73% in-dict).
 DEFAULT_RULES = {
     re.compile(r"(?:tase|tai|tam|tăm|tau|tez)$"): r"ta",
     re.compile(r"(?:zează|zară|zase|zași|zezi|zeze|zau|zai|zam|zăm|zez)$"): r"za",
@@ -20,7 +18,7 @@ DEFAULT_RULES = {
     re.compile(r"(?:orului|orul)$"): r"or",
     re.compile(r"(?:icului|icul)$"): r"ic",
     re.compile(r"(?:alului|alul|ali)$"): r"al",
-    re.compile(r"(?:oșilor|osul)$"): r"os",
+    re.compile(r"(?:osul)$"): r"os",
     re.compile(r"(?:arului|arul)$"): r"ar",
     re.compile(r"(?:erului|erul)$"): r"er",
     re.compile(r"(?:ivului|ivul)$"): r"iv",
@@ -42,20 +40,11 @@ DEFAULT_RULES = {
     re.compile(r"(?:atea)$"): r"ate",
     re.compile(r"(?:iată)$"): r"iat",
     re.compile(r"(?:lați)$"): r"lat",
-    re.compile(r"(?:nța)$"): r"nță",
-    re.compile(r"(?:iză)$"): r"iza",
 }
 
-# The dictionary's own lemma for the participle-as-adjective class is the
-# participle itself (modificată -> modificat), matching the cells above; UD
-# sometimes prefers the verb infinitive -- an annotation-convention
-# difference, not a rules defect, so NOT stoplisted. Below: genuine
-# collisions only, each verified against the dictionary's own entry --
-# identity-lemma nouns/adverbs/pronouns, the -ește manner-adverb class, a
-# residual participle-vs-noun set (judecată, bucată, durată), "-nța" verb
-# infinitives already in citation form (finanța, anunța, ...), stem-vowel-
-# changing plurals (țările), a few irregulars, and one idempotence fix
-# (înspăimânțaseși).
+# genuine collisions only (identity lemmas, participle-vs-noun homographs,
+# vowel-changing plurals, irregulars); UD preferring the infinitive over the
+# dict's participle lemma is a convention difference, not stoplisted
 _EXCLUDED = frozenset(
     {
         "înspăimânțaseși",
@@ -68,39 +57,12 @@ _EXCLUDED = frozenset(
         "destul",
         "stimul",
         "vehicul",
-        "analiză",
-        "surpriză",
-        "tramvai",
-        "mucegai",
-        "program",
-        "graham",
-        "ferată",
         "neconformitatea",
         "conduită",
-        "crește",
-        "firește",
-        "românește",
-        "italienește",
-        "răzășește",
-        "moralicește",
         "judecată",
         "bucată",
-        "durată",
-        "tocmai",
-        "întocmai",
-        "dincolo",
-        "încolo",
-        "dumneata",
-        "potența",
-        "sfărâmița",
         "turburatu",
         "endonimul",
-        "finanța",
-        "pronunța",
-        "renunța",
-        "amenința",
-        "încredința",
-        "anunța",
         "stabili",
     }
 )

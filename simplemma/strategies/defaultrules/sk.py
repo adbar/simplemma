@@ -2,11 +2,8 @@ import re
 
 from .generic import apply_rules
 
-# Slovak: noun/adjective declension (-ský/-cký/-ný/-tý families) and verb
-# conjugation (-ovať sub-classes anchored by consonant). Cells dropped via
-# the UD gate despite >=99% in-dict (the in-dict blind spot): skej/ckej/
-# rskom/rskou (soft -sky vs hard -ský adjectives), áte (noun -át locative),
-# tému (systému class), rmi (numerals/pluralia tantum).
+# Slovak noun/adjective declension and verb conjugation; cells that failed
+# on UD real text despite >=99% in-dict (skej/ckej, áte, tému, rmi) dropped.
 DEFAULT_RULES = {
     re.compile(r"(?:nosti|ností)$"): r"nosť",
     re.compile(r"(?:ostiach|ostiam|osťami|osťou)$"): r"osť",
@@ -32,9 +29,7 @@ DEFAULT_RULES = {
     re.compile(r"(?:eného|enému|eným|ené)$"): r"ený",
     re.compile(r"(?:íkoch|íkom|íkov)$"): r"ík",
     re.compile(r"(?:čným)$"): r"čný",
-    re.compile(r"(?:hneme|hnete|hnem|hneš)$"): r"hnuť",
     re.compile(r"(?:ikoch|ikov)$"): r"ik",
-    re.compile(r"(?:knime|knite)$"): r"knuť",
     re.compile(r"(?:ajúc|ajme|ajte|ali|ala|alo|ajú|al)$"): r"ať",
     re.compile(r"(?:vého|vému|vým|vé)$"): r"vý",
     re.compile(r"(?:keho|kemu|kych|kymi|kym|ki)$"): r"ky",
@@ -50,17 +45,19 @@ DEFAULT_RULES = {
     re.compile(r"(?:nmi)$"): r"n",
 }
 
-# From the UD consistency scan: invariant adverbs/particles, noun/verb/
-# adjective homographs (správa, vrstva, kabala), one irregular verb
-# (prevzali), and a lowercased name (michal).
+# invariant words, homographs (správa), and -inou possessives whose lemma is
+# not the -ina noun the cell assumes (matkin)
 _EXCLUDED = frozenset(
     {
         "anonym",
         "detail",
         "festival",
+        "gazdinou",
         "interval",
         "jedinou",
         "kabala",
+        "mamkinou",
+        "matkinou",
         "medzitým",
         "michal",
         "mnohými",
@@ -70,7 +67,11 @@ _EXCLUDED = frozenset(
         "príliš",
         "príval",
         "prostredníctvom",
+        "samojedinou",
         "správa",
+        "švagrinou",
+        "testinou",
+        "ujčinou",
         "väčšinou",
         "vrstiev",
         "vrstva",

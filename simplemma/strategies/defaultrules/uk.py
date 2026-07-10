@@ -2,10 +2,8 @@ import re
 
 from .generic import apply_rules
 
-# Ukrainian: verb conjugation (-ати/-увати/-тися families) and adjective
-# declension (-чний/-ький/-ний families). Lemma-first build (mine ->
-# trim(0.70) -> refine -> subsume): 17 groups, 21.19% coverage, 99.69%
-# in-dict.
+# Ukrainian verb conjugation and adjective declension, mined lemma-first
+# (99.69% in-dict).
 DEFAULT_RULES = {
     re.compile(r"(?:аймо|айте)$"): r"ати",
     re.compile(

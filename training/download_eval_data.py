@@ -1,19 +1,12 @@
 """
-Fetch the Universal Dependencies treebank archive from LINDAT/CLARIAH-CZ and
-lay it out for both `evaluate_simplemma.py` (concatenated train+dev+test)
-and the `ud_eval`/`ud_end_to_end`/`diff_audit` toolkit (per-split files,
-needed to keep the tune/confirm split boundary).
+Fetch the UD treebank archive from LINDAT/CLARIAH-CZ for `evaluate_simplemma.py`
+(concatenated files) and for per-split evaluation (the unmerged train/dev/test
+copies under splits/).
 
-LINDAT migrated to DSpace 7: the old bitstream URLs now silently redirect to
-an HTML item page instead of the file (no error -- tarfile.open() only fails
-later, confusingly, on extraction). The REST API needs three hops instead:
-resolve the release HANDLE to an item UUID, list its ORIGINAL bundle, then
-match the bitstream by filename.
-
-To move to a newer release, bump UD_HANDLE (find it at
-https://universaldependencies.org/, "released through LINDAT/CLARIAH-CZ",
-form 11234/1-XXXX) then rerun `training.ud_eval reliability` across the
-evaluation treebanks, since annotation conventions can change between releases.
+LINDAT runs DSpace 7: old bitstream URLs silently redirect to an HTML page,
+so the REST API is used (handle -> item UUID -> ORIGINAL bundle -> bitstream).
+To move to a newer release, bump UD_HANDLE and re-run the evaluation
+(annotation conventions change between releases).
 """
 
 import hashlib

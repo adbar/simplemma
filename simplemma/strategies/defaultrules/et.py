@@ -2,10 +2,8 @@ import re
 
 from .generic import apply_rules
 
-# Pruned to the cells that hold >=99% in-dict: short elative/illative forms
-# collide with plain nouns and the -dus paradigm with -dune adjectives, so
-# both are dropped; only anchored variants that clear the bar are kept.
-# Left out despite UD value (just under the bar): -liste, -misega, -imist.
+# Pruned to the cells that hold >=99%: short elative/illative forms collide
+# with plain nouns and the -dus paradigm with -dune adjectives.
 
 DEFAULT_RULES = {
     # adjectives -line https://en.wiktionary.org/wiki/-line
@@ -14,8 +12,7 @@ DEFAULT_RULES = {
     ): "line",
     re.compile(r"likest$"): "lik",
     re.compile(r"duses$"): "dus",
-    # partitive -ilist only with >=5 stem chars: the short collisions
-    # (detailist, stiilist) are all short stems
+    # partitive -ilist only with >=5 stem chars (short collisions: detailist)
     re.compile(r"(.{5,})ilist$"): r"\1iline",
     re.compile(r"(?:iliste)$"): "iline",
     re.compile(r"(?:amist)$"): "amine",
@@ -36,6 +33,5 @@ DEFAULT_RULES = {
 
 def apply_et(token: str) -> str | None:
     "Apply pre-defined rules for Estonian."
-    # UD gold for hyphenated compounds uses morpheme-boundary markers a
-    # suffix rule can never reproduce (44% on real text) -- skip
+    # hyphenated-compound gold uses morpheme markers suffix rules can't reproduce
     return apply_rules(token, DEFAULT_RULES, min_len=8, caps=True, hyphen=True)
