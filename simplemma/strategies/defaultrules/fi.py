@@ -4,14 +4,18 @@ from .generic import apply_rules
 
 # Finnish nominal/verbal suffix classes (-nen/-Us/-minen/-ja family nouns,
 # -taa/-tää/-ata/-oida/... verb conjugations). Lemma-first build (mine ->
-# trim(0.70) -> refine -> subsume): 100 groups, 19.87% coverage, 99.72%
+# trim(0.70) -> refine -> subsume): 97 groups, 19.66% coverage, 99.72%
 # in-dict. Only harmony-determinate cells survive: a kept suffix fixes the
 # back/front variant by its own vowels (uks->us vs yks->ys, tämällä->tää vs
 # tamalla->taa). Harmony-neutral suffixes (dettiin, vine, ...) were dropped
 # -- a flat suffix rule can't read stem harmony to pick -taa vs -tää, so
 # those cells emitted the wrong-harmony (non-lemma) variant. min_len=10 (not
 # the usual 6): shorter tokens are dominated by hyphen-elliptic/compound
-# collisions, see the hyphen-guard rationale below.
+# collisions, see the hyphen-guard rationale below. A handful of TU/VA-
+# participle oblique-case alternatives (tujen/tuna/vansa/vani/yjen/vänä/vää)
+# were later dropped: UD real text showed they almost always want the verb
+# infinitive, not the bare participle -- see training/review_ladder.py rung 2
+# "harmful chains" and training/README.rst.
 DEFAULT_RULES = {
     re.compile(
         r"(?:misineen|miseksi|miselle|misiksi|misille|misemme|misenne|misella|miselta|misessa|misesta|misetta|misilla|misilta|misissa|misista|misitta|misensa|misillä|misiltä|misissä|misistä|misittä|miseen|misiin|misten|miseni|misesi|misien|misena|misina|misinä|misen|miset|misin|misia|misiä)$"
@@ -137,7 +141,9 @@ DEFAULT_RULES = {
     re.compile(r"(?:ntimme|ntinne|ntinsa|ntini|ntisi)$"): r"nti",
     re.compile(r"(?:kkoon)$"): r"kko",
     re.compile(r"(?:ttomme|ttonne|ttonsa|ttona|ttoni|ttosi|ttoa)$"): r"tto",
-    re.compile(r"(?:avaan|avana|avasi|avaa)$"): r"ava",
+    # avaan/avana/avasi/avaa (-> ava) dropped: the AVA-participle oblique
+    # forms want the verb infinitive on UD real text (huomautettavaa -> gold
+    # huomauttaa, not huomautettava), same gap as tujen/tuna/vansa/vani.
     re.compile(r"(?:smimme|sminne|sminsa|smini|smisi|smit)$"): r"smi",
     re.compile(r"(?:stinne|stinsa|stini|stisi|steja)$"): r"sti",
     re.compile(r"(?:ikanne|ikojen|ikoja)$"): r"ika",
@@ -153,9 +159,17 @@ DEFAULT_RULES = {
     ): r"jä",
     re.compile(r"(?:iamme|iansa|ianne|iani|iasi)$"): r"ia",
     re.compile(r"(?:komme|konne|konsa|kosi)$"): r"ko",
-    re.compile(r"(?:vansa|vamme|vani)$"): r"va",
+    # vansa/vani dropped: same VA-participle-vs-verb-infinitive gap as
+    # tujen/tuna above (joutuvansa -> gold joutua, not joutuva). vamme has
+    # no counter-evidence, kept.
+    re.compile(r"(?:vamme)$"): r"va",
     re.compile(r"(?:töön)$"): r"tö",
-    re.compile(r"(?:tujen|tunsa|tuna|tuni|tusi)$"): r"tu",
+    # tujen/tuna dropped: UD real text shows the TU-participle oblique forms
+    # almost always want the verb infinitive (puhdistettuna -> gold puhdistaa,
+    # not puhdistettu), and where the dictionary itself has an entry for the
+    # bare participle it usually redirects there too -- the rule stopped one
+    # derivational step short. tunsa/tuni/tusi have no counter-evidence, kept.
+    re.compile(r"(?:tunsa|tuni|tusi)$"): r"tu",
     re.compile(r"(?:yöhön|yöllä|yöltä|yössä|yöstä|yöttä)$"): r"yö",
     re.compile(r"(?:pujen|pumme|punne|punsa|puni|pusi)$"): r"pu",
     re.compile(r"(?:giaan|giana|giain|giaa|gian|giat)$"): r"gia",
@@ -170,8 +184,9 @@ DEFAULT_RULES = {
     re.compile(r"(?:risin)$"): r"rinen",
     re.compile(r"(?:ömme|önsä|önne|ösi|önä|öni|ötä|öä)$"): r"ö",
     re.compile(r"(?:toon)$"): r"to",
-    re.compile(r"(?:yjen)$"): r"y",
-    re.compile(r"(?:vänä|vää)$"): r"vä",
+    # yjen (-> y) and vänä/vää (-> vä) dropped: same VA/TU-participle-vs-
+    # verb-infinitive gap (käärittyjen -> gold kääriä, ikääntyvää -> gold
+    # ikääntyä), not verb, and not the participle's own dict identity form.
     re.compile(r"(?:loon)$"): r"lo",
     re.compile(r"(?:suun)$"): r"su",
     re.compile(r"(?:ikot)$"): r"ikko",
@@ -195,7 +210,6 @@ _EXCLUDED = frozenset(
         "lukuunottamatta",
         "illumination",
         "keskuudessa",
-        "vähitellen",
         "vastatusten",
     }
 )

@@ -20,8 +20,13 @@ def test_DEFAULT_RULES() -> None:
     assert rules_strategy.get_lemma("безгра́мотностью", "ru") == "безгра́мотность"
 
     assert rules_strategy.get_lemma("Rīga", "lv") is None
-    assert rules_strategy.get_lemma("labākajiem", "lv") == "labākais"
-    assert rules_strategy.get_lemma("baltajiem", "lv") == "baltais"
+    # definite-adjective declension dropped 2026-07: 85-100% wrong on UD
+    # real text (verb participle or indefinite adjective, not the
+    # definite citation form), see simplemma/strategies/defaultrules/lv.py
+    assert rules_strategy.get_lemma("labākajiem", "lv") is None
+    assert rules_strategy.get_lemma("baltajiem", "lv") is None
+    assert rules_strategy.get_lemma("risinājumu", "lv") == "risinājums"
+    assert rules_strategy.get_lemma("iespējamības", "lv") == "iespējamība"
 
     assert rules_strategy.get_lemma("domojn", "eo") == "domo"
     assert rules_strategy.get_lemma("belajn", "eo") == "bela"

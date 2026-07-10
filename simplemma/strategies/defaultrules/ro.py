@@ -49,10 +49,9 @@ DEFAULT_RULES = {
 # sometimes prefers the verb infinitive -- an annotation-convention
 # difference, not a rules defect, so NOT stoplisted. Below: genuine
 # collisions only, each verified against the dictionary's own entry --
-# identity-lemma nouns/adverbs/pronouns, the -ește manner-adverb class, a
-# residual participle-vs-noun set (judecată, bucată, durată), stem-vowel-
-# changing plurals (țările), a few irregulars, and one idempotence fix
-# (înspăimânțaseși).
+# identity-lemma nouns/adverbs/pronouns, a residual participle-vs-noun set
+# (judecată, bucată), stem-vowel-changing plurals (țările), a few
+# irregulars, and one idempotence fix (înspăimânțaseși).
 _EXCLUDED = frozenset(
     {
         "înspăimânțaseși",
@@ -65,28 +64,10 @@ _EXCLUDED = frozenset(
         "destul",
         "stimul",
         "vehicul",
-        "tramvai",
-        "mucegai",
-        "program",
-        "graham",
-        "ferată",
         "neconformitatea",
         "conduită",
-        "crește",
-        "firește",
-        "românește",
-        "italienește",
-        "răzășește",
-        "moralicește",
         "judecată",
         "bucată",
-        "durată",
-        "tocmai",
-        "întocmai",
-        "dincolo",
-        "încolo",
-        "dumneata",
-        "sfărâmița",
         "turburatu",
         "endonimul",
         "stabili",

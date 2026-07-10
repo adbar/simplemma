@@ -2,53 +2,38 @@ import re
 
 from .generic import apply_rules
 
-# Latvian: definite-adjective declension (-ais family), indefinite
-# adjectives (-isks/-īgs), and the -ums/-ija/-ība/-šana noun suffixes.
-# Lemma-first build plus a measured hand-recovery pass (the noun cells fell
-# to the trim cut-off or lie beyond mine()'s extension range; each recovered
-# cell re-measured >=99% strict in this combined set, ~1,200 UD tokens).
-# Deliberately absent: the bare "-ajiem" family (residue ~98%, low real-text
-# value), "-iju/-ijā" (collides with -ijs masculines), "-isko" (dict uses
-# definite "-iskais"), and every "-i"-shaped alternative -- Latvian's
-# productive adverb-from-adjective suffix, an open class UD keeps as its
-# own lemma (atbilstoši, pilnīgi, faktiski).
+# Latvian: indefinite adjectives (-isks/-īgs) and the -ums/-ija/-ība/-šana
+# noun suffixes. Lemma-first build plus a measured hand-recovery pass (the
+# noun cells fell to the trim cut-off or lie beyond mine()'s extension
+# range; each recovered cell re-measured >=99% strict in this combined set,
+# ~1,200 UD tokens). Deliberately absent: "-iju/-ijā" (collides with -ijs
+# masculines), "-isko" (dict uses definite "-iskais"), and every
+# "-i"-shaped alternative -- Latvian's productive adverb-from-adjective
+# suffix, an open class UD keeps as its own lemma (atbilstoši, pilnīgi,
+# faktiski).
+#
+# The definite-adjective declension family (-ais/-ošais/-ušais/-kais/
+# -tais/-mais/-ākais targets, plus the -oša/-ošā-etc -> ošs and -ama/-amas
+# -> ams cells) was dropped 2026-07: >=99% in-dict, but 85-100% wrong on UD
+# real text (n=1734 combined lv_lvtb+lv_cairo) -- an extreme case of the
+# in-dict blind spot. The OOV forms these cells fire on are overwhelmingly
+# either verb participles (notiekošo -> gold notikt, not notiekošais) or
+# plain indefinite adjectives (tehniskajiem -> gold tehnisks, not
+# tehniskais), never the definite citation form the cells targeted. See
+# training/review_ladder.py rung 2.
 DEFAULT_RULES = {
-    re.compile(r"(?:ākiem|ākam|ākas|āko)$"): "ākais",
-    re.compile(r"(?:ušajiem|ušajai|ušajam|ušajos|ušie|usī|ušo)$"): "ušais",
-    re.compile(r"(?:ošajiem|ošajam|ošajos|ošajai|ošie|ošo)$"): "ošais",
-    re.compile(r"(?:kajiem|kajai|kajam|kajos|kie)$"): "kais",
-    re.compile(r"(?:tajiem|tajam|tajos|tajai)$"): "tais",
-    re.compile(r"(?:majiem|majai|majam|majos|mie)$"): "mais",
-    re.compile(r"(?:ošiem|ošus|ošai|ošam|ošas|ošām|ošās|oša|ošā)$"): "ošs",
-    re.compile(r"(?:ajām|ajās|ajā)$"): "ais",
     re.compile(r"(?:iskām|iskās|iskos|iskus|iska|isku|iskā)$"): "isks",
     re.compile(r"(?:īgos|īgus|īgās|īga|īgu|īgā)$"): "īgs",
     re.compile(r"(?:umam|uma|umu|umā)$"): "ums",
     re.compile(r"(?:ības|ību|ībā|ībām|ībās)$"): "ība",
     re.compile(r"(?:ijas|ijai)$"): "ija",
     re.compile(r"(?:šanas|šanai|šanu|šani)$"): "šana",
-    re.compile(r"(?:amas|ama)$"): "ams",
 }
 
 # Capitalized tokens decline like nouns, so most noun cells apply cleanly
-# (Latvijas -> Latvija); the adjective cells would mangle names, and "ums"
-# is excluded too (feminine surnames end in -a: Straujuma).
-_CAPS_UNSAFE_TARGETS = frozenset(
-    {
-        "ākais",
-        "ušais",
-        "ošais",
-        "kais",
-        "tais",
-        "mais",
-        "ošs",
-        "ais",
-        "ams",
-        "isks",
-        "īgs",
-        "ums",
-    }
-)
+# (Latvijas -> Latvija); "ums" is excluded (feminine surnames end in -a:
+# Straujuma).
+_CAPS_UNSAFE_TARGETS = frozenset({"isks", "īgs", "ums"})
 _PROPER_NOUN_RULES = {
     pattern: repl
     for pattern, repl in DEFAULT_RULES.items()
@@ -64,7 +49,6 @@ _EXCLUDED = frozenset(
         "priekšvēlēšanu",
         "vēlēšanas",
         "vēlēšanu",
-        "vēlēšanām",
         "ganības",
         "ganību",
         "ganībā",

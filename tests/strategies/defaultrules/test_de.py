@@ -17,7 +17,12 @@ def test_apply_de() -> None:
     # assert rules_strategy.get_lemma("Bahnreisenden", "de") == "Bahnreisende"
     assert rules_strategy.get_lemma("Bürgertums", "de") == "Bürgertum"
     assert rules_strategy.get_lemma("Achterls", "de") == "Achterl"
-    # assert rules_strategy.get_lemma("Inspekteurinnen", "de") == "Inspekteurin"
+    # feminine agent plural: only the productive -erinnen suffix is handled
+    # (-in/-or/-tin agents like Inspekteurinnen were dropped -- open homograph
+    # with the Rinne/Sinn/... roots, see de.py).
+    assert rules_strategy.get_lemma("Lehrerinnen", "de") == "Lehrerin"
+    assert rules_strategy.get_lemma("Inspekteurinnen", "de") is None
+    assert rules_strategy.get_lemma("Gerinnen", "de") is None  # -erinnen stop
     # assert rules_strategy.get_lemma("Zwiebelschneider", "de") == "Zwiebelschneider"
     # assert rules_strategy.get_lemma("Zwiebelschneiders", "de") == "Zwiebelschneider"
     # assert rules_strategy.get_lemma("Schneidern", "de") == "Schneider"
