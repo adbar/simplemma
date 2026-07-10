@@ -1,12 +1,12 @@
 """
-Fetch the UD treebank archive from LINDAT/CLARIAH-CZ for both
-`evaluate_simplemma.py` (concatenated) and the `ud_eval`/`ud_end_to_end`/
-`diff_audit` toolkit (per-split, keeps the tune/confirm boundary).
+Fetch the UD treebank archive from LINDAT/CLARIAH-CZ for `evaluate_simplemma.py`
+(concatenated files) and for per-split evaluation (the unmerged train/dev/test
+copies under splits/).
 
 LINDAT runs DSpace 7: old bitstream URLs silently redirect to an HTML page,
 so the REST API is used (handle -> item UUID -> ORIGINAL bundle -> bitstream).
-To move to a newer release, bump UD_HANDLE and rerun
-`training.ud_eval reliability` (annotation conventions change between releases).
+To move to a newer release, bump UD_HANDLE and re-run the evaluation
+(annotation conventions change between releases).
 """
 
 import hashlib

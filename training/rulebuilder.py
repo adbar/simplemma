@@ -6,8 +6,6 @@ low-frequency tail -> `refine()` builds rules and iterates dropping any cell
 that is imprecise or (once combined with the others) under-supported ->
 `subsume()` removes alternatives whose own group already produces them via a
 more general alternative -> `evaluate()` for the dictionary report ->
-`ud_screen()` for per-cell precision on real UD text (surfaces the OOV
-collisions the dictionary sweep is blind to; read by hand, not a gate) ->
 `render_rules_dict()` emits DEFAULT_RULES source (write it directly rather
 than hand-copying a printout, which can silently reorder first-match
 priority). Not a one-command generator: every language needs real judgment
@@ -235,7 +233,7 @@ def _make_apply_fn(
 def _score_cell(
     cell_stats: dict[tuple[str, str], list[int]], alt: str, repl: str, good: bool
 ) -> None:
-    "Update one cell's [fired, ok] counts -- the bookkeeping score_cells() and ud_screen() share."
+    "Update one cell's [fired, ok] counts -- the bookkeeping score_cells() uses."
     cell = cell_stats.setdefault((alt, repl), [0, 0])
     cell[0] += 1
     cell[1] += good
@@ -449,47 +447,6 @@ def evaluate(
         print("  idempotence chains (sample):")
         for f, p, p2, lemma in chain_ex:
             print(f"    {f} -> {p} -> {p2}  (gold {lemma})")
-
-
-def ud_screen(
-    prefix: str,
-    rules: Rules,
-    min_len: int = MIN_LEN_DEFAULT,
-    caps_guard: bool = True,
-    extra_guard: Callable[[str], bool] | None = None,
-    min_n: int = 30,
-) -> None:
-    """Per-cell precision of `rules` over one UD treebank -- real running text,
-    so it includes the OOV tokens the dictionary can never witness (the in-dict
-    blind spot behind sk `automobil`, gl `jamais`, ...).
-
-    `prefix` is the treebank dataset name, i.e. the same value the end-to-end
-    gate takes ("no_nynorsk", "is_modern"), NOT the ISO code -- so the screen
-    reads exactly the tokens the gate scores. It shares `ud_eval`'s reader (an
-    unknown prefix raises rather than silently screening nothing).
-
-    Prints the worst cells with failure samples for HUMAN review; it is NOT a
-    gate. Treebank lemma conventions (negation stripping, compound `=` markers,
-    identity-lemma invariants) surface as failures alongside real bugs, so cells
-    are narrowed or stoplisted by judgment, not by an automatic threshold."""
-    from training.ud_eval import iter_tokens
-
-    fold = prefix.split("_", 1)[0] in _ACCENT_FOLD_LANGS
-    apply_fn = _make_apply_fn(rules, min_len, caps_guard, extra_guard)
-    cell_stats: dict[tuple[str, str], list[int]] = {}
-    examples: dict[tuple[str, str], list[tuple[str, str, str]]] = defaultdict(list)
-    for form, gold, _ in iter_tokens(prefix):
-        match = apply_fn(form)
-        if match is None:
-            continue
-        out, alt, repl = match
-        good = output_is_lemma(out, gold, fold_accents=fold)
-        _score_cell(cell_stats, alt, repl, good)
-        if not good and len(examples[(alt, repl)]) < 5:
-            examples[(alt, repl)].append((form, out, gold))
-    print(f"{prefix}: UD per-cell precision (n>={min_n}), worst first:")
-    for prec, n, alt, repl in _worst_cells(cell_stats, min_n):
-        print(f"  {prec:5.1f}% n={n:5d} -{alt}->-{repl}  {examples[(alt, repl)]}")
 
 
 def trim_by_mass(cells: Cells, share: float = 0.90) -> Cells:

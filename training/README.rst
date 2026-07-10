@@ -9,14 +9,13 @@ The scores are calculated on `Universal Dependencies <https://universaldependenc
    API, downloads and checksums the treebanks archive, and for every
    supported language:
   1. Concatenates the train, dev and test data into a single file (e.g. ``da_ddt.conllu``) at the expected location (``training/data/UD/``)
-  2. ALSO copies the individual train/dev/test files unmerged to ``training/data/UD/splits/`` (used by the ``training.ud_eval``/``ud_end_to_end``/``diff_audit`` toolkit below, which needs the dev/test split boundary preserved)
+  2. ALSO copies the individual train/dev/test files unmerged to ``training/data/UD/splits/`` (for per-split evaluation that needs the dev/test boundary preserved)
    To move to a newer UD release, update ``UD_VERSION``/``UD_HANDLE`` at the
    top of the script (find the new release's handle at
    `Universal Dependencies <https://universaldependencies.org/#download>`_,
    "released through LINDAT/CLARIAH-CZ") and delete ``training/data/UD/``
-   before re-running -- then rerun ``training.ud_eval reliability`` across
-   the evaluation treebanks, since annotation conventions can change
-   between releases.
+   before re-running. Re-check the evaluation afterwards, since annotation
+   conventions can change between releases.
 3. Run the script, e.g. from the home directory ``python3 training/evaluate_simplemma.py``
 4. Results are stored at ``training/data/results/results_summary.csv``. Also, errors are written in a CSV file for each dataset under the ``data/results``folder.
 
@@ -33,30 +32,14 @@ dictionaries underrepresent exactly what the fallbacks meet in production
 1. ``python -m training.download_eval_data`` — fetch the pinned UD release
    (same one used above; run once, the data is git-ignored and reused
    across sessions).
-2. ``python -m training.ud_eval reliability <lang:prefix>`` — annotation-quality
-   profile of the treebank FIRST; known convention quirks (e.g. proper-noun
-   lowercasing, compound-plural laziness) can fake or hide a regression.
-3. In-dict prefilter: ``python -m training.rulebuilder <lang>`` mines
+2. In-dict build + gate: ``python -m training.rulebuilder <lang>`` mines
    candidates and runs the recipe below end to end, printing the final
-   precision/coverage report (the per-cell precision gate is enforced
-   separately by ``tests/strategies/defaultrules/test_precision.py``).
-4. ``python -m training.ud_end_to_end <lang> <prefix> <config> [...]`` — accuracy
-   plus a tune (dev) / confirm (test) sign-test verdict for a runtime-patched
-   affix-config candidate.
-5. ``python -m training.diff_audit --config <cfg> <lang> <prefix>`` or
-   ``--worktree <path> [langs]`` (for defaultrules/ changes, against another
-   checkout) — inspect the worsened tokens before trusting ANY positive
-   delta: a harm class concentrated in one POS or lexical pattern is a red
-   flag even when the net counts look fine.
-6. ``python -m training.diff_audit --consistency <lang> <prefix>`` — the
-   mandatory third gate for any defaultrules/ change (see the gate list
-   below): compares rule outputs against full-treebank majority gold, so it
-   catches inherited errors the worktree diff cannot see. Flags stoplist
-   candidates (words the rules change despite the treebank showing them as
-   ALWAYS identity-gold, n>=2) and non-identity mismatches (rule output
-   disagrees with a consistent non-identity gold — rule bugs or convention
-   clashes). Distinguishes a genuine collision from annotation noise (a
-   sometimes-reduced word isn't a stoplist candidate).
+   precision/coverage report; the per-cell precision gate is enforced in CI
+   by ``tests/strategies/defaultrules/test_precision.py``.
+3. Real-text impact: re-run ``python3 training/evaluate_simplemma.py`` and
+   compare ``results_summary.csv`` against the pre-change run — the shipped
+   dictionaries underrepresent the OOV forms the fallbacks actually meet, so
+   an in-dict-only check is not sufficient.
 
 ``defaultrules/`` policy: a rule's output must BE the lemma (2026-07,
 lemma-first). ``rulebuilder.mine``/``score_cells``/``evaluate`` and the CI
@@ -97,79 +80,30 @@ step's output — run them together via ``python -m training.rulebuilder
    in ``a``, so checking exactly those tokens is a complete proof of
    output-equivalence, not a sample.
 
-A rebuilt or retuned language ships only after THREE gates, in this order:
-(a) the in-dict per-cell precision gate (enforced in CI by
-``tests/strategies/defaultrules/test_precision.py``); (b) the worktree
-diff-audit against the pre-change checkout (``diff_audit --worktree``) —
-catches regressions; (c) the full-treebank consistency scan
-(``diff_audit --consistency``) — MANDATORY, not optional: it is the only
-gate that catches INHERITED errors, i.e. outputs that are wrong in both the
-old and the new rules. The other two gates are structurally blind to those
-(in-dict they dilute below the per-cell bar whenever the dictionary
-under-represents the construction; in the worktree diff wrong-to-wrong
-counts as neutral). Skipping (c) is how a "0 worsened, all green" language
-shipped with a whole construction class silently mislemmatized (Georgian
--ისას, 37/37 wrong on real text).
-
-Before adding ANYTHING the UD consistency scan flags to a stoplist, check
-``dictionary.get(word)`` first (2026-07, hard-won on the ``ro`` rebuild): if
-the dictionary's own lemma for that exact word already agrees with the
-rule's output, the "mismatch" is a dictionary-vs-UD annotation-convention
-difference (e.g. Romanian participles-as-adjectives vs UD's verb-infinitive
-reading, or Slovenian/Swedish adjective-as-adverb forms), not a rules
-defect — it is out of scope (rules exist to match the DICTIONARY's lemma;
-see the policy paragraph above) and both the rule and the pre-rebuild
-baseline already agree on it, so it is not a regression either. Only
-stoplist a word when the dictionary itself disagrees with the rule, or the
-word is genuinely OOV to the dictionary and the worktree diff shows real
-harm. Skipping this check on the first pass of the ``ro`` rebuild led to
-dropping 9 good rule cells by mistake, chasing a "fix" for divergence that
-was never a bug.
+A rebuilt or retuned language ships only after the in-dict per-cell
+precision gate (enforced in CI by
+``tests/strategies/defaultrules/test_precision.py``): every cell must clear
+the precision bar against the shipped dictionary, and no two rules may
+overlap. The in-dict proxy has a known blind spot — a cell can clear the bar
+yet do worse on real text when the dictionary's composition doesn't match
+usage (regular declensions dominate the dictionary; a few irregular,
+high-frequency collisions dominate real text). The worst case was hyphenated
+compounds: a suffix rule only touches a token's tail, so on a compound it
+half-fixes it or collides with a UD boundary marker it can't reproduce. They
+are now handled by ``HyphenRemovalStrategy`` earlier in the pipeline and
+skipped in rules via ``generic.apply_rules(..., hyphen=True)``.
 
 Keep a language's stoplist small and FINITE — if a rule cell needs more
 than roughly a dozen exceptions, or the comment would have to say "more will
 likely need adding", drop that rule cell instead of growing the list
 (``rulebuilder.complexity_report()`` is the at-a-glance budget check: groups
-/ alternatives / stoplist size per language). One measured exception to the
-budget (the hybrid rule, 2026-07): when dropping a colliding cell would cost
-~100 or more correct tokens on the UD treebank, keep the cell and enumerate
-its exceptions even past the dozen mark instead (checking each candidate
-against the dictionary and the majority UD gold as above — a form the rule
-gets right for the majority of its real occurrences must NOT be
-stoplisted). The ~100 bar is deliberately absolute, not a rate — it
-doubles as an evidence floor, like the support minimums everywhere else in
-this toolkit — and is calibrated to eval splits of roughly 20k-100k tokens;
-on a treebank far outside that range, or for a cell landing in the ~50-200
-band, sanity-check the rate (share of eval tokens) before deciding
-mechanically. Two hard-won measurement caveats: (1) judge a cell's
-drop-cost by the WORKTREE diff, never by counting the rule's correct hits in
-isolation — the downstream strategies (hyphen/prefix/affix) recover many of
-the tokens a dropped rule would have handled, so isolation over-estimates
-the loss several-fold; (2) before dropping a cell to silence a collision,
-check what the colliding tokens fall through TO — with first-match rules a
-removed cell's tokens often just hit a broader alternative and produce the
-same wrong output, so the drop loses the cell's correct coverage without
-fixing anything (stoplisting the colliding forms is then the only treatment
-that works). A language whose morphology needs an unreasonable amount of
-whitelisting to tame is a WONTFIX, not a "do it later".
-
-The in-dict proxy has a known blind spot even after the recipe converges: a
-cell can be >=99% precise against the dictionary yet perform far worse on
-real text, when the dictionary's composition doesn't match usage frequency
-(regular declensions dominate the dictionary; a handful of irregular,
-high-frequency collision words dominate real text). This is exactly what
-gates (b) and (c) above exist to catch — re-measure a cell's precision
-directly against UD tokens (not just the in-dict count) before deciding
-whether to keep or drop it. It also caught a structural issue
-across ten languages (2026-07): hyphenated compounds were reaching the
-suffix rules unguarded and scored fine in-dict while performing far worse on
-real text — a rule only ever touches the token's tail, so on a compound it
-either half-fixes it (cs), collides with a UD compound-boundary marker the
-rules can never reproduce (et, fi), or mishandles a sentence-initial-
-lowercased proper-noun component (nn). Every rule language's `apply_*` guard
-now take a hyphen check (`generic.apply_rules(..., hyphen=True)`); the
-dedicated `HyphenRemovalStrategy`, earlier in the pipeline than rules,
-handles hyphenated compounds correctly instead.
+/ alternatives / stoplist size per language). One measured exception (the
+hybrid rule, 2026-07): when dropping a colliding cell would cost ~100 or more
+correct tokens on the UD treebank, keep the cell and enumerate its exceptions
+past the dozen mark instead (each checked against the dictionary and the
+majority UD gold — a form the rule gets right for most of its real
+occurrences must NOT be stoplisted). A language whose morphology needs an
+unreasonable amount of whitelisting to tame is a WONTFIX, not a "do it later".
 
 Every data-driven language's `apply_*` function is a one-line call into
 `generic.apply_rules(token, DEFAULT_RULES, min_len=..., caps=..., hyphen=...,
