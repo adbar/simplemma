@@ -56,7 +56,9 @@ class DefaultStrategy(LemmatizationStrategy):
         # Injected as a callback (self.get_lemma), not composed, so the
         # head gets the full pipeline without a circular construction
         # dependency (self isn't done building yet).
-        self._apostrophe_search = ApostropheBoundaryStrategy(self.get_lemma)
+        self._apostrophe_search = ApostropheBoundaryStrategy(
+            self.get_lemma, self._dictionary_lookup
+        )
         greedy_dictionary_lookup = GreedyDictionaryLookupStrategy(dictionary_factory)
         self._affix_search = AffixDecompositionStrategy(greedy, self._dictionary_lookup)
 
@@ -85,7 +87,8 @@ class DefaultStrategy(LemmatizationStrategy):
             # densely populated in some dictionaries) before anything
             # later in the chain ever gets a chance, and that fallback
             # is exactly where it goes wrong for capitalized proper
-            # nouns (Erdoğan'ın -> erdoğan).
+            # nouns (Erdoğan'ın -> erdoğan). It defers to a curated
+            # exact entry, so it only overrides the lossy case fallback.
             self._apostrophe_search.get_lemma(token, lang)
             # supervised searches
             or self._dictionary_lookup.get_lemma(token, lang)

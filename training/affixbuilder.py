@@ -10,7 +10,7 @@ removal, rules, prefix decomposition -- not dictionary lookup, deliberately
 bypassed to simulate an unseen token) do not already resolve, since those
 never reach affix decomposition in the real pipeline.
 
-net% = (gain - harm) / n is the membership criterion:
+net_full% = (gain - harm) / sample_size is the membership criterion:
   gain = fired & form != lemma & output == lemma  (decomposition helped)
   harm = fired & form == lemma & output != form    (decomposition hurt a citation form)
 
@@ -18,7 +18,6 @@ Usage: uv run python training/affixbuilder.py [lang ...]  (default: all language
 """
 
 import random
-from collections import Counter
 from typing import cast
 
 from simplemma.strategies.affix_decomposition import AffixDecompositionStrategy
@@ -45,26 +44,20 @@ _PREFIX = PrefixDecompositionStrategy(dictionary_lookup=_DICT_LOOKUP)
 _STRAT = AffixDecompositionStrategy(True, _DICT_LOOKUP)
 
 
-def _common_prefix_len(a: str, b: str) -> int:
-    n = 0
-    for x, y in zip(a, b):
-        if x != y:
-            break
-        n += 1
-    return n
+def _pct(num: int, den: int) -> float:
+    return 100 * num / den if den else 0.0
 
 
 def sample_pairs(
     lang: str,
     sample: int = SAMPLE_DEFAULT,
     seed: int = SEED_DEFAULT,
-    capitalized: bool = False,
 ) -> Pairs:
-    """Sample (form, lemma) pairs from `lang`'s dictionary; non-capitalized
-    forms by default, capitalized-only with `capitalized=True` (relevant for
-    noun-capitalizing languages like de, where compounds are capitalized)."""
+    """Sample lowercase (form, lemma) pairs from `lang`'s dictionary
+    (capitalized forms are proper nouns / noun-capitalizing-language
+    compounds, a separate population affix decomposition mishandles)."""
     d = FACTORY.get_dictionary(lang)
-    pairs = [(f, lemma) for f, lemma in d.items() if f[:1].isupper() == capitalized]
+    pairs = [(f, lemma) for f, lemma in d.items() if not f[:1].isupper()]
     if len(pairs) > sample:
         pairs = random.Random(seed).sample(pairs, sample)
     return pairs
@@ -95,18 +88,15 @@ def measure(
     max_affix_len: int,
     min_length: int,
     pairs: Pairs | None = None,
-    min_complem_len: int = MINCOMPLEN_DEFAULT,
 ) -> dict[str, object]:
     """Net benefit of affix decomposition for `lang` at a given
     (max_affix_len, min_length). Calls the two sub-strategies directly
     (bypassing `get_lemma`'s static config lookup) so any parameter
     combination can be swept, not just the currently shipped one.
 
-    `net_pct` divides by the tokens that PASS the min_length gate, so it is
-    only comparable across configs sharing one min_length (a higher gate
-    keeps an easier population). `net_full_pct` divides by the whole sample
-    (gated-out tokens pass through unchanged: 0 gain, 0 harm) and is the
-    fair number for comparing min_length values."""
+    `net_full_pct` divides by the whole sample (gated-out tokens pass
+    through unchanged: 0 gain, 0 harm), so it is the fair number for
+    comparing configs with different min_length values."""
     pairs = pairs if pairs is not None else sample_pairs(lang)
     n_full = len(pairs)
     pairs = _filter_reachable(pairs, lang, min_length)
@@ -114,8 +104,8 @@ def measure(
     fired = gain = harm = changed = changed_ok = 0
     for f, lemma in pairs:
         p = _STRAT._affix_decomposition(
-            f, lang, max_affix_len, min_complem_len
-        ) or _STRAT._suffix_decomposition(f, lang, min_complem_len)
+            f, lang, max_affix_len, MINCOMPLEN_DEFAULT
+        ) or _STRAT._suffix_decomposition(f, lang, MINCOMPLEN_DEFAULT)
         if p is None:
             continue
         fired += 1
@@ -132,12 +122,11 @@ def measure(
         "fired": fired,
         "gain": gain,
         "harm": harm,
-        "net_pct": 100 * (gain - harm) / n if n else 0.0,
-        "net_full_pct": 100 * (gain - harm) / n_full if n_full else 0.0,
+        "net_full_pct": _pct(gain - harm, n_full),
         # correctness of VISIBLE changes -- wrong-changed inflected forms are
         # exact-match-neutral (excluded from net) but user-visible garbage
         "changed": changed,
-        "changed_prec_pct": 100 * changed_ok / changed if changed else 0.0,
+        "changed_prec_pct": _pct(changed_ok, changed),
     }
 
 
@@ -160,94 +149,6 @@ def sweep(
     ]
     rows.sort(key=lambda r: cast(float, r["net_full_pct"]), reverse=True)
     return rows
-
-
-def sub_strategy_breakdown(
-    lang: str,
-    max_affix_len: int,
-    min_length: int,
-    pairs: Pairs | None = None,
-    min_complem_len: int = MINCOMPLEN_DEFAULT,
-) -> dict[str, object]:
-    "How much `_suffix_decomposition` adds beyond `_affix_decomposition` alone."
-    pairs = pairs if pairs is not None else sample_pairs(lang)
-    pairs = _filter_reachable(pairs, lang, min_length)
-    affix_fired = affix_ok = 0
-    suffix_only_fired = suffix_only_ok = 0
-    for f, lemma in pairs:
-        pa = _STRAT._affix_decomposition(f, lang, max_affix_len, min_complem_len)
-        if pa is not None:
-            affix_fired += 1
-            affix_ok += pa == lemma
-            continue
-        ps = _STRAT._suffix_decomposition(f, lang, min_complem_len)
-        if ps is not None:
-            suffix_only_fired += 1
-            suffix_only_ok += ps == lemma
-    total_fired = affix_fired + suffix_only_fired
-    return {
-        "lang": lang,
-        "n": len(pairs),
-        "affix_fired": affix_fired,
-        "affix_prec": 100 * affix_ok / affix_fired if affix_fired else 0.0,
-        "suffix_only_fired": suffix_only_fired,
-        "suffix_only_prec": 100 * suffix_only_ok / suffix_only_fired
-        if suffix_only_fired
-        else 0.0,
-        "suffix_only_share_pct": 100 * suffix_only_fired / total_fired
-        if total_fired
-        else 0.0,
-    }
-
-
-def classify_declines(
-    lang: str,
-    max_affix_len: int,
-    min_length: int,
-    pairs: Pairs | None = None,
-    min_complem_len: int = MINCOMPLEN_DEFAULT,
-    limit: int = 20,
-) -> dict[str, object]:
-    """For inflected forms (form != lemma) reaching affix decomposition that
-    get None, classify why: no truncation of the token is itself a dict
-    entry ('no_part1' -- the stem never surfaces as a standalone word,
-    e.g. stem alternation), the correct stem boundary IS a dict entry but
-    no valid part2 completed it ('part1_ok_part2_failed'), or some OTHER
-    boundary matched first, pre-empting the correct one ('wrong_split_taken')."""
-    d = FACTORY.get_dictionary(lang)
-    pairs = pairs if pairs is not None else sample_pairs(lang)
-    pairs = [
-        (f, lemma)
-        for f, lemma in pairs
-        if f != lemma and len(f) > min_length and reaches_affix(f, lang)
-    ]
-    counts: Counter[str] = Counter()
-    examples: dict[str, Pairs] = {}
-    for f, lemma in pairs:
-        p = _STRAT._affix_decomposition(
-            f, lang, max_affix_len, min_complem_len
-        ) or _STRAT._suffix_decomposition(f, lang, min_complem_len)
-        if p is not None:
-            counts["resolved"] += 1
-            continue
-        cp = _common_prefix_len(f, lemma)
-        stem = f[:cp]
-        correct_boundary_has_part1 = cp >= 2 and d.get(stem) is not None
-        any_part1_hit = any(
-            d.get(f[:-count]) is not None
-            for count in range(1, len(f) - min_complem_len + 1)
-        )
-        if not any_part1_hit:
-            key = "no_part1"
-        elif correct_boundary_has_part1:
-            key = "part1_ok_part2_failed"
-        else:
-            key = "wrong_split_taken"
-        counts[key] += 1
-        examples.setdefault(key, [])
-        if len(examples[key]) < limit:
-            examples[key].append((f, lemma))
-    return {"lang": lang, "n": len(pairs), "counts": dict(counts), "examples": examples}
 
 
 if __name__ == "__main__":

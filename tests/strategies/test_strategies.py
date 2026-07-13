@@ -203,12 +203,12 @@ def test_clitic_decomposition_proclitics() -> None:
 
 
 def test_clitic_decomposition_proclitic_guards() -> None:
-    """Capitalized proclitics are deliberately NOT matched (lowercase-only
-    table): sentence-initial "L'arbre" is lost, but this is what keeps
-    surnames safe -- "D'Annunzio" (a real Italian surname) would otherwise
-    strip to "Annunzio" and resolve to the unrelated verb "annunziare"."""
+    """A sentence-initial capital on the proclitic still strips when the
+    stem stays lowercase ("L'arbre" -> "arbre"), but a capitalized stem
+    signals a surname where stripping is wrong -- "D'Annunzio" (a real
+    Italian surname) must not strip to the unrelated verb "annunziare"."""
     clitic = CliticDecompositionStrategy()
-    assert clitic.get_lemma("L'arbre", "fr") is None
+    assert clitic.get_lemma("L'arbre", "fr") == "arbre"
     assert clitic.get_lemma("D'Annunzio", "it") is None
 
 
@@ -222,7 +222,10 @@ def test_apostrophe_boundary() -> None:
     assert strat.get_lemma("Erdoğan’ın", "tr") == "Erdoğan"
     # unsupported language: no-op
     assert (
-        ApostropheBoundaryStrategy(strat.get_lemma).get_lemma("l'arbre", "fr") is None
+        ApostropheBoundaryStrategy(
+            strat.get_lemma, DictionaryLookupStrategy()
+        ).get_lemma("l'arbre", "fr")
+        is None
     )
 
 

@@ -11,9 +11,9 @@ from .lemmatization_strategy import LemmatizationStrategy
 
 # Membership and per-language values (max_affix_len) are UD-validated, not
 # guesswork -- an in-dict-only measurement is not sufficient evidence to
-# add or retune a language. See training/affixbuilder.py,
-# training/download_eval_data.py, and training/data/affix_eval/ to
-# regenerate/review the evidence. Rejected despite looking positive
+# add or retune a language. See training/affixbuilder.py and
+# training/download_eval_data.py; the UD gate under training/data/affix_eval/
+# is local audit tooling (gitignored, not shipped -- rebuild it). Rejected despite looking positive
 # in-dict: pt, ca, nl, en, la, gl, fr, it, ro (marginal), de
 # (confirmed harmful on de_hdt too, not just a de_gsd artifact:
 # inflected-adjective lemma convention + proper-noun mangling). is is

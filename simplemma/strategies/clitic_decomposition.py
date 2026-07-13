@@ -2,7 +2,7 @@
 This file defines the `CliticDecompositionStrategy` class, which strips
 clitic chains from a token and reassembles via dictionary lookup on the
 stem alone (the clitic is not part of the lemma): enclitics at the end
-(fer-ho -> fer, transmitiéndose -> transmitir, don't -> do) and proclitics
+(portar-lo -> portar, transmitiéndose -> transmitir, don't -> do) and proclitics
 at the front (l'arbre -> arbre, qu'il -> il, jusqu'ici -> ici). Same shape
 throughout (strip the clitic, verify the remaining stem, drop the
 clitic) -- only which end gets stripped differs.
@@ -10,6 +10,7 @@ clitic) -- only which end gets stripped differs.
 
 import unicodedata
 
+from ..utils import normalize_apostrophes
 from .dictionary_lookup import DictionaryLookupStrategy
 from .lemmatization_strategy import LemmatizationStrategy
 
@@ -83,7 +84,9 @@ _CASE_INSENSITIVE_LANGS = {"en"}
 # "won't"/"shan't" are irregular spellings where the stripped stem isn't
 # the real word at all (will/shall). Excluded outright rather than
 # mapped wrong.
-_IRREGULAR_CONTRACTIONS = {"can't", "won't", "shan't"}
+_IRREGULAR_CONTRACTIONS: dict[str, frozenset[str]] = {
+    "en": frozenset({"can't", "won't", "shan't"}),
+}
 # Longest-first so a shorter clitic can never shadow a longer one ("os"
 # vs "nos"), independent of declaration order (equal-length clitics can't
 # match the same ending, so tie order is irrelevant).
@@ -153,7 +156,7 @@ MIN_STEM_LEN = 4  # mirrors affix_decomposition.MINCOMPLEN
 # fr cross-treebank) -- see training/data/affix_eval/README.md
 # "Proclitic floor sweep".
 PROCLITIC_MIN_STEM_LEN = 1
-MAX_CLITICS = 2  # covers the small multi-clitic tail (e.g. "anar-se'n")
+MAX_CLITICS = 2  # covers the small multi-clitic tail (e.g. "portar-se-la")
 _SEPARATORS = ("-", "'", "")
 
 
@@ -180,10 +183,11 @@ def _strip_proclitic(
     word: str, proclitics: tuple[str, ...], min_stem: int
 ) -> str | None:
     # Curly apostrophes (smart quotes) mark the same elision; NFC does
-    # not unify the two variants.
-    normalized = word.replace("’", "'")
+    # not unify the two variants. Case-insensitive so a sentence-initial
+    # capital on the proclitic (L'homme) still matches.
+    lowered = normalize_apostrophes(word).lower()
     for proclitic in proclitics:
-        if normalized.startswith(proclitic) and len(word) - len(proclitic) >= min_stem:
+        if lowered.startswith(proclitic) and len(word) - len(proclitic) >= min_stem:
             return word[len(proclitic) :]
     return None
 
@@ -242,8 +246,8 @@ class CliticDecompositionStrategy(LemmatizationStrategy):
         # Curly apostrophes (smart quotes, the default in most editors)
         # must match the straight-apostrophe clitic strings; NFC does
         # not unify the two variants.
-        token = token.replace("’", "'")
-        if lang == "en" and token.lower() in _IRREGULAR_CONTRACTIONS:
+        token = normalize_apostrophes(token)
+        if token.lower() in _IRREGULAR_CONTRACTIONS.get(lang, frozenset()):
             return None
 
         min_stem = MIN_STEM_LEN_OVERRIDES.get(lang, MIN_STEM_LEN)
@@ -264,5 +268,10 @@ class CliticDecompositionStrategy(LemmatizationStrategy):
             return None
         stem = _strip_proclitic(token, proclitics, PROCLITIC_MIN_STEM_LEN)
         if stem is None:
+            return None
+        # A capitalized proclitic (D') left on a capitalized stem signals a
+        # proper noun (D'Annunzio), where stripping is wrong; a plain
+        # sentence-initial capital leaves the stem lowercase (L'homme).
+        if token[:1].isupper() and stem[:1].isupper():
             return None
         return self._stem_lookup(stem, lang)

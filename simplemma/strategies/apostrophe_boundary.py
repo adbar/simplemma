@@ -10,6 +10,8 @@ still need rule/affix processing on the head alone).
 
 from collections.abc import Callable
 
+from ..utils import normalize_apostrophes
+from .dictionary_lookup import DictionaryLookupStrategy
 from .lemmatization_strategy import LemmatizationStrategy
 
 # UD-validated (training/data/affix_eval/, tr_imst -- see
@@ -33,21 +35,26 @@ class ApostropheBoundaryStrategy(LemmatizationStrategy):
     lemmatizes the head via the rest of the pipeline.
     """
 
-    __slots__ = ["_lemmatize_head"]
+    __slots__ = ["_dictionary_lookup", "_lemmatize_head"]
 
-    def __init__(self, lemmatize_head: Callable[[str, str], str | None]):
+    def __init__(
+        self,
+        lemmatize_head: Callable[[str, str], str | None],
+        dictionary_lookup: DictionaryLookupStrategy,
+    ):
         """
         Initialize the Apostrophe Boundary Strategy.
 
         Args:
-            lemmatize_head (Callable[[str, str], str | None]): Callback
-                used to lemmatize the head (the part before the
-                apostrophe) -- ordinarily the owning `DefaultStrategy`'s
-                own `get_lemma`, so the head benefits from the full
-                pipeline. Injected rather than composed to avoid a
+            lemmatize_head: callback to lemmatize the head, ordinarily the
+                owning `DefaultStrategy.get_lemma` (so the head gets the
+                full pipeline). Injected rather than composed to avoid a
                 circular construction dependency.
+            dictionary_lookup: detects a curated whole-token entry, which
+                is authoritative over decomposition.
         """
         self._lemmatize_head = lemmatize_head
+        self._dictionary_lookup = dictionary_lookup
 
     def get_lemma(self, token: str, lang: str) -> str | None:
         """
@@ -64,8 +71,12 @@ class ApostropheBoundaryStrategy(LemmatizationStrategy):
             return None
         # Both apostrophe variants mark the boundary (smart quotes are
         # the default in most editors; NFC does not unify them).
-        boundary = token.replace("’", "'").find("'")
+        boundary = normalize_apostrophes(token).find("'")
         if boundary < MIN_HEAD_LEN or boundary == len(token) - 1:
+            return None
+        # A curated whole-token dictionary entry is authoritative -- defer
+        # so decomposition can't override it (e.g. tr "isen'e" -> "isen").
+        if self._dictionary_lookup.exact_lemma(token, lang) is not None:
             return None
         head = token[:boundary]
         lemma = self._lemmatize_head(head, lang)

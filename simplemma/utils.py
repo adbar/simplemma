@@ -23,6 +23,22 @@ def normalize_token(token: str) -> str:
     return unicodedata.normalize("NFC", token)
 
 
+def normalize_apostrophes(text: str) -> str:
+    """Fold curly apostrophes to straight ones (NFC does not unify them)."""
+    return text.replace("’", "'")
+
+
+def apostrophe_variants(token: str) -> tuple[str, ...]:
+    """Straight- and curly-apostrophe forms to try in dictionary lookups
+    (sources disagree on which variant they store)."""
+    straight = normalize_apostrophes(token)
+    if "'" not in straight:
+        return (token,)
+    curly = straight.replace("'", "’")
+    # original first, deduped
+    return tuple(dict.fromkeys((token, straight, curly)))
+
+
 def validate_lang_input(lang: str | tuple[str, ...]) -> tuple[str, ...]:
     """
     Make sure the lang variable is a valid tuple.
