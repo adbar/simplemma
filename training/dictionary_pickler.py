@@ -19,9 +19,8 @@ from simplemma.strategies.dictionaries import frontcode
 from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
 from simplemma.utils import levenshtein_dist
 
-# Swahili's inflection is prefixal (subject/TAM/object markers prepended), so
-# forms of one lemma share a common ENDING, not a common start; front-coding
-# the reversed bytes exposes that shared structure instead of missing it.
+# Swahili inflection is prefixal, so a lemma's forms share an ENDING not a
+# start; front-coding the reversed bytes exposes that shared structure.
 FRONTCODE_REVERSE_KEY_LANGS = {"sw"}
 
 LOGGER = logging.getLogger(__name__)

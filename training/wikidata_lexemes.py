@@ -33,8 +33,7 @@ from training.eval_harness import FixedDictionaryFactory
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-# Every language we have a verified QID for (label checked live against
-# Wikidata, not typed from memory) -- i.e. everything extractable.
+# Languages with a verified Wikidata QID (i.e. everything extractable).
 LANGUAGE_QIDS = {
     "de": "Q188",
     "ru": "Q7737",
@@ -49,8 +48,7 @@ LANGUAGE_QIDS = {
     "nb": "Q25167",
     "cs": "Q9056",
     "nl": "Q7411",
-    # mid-tier by lexeme count; everything below these is <1k lexemes per
-    # the census -> ~0 fill pairs, no benefit possible.
+    # mid-tier by lexeme count; below ~1k lexemes yields ~0 fill pairs.
     "fr": "Q150",
     "sk": "Q9058",
     "uk": "Q8798",
@@ -60,10 +58,8 @@ LANGUAGE_QIDS = {
     "tr": "Q256",
 }
 
-# The subset that actually SHIPS Wikidata fill in v2.0, gated by
-# assess_wikidata_fill.py (shipped vs full-fill, token+type, every UD test
-# treebank). `fr`/`it`/`tr` regress cross-treebank; `nb` has no UD treebank
-# to gate against.
+# Subset that ships Wikidata fill in v2.0 (gated by assess_wikidata_fill.py):
+# fr/it/tr regress cross-treebank, nb has no UD treebank.
 V2_FILL_LANGS = frozenset(
     {
         "cs",
@@ -200,9 +196,8 @@ def stem_anchored_prune(
     for lemma, _ in fill_pairs:
         anchor.setdefault(lemma, lemma)
     kept, stats = _prune_with_anchor(fill_pairs, anchor, lang)
-    # Re-add the anchoring self-maps that aren't already in shipped. Identity
-    # forms are always affix/dict-derivable so they never survive _prune (kept
-    # and these are disjoint); shipped wins any collision at merge time anyway.
+    # Re-add anchoring self-maps not in shipped: identity forms are always
+    # derivable so never survive _prune (disjoint from kept); shipped wins ties.
     self_maps = [
         (lemma, lemma)
         for lemma in {lemma for lemma, _ in fill_pairs}

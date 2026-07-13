@@ -30,15 +30,14 @@ from training.eval_harness import (
     score_token,
     score_type,
 )
-from training.ud_conllu import DATASET_LANG_OVERRIDES
+from training.ud_conllu import dataset_to_lang
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 UD_SPLITS = Path(__file__).parent / "data" / "UD" / "splits"
 
-# Tolerance for measurement/tie-break noise, not a researched constant --
-# revisit if a real Phase 5 run shows spurious failures or passes.
+# Tolerance for measurement noise, not a researched constant.
 DEFAULT_EPSILON = 0.001
 
 
@@ -65,8 +64,7 @@ class TreebankResult:
 
 
 def _file_lang(path: Path) -> str:
-    dataset_name = path.name.removesuffix("-ud-test.conllu")
-    return DATASET_LANG_OVERRIDES.get(dataset_name, dataset_name.split("_", 1)[0])
+    return dataset_to_lang(path.name.removesuffix("-ud-test.conllu"))
 
 
 def discover_test_treebanks(lang: str, ud_splits: Path = UD_SPLITS) -> list[Path]:
@@ -93,8 +91,7 @@ def gate(
             f"no UD test treebank found for language {lang!r} in {ud_splits}"
         )
 
-    # Build each strategy once (encoding the whole mapping is the expensive
-    # part) and reuse across every treebank and both metrics.
+    # Build each strategy once (encoding the mapping is the costly part), reuse.
     baseline_strategy = build_strategy(baseline)
     candidate_strategy = build_strategy(candidate)
 
@@ -129,8 +126,7 @@ def main() -> None:
 
     baseline = load_lemma_form_tsv(args.baseline_tsv)
     candidate = load_lemma_form_tsv(args.candidate_tsv)
-    # Pass UD_SPLITS explicitly (not via gate()'s default) so a monkeypatched
-    # module attribute in tests actually takes effect at call time.
+    # Pass UD_SPLITS explicitly so a test's monkeypatch of it takes effect.
     results = gate(args.lang, baseline, candidate, ud_splits=UD_SPLITS)
 
     for result in results:

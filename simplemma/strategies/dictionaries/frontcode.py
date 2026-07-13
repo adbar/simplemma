@@ -17,7 +17,7 @@ import lzma
 MAGIC = b"SMFC1"
 _REVERSE_FLAG = 0x01
 
-# Trim-byte sentinels (a real trim is a small char count, so 254/255 are free).
+# Trim-byte sentinels: a real trim is small, so 254/255 are free.
 _SAME_AS_PREV = 254
 _LITERAL_VALUE = 255
 
@@ -91,7 +91,7 @@ def encode(mapping: dict[bytes, bytes], reverse_key: bool = False) -> bytes:
             trim = len(stored_key) - prefix_len
             value_suffix = stored_value[prefix_len:]
             if trim >= _SAME_AS_PREV:
-                # trim doesn't fit in one byte (rare/pathological): store the value whole.
+                # trim too big for one byte: store the value whole.
                 stream.append(_LITERAL_VALUE)
                 _write_varint(stream, len(stored_value))
                 stream += stored_value
@@ -107,7 +107,10 @@ def encode(mapping: dict[bytes, bytes], reverse_key: bool = False) -> bytes:
 
 
 def decode_stream(data: bytes) -> dict[bytes, bytes]:
-    """Decode already-decompressed front-coded bytes (see `is_frontcoded`)."""
+    """Decode already-decompressed front-coded bytes (see `is_frontcoded`).
+
+    Assumes a well-formed stream as produced by `encode`; a truncated or
+    corrupt stream raises IndexError rather than a specific decode error."""
     if not is_frontcoded(data):
         raise ValueError("not a front-coded stream")
     pos = len(MAGIC)

@@ -54,9 +54,8 @@ def _load_dictionary_from_disk(langcode: str) -> dict[bytes, bytes]:
     """
     filepath = DATA_FOLDER / f"{langcode}.plzma"
     with lzma.open(filepath, "rb") as filehandle:
-        # Peek at the header to pick a format, then rewind. The legacy pickle
-        # path then streams; only the front-coded format is read whole (it has
-        # to be — the decoder needs the full stream).
+        # Peek the header to pick a format, then rewind: legacy pickle then
+        # streams; only front-coded is read whole (the decoder needs it all).
         is_frontcoded = frontcode.is_frontcoded(filehandle.read(len(frontcode.MAGIC)))
         filehandle.seek(0)
         if is_frontcoded:

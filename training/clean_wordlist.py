@@ -24,6 +24,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from simplemma.utils import normalize_token
+
 # Stage 1 normalize: lookalike canonicalization + invisible-char stripping.
 LOOKALIKE_MAP = {
     "‘": "'",
@@ -36,12 +38,11 @@ STRIP_CHARS = {
     "­",  # soft hyphen
     "​",  # zero-width space
     "‎",
-    "‏",  # LRM/RLM bidi marks (editorial artifacts, not orthography)
+    "‏",  # LRM/RLM bidi marks
 }
 
-# Stage 2 reject: codepoint categories never valid in a word form. Format (Cf)
-# is included -- stray directional/format chars are junk -- except the two
-# word-internal joiners legitimately used mid-word in Perso-Arabic and Indic.
+# Categories never valid in a word form. Cf included (stray format chars are
+# junk) except the two word-internal joiners below (Perso-Arabic, Indic).
 _REJECT_CATEGORIES = ("Cc", "Cf", "Cs", "Co", "Cn")
 _ALLOWED_FORMAT = {"‌", "‍"}  # ZWNJ, ZWJ
 
@@ -52,7 +53,7 @@ def normalize(text: str) -> tuple[str, Counter[str]]:
     """Stage 1: fix, don't reject. Returns normalized text + counts for the report."""
     counts: Counter[str] = Counter()
     kept_chars = []
-    for ch in unicodedata.normalize("NFC", text):
+    for ch in normalize_token(text):  # NFC, matching the shipped dicts
         if ch in STRIP_CHARS:
             counts[f"stripped_{ch!r}"] += 1
         elif ch in LOOKALIKE_MAP:
@@ -125,8 +126,8 @@ def clean_wordlist(lines: list[str]) -> tuple[list[str], CleanReport]:
             normalized_columns.append(normalized)
         if reason:
             continue
-        # A column of only strippable chars (e.g. a lone soft hyphen) survives
-        # the raw malformed-line check but normalizes to empty -- don't emit it.
+        # A column of only strippable chars passes the raw check but normalizes
+        # to empty -- don't emit it.
         if not all(normalized_columns):
             report.rejected_by_reason["empty_after_normalize"] += 1
             continue

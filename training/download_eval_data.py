@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
-from training.ud_conllu import DATASET_LANG_OVERRIDES
+from training.ud_conllu import dataset_to_lang
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -102,7 +102,7 @@ def get_relevant_language_data_folders(
         matches_files = re.search(r"^(.+)-ud", conllu_files[0].name)
         if matches_files is not None:
             dataset_name = matches_files.groups()[0]
-            lang = DATASET_LANG_OVERRIDES.get(dataset_name, dataset_name.split("_")[0])
+            lang = dataset_to_lang(dataset_name)
 
             if lang in SUPPORTED_LANGUAGES:
                 yield (lang, dataset_name, lang_data_folder)

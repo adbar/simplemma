@@ -12,15 +12,19 @@ from typing import Any
 
 from conllu import parse_incr
 
-# UD's file-prefix isn't always simplemma's ISO code (Bokmål="no", Nynorsk="no",
-# North Sami="sme") -- without this map they're silently dropped, not misfiled.
-# NB: both Norwegian datasets share the "no" prefix, so they must be keyed by
-# full dataset name, not the split-on-"_" fallback.
+# UD's file-prefix isn't always simplemma's ISO code -- both Norwegian sets
+# share "no", North Sami is "sme" -- so key by full dataset name here.
 DATASET_LANG_OVERRIDES = {
     "no_bokmaal": "nb",
     "no_nynorsk": "nn",
     "sme_giella": "se",
 }
+
+
+def dataset_to_lang(dataset_name: str) -> str:
+    """Map a UD dataset name (e.g. ``ro_rrt``, ``no_bokmaal``) to simplemma's
+    language code: an explicit override, else the prefix before the first ``_``."""
+    return DATASET_LANG_OVERRIDES.get(dataset_name, dataset_name.split("_", 1)[0])
 
 
 def iter_word_tokens(path: Path) -> Iterator[tuple[str, Any]]:

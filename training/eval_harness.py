@@ -7,7 +7,7 @@ exactly one place.
 """
 
 from collections import Counter, defaultdict
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 
 from simplemma.strategies import DefaultStrategy, DictionaryFactory
@@ -48,18 +48,26 @@ def build_strategy(mapping: dict[str, str]) -> DefaultStrategy:
     return DefaultStrategy(dictionary_factory=FixedDictionaryFactory(mapping))
 
 
+def _accuracy(
+    strategy: DefaultStrategy, lang: str, pairs: Iterable[tuple[str, str]]
+) -> tuple[float, int]:
+    """Fraction of (form, gold_lemma) pairs the strategy lemmatizes to gold
+    (identity fallback on a miss). Returns (accuracy, count)."""
+    correct = 0
+    total = 0
+    for form, gold_lemma in pairs:
+        prediction = strategy.get_lemma(form, lang) or form
+        correct += prediction == gold_lemma
+        total += 1
+    return correct / total if total else 0.0, total
+
+
 def score_token(
     strategy: DefaultStrategy, lang: str, gold_tokens: list[tuple[str, str]]
 ) -> tuple[float, int]:
     """Token-level (frequency-weighted) accuracy: each occurrence in the corpus
     counts once, so common forms dominate. Returns (accuracy, token_count)."""
-    correct = 0
-    total = 0
-    for form, gold_lemma in gold_tokens:
-        prediction = strategy.get_lemma(form, lang) or form
-        correct += prediction == gold_lemma
-        total += 1
-    return correct / total if total else 0.0, total
+    return _accuracy(strategy, lang, gold_tokens)
 
 
 def score_type(
@@ -73,15 +81,10 @@ def score_type(
     gold_by_form: defaultdict[str, Counter[str]] = defaultdict(Counter)
     for form, gold_lemma in gold_tokens:
         gold_by_form[form][gold_lemma] += 1
-
-    correct = 0
-    total = 0
-    for form, counts in gold_by_form.items():
-        gold_lemma, _ = counts.most_common(1)[0]
-        prediction = strategy.get_lemma(form, lang) or form
-        correct += prediction == gold_lemma
-        total += 1
-    return correct / total if total else 0.0, total
+    majority = (
+        (form, counts.most_common(1)[0][0]) for form, counts in gold_by_form.items()
+    )
+    return _accuracy(strategy, lang, majority)
 
 
 def load_lemma_form_tsv(path: Path) -> dict[str, str]:

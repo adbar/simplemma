@@ -170,10 +170,10 @@ This prefers explicit inflection relations (``form_of``/``alt_of``) and falls ba
 4. Check the output by exploring the data by hand to spot inconsistencies; ``dictionary_pickler.py`` itself filters out lines that are too short or otherwise malformed once you run it.
 
 
-The v2.0 data pipeline
-^^^^^^^^^^^^^^^^^^^^^^^^
+The dictionary data pipeline
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Beyond the raw ``kaikki_to_tsv`` extraction above, the v2.0 dictionaries are
+Beyond the raw ``kaikki_to_tsv`` extraction above, the dictionaries are
 prepared and validated with a few small standalone CLIs (their git-ignored
 inputs live under ``training/data/``):
 
