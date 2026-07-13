@@ -80,37 +80,36 @@ def test_search() -> None:
         # lt's entry gate is lowered to 7, admitting these 8-char forms
         ("lt", False, "rengiami", "rengti"),
         ("lt", False, "teikiant", "teikti"),
-        # None: gated-out languages, over-length tokens, unresolvable forms
+        # None: gated-out languages and unresolvable forms
         ("et", True, "laudkonna", None),  # max_affix_len=3 won't over-strip "-konna"
         ("sw", True, "-changanya", None),  # GREEDY_EXCLUDE: prefixing/mutating
         ("pt", True, "supostamente", None),
         ("gl", True, "virtualmente", None),
         ("de", True, "ccc", None),  # nothing decomposes
-        ("fi", True, "a" * 101, None),  # over the MAXLEN quadratic-blow-up cap
-        ("fi", True, "a" * 100000, None),
     ],
 )
 def test_affix_decomposition(
     lang: str, greedy: bool, token: str, expected: str | None
 ) -> None:
     """get_lemma resolves inflected forms to their lemma, or returns None for
-    gated-out languages, over-length tokens, and unresolvable forms."""
+    gated-out languages and unresolvable forms."""
     assert AffixDecompositionStrategy(greedy=greedy).get_lemma(token, lang) == expected
 
 
-def test_affix_decomposition_gate_config() -> None:
-    """The entry gate is shared with GreedyDictionaryLookupStrategy, and it
-    (not the sub-strategy) is what excludes a language: `_suffix_decomposition`
-    still fires for sw, so only the gate keeps its garbage out of the pipeline."""
+def test_affix_decomposition_guards() -> None:
+    """Guards that keep tokens out of decomposition: the entry gate (shared
+    with GreedyDictionaryLookupStrategy) excludes a language, not the
+    sub-strategy (`_suffix_decomposition` still fires for sw); a MAXLEN cap
+    rejects over-long tokens. The 100k-char case lives here, not in the
+    parametrized table -- as a param value its test id overflows Windows'
+    32767-char env-var limit."""
+    affix = AffixDecompositionStrategy(greedy=True)
     assert greedy_min_length("lt") == 7  # lowered from the default
     assert greedy_min_length("bg") == 6
     assert greedy_min_length("xx") == 8
-    assert (
-        AffixDecompositionStrategy(greedy=True)._suffix_decomposition(
-            "-changanya", "sw", 4
-        )
-        is not None
-    )
+    assert affix._suffix_decomposition("-changanya", "sw", 4) is not None
+    assert affix.get_lemma("a" * 101, "fi") is None
+    assert affix.get_lemma("a" * 100000, "fi") is None
 
 
 def test_clitic_decomposition() -> None:
