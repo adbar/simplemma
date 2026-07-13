@@ -5,7 +5,15 @@ import unicodedata
 import pytest
 
 from simplemma import is_known, lemmatize
-from simplemma.utils import levenshtein_dist, normalize_token, validate_lang_input
+from simplemma.utils import (
+    apostrophe_variants,
+    has_apostrophe,
+    levenshtein_dist,
+    normalize_apostrophes,
+    normalize_token,
+    strip_diacritics,
+    validate_lang_input,
+)
 
 
 def test_normalize_token() -> None:
@@ -15,6 +23,24 @@ def test_normalize_token() -> None:
     assert normalize_token("Häuser") == "Häuser"
     # NFC, not NFKC: compatibility characters are preserved, not folded
     assert normalize_token("ﬁ") == "ﬁ"  # ligature stays, would become "fi" under NFKC
+
+
+def test_strip_diacritics() -> None:
+    assert strip_diacritics("café") == "cafe"
+    assert strip_diacritics("señor") == "senor"
+    assert strip_diacritics("plain") == "plain"
+
+
+def test_apostrophe_helpers() -> None:
+    # all three glyphs (straight U+0027, curly U+2019, modifier U+02BC) fold
+    assert normalize_apostrophes("l’a") == normalize_apostrophes("lʼa") == "l'a"
+    assert normalize_apostrophes("la") == "la"
+    assert has_apostrophe("l'a") and has_apostrophe("l’a") and has_apostrophe("lʼa")
+    assert not has_apostrophe("la")
+    # variants: apostrophe-free token is returned unchanged; otherwise every glyph
+    assert apostrophe_variants("la") == ("la",)
+    assert apostrophe_variants("l'a") == ("l'a", "l’a", "lʼa")
+    assert apostrophe_variants("l’a") == ("l’a", "l'a", "lʼa")  # typed form first
 
 
 def test_validate_lang_input() -> None:

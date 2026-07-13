@@ -14,12 +14,9 @@ from ..utils import normalize_apostrophes
 from .dictionary_lookup import DictionaryLookupStrategy
 from .lemmatization_strategy import LemmatizationStrategy
 
-# UD-validated (training/data/affix_eval/, tr_imst -- see
-# training/data/affix_eval/README.md "Apostrophe/proclitic elision").
-# Plain dictionary lookup only resolves ~12% of gold apostrophe forms
-# (the dictionary's apostrophe-bearing entries are common combinations;
-# proper nouns are open-class, no fixed table can cover them) -- the
-# orthographic rule generalizes where a lookup table can't.
+# UD-validated (tr_imst): the orthographic rule generalizes to open-class
+# proper nouns that no lookup table can cover (plain lookup resolves ~12% of
+# gold apostrophe forms). See README.md "Apostrophe/proclitic elision".
 APOSTROPHE_BOUNDARY_LANGS = frozenset({"tr"})
 MIN_HEAD_LEN = 2
 
@@ -69,24 +66,17 @@ class ApostropheBoundaryStrategy(LemmatizationStrategy):
         """
         if lang not in APOSTROPHE_BOUNDARY_LANGS:
             return None
-        # Both apostrophe variants mark the boundary (smart quotes are
-        # the default in most editors; NFC does not unify them).
-        boundary = normalize_apostrophes(token).find("'")
+        boundary = normalize_apostrophes(token).find("'")  # fold smart quotes
         if boundary < MIN_HEAD_LEN or boundary == len(token) - 1:
             return None
-        # A curated whole-token dictionary entry is authoritative -- defer
-        # so decomposition can't override it (e.g. tr "isen'e" -> "isen").
+        # A curated whole-token entry is authoritative over decomposition
+        # (tr "isen'e" -> "isen").
         if self._dictionary_lookup.exact_lemma(token, lang) is not None:
             return None
         head = token[:boundary]
         lemma = self._lemmatize_head(head, lang)
         if lemma is None:
             return None
-        # A case-only change (a proper noun the dictionary only has
-        # under a different case) is an artifact of DictionaryLookupStrategy's
-        # own case-fallback, not a real morphological answer -- the
-        # apostrophe boundary is what's informative here, not the dict's
-        # casing. Restore the original head's case in that situation.
-        # (The dotted-I normalization covers Turkish's "İ".lower(),
-        # which yields "i" + a combining dot, not a plain "i".)
+        # A case-only change is just the dict's case-fallback, not a real answer;
+        # keep the head's case. _case_key folds Turkish "İ".lower() (i + dot).
         return head if _case_key(lemma) == _case_key(head) else lemma

@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 import pytest
 
 from simplemma.strategies import (
@@ -5,6 +7,7 @@ from simplemma.strategies import (
     ApostropheBoundaryStrategy,
     CliticDecompositionStrategy,
     DefaultStrategy,
+    DictionaryFactory,
     DictionaryLookupStrategy,
     GreedyDictionaryLookupStrategy,
     HyphenRemovalStrategy,
@@ -197,6 +200,8 @@ def test_clitic_decomposition_proclitic_guards() -> None:
     clitic = CliticDecompositionStrategy()
     assert clitic.get_lemma("L'arbre", "fr") == "arbre"
     assert clitic.get_lemma("D'Annunzio", "it") is None
+    # apostrophe present but no proclitic matches the prefix: no strip
+    assert clitic.get_lemma("aujourd'hui", "fr") is None
 
 
 def test_apostrophe_boundary() -> None:
@@ -236,3 +241,16 @@ def test_dictionary_lookup_apostrophe_variant() -> None:
     # Probe order preserved across variants: this glyph-mixed fi entry keeps
     # its straight-variant answer.
     assert lookup.get_lemma("Vaa'assa", "fi") == "vaaka"
+
+
+def test_dictionary_lookup_apostrophe_variant_recased() -> None:
+    """A key stored capitalized under a different apostrophe glyph is found via
+    the variant + reverse-case fallback (curly, lowercased input -> straight,
+    capitalized key)."""
+
+    class F(DictionaryFactory):
+        def get_dictionary(self, lang: str) -> Mapping[str, str]:
+            return {"L'eau": "eau"}  # straight apostrophe, capitalized
+
+    lookup = DictionaryLookupStrategy(dictionary_factory=F())
+    assert lookup.get_lemma("l’eau", "xx") == "eau"  # curly, lowercase

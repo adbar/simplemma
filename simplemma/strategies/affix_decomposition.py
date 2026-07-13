@@ -9,18 +9,10 @@ from .dictionary_lookup import DictionaryLookupStrategy
 from .greedy_dictionary_lookup import greedy_min_length
 from .lemmatization_strategy import LemmatizationStrategy
 
-# Membership and per-language values (max_affix_len) are UD-validated, not
-# guesswork -- an in-dict-only measurement is not sufficient evidence to
-# add or retune a language. See training/affixbuilder.py and
-# training/download_eval_data.py; the UD gate under training/data/affix_eval/
-# is local audit tooling (gitignored, not shipped -- rebuild it). Rejected despite looking positive
-# in-dict: pt, ca, nl, en, la, gl, fr, it, ro (marginal), de
-# (confirmed harmful on de_hdt too, not just a de_gsd artifact:
-# inflected-adjective lemma convention + proper-noun mangling). is is
-# positive but held for a future rules-file carve-out. es was rejected
-# on UD v2.12 data, then accepted on v2.18: the old harm score was
-# inflated by es_gsd's since-fixed PROPN-lowercasing convention
-# (re-validated on es_gsd AND es_ancora, both modes, clean audits).
+# Membership and max_affix_len values are UD-validated, not in-dict guesswork
+# (see training/affixbuilder.py + the gitignored gate under
+# training/data/affix_eval/). Many in-dict-positive langs were rejected on UD
+# (pt/ca/nl/en/la/gl/fr/it/ro/de); es flipped to member on v2.18 data.
 AFFIX_LANGS = {
     "bg": 2,
     "cs": 2,
@@ -42,15 +34,10 @@ AFFIX_LANGS = {
     "uk": 2,
 }
 
-# Languages excluded from greedy-mode decomposition: UD-measured harmful
-# (ca/en/gl/it/la/nl/pt), a measured wash (id), or typologically wrong
-# for a suffix-stripping algorithm (ms/sw/tl -- prefixing/mutating).
-# Non-greedy mode never reaches them (non-members). it: added once
-# CliticDecompositionStrategy claimed its main OOV class (verb+enclitic);
-# unclaimed affix decomposition was over-firing on nominal suffixes
-# (-ità/-ismo) and proper nouns (Afghanistan -> afghanistare).
-# es was removed from this list after the v2.18 re-validation cleared
-# it for both modes (see AFFIX_LANGS note above).
+# Excluded from greedy-mode decomposition: UD-measured harmful
+# (ca/en/gl/it/la/nl/pt), a wash (id), or typologically wrong for suffix
+# stripping (ms/sw/tl). it joined once clitics claimed its verb+enclitic
+# class, leaving affix to over-fire on -ità/-ismo and proper nouns.
 GREEDY_EXCLUDE = {
     "ca",
     "en",

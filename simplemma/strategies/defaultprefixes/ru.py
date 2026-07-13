@@ -1,11 +1,8 @@
 import re
 
-# UD-validated (training/data/affix_eval/, ru_gsd tune / ru_syntagrus
-# confirm): "за" and "при" fabricated lemmas for lexicalized adverbs/
-# particles (затем -> затема x78, примерно -> примерный x57 on confirm)
-# despite each also carrying real verbal wins -- net harmful, removed.
-# Regex sorts by length so a future addition can never be silently
-# shadowed by a shorter existing entry -- list order carries no meaning.
+# UD-validated (ru_gsd/ru_syntagrus): "за"/"при" removed -- net harmful,
+# fabricating lemmas for lexicalized adverbs (затем->затема). Regex sorts by
+# length so order carries no meaning.
 RUSSIAN_PREFIXES = [
     "гидро",
     "контр",

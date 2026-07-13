@@ -1,13 +1,8 @@
 import re
 
-# UD-validated (training/data/affix_eval/, de_gsd tune / de_hdt confirm):
-# 27 entries that were proper prefixes of another entry above them were
-# statically unreachable under first-match alternation (e.g. "herab" could
-# never fire because "her" always won first) and "zu" fabricated lemmas for
-# lexicalized function words (zufolge -> zufolgen, 109 tokens on de_hdt).
-# Both removals verified 0-diff / net-positive. Regex below sorts by length
-# so a future addition can never be silently shadowed by a shorter existing
-# entry -- list order carries no meaning.
+# UD-validated (de_gsd/de_hdt): dropped 27 entries that were unreachable under
+# first-match alternation ("herab" shadowed by "her") plus "zu" (fabricated
+# zufolge->zufolgen). Regex sorts by length so order carries no meaning.
 GERMAN_PREFIXES = [
     "ab",
     "an",
