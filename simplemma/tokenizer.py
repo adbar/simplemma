@@ -14,8 +14,7 @@ from collections.abc import Iterator
 
 from typing import Protocol
 
-# Combining marks -- re's \w excludes category M: Latin/Greek/Cyrillic
-# diacritics (NFD input), Arabic harakat, Devanagari vowel signs and virama.
+# Combining marks \w excludes (category M): Latin/Greek/Cyrillic, Arabic, Devanagari.
 _MARKS = (
     "\u0300-\u036f"
     "\u064b-\u065f\u0670"
@@ -26,9 +25,8 @@ TOKREGEX = re.compile(
     r"(?:"
     r"(?:[€$￥£+-]?[0-9][0-9.,:%/-]*|St\.)(?:[\w_€-]|['’](?=[^\W\d_]))+|"
     r"https?://[^ ]+|"
-    # In-word joiners kept for the clitic/boundary strategies: letter-flanked
-    # apostrophes (l'homme, 2020'de; a digit after excludes ca "l'1"), combining
-    # marks (_MARKS), and ZWNJ between word chars (fa) -- never at a token edge.
+    # In-word joiners (never at a token edge): letter-flanked apostrophes
+    # (l'homme, 2020'de; digit after excludes ca "l'1"), marks, ZWNJ (fa).
     rf"[€$￥£@#§]?\w(?:[\w{_MARKS}*_-]|['’](?=[^\W\d_])|\u200c(?=\w))*|"
     # one punctuation char, or a run of the SAME char ('...', '--', '!!')
     r"([,;:\.?!¿¡‽⸮…։՝।॥،؛؟()\[\]–{}—―/‒_“„”⹂‚‘’‛′″‟'`\"«»‹›<>=+−×÷•·%&№*#°‐-])\1*"

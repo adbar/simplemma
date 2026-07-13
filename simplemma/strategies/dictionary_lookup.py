@@ -68,6 +68,6 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
                 return result
         return None
 
-    def is_dictionary_entry(self, token: str, lang: str) -> bool:
+    def is_dictionary_member(self, token: str, lang: str) -> bool:
         """Whether `token` is a literal dictionary key (no case/apostrophe fallback)."""
         return self._dictionary_factory.get_dictionary(lang).get(token) is not None

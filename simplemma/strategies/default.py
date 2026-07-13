@@ -105,4 +105,4 @@ class DefaultStrategy(LemmatizationStrategy):
 
     def is_dictionary_member(self, token: str, lang: str) -> bool:
         """Raw dictionary membership for `token` (no case/apostrophe fallback)."""
-        return self._dictionary_lookup.is_dictionary_entry(token, lang)
+        return self._dictionary_lookup.is_dictionary_member(token, lang)
