@@ -1,3 +1,5 @@
+import pytest
+
 from simplemma.strategies import (
     AffixDecompositionStrategy,
     ApostropheBoundaryStrategy,
@@ -57,74 +59,58 @@ def test_search() -> None:
         == "getestet"
     )
 
-    assert AffixDecompositionStrategy(greedy=True).get_lemma("ccc", "de") is None
-
-    # tokens over the safety cap are rejected outright (quadratic blow-up guard)
-    affix = AffixDecompositionStrategy(greedy=True)
-    assert affix.get_lemma("a" * 101, "fi") is None
-    assert affix.get_lemma("a" * 100000, "fi") is None
-
     assert PrefixDecompositionStrategy().get_lemma("auf", "de") is None
 
 
-def test_affix_decomposition() -> None:
-    """Single-pass affix decomposition resolves multi-character affixes."""
-    affix = AffixDecompositionStrategy(greedy=True)
-    assert affix.get_lemma("kissammeko", "fi") == "kissa"  # FI "and our cat?" -> cat
-    assert affix.get_lemma("könyveiteket", "hu") == "könyv"  # HU "your books" -> book
-    assert affix.get_lemma("raamatutest", "et") == "raamat"  # ET "from books" -> book
+@pytest.mark.parametrize(
+    ("lang", "greedy", "token", "expected"),
+    [
+        # greedy mode: multi-character affixes
+        ("fi", True, "kissammeko", "kissa"),  # "and our cat?" -> cat
+        ("hu", True, "könyveiteket", "könyv"),  # "your books" -> book
+        ("et", True, "raamatutest", "raamat"),  # "from books" -> book
+        # UD-validated AFFIX_LANGS members, non-greedy mode
+        ("da", False, "drabsdagen", "drabsdag"),
+        ("da", False, "menighedsrådsvalget", "menighedsrådsvalg"),
+        ("nn", False, "pastasalaten", "pastasalat"),
+        ("nn", False, "underleverandørane", "underleverandør"),
+        # es re-admitted on UD v2.18 (old es_gsd PROPN-convention artifact fixed)
+        ("es", False, "microrregiones", "microrregión"),
+        ("es", False, "estanquillas", "estanquilla"),
+        # lt's entry gate is lowered to 7, admitting these 8-char forms
+        ("lt", False, "rengiami", "rengti"),
+        ("lt", False, "teikiant", "teikti"),
+        # None: gated-out languages, over-length tokens, unresolvable forms
+        ("et", True, "laudkonna", None),  # max_affix_len=3 won't over-strip "-konna"
+        ("sw", True, "-changanya", None),  # GREEDY_EXCLUDE: prefixing/mutating
+        ("pt", True, "supostamente", None),
+        ("gl", True, "virtualmente", None),
+        ("de", True, "ccc", None),  # nothing decomposes
+        ("fi", True, "a" * 101, None),  # over the MAXLEN quadratic-blow-up cap
+        ("fi", True, "a" * 100000, None),
+    ],
+)
+def test_affix_decomposition(
+    lang: str, greedy: bool, token: str, expected: str | None
+) -> None:
+    """get_lemma resolves inflected forms to their lemma, or returns None for
+    gated-out languages, over-length tokens, and unresolvable forms."""
+    assert AffixDecompositionStrategy(greedy=greedy).get_lemma(token, lang) == expected
 
 
-def test_affix_decomposition_et_affix_len_override() -> None:
-    """et's max_affix_len=3 avoids over-stripping the "-konna" genitive."""
-    affix = AffixDecompositionStrategy(greedy=True)
-    assert affix.get_lemma("raamatutest", "et") == "raamat"
-    assert affix.get_lemma("laudkonna", "et") is None
-
-
-def test_affix_decomposition_da_membership() -> None:
-    """da is UD-validated and enabled in non-greedy mode via AFFIX_LANGS."""
-    affix = AffixDecompositionStrategy(greedy=False)
-    assert affix.get_lemma("drabsdagen", "da") == "drabsdag"
-    assert affix.get_lemma("menighedsrådsvalget", "da") == "menighedsrådsvalg"
-
-
-def test_affix_decomposition_nn_membership() -> None:
-    """nn is UD-validated and enabled in non-greedy mode via AFFIX_LANGS."""
-    affix = AffixDecompositionStrategy(greedy=False)
-    assert affix.get_lemma("pastasalaten", "nn") == "pastasalat"
-    assert affix.get_lemma("underleverandørane", "nn") == "underleverandør"
-
-
-def test_affix_decomposition_lt_gate() -> None:
-    """lt's entry gate is 7, not the default 8, admitting 8-char forms."""
-    assert greedy_min_length("lt") == 7
+def test_affix_decomposition_gate_config() -> None:
+    """The entry gate is shared with GreedyDictionaryLookupStrategy, and it
+    (not the sub-strategy) is what excludes a language: `_suffix_decomposition`
+    still fires for sw, so only the gate keeps its garbage out of the pipeline."""
+    assert greedy_min_length("lt") == 7  # lowered from the default
     assert greedy_min_length("bg") == 6
     assert greedy_min_length("xx") == 8
-    affix = AffixDecompositionStrategy(greedy=False)
-    assert affix.get_lemma("rengiami", "lt") == "rengti"
-    assert affix.get_lemma("teikiant", "lt") == "teikti"
-
-
-def test_affix_decomposition_greedy_exclude() -> None:
-    """GREEDY_EXCLUDE languages skip decomposition entirely in greedy mode."""
-    affix = AffixDecompositionStrategy(greedy=True)
-    # the sub-strategy would fire garbage; the entry gate prevents it
-    assert affix._suffix_decomposition("-changanya", "sw", 4) is not None
-    assert affix.get_lemma("-changanya", "sw") is None
-    assert affix.get_lemma("supostamente", "pt") is None
-    assert affix.get_lemma("virtualmente", "gl") is None
-    # non-excluded languages still decompose in greedy mode
-    assert affix.get_lemma("kissammeko", "fi") == "kissa"
-
-
-def test_affix_decomposition_es_membership() -> None:
-    """es was re-validated on UD v2.18 (es_gsd + es_ancora, both modes)
-    and admitted; the old rejection was an es_gsd PROPN-convention
-    artifact fixed upstream."""
-    affix = AffixDecompositionStrategy(greedy=False)
-    assert affix.get_lemma("microrregiones", "es") == "microrregión"
-    assert affix.get_lemma("estanquillas", "es") == "estanquilla"
+    assert (
+        AffixDecompositionStrategy(greedy=True)._suffix_decomposition(
+            "-changanya", "sw", 4
+        )
+        is not None
+    )
 
 
 def test_clitic_decomposition() -> None:
@@ -220,6 +206,15 @@ def test_apostrophe_boundary() -> None:
     assert strat.get_lemma("Erdoğan'ın", "tr") == "Erdoğan"
     # curly apostrophes (smart quotes) mark the same boundary
     assert strat.get_lemma("Erdoğan’ın", "tr") == "Erdoğan"
+    # a curated whole-token dict entry is authoritative: boundary splitting
+    # defers so dictionary lookup wins ("isen'e" -> "isen", not head "i").
+    lookup = DictionaryLookupStrategy()
+    assert lookup.exact_lemma("isen'e", "tr") == "isen"
+    assert (
+        ApostropheBoundaryStrategy(strat.get_lemma, lookup).get_lemma("isen'e", "tr")
+        is None
+    )
+    assert strat.get_lemma("isen'e", "tr") == "isen"
     # unsupported language: no-op
     assert (
         ApostropheBoundaryStrategy(
