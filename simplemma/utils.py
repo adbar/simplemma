@@ -33,25 +33,32 @@ def strip_diacritics(word: str) -> str:
     )
 
 
+# Apostrophe glyphs folded to straight U+0027 (the form dictionaries key on);
+# NFC does not unify them. Single source of truth for the helpers below.
+_STRAIGHT_APOSTROPHE = "'"
+_FOLDED_APOSTROPHES = ("’", "ʼ")  # curly U+2019, modifier letter U+02BC
+
+
 def normalize_apostrophes(text: str) -> str:
-    """Fold curly (U+2019) and Ukrainian modifier-letter (U+02BC) apostrophes
-    to straight; NFC does not unify them."""
-    return text.replace("’", "'").replace("ʼ", "'")
+    """Fold curly and modifier-letter apostrophes to straight (U+0027)."""
+    for glyph in _FOLDED_APOSTROPHES:
+        text = text.replace(glyph, _STRAIGHT_APOSTROPHE)
+    return text
 
 
 def has_apostrophe(text: str) -> bool:
-    """Any apostrophe variant normalize_apostrophes folds (keep in sync)."""
+    """True if the text carries any apostrophe glyph normalize_apostrophes folds.
+    Inline (hot path: gates every OOV lookup); mirror the glyph constants above."""
     return "'" in text or "’" in text or "ʼ" in text
 
 
 def apostrophe_variants(token: str) -> tuple[str, ...]:
-    """Straight- and curly-apostrophe forms to try in dictionary lookups
-    (sources disagree on which variant they store)."""
+    """Every apostrophe-glyph form of the token to try in dictionary lookups."""
     straight = normalize_apostrophes(token)
-    if "'" not in straight:
+    if _STRAIGHT_APOSTROPHE not in straight:
         return (token,)
-    curly = straight.replace("'", "’")
-    return tuple(dict.fromkeys((token, straight, curly)))
+    folded = (straight.replace(_STRAIGHT_APOSTROPHE, g) for g in _FOLDED_APOSTROPHES)
+    return tuple(dict.fromkeys((token, straight, *folded)))
 
 
 def validate_lang_input(lang: str | tuple[str, ...]) -> tuple[str, ...]:

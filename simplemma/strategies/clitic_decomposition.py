@@ -85,15 +85,24 @@ _CASE_INSENSITIVE_LANGS = {"en"}
 _IRREGULAR_CONTRACTIONS: dict[str, frozenset[str]] = {
     "en": frozenset({"can't", "won't", "shan't"}),
 }
-# A clitic attaches with a hyphen, an apostrophe, or bare concatenation.
-_SEPARATORS = ("-", "'", "")
+# How a clitic attaches, per language (UD MWT gold). pt/ca omit bare
+# concatenation: they mandate a hyphen (no bare gold surfaces), so a bare strip
+# only mangles OOV words ending in a clitic shape (paulo -> paul).
+_CLITIC_SEPARATORS: dict[str, tuple[str, ...]] = {
+    "es": ("",),
+    "pt": ("-",),
+    "ca": ("-", "'"),
+    "it": ("",),
+    "gl": ("-", ""),
+    "en": ("",),
+}
 # Precompute "separator + clitic" suffixes once, longest clitic first so a
 # short one can't shadow a longer one; clitic-major order = first-match order.
 _CLITIC_SUFFIXES = {
     lang: tuple(
         sep + clitic
         for clitic in sorted(clitics, key=len, reverse=True)
-        for sep in _SEPARATORS
+        for sep in _CLITIC_SEPARATORS[lang]
     )
     for lang, clitics in CLITIC_LANGS.items()
 }

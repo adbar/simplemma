@@ -132,6 +132,10 @@ def test_clitic_decomposition_guards() -> None:
     assert clitic.get_lemma("fer-ho", "ca") is None  # "fer" is under the stem floor
     # MAX_CLITICS strips succeed but no stem ever verifies in the dictionary
     assert clitic.get_lemma("zzzzzzselo", "es") is None
+    # pt/ca strip only a hyphenated clitic: a bare strip would mangle these
+    assert clitic.get_lemma("paulo", "pt") is None  # not "paul"
+    assert clitic.get_lemma("carona", "pt") is None  # not "caro"
+    assert clitic.get_lemma("alumne", "ca") is None  # not "alumar"
 
 
 def test_clitic_decomposition_english_contractions() -> None:
