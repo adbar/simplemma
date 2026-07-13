@@ -15,7 +15,7 @@ def apply_rules(
     (length floor, capitalized/hyphenated skip, stoplist) default to no-ops."""
     if (
         len(token) < min_len
-        or (caps and token[0].isupper())
+        or (caps and token[:1].isupper())
         or (hyphen and "-" in token)
         or token in excluded
     ):

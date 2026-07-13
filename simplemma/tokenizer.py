@@ -16,9 +16,12 @@ from typing import Protocol
 
 TOKREGEX = re.compile(
     r"(?:"
-    r"(?:[€$￥£+-]?[0-9][0-9.,:%/-]*|St\.)[\w_€-]+|"
+    r"(?:[€$￥£+-]?[0-9][0-9.,:%/-]*|St\.)(?:[\w_€-]|['’](?=[^\W\d_]))+|"
     r"https?://[^ ]+|"
-    r"[€$￥£@#§]?\w[\w*_-]*|"
+    # letter-flanked apostrophes stay in the word (l'homme, don't, tr
+    # 2020'de) for the clitic/boundary strategies; a digit after the
+    # apostrophe is excluded so ca "l'1" keeps its numeral
+    r"[€$￥£@#§]?\w(?:[\w*_-]|['’](?=[^\W\d_]))*|"
     r"[,;:\.?!¿¡‽⸮…()\[\]–{}—―/‒_“„”⹂‚‘’‛′″‟'\"«»‹›<>=+−×÷•·]+"
     r")"
 )

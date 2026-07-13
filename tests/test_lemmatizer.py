@@ -93,7 +93,7 @@ def test_readme() -> None:
             "spaghettis", lang=("it", "fr")
         )
         == lemmatize("spaghettis", lang=("it", "fr"), greedy=True)
-        == "spaghetto"
+        == "spaghetti"
     )
     assert text_lemmatizer(
         "Sou o intervalo entre o que desejo ser e os outros me fizeram.", lang="pt"
@@ -123,6 +123,14 @@ def test_readme() -> None:
         Lemmatizer(
             fallback_lemmatization_strategy=RaiseErrorFallbackStrategy()
         ).lemmatize("スパゲッティ", lang="pt")
+
+
+def test_apostrophe_variants() -> None:
+    """All three apostrophe glyphs fold to the same lemma, including the
+    modifier-letter U+02BC common in Ukrainian text (dict keys use U+0027)."""
+    assert lemmatize("здоров'я", lang="uk") == "здоров'я"  # straight
+    assert lemmatize("здоров’я", lang="uk") == "здоров'я"  # curly U+2019
+    assert lemmatize("здоровʼя", lang="uk") == "здоров'я"  # modifier U+02BC
 
 
 def test_exceptions() -> None:
@@ -567,6 +575,22 @@ def test_get_lemmas_in_text() -> None:
             ".",
         ]
     )
+    # apostrophe-joined tokens reach the clitic/boundary strategies
+    assert text_lemmatizer("L'homme n'est qu'un roseau.", lang="fr") == [
+        "homme",
+        "être",
+        "un",
+        "roseau",
+        ".",
+    ]
+    assert text_lemmatizer("Ankara Türkiye’nin başkentidir.", lang="tr") == [
+        "ankara",
+        "Türkiye",
+        "başkent",
+        ".",
+    ]
+    assert "здоров'я" in text_lemmatizer("Це для здоров’я людини.", lang="uk")
+    assert "do" in text_lemmatizer("They don't sing.", lang="en")
     # test for Esperanto
     text = "Mi vidas la pomon."
     assert (

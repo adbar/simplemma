@@ -7,12 +7,14 @@ from ..utils import levenshtein_dist
 from .dictionaries.dictionary_factory import DefaultDictionaryFactory, DictionaryFactory
 from .lemmatization_strategy import LemmatizationStrategy
 
-SHORTER_GREEDY = {"bg", "et", "fi", "lv"}
+# UD-validated per language (see training/data/affix_eval/); shared with
+# the affix entry gate in affix_decomposition.py on purpose.
+MIN_LENGTH_OVERRIDES = {"bg": 6, "et": 6, "fi": 6, "lt": 7, "lv": 6}
 
 
 def greedy_min_length(lang: str) -> int:
     """Shortest token worth decomposing; shorter ones are returned/skipped as-is."""
-    return 6 if lang in SHORTER_GREEDY else 8
+    return MIN_LENGTH_OVERRIDES.get(lang, 8)
 
 
 class GreedyDictionaryLookupStrategy(LemmatizationStrategy):

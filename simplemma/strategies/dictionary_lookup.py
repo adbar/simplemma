@@ -3,6 +3,7 @@ This module defines the `DictionaryLookupStrategy` class, which is a concrete im
 It provides lemmatization using dictionary lookup.
 """
 
+from ..utils import apostrophe_variants, has_apostrophe
 from .dictionaries.dictionary_factory import DefaultDictionaryFactory, DictionaryFactory
 from .lemmatization_strategy import LemmatizationStrategy
 
@@ -39,10 +40,30 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
             str | None: The lemma for the token, or `None` if not found in the dictionary.
 
         """
-        # Search the language data, reverse case to extend coverage.
         dictionary = self._dictionary_factory.get_dictionary(lang)
+        # Fast path: apostrophe-free tokens skip the variant machinery (hottest
+        # lookup). Reverse case extends coverage; token[:1] is empty-safe.
         if (result := dictionary.get(token)) is not None:
             return result
-        # Try upper or lowercase (token[:1] stays empty-safe for empty input).
-        token = token.lower() if token[:1].isupper() else token.capitalize()
-        return dictionary.get(token)
+        cased = token.lower() if token[:1].isupper() else token.capitalize()
+        if (result := dictionary.get(cased)) is not None:
+            return result
+        if not has_apostrophe(token):
+            return None
+        # Remaining variants (typed token was variant[0], probed above).
+        for variant in apostrophe_variants(token)[1:]:
+            if (result := dictionary.get(variant)) is not None:
+                return result
+            cased = variant.lower() if variant[:1].isupper() else variant.capitalize()
+            if (result := dictionary.get(cased)) is not None:
+                return result
+        return None
+
+    def exact_lemma(self, token: str, lang: str) -> str | None:
+        """Case-sensitive lookup (apostrophe variants only, no reverse-case
+        fallback): a curated whole-token entry beats any heuristic decomposition."""
+        dictionary = self._dictionary_factory.get_dictionary(lang)
+        for variant in apostrophe_variants(token):
+            if (result := dictionary.get(variant)) is not None:
+                return result
+        return None

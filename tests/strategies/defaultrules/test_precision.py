@@ -4,7 +4,11 @@ lemma), be idempotent, and not overlap. _LEGACY_REAL_WORD_LANGS (eo only)
 keeps the older any-dictionary-entry tolerance.
 """
 
+import ast
 import importlib
+import inspect
+import re
+import textwrap
 
 import pytest
 
@@ -39,6 +43,27 @@ MIN_SUPPORT = round(100 / (100 - THRESHOLD))  # 100 at THRESHOLD=99.0
 # Gate still accepts any dictionary-entry output for these (see docstring).
 _LEGACY_REAL_WORD_LANGS = frozenset({"eo"})
 
+# Bespoke branches outside DEFAULT_RULES the prefilter must also cover, else
+# their firings escape the gate (apply_ru folds a final "ё" before the table).
+_EXTRA_MATCH_SURFACE = {"ru": "ё$"}
+
+
+def _is_pure_wrapper(fn) -> bool:
+    """True iff the fn's whole body is one `return apply_rules(..DEFAULT_RULES..)`,
+    which fires only where the prefilter matches -- so its skips need no check.
+    Structural, so a bespoke branch is detected even before it's registered in
+    _EXTRA_MATCH_SURFACE (a single such return can't itself be bespoke)."""
+    fn_def = ast.parse(textwrap.dedent(inspect.getsource(fn))).body[0]
+    assert isinstance(fn_def, ast.FunctionDef)
+    body = fn_def.body[1:] if ast.get_docstring(fn_def) else fn_def.body
+    return (
+        len(body) == 1
+        and isinstance(body[0], ast.Return)
+        and isinstance(body[0].value, ast.Call)
+        and getattr(body[0].value.func, "id", None) == "apply_rules"
+        and any(getattr(a, "id", None) == "DEFAULT_RULES" for a in body[0].value.args)
+    )
+
 
 @pytest.mark.parametrize("lang", RULE_LANGS)
 def test_rule_quality(lang: str) -> None:
@@ -49,11 +74,28 @@ def test_rule_quality(lang: str) -> None:
     mod = _rules_module(lang)
     rules = mod.DEFAULT_RULES if mod is not None else None
     branches = {p: pattern_alts(p) for p in rules} if rules is not None else {}
+    # Skip entries no rule can match (guaranteed fn None) -- one combined regex,
+    # widened by any bespoke match surface the fn matches outside the table.
+    prefilter = None
+    if rules:
+        alts = [f"(?:{p.pattern})" for p in rules]
+        if (extra := _EXTRA_MATCH_SURFACE.get(lang)) is not None:
+            alts.append(f"(?:{extra})")
+        prefilter = re.compile("|".join(alts))
     legacy = lang in _LEGACY_REAL_WORD_LANGS
     fold = lang in _ACCENT_FOLD_LANGS
+    # A skip must never be resolvable by fn, else its output escapes measurement.
+    # Only a bespoke branch can do that, so re-run fn on skips (inline, no list)
+    # for those langs only -- pure wrappers are safe by construction.
+    verify_skips = not _is_pure_wrapper(fn)
     fired = ok = 0
     cells: dict[tuple[str, str], list[int]] = {}
+    escaped: list[str] = []
     for f, gold in d.items():
+        if prefilter is not None and prefilter.search(f) is None:
+            if verify_skips and fn(f) is not None:
+                escaped.append(f)
+            continue
         p = fn(f)
         if p is None:
             continue
@@ -80,6 +122,11 @@ def test_rule_quality(lang: str) -> None:
                     s[0] += 1
                     s[1] += good
                     break
+
+    assert not escaped, (
+        f"{lang}: prefilter skipped entries fn resolves ({escaped[:5]}); a "
+        f"bespoke branch fires off-table -- add its surface to _EXTRA_MATCH_SURFACE"
+    )
 
     prec = 100 * ok / fired if fired else 100.0
     assert prec >= THRESHOLD, (

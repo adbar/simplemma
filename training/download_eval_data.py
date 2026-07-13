@@ -90,9 +90,9 @@ def get_dirs(folder: Path) -> list[str]:
     return [d.name for d in folder.iterdir() if d.is_dir()]
 
 
-# UD's file-prefix isn't always simplemma's ISO code (Nynorsk="no", North
-# Sami="sme") -- without this map, both are silently dropped, not misfiled.
-_DATASET_LANG_OVERRIDES = {"no_nynorsk": "nn", "sme_giella": "se"}
+# UD's file-prefix isn't always simplemma's ISO code (Norwegian="no", North
+# Sami="sme") -- without this map, these are silently dropped, not misfiled.
+_DATASET_LANG_OVERRIDES = {"no_bokmaal": "nb", "no_nynorsk": "nn", "sme_giella": "se"}
 
 
 def get_relevant_language_data_folders(

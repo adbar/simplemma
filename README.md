@@ -100,14 +100,10 @@ iteration of the search algorithm, e.g. "angekündigten" →
 may be closer to stemming than to lemmatization.
 
 ``` python
-# same example as before, comes to this result in one step
->>> simplemma.lemmatize('spaghettis', lang=('it', 'fr'), greedy=True)
-'spaghetto'
-# German case described above
->>> simplemma.lemmatize('angekündigten', lang='de', greedy=True)
-'ankündigen' # 2 steps: reduction to infinitive verb
 >>> simplemma.lemmatize('angekündigten', lang='de', greedy=False)
 'angekündigt' # 1 step: reduction to past participle
+>>> simplemma.lemmatize('angekündigten', lang='de', greedy=True)
+'ankündigen' # 2 steps: further reduction to infinitive verb
 ```
 
 
@@ -280,24 +276,17 @@ the `marisa-trie` extra dependency (available from version 1.1.0):
 pip install simplemma[marisa-trie]
 ```
 
-Then you have to create a custom strategy using the
-`TrieDictionaryFactory` and use that for `Lemmatizer` and
-`LanguageDetector` instances:
+Then create a strategy using the `TrieDictionaryFactory` and use it for
+`Lemmatizer` and `LanguageDetector` instances, exactly as shown above:
 
 ``` python
->>> from simplemma import LanguageDetector, Lemmatizer
+>>> from simplemma import Lemmatizer
 >>> from simplemma.strategies import DefaultStrategy
 >>> from simplemma.strategies.dictionaries import TrieDictionaryFactory
 
->>> lemmatization_strategy = DefaultStrategy(dictionary_factory=TrieDictionaryFactory())
-
->>> lemmatizer = Lemmatizer(lemmatization_strategy=lemmatization_strategy)
->>> lemmatizer.lemmatize('doughnuts', lang='en')
+>>> strategy = DefaultStrategy(dictionary_factory=TrieDictionaryFactory())
+>>> Lemmatizer(lemmatization_strategy=strategy).lemmatize('doughnuts', lang='en')
 'doughnut'
-
->>> language_detector = LanguageDetector('la', lemmatization_strategy=lemmatization_strategy)
->>> language_detector.proportion_in_target_languages("opera post physica posita (τὰ μετὰ τὰ φυσικά)")
-0.5
 ```
 
 While memory usage and initialization time when using the

@@ -1,43 +1,23 @@
 import re
 
-# 2-letter prefixes are theoretically already accounted for by the current AFFIXLEN parameter
+# UD-validated (de_gsd/de_hdt): dropped 27 entries that were unreachable under
+# first-match alternation ("herab" shadowed by "her") plus "zu" (fabricated
+# zufolge->zufolgen). Regex sorts by length so order carries no meaning.
 GERMAN_PREFIXES = [
     "ab",
     "an",
     "auf",
     "aus",
     "be",
-    "bei",
     "da",
-    "dar",
-    "darin",
-    "davor",
     "durch",
     "ein",
     "ent",
-    "entgegen",
     "er",
     "gegen",
     "heim",
     "her",
-    "herab",
-    "heran",
-    "herauf",
-    "heraus",
-    "herbei",
-    "herein",
-    "herum",
-    "herunter",
-    "hervor",
     "hin",
-    "hinab",
-    "hinauf",
-    "hinaus",
-    "hinein",
-    "hinten",
-    "hinter",
-    "hinunter",
-    "hinweg",
     "hinzu",
     "innen",
     "los",
@@ -56,16 +36,14 @@ GERMAN_PREFIXES = [
     "unter",
     "ver",
     "vor",
-    "voran",
-    "voraus",
-    "vorbei",
-    "vorher",
-    "vorüber",
     "weg",
     "weiter",
     "wieder",
     "zer",
-    "zu",
 ]
 
-DE_PREFIX_REGEX = re.compile(r"^(" + "|".join(GERMAN_PREFIXES) + ")(?!zu)")
+# (?!zu) blocks prefix+zu-infinitive splits (abzuholen must not be read as
+# ab+zuholen) -- unrelated to the "zu" entry removed above.
+DE_PREFIX_REGEX = re.compile(
+    r"^(" + "|".join(sorted(GERMAN_PREFIXES, key=len, reverse=True)) + r")(?!zu)"
+)

@@ -1,8 +1,10 @@
 import re
 
+# UD-validated (ru_gsd/ru_syntagrus): "за"/"при" removed -- net harmful,
+# fabricating lemmas for lexicalized adverbs (затем->затема). Regex sorts by
+# length so order carries no meaning.
 RUSSIAN_PREFIXES = [
     "гидро",
-    "за",
     "контр",
     "много",
     "микро",
@@ -10,7 +12,6 @@ RUSSIAN_PREFIXES = [
     "пере",
     "под",
     "пред",
-    "при",
     "про",
     "радио",
     "раз",
@@ -20,4 +21,6 @@ RUSSIAN_PREFIXES = [
     "электро",
 ]
 
-RU_PREFIX_REGEX = re.compile(r"^(" + "|".join(RUSSIAN_PREFIXES) + ")")
+RU_PREFIX_REGEX = re.compile(
+    r"^(" + "|".join(sorted(RUSSIAN_PREFIXES, key=len, reverse=True)) + r")"
+)

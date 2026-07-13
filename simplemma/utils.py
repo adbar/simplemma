@@ -5,6 +5,7 @@ Contains utility functions for language processing.
 - [levenshtein_dist][simplemma.utils.levenshtein_dist]: Calculates the Levenshtein distance between two strings.
 - [validate_lang_input][simplemma.utils.validate_lang_input]: Validates the language input and ensures it is a valid tuple.
 - [normalize_token][simplemma.utils.normalize_token]: Normalizes a token to Unicode NFC form.
+- [strip_diacritics][simplemma.utils.strip_diacritics]: Removes combining diacritics from a token.
 """
 
 import unicodedata
@@ -21,6 +22,43 @@ def normalize_token(token: str) -> str:
         str: The token in NFC form.
     """
     return unicodedata.normalize("NFC", token)
+
+
+def strip_diacritics(word: str) -> str:
+    """Remove combining diacritics, re-normalizing to NFC (dictionaries are
+    NFC-keyed)."""
+    decomposed = unicodedata.normalize("NFD", word)
+    return unicodedata.normalize(
+        "NFC", "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    )
+
+
+# Apostrophe glyphs folded to straight U+0027 (the form dictionaries key on);
+# NFC does not unify them. Single source of truth for the helpers below.
+_STRAIGHT_APOSTROPHE = "'"
+_FOLDED_APOSTROPHES = ("’", "ʼ")  # curly U+2019, modifier letter U+02BC
+
+
+def normalize_apostrophes(text: str) -> str:
+    """Fold curly and modifier-letter apostrophes to straight (U+0027)."""
+    for glyph in _FOLDED_APOSTROPHES:
+        text = text.replace(glyph, _STRAIGHT_APOSTROPHE)
+    return text
+
+
+def has_apostrophe(text: str) -> bool:
+    """True if the text carries any apostrophe glyph normalize_apostrophes folds.
+    Inline (hot path: gates every OOV lookup); mirror the glyph constants above."""
+    return "'" in text or "’" in text or "ʼ" in text
+
+
+def apostrophe_variants(token: str) -> tuple[str, ...]:
+    """Every apostrophe-glyph form of the token to try in dictionary lookups."""
+    straight = normalize_apostrophes(token)
+    if _STRAIGHT_APOSTROPHE not in straight:
+        return (token,)
+    folded = (straight.replace(_STRAIGHT_APOSTROPHE, g) for g in _FOLDED_APOSTROPHES)
+    return tuple(dict.fromkeys((token, straight, *folded)))
 
 
 def validate_lang_input(lang: str | tuple[str, ...]) -> tuple[str, ...]:

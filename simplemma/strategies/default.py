@@ -1,9 +1,11 @@
 """
 This module defines the `DefaultStrategy` class, which is a concrete implementation of the `LemmatizationStrategy` protocol.
-It provides lemmatization using a combination of different strategies such as dictionary lookup, hyphen removal, rule-based lemmatization, prefix decomposition, and affix decomposition.
+It provides lemmatization using a combination of different strategies such as dictionary lookup, apostrophe-boundary splitting, clitic decomposition, hyphen removal, rule-based lemmatization, prefix decomposition, and affix decomposition.
 """
 
 from .affix_decomposition import AffixDecompositionStrategy
+from .apostrophe_boundary import ApostropheBoundaryStrategy
+from .clitic_decomposition import CliticDecompositionStrategy
 from .dictionaries.dictionary_factory import DefaultDictionaryFactory, DictionaryFactory
 from .dictionary_lookup import DictionaryLookupStrategy
 from .greedy_dictionary_lookup import GreedyDictionaryLookupStrategy
@@ -24,6 +26,8 @@ class DefaultStrategy(LemmatizationStrategy):
         "_hyphen_search",
         "_rules_search",
         "_prefix_search",
+        "_clitic_search",
+        "_apostrophe_search",
         "_greedy_dictionary_lookup",
         "_affix_search",
     ]
@@ -48,10 +52,14 @@ class DefaultStrategy(LemmatizationStrategy):
         self._prefix_search = PrefixDecompositionStrategy(
             dictionary_lookup=self._dictionary_lookup
         )
-        greedy_dictionary_lookup = GreedyDictionaryLookupStrategy(dictionary_factory)
-        self._affix_search = AffixDecompositionStrategy(
-            greedy, self._dictionary_lookup, greedy_dictionary_lookup
+        self._clitic_search = CliticDecompositionStrategy(self._dictionary_lookup)
+        # Callback is the search chain, not get_lemma: avoids a circular
+        # construction dependency and a second greedy round on the head.
+        self._apostrophe_search = ApostropheBoundaryStrategy(
+            self._search_pipeline, self._dictionary_lookup
         )
+        greedy_dictionary_lookup = GreedyDictionaryLookupStrategy(dictionary_factory)
+        self._affix_search = AffixDecompositionStrategy(greedy, self._dictionary_lookup)
 
         self._greedy_dictionary_lookup = greedy_dictionary_lookup if greedy else None
 
@@ -67,22 +75,30 @@ class DefaultStrategy(LemmatizationStrategy):
             str | None: The lemma of the token, or None if no lemma is found.
 
         """
-        # filters
-        if token.isnumeric():
-            return token
+        candidate = self._search_pipeline(token, lang)
 
-        candidate = (
-            # supervised searches
-            self._dictionary_lookup.get_lemma(token, lang)
-            or self._hyphen_search.get_lemma(token, lang)
-            or self._rules_search.get_lemma(token, lang)
-            or self._prefix_search.get_lemma(token, lang)
-            # weakly supervised / greedier searches
-            or self._affix_search.get_lemma(token, lang)
-        )
-
-        # additional round
+        # additional round, applied exactly once regardless of path
         if candidate is not None and self._greedy_dictionary_lookup is not None:
             candidate = self._greedy_dictionary_lookup.get_lemma(candidate, lang)
 
         return candidate
+
+    def _search_pipeline(self, token: str, lang: str) -> str | None:
+        """Run the ordered search chain (no greedy round). Shared by
+        `get_lemma` and injected as the apostrophe-boundary head callback."""
+        if token.isnumeric():
+            return token
+
+        return (
+            # before dictionary_lookup: its reverse-case fallback else
+            # mangles capitalized proper nouns (Erdoğan'ın -> erdoğan)
+            self._apostrophe_search.get_lemma(token, lang)
+            or self._dictionary_lookup.get_lemma(token, lang)
+            # before hyphen_search: a hyphenated clitic's last part often
+            # self-resolves, so hyphen_search would return the token as-is
+            or self._clitic_search.get_lemma(token, lang)
+            or self._hyphen_search.get_lemma(token, lang)
+            or self._rules_search.get_lemma(token, lang)
+            or self._prefix_search.get_lemma(token, lang)
+            or self._affix_search.get_lemma(token, lang)
+        )
