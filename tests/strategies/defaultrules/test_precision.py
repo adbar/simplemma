@@ -50,8 +50,7 @@ def test_rule_quality(lang: str) -> None:
     mod = _rules_module(lang)
     rules = mod.DEFAULT_RULES if mod is not None else None
     branches = {p: pattern_alts(p) for p in rules} if rules is not None else {}
-    # Skip entries no rule can match (guaranteed fn None): one combined regex
-    # rejects the ~80% non-matching without fn's full per-pattern scan.
+    # Skip entries no rule can match (guaranteed fn None) -- one combined regex.
     prefilter = (
         re.compile("|".join(f"(?:{p.pattern})" for p in rules)) if rules else None
     )

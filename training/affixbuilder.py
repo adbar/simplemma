@@ -1,20 +1,14 @@
 """
-Measurement harness for `simplemma/strategies/affix_decomposition.py`'s
-per-language config (the `AFFIX_LANGS` dict / `greedy_min_length`).
+Measurement harness for `AFFIX_LANGS` / `greedy_min_length` in
+`simplemma/strategies/affix_decomposition.py`.
 
-Method: sample (form, lemma) pairs from the dictionary and feed `form`
-straight to `AffixDecompositionStrategy` -- the strategy never looks up the
-full token, only its parts, so in-dict forms are a fair OOV simulation.
-Candidates are first restricted to tokens the EARLIER chain stages (hyphen
-removal, rules, prefix decomposition -- not dictionary lookup, deliberately
-bypassed to simulate an unseen token) do not already resolve, since those
-never reach affix decomposition in the real pipeline.
+Feeds dictionary `form`s to `AffixDecompositionStrategy` (which only looks up
+their parts, so in-dict forms are a fair OOV simulation), restricted to tokens
+the earlier stages (hyphen/rules/prefix, NOT dict lookup) don't already
+resolve. Membership criterion net_full% = (gain - harm) / sample_size, where
+gain = form!=lemma & output==lemma, harm = form==lemma & output!=form.
 
-net_full% = (gain - harm) / sample_size is the membership criterion:
-  gain = fired & form != lemma & output == lemma  (decomposition helped)
-  harm = fired & form == lemma & output != form    (decomposition hurt a citation form)
-
-Usage: uv run python training/affixbuilder.py [lang ...]  (default: all languages)
+Usage: uv run python training/affixbuilder.py [lang ...]  (default: all)
 """
 
 import random
@@ -53,8 +47,7 @@ def sample_pairs(
     sample: int = SAMPLE_DEFAULT,
     seed: int = SEED_DEFAULT,
 ) -> Pairs:
-    """Sample lowercase (form, lemma) pairs from `lang`'s dictionary
-    (capitalized forms are proper nouns / noun-capitalizing-language
+    """Sample lowercase (form, lemma) pairs (capitalized = proper nouns /
     compounds, a separate population affix decomposition mishandles)."""
     d = FACTORY.get_dictionary(lang)
     pairs = [(f, lemma) for f, lemma in d.items() if not f[:1].isupper()]
@@ -64,10 +57,8 @@ def sample_pairs(
 
 
 def reaches_affix(token: str, lang: str) -> bool:
-    """True if the real pipeline's earlier stages (hyphen/rules/prefix)
-    leave `token` unresolved, so it would actually reach affix
-    decomposition. Dictionary lookup is deliberately skipped here -- that's
-    the OOV simulation itself."""
+    """True if the earlier stages (hyphen/rules/prefix) leave `token`
+    unresolved -- dict lookup skipped, that IS the OOV simulation."""
     return (
         _HYPHEN.get_lemma(token, lang) is None
         and _RULES.get_lemma(token, lang) is None
@@ -89,14 +80,10 @@ def measure(
     min_length: int,
     pairs: Pairs | None = None,
 ) -> dict[str, object]:
-    """Net benefit of affix decomposition for `lang` at a given
-    (max_affix_len, min_length). Calls the two sub-strategies directly
-    (bypassing `get_lemma`'s static config lookup) so any parameter
-    combination can be swept, not just the currently shipped one.
-
-    `net_full_pct` divides by the whole sample (gated-out tokens pass
-    through unchanged: 0 gain, 0 harm), so it is the fair number for
-    comparing configs with different min_length values."""
+    """Net benefit for `lang` at (max_affix_len, min_length). Calls the
+    sub-strategies directly so any parameter combo can be swept. net_full_pct
+    divides by the whole sample (gated-out tokens = 0 gain/harm), the fair
+    cross-min_length number."""
     pairs = pairs if pairs is not None else sample_pairs(lang)
     n_full = len(pairs)
     pairs = _filter_reachable(pairs, lang, min_length)
@@ -123,8 +110,7 @@ def measure(
         "gain": gain,
         "harm": harm,
         "net_full_pct": _pct(gain - harm, n_full),
-        # correctness of VISIBLE changes -- wrong-changed inflected forms are
-        # exact-match-neutral (excluded from net) but user-visible garbage
+        # precision of visible changes (net-neutral, but user-visible garbage)
         "changed": changed,
         "changed_prec_pct": _pct(changed_ok, changed),
     }

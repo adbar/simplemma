@@ -35,7 +35,6 @@ def apostrophe_variants(token: str) -> tuple[str, ...]:
     if "'" not in straight:
         return (token,)
     curly = straight.replace("'", "’")
-    # original first, deduped
     return tuple(dict.fromkeys((token, straight, curly)))
 
 

@@ -97,12 +97,10 @@ def test_affix_decomposition(
 
 
 def test_affix_decomposition_guards() -> None:
-    """Guards that keep tokens out of decomposition: the entry gate (shared
-    with GreedyDictionaryLookupStrategy) excludes a language, not the
-    sub-strategy (`_suffix_decomposition` still fires for sw); a MAXLEN cap
-    rejects over-long tokens. The 100k-char case lives here, not in the
-    parametrized table -- as a param value its test id overflows Windows'
-    32767-char env-var limit."""
+    """Entry gate (shared with GreedyDictionaryLookupStrategy), not the
+    sub-strategy, excludes a language (`_suffix_decomposition` still fires for
+    sw); plus the MAXLEN cap. The 100k-char token stays out of parametrize --
+    its node id would overflow Windows' 32767-char env-var limit."""
     affix = AffixDecompositionStrategy(greedy=True)
     assert greedy_min_length("lt") == 7  # lowered from the default
     assert greedy_min_length("bg") == 6

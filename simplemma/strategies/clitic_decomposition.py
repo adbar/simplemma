@@ -269,9 +269,8 @@ class CliticDecompositionStrategy(LemmatizationStrategy):
         stem = _strip_proclitic(token, proclitics, PROCLITIC_MIN_STEM_LEN)
         if stem is None:
             return None
-        # A capitalized proclitic (D') left on a capitalized stem signals a
-        # proper noun (D'Annunzio), where stripping is wrong; a plain
-        # sentence-initial capital leaves the stem lowercase (L'homme).
+        # Capitalized stem after a capitalized proclitic = proper noun
+        # (D'Annunzio, don't strip); lowercase stem = sentence-initial (L'homme).
         if token[:1].isupper() and stem[:1].isupper():
             return None
         return self._stem_lookup(stem, lang)

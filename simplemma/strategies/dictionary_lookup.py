@@ -53,8 +53,7 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
 
     def exact_lemma(self, token: str, lang: str) -> str | None:
         """Case-sensitive lookup (apostrophe variants only, no reverse-case
-        fallback): a curated whole-token entry is authoritative over any
-        heuristic decomposition of the token."""
+        fallback): a curated whole-token entry beats any heuristic decomposition."""
         dictionary = self._dictionary_factory.get_dictionary(lang)
         for variant in apostrophe_variants(token):
             if (result := dictionary.get(variant)) is not None:

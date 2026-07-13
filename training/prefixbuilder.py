@@ -1,24 +1,16 @@
 """
-Mining/analysis tool that generates prefix-stripping candidates for
-`simplemma/strategies/defaultprefixes/` from the shipped dictionaries --
-a hypothesis generator, never evidence (see training/data/affix_eval/,
-whose central finding is that in-dict measurement has ~0% hit rate for
-sign on affix/prefix decisions). A candidate must still clear the same UD
-tune/confirm gate as de/ru (training/data/affix_eval/scripts/
-prefix_audit.py) before being added to a shipped list. That gate (and the
-whole training/data/affix_eval/ tree) is local audit tooling, gitignored
-and not shipped -- rebuild it from training/download_eval_data.py.
+Generates prefix-stripping candidates for `simplemma/strategies/defaultprefixes/`
+from the shipped dictionaries -- a hypothesis generator, NEVER evidence
+(in-dict measurement has ~0% hit rate for sign on prefix decisions). A candidate
+must still clear the UD tune/confirm gate as de/ru did (training/data/affix_eval/
+scripts/prefix_audit.py) before shipping; that whole tree is gitignored local
+tooling, rebuild via training/download_eval_data.py.
 
-For every dictionary entry (form, lemma) and every prefix length where a
-split leaves a plausible remainder (>=4 chars, mirroring
-affix_decomposition.MINCOMPLEN) that is ITSELF a dictionary entry, check
-whether lemma(form) == prefix + lemma(remainder). Group by prefix string,
-count hits/misses. A high-precision, high-support prefix is worth an
-actual UD gate run. A high identity-miss share (misses where the gold
-lemma is the form itself) names the "za"/"zu" pattern found there:
-prefix+remainder is often itself a fixed lexical item (lexicalization),
-not a live derivation -- exactly the failure mode that made those two
-entries net-harmful despite decent raw precision.
+For each (form, lemma) and prefix length whose remainder (>=4 chars) is itself a
+dict entry, checks lemma(form) == prefix + lemma(remainder); groups by prefix,
+counting hits/misses. A high identity-miss share (gold lemma == form) flags the
+"za"/"zu" case: prefix+remainder is a lexicalized item, not a live derivation --
+the failure mode that made those net-harmful despite decent raw precision.
 
 Usage: uv run python training/prefixbuilder.py <lang> [min_len] [support_min]
 """
