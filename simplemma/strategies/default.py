@@ -53,11 +53,10 @@ class DefaultStrategy(LemmatizationStrategy):
             dictionary_lookup=self._dictionary_lookup
         )
         self._clitic_search = CliticDecompositionStrategy(self._dictionary_lookup)
-        # Injected as a callback (self.get_lemma), not composed, so the
-        # head gets the full pipeline without a circular construction
-        # dependency (self isn't done building yet).
+        # Callback is the search chain, not get_lemma: avoids a circular
+        # construction dependency and a second greedy round on the head.
         self._apostrophe_search = ApostropheBoundaryStrategy(
-            self.get_lemma, self._dictionary_lookup
+            self._search_pipeline, self._dictionary_lookup
         )
         greedy_dictionary_lookup = GreedyDictionaryLookupStrategy(dictionary_factory)
         self._affix_search = AffixDecompositionStrategy(greedy, self._dictionary_lookup)
@@ -76,36 +75,30 @@ class DefaultStrategy(LemmatizationStrategy):
             str | None: The lemma of the token, or None if no lemma is found.
 
         """
-        # filters
-        if token.isnumeric():
-            return token
+        candidate = self._search_pipeline(token, lang)
 
-        candidate = (
-            # apostrophe_search must precede dictionary_lookup itself:
-            # dictionary_lookup's own reverse-case fallback resolves the
-            # WHOLE apostrophe-bearing token (case+apostrophe combos are
-            # densely populated in some dictionaries) before anything
-            # later in the chain ever gets a chance, and that fallback
-            # is exactly where it goes wrong for capitalized proper
-            # nouns (Erdoğan'ın -> erdoğan). It defers to a curated
-            # exact entry, so it only overrides the lossy case fallback.
-            self._apostrophe_search.get_lemma(token, lang)
-            # supervised searches
-            or self._dictionary_lookup.get_lemma(token, lang)
-            # clitic_search must precede hyphen_search: a hyphenated
-            # clitic form's last part (e.g. "se", "ho") often resolves to
-            # itself in the dictionary, so hyphen_search's decompose
-            # branch would otherwise return the token unchanged first.
-            or self._clitic_search.get_lemma(token, lang)
-            or self._hyphen_search.get_lemma(token, lang)
-            or self._rules_search.get_lemma(token, lang)
-            or self._prefix_search.get_lemma(token, lang)
-            # weakly supervised / greedier searches
-            or self._affix_search.get_lemma(token, lang)
-        )
-
-        # additional round
+        # additional round, applied exactly once regardless of path
         if candidate is not None and self._greedy_dictionary_lookup is not None:
             candidate = self._greedy_dictionary_lookup.get_lemma(candidate, lang)
 
         return candidate
+
+    def _search_pipeline(self, token: str, lang: str) -> str | None:
+        """Run the ordered search chain (no greedy round). Shared by
+        `get_lemma` and injected as the apostrophe-boundary head callback."""
+        if token.isnumeric():
+            return token
+
+        return (
+            # before dictionary_lookup: its reverse-case fallback else
+            # mangles capitalized proper nouns (Erdoğan'ın -> erdoğan)
+            self._apostrophe_search.get_lemma(token, lang)
+            or self._dictionary_lookup.get_lemma(token, lang)
+            # before hyphen_search: a hyphenated clitic's last part often
+            # self-resolves, so hyphen_search would return the token as-is
+            or self._clitic_search.get_lemma(token, lang)
+            or self._hyphen_search.get_lemma(token, lang)
+            or self._rules_search.get_lemma(token, lang)
+            or self._prefix_search.get_lemma(token, lang)
+            or self._affix_search.get_lemma(token, lang)
+        )
