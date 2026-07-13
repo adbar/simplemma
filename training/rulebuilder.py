@@ -25,13 +25,13 @@ import functools
 import os
 import re
 import sys
-import unicodedata
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
 
 from simplemma.strategies.dictionaries.dictionary_factory import (
     DefaultDictionaryFactory,
 )
+from simplemma.utils import strip_diacritics
 
 Cells = dict[tuple[str, str], int]
 Rules = dict[re.Pattern[str], str]
@@ -44,12 +44,6 @@ PREC_MIN_DEFAULT = 99.0
 # its scoring pass, and _compile_group()'s `(?<=..)` floor must all agree on
 # this, or the builder's stats stop describing what the compiled rule fires on.
 MIN_STEM_CHARS = 2
-
-
-def _strip_accents(s: str) -> str:
-    return "".join(
-        c for c in unicodedata.normalize("NFD", s) if not unicodedata.combining(c)
-    )
 
 
 # Languages whose reference data carries a PEDAGOGICAL diacritic that normal
@@ -71,7 +65,7 @@ def output_is_lemma(out: str, gold: str, *, fold_accents: bool = False) -> bool:
     ignore combining accents, and must be set ONLY for `_ACCENT_FOLD_LANGS`."""
     if out == gold:
         return True
-    return fold_accents and _strip_accents(out) == _strip_accents(gold)
+    return fold_accents and strip_diacritics(out) == strip_diacritics(gold)
 
 
 _MERGED_SHAPE = re.compile(r"\(([^()?][^()]*)\)\(\?:([^()]*)\)\$")

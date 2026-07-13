@@ -5,6 +5,7 @@ Contains utility functions for language processing.
 - [levenshtein_dist][simplemma.utils.levenshtein_dist]: Calculates the Levenshtein distance between two strings.
 - [validate_lang_input][simplemma.utils.validate_lang_input]: Validates the language input and ensures it is a valid tuple.
 - [normalize_token][simplemma.utils.normalize_token]: Normalizes a token to Unicode NFC form.
+- [strip_diacritics][simplemma.utils.strip_diacritics]: Removes combining diacritics from a token.
 """
 
 import unicodedata
@@ -23,9 +24,24 @@ def normalize_token(token: str) -> str:
     return unicodedata.normalize("NFC", token)
 
 
+def strip_diacritics(word: str) -> str:
+    """Remove combining diacritics, re-normalizing to NFC (dictionaries are
+    NFC-keyed)."""
+    decomposed = unicodedata.normalize("NFD", word)
+    return unicodedata.normalize(
+        "NFC", "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    )
+
+
 def normalize_apostrophes(text: str) -> str:
-    """Fold curly apostrophes to straight ones (NFC does not unify them)."""
-    return text.replace("’", "'")
+    """Fold curly (U+2019) and Ukrainian modifier-letter (U+02BC) apostrophes
+    to straight; NFC does not unify them."""
+    return text.replace("’", "'").replace("ʼ", "'")
+
+
+def has_apostrophe(text: str) -> bool:
+    """Any apostrophe variant normalize_apostrophes folds (keep in sync)."""
+    return "'" in text or "’" in text or "ʼ" in text
 
 
 def apostrophe_variants(token: str) -> tuple[str, ...]:

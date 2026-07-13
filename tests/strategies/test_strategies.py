@@ -222,8 +222,13 @@ def test_apostrophe_boundary() -> None:
 
 
 def test_dictionary_lookup_apostrophe_variant() -> None:
-    """A dictionary key using the other apostrophe variant (straight vs
-    curly -- NFC does not unify them) is still found."""
+    """A key stored under another apostrophe variant (straight ', curly U+2019,
+    modifier-letter U+02BC -- NFC does not unify them) is still found."""
     lookup = DictionaryLookupStrategy()
-    assert lookup.get_lemma("виб’єш", "uk") == "вибити"
+    assert lookup.get_lemma("виб’єш", "uk") == "вибити"  # curly
+    assert lookup.get_lemma("вибʼєш", "uk") == "вибити"  # U+02BC (Ukrainian)
+    assert lookup.get_lemma("виб'єш", "uk") == "вибити"  # straight
     assert lookup.get_lemma("un’", "it") == "uno"
+    # Probe order preserved across variants: this glyph-mixed fi entry keeps
+    # its straight-variant answer.
+    assert lookup.get_lemma("Vaa'assa", "fi") == "vaaka"

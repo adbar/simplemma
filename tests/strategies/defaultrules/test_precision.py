@@ -40,6 +40,10 @@ MIN_SUPPORT = round(100 / (100 - THRESHOLD))  # 100 at THRESHOLD=99.0
 # Gate still accepts any dictionary-entry output for these (see docstring).
 _LEGACY_REAL_WORD_LANGS = frozenset({"eo"})
 
+# Bespoke branches outside DEFAULT_RULES the prefilter must also cover, else
+# their firings escape the gate (apply_ru folds a final "ё" before the table).
+_EXTRA_MATCH_SURFACE = {"ru": "ё$"}
+
 
 @pytest.mark.parametrize("lang", RULE_LANGS)
 def test_rule_quality(lang: str) -> None:
@@ -50,10 +54,14 @@ def test_rule_quality(lang: str) -> None:
     mod = _rules_module(lang)
     rules = mod.DEFAULT_RULES if mod is not None else None
     branches = {p: pattern_alts(p) for p in rules} if rules is not None else {}
-    # Skip entries no rule can match (guaranteed fn None) -- one combined regex.
-    prefilter = (
-        re.compile("|".join(f"(?:{p.pattern})" for p in rules)) if rules else None
-    )
+    # Skip entries no rule can match (guaranteed fn None) -- one combined regex,
+    # widened by any bespoke match surface the fn matches outside the table.
+    prefilter = None
+    if rules:
+        alts = [f"(?:{p.pattern})" for p in rules]
+        if (extra := _EXTRA_MATCH_SURFACE.get(lang)) is not None:
+            alts.append(f"(?:{extra})")
+        prefilter = re.compile("|".join(alts))
     legacy = lang in _LEGACY_REAL_WORD_LANGS
     fold = lang in _ACCENT_FOLD_LANGS
     fired = ok = 0

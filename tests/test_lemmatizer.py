@@ -125,6 +125,14 @@ def test_readme() -> None:
         ).lemmatize("スパゲッティ", lang="pt")
 
 
+def test_apostrophe_variants() -> None:
+    """All three apostrophe glyphs fold to the same lemma, including the
+    modifier-letter U+02BC common in Ukrainian text (dict keys use U+0027)."""
+    assert lemmatize("здоров'я", lang="uk") == "здоров'я"  # straight
+    assert lemmatize("здоров’я", lang="uk") == "здоров'я"  # curly U+2019
+    assert lemmatize("здоровʼя", lang="uk") == "здоров'я"  # modifier U+02BC
+
+
 def test_exceptions() -> None:
     """Test if certain code parts correspond to the intended logic."""
     # missing languages or faulty language codes

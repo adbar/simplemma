@@ -8,9 +8,7 @@ throughout (strip the clitic, verify the remaining stem, drop the
 clitic) -- only which end gets stripped differs.
 """
 
-import unicodedata
-
-from ..utils import normalize_apostrophes
+from ..utils import normalize_apostrophes, strip_diacritics
 from .dictionary_lookup import DictionaryLookupStrategy
 from .lemmatization_strategy import LemmatizationStrategy
 
@@ -87,11 +85,16 @@ _CASE_INSENSITIVE_LANGS = {"en"}
 _IRREGULAR_CONTRACTIONS: dict[str, frozenset[str]] = {
     "en": frozenset({"can't", "won't", "shan't"}),
 }
-# Longest-first so a shorter clitic can never shadow a longer one ("os"
-# vs "nos"), independent of declaration order (equal-length clitics can't
-# match the same ending, so tie order is irrelevant).
-CLITIC_LANGS = {
-    lang: tuple(sorted(clitics, key=len, reverse=True))
+# A clitic attaches with a hyphen, an apostrophe, or bare concatenation.
+_SEPARATORS = ("-", "'", "")
+# Precompute "separator + clitic" suffixes once, longest clitic first so a
+# short one can't shadow a longer one; clitic-major order = first-match order.
+_CLITIC_SUFFIXES = {
+    lang: tuple(
+        sep + clitic
+        for clitic in sorted(clitics, key=len, reverse=True)
+        for sep in _SEPARATORS
+    )
     for lang, clitics in CLITIC_LANGS.items()
 }
 
@@ -157,25 +160,14 @@ MIN_STEM_LEN = 4  # mirrors affix_decomposition.MINCOMPLEN
 # "Proclitic floor sweep".
 PROCLITIC_MIN_STEM_LEN = 1
 MAX_CLITICS = 2  # covers the small multi-clitic tail (e.g. "portar-se-la")
-_SEPARATORS = ("-", "'", "")
 
 
-def _deaccent(word: str) -> str:
-    """Strip written accents anywhere in the word (not just the final
-    letter) -- enclisis often shifts stress onto a mid-word vowel
-    (calificar+le -> calificándole)."""
-    decomposed = unicodedata.normalize("NFD", word)
-    return unicodedata.normalize(
-        "NFC", "".join(ch for ch in decomposed if not unicodedata.combining(ch))
-    )
-
-
-def _strip_one_clitic(word: str, clitics: tuple[str, ...], min_stem: int) -> str | None:
-    for clitic in clitics:
-        for sep in _SEPARATORS:
-            suffix = sep + clitic
-            if word.endswith(suffix) and len(word) - len(suffix) >= min_stem:
-                return word[: -len(suffix)]
+def _strip_one_clitic(
+    word: str, suffixes: tuple[str, ...], min_stem: int
+) -> str | None:
+    for suffix in suffixes:
+        if word.endswith(suffix) and len(word) - len(suffix) >= min_stem:
+            return word[: -len(suffix)]
     return None
 
 
@@ -186,6 +178,9 @@ def _strip_proclitic(
     # not unify the two variants. Case-insensitive so a sentence-initial
     # capital on the proclitic (L'homme) still matches.
     lowered = normalize_apostrophes(word).lower()
+    # Every proclitic ends in an apostrophe, so a token without one can't match.
+    if "'" not in lowered:
+        return None
     for proclitic in proclitics:
         if lowered.startswith(proclitic) and len(word) - len(proclitic) >= min_stem:
             return word[len(proclitic) :]
@@ -228,18 +223,24 @@ class CliticDecompositionStrategy(LemmatizationStrategy):
         return self._enclitic_lemma(token, lang) or self._proclitic_lemma(token, lang)
 
     def _stem_lookup(self, stem: str, lang: str) -> str | None:
-        return self._dictionary_lookup.get_lemma(
-            stem, lang
-        ) or self._dictionary_lookup.get_lemma(_deaccent(stem), lang)
+        lemma = self._dictionary_lookup.get_lemma(stem, lang)
+        if lemma is not None:
+            return lemma
+        # Enclisis can add a stress accent (calificar+le -> calificándole);
+        # retry folded, but only if folding changes the stem.
+        folded = strip_diacritics(stem)
+        if folded == stem:
+            return None
+        return self._dictionary_lookup.get_lemma(folded, lang)
 
     def _enclitic_lemma(self, token: str, lang: str) -> str | None:
-        clitics = CLITIC_LANGS.get(lang)
+        suffixes = _CLITIC_SUFFIXES.get(lang)
         # Capitalized-initial tokens are almost always proper nouns in
         # these languages (verbs aren't capitalized mid-sentence); UD
         # evidence shows this is the dominant false-fire source (e.g.
         # Portuguese "Paulo" -> spurious "paul"). Doesn't transfer to
         # English -- see _CASE_INSENSITIVE_LANGS above.
-        if clitics is None:
+        if suffixes is None:
             return None
         if token[:1].isupper() and lang not in _CASE_INSENSITIVE_LANGS:
             return None
@@ -253,7 +254,7 @@ class CliticDecompositionStrategy(LemmatizationStrategy):
         min_stem = MIN_STEM_LEN_OVERRIDES.get(lang, MIN_STEM_LEN)
         stem = token
         for _ in range(MAX_CLITICS):
-            stripped = _strip_one_clitic(stem, clitics, min_stem)
+            stripped = _strip_one_clitic(stem, suffixes, min_stem)
             if stripped is None:
                 return None
             stem = stripped
