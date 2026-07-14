@@ -14,15 +14,22 @@ from collections.abc import Iterator
 
 from typing import Protocol
 
+# Combining marks \w excludes (category M): Latin/Greek/Cyrillic, Arabic, Devanagari.
+_MARKS = (
+    "\u0300-\u036f"
+    "\u064b-\u065f\u0670"
+    "\u0900-\u0903\u093a-\u094f\u0951-\u0957\u0962-\u0963"
+)
+
 TOKREGEX = re.compile(
     r"(?:"
     r"(?:[€$￥£+-]?[0-9][0-9.,:%/-]*|St\.)(?:[\w_€-]|['’](?=[^\W\d_]))+|"
     r"https?://[^ ]+|"
-    # letter-flanked apostrophes stay in the word (l'homme, don't, tr
-    # 2020'de) for the clitic/boundary strategies; a digit after the
-    # apostrophe is excluded so ca "l'1" keeps its numeral
-    r"[€$￥£@#§]?\w(?:[\w*_-]|['’](?=[^\W\d_]))*|"
-    r"[,;:\.?!¿¡‽⸮…()\[\]–{}—―/‒_“„”⹂‚‘’‛′″‟'\"«»‹›<>=+−×÷•·]+"
+    # In-word joiners (never at a token edge): letter-flanked apostrophes
+    # (l'homme, 2020'de; digit after excludes ca "l'1"), marks, ZWNJ (fa).
+    rf"[€$￥£@#§]?\w(?:[\w{_MARKS}*_-]|['’](?=[^\W\d_])|\u200c(?=\w))*|"
+    # one punctuation char, or a run of the SAME char ('...', '--', '!!')
+    r"([,;:\.?!¿¡‽⸮…։՝।॥،؛؟()\[\]–{}—―/‒_“„”⹂‚‘’‛′″‟'`\"«»‹›<>=+−×÷•·%&№*#°‐-])\1*"
     r")"
 )
 """The regular expresion used by default by [RegexTokenizer][simplemma.tokenizer.RegexTokenizer]."""

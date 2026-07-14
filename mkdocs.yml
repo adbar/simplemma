@@ -47,6 +47,7 @@ nav:
     - Lemmatizer: reference/lemmatizer.md
     - Language Detector: reference/language_detector.md
     - Tokenizer: reference/tokenizer.md
+    - Casing: reference/casing.md
     - TokenSampler: reference/token_sampler.md
     - Utils: reference/utils.md
     - Strategies:

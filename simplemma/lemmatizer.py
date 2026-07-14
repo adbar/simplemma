@@ -13,6 +13,7 @@ from functools import lru_cache
 from typing import Any
 from collections.abc import Iterator
 
+from .casing import SentenceCasing, SupportsMembership
 from .strategies import (
     DefaultDictionaryFactory,
     DefaultStrategy,
@@ -23,8 +24,6 @@ from .strategies import (
 )
 from .tokenizer import RegexTokenizer, Tokenizer
 from .utils import normalize_token, validate_lang_input
-
-PUNCTUATION = {".", "?", "!", "…", "¿", "¡"}
 
 
 def _control_input_type(token: Any) -> None:
@@ -51,6 +50,7 @@ class Lemmatizer:
         "_cached_lemmatize",
         "_fallback_lemmatization_strategy",
         "_lemmatization_strategy",
+        "_member",
         "_tokenizer",
     ]
 
@@ -78,6 +78,13 @@ class Lemmatizer:
         self._tokenizer = tokenizer
         self._lemmatization_strategy = lemmatization_strategy
         self._fallback_lemmatization_strategy = fallback_lemmatization_strategy
+        # A strategy exposing raw membership enables the gated/acronym casing
+        # heuristics; others fall back to base initial-lowering.
+        self._member = (
+            lemmatization_strategy.is_dictionary_member
+            if isinstance(lemmatization_strategy, SupportsMembership)
+            else None
+        )
         self._cached_lemmatize = lru_cache(maxsize=cache_max_size)(self._lemmatize)
 
     def lemmatize(
@@ -132,6 +139,10 @@ class Lemmatizer:
     ) -> Iterator[str]:
         """Get an iterator over lemmatized tokens in a text.
 
+        With several languages, the casing heuristics (sentence-initial
+        lowering, acronym keeping) follow the first one; lemma lookup
+        still tries all of them in order.
+
         Args:
             text: The text to process.
             lang: The language or languages for lemmatization.
@@ -139,10 +150,11 @@ class Lemmatizer:
         Yields:
             str: The lemmatized tokens in the text.
         """
-        initial = True
-        for token in self._tokenizer.split_text(text):
-            yield self.lemmatize(token.lower() if initial else token, lang)
-            initial = token in PUNCTUATION
+        langs = validate_lang_input(lang)
+        casing = SentenceCasing(langs[0], self._member)
+        for surface, keep in casing.apply(self._tokenizer.split_text(text)):
+            # surface arrives NFC, so skip lemmatize()'s re-normalization
+            yield surface if keep else self._cached_lemmatize(surface, lang)
 
 
 # From here down are legacy function pre-1.0
