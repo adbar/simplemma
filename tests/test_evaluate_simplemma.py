@@ -42,28 +42,36 @@ def lemmatizers() -> tuple[Lemmatizer, Lemmatizer]:
 
 def test_evaluate_dataset(lemmatizers):
     lemmatizer, greedy_lemmatizer = lemmatizers
-    result = evaluate_dataset(parse(CONLLU), lemmatizer, greedy_lemmatizer, "en")
+    overall, focus, _ = evaluate_dataset(
+        parse(CONLLU), lemmatizer, greedy_lemmatizer, "en"
+    )
 
-    assert result["total"] == 3
-    assert result["zero"] == 3
-    assert result["focus_total"] == 2
-    assert result["focus_zero"] == 2
+    assert overall.total == 3
+    assert overall.baseline == 3
+    assert focus.total == 2
+    assert focus.baseline == 2
 
 
 def test_evaluate_dataset_errors_and_skip(lemmatizers):
     lemmatizer, greedy_lemmatizer = lemmatizers
-    result = evaluate_dataset(parse(CONLLU_ERRORS), lemmatizer, greedy_lemmatizer, "en")
+    overall, _, errors = evaluate_dataset(
+        parse(CONLLU_ERRORS), lemmatizer, greedy_lemmatizer, "en"
+    )
 
-    assert result["total"] == 1
-    assert result["zero"] == 0
-    assert len(result["errors"]) == 1
-    assert result["errors"][0][0] == "qwxztest"
+    assert overall.total == 1
+    assert overall.baseline == 0
+    assert len(errors) == 1
+    assert errors[0][0] == "qwxztest"
 
 
 def test_main_writes_results(tmp_path):
     clean = tmp_path / "UD"
     clean.mkdir()
     (clean / "en_test.conllu").write_text(CONLLU, encoding="utf-8")
+    # decoys the downloader colocates with the treebanks: main() must skip
+    # them (glob '*.conllu'), not crash on the dir or the versionless file.
+    (clean / "UD_VERSION").write_text("2.18", encoding="utf-8")
+    (clean / "splits").mkdir()
     results = tmp_path / "results"
 
     # run twice: the second call exercises the results-folder reset branch
@@ -79,3 +87,15 @@ def test_main_writes_results(tmp_path):
 def test_main_requires_data(tmp_path):
     with pytest.raises(Exception, match="doesn't seem like data"):
         evaluate_simplemma.main(tmp_path / "missing", tmp_path / "results")
+
+
+def test_main_maps_dataset_name_to_lang(tmp_path):
+    """A dataset whose UD prefix isn't the ISO code (no_nynorsk -> nn) must be
+    evaluated via dataset_to_lang, not split('_')[0] (which crashed on 'no')."""
+    clean = tmp_path / "UD"
+    clean.mkdir()
+    (clean / "no_nynorsk.conllu").write_text(CONLLU, encoding="utf-8")
+    results = tmp_path / "results"
+
+    evaluate_simplemma.main(clean, results)  # would raise ValueError('no') pre-fix
+    assert "no_nynorsk" in (results / "results_summary.csv").read_text()

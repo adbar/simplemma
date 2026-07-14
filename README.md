@@ -339,7 +339,7 @@ morphology rather than a data error.
 | `el` | Greek | 185 | 21 | 0.88 | on UD EL-GDT |
 | `en` | English | 139 | 50 | 0.95 | on UD EN-LinES, alternative: [LemmInflect](https://github.com/bjascob/LemmInflect) |
 | `enm` | Middle English | 43 | 6 |  |  |
-| `eo` | Esperanto | 191 | 18 | 0.93 | on UD EO-PraGo |
+| `eo` | Esperanto | 191 | 18 | 0.95 | on UD EO-PraGo |
 | `es` | Spanish | 666 | 72 | 0.89 | on UD ES-AnCora |
 | `et` | Estonian | 141 | 34 | 0.80 | on UD ET-EWT, low coverage |
 | `fa` | Persian | 13 | 4 | 0.79 | on UD FA-Seraji, experimental |
@@ -356,16 +356,16 @@ morphology rather than a data error.
 | `id` | Indonesian | 21 | 4 | 0.93 | on UD ID-CSUI |
 | `is` | Icelandic | 177 | 15 | 0.67 | on UD IS-GC |
 | `it` | Italian | 357 | 28 | 0.93 | on UD IT-ISDT |
-| `ka` | Georgian | 66 | 4 | 0.64 | on UD KA-GLC |
+| `ka` | Georgian | 66 | 4 | 0.67 | on UD KA-GLC |
 | `la` | Latin | 892 | 52 | 0.82 | on UD LA-PROIEL |
 | `lb` | Luxembourgish | 306 | 79 |  | only a <1k-token UD treebank available |
 | `lt` | Lithuanian | 268 | 25 | 0.77 | on UD LT-ALKSNIS |
-| `lv` | Latvian | 166 | 14 | 0.77 | on UD LV-LVTB |
+| `lv` | Latvian | 166 | 14 | 0.75 | on UD LV-LVTB |
 | `mk` | Macedonian | 67 | 16 | 0.65 | on UD MK-MTB |
 | `ms` | Malay | 18 | 4 |  |  |
 | `nb` | Norwegian (Bokmål) | 618 | 134 | 0.73 | on UD NO-Bokmaal |
-| `nl` | Dutch | 366 | 124 | 0.92 | on UD NL-Alpino |
-| `nn` | Norwegian (Nynorsk) | 68 | 18 | 0.56 | on UD NO-Nynorsk |
+| `nl` | Dutch | 366 | 124 | 0.88 | on UD NL-Alpino |
+| `nn` | Norwegian (Nynorsk) | 68 | 18 | 0.57 | on UD NO-Nynorsk |
 | `pl` | Polish | 3,670 | 264 | 0.91 | on UD PL-LFG |
 | `pt` | Portuguese | 924 | 94 | 0.91 | on UD PT-GSD |
 | `ro` | Romanian | 342 | 36 | 0.85 | on UD RO-RRT |
@@ -378,7 +378,7 @@ morphology rather than a data error.
 | `sw` | Swahili | 4,870 | 4 |  | experimental |
 | `tl` | Tagalog | 39 | 8 | 0.67 | on UD TL-Ugnayan, experimental |
 | `tr` | Turkish | 1,236 | 40 | 0.91 | on UD TR-KeNet |
-| `uk` | Ukrainian | 388 | 22 | 0.86 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
+| `uk` | Ukrainian | 388 | 22 | 0.87 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
 
 
 Languages marked as having low coverage may be better suited to

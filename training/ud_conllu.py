@@ -6,7 +6,7 @@ build_override, eval_gate, and the local eval tooling), so the convention lives
 in exactly one place.
 """
 
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
@@ -27,16 +27,23 @@ def dataset_to_lang(dataset_name: str) -> str:
     return DATASET_LANG_OVERRIDES.get(dataset_name, dataset_name.split("_", 1)[0])
 
 
+def iter_word_tokens_in_sentences(
+    sentences: Iterable[Any],
+) -> Iterator[tuple[str, Any]]:
+    """Yield (form, token) for real word tokens in already-parsed sentences,
+    applying the official UD-eval convention once: skip MWT/empty-node ids
+    (tuple, not int) and lemma=='_', lowercase the sentence-initial (id==1)
+    form. Callers read token['lemma'] / token['upos'] as needed."""
+    for tokens in sentences:
+        for token in tokens:
+            token_id = token["id"]
+            if not isinstance(token_id, int) or token["lemma"] == "_":
+                continue
+            form = token["form"].lower() if token_id == 1 else token["form"]
+            yield form, token
+
+
 def iter_word_tokens(path: Path) -> Iterator[tuple[str, Any]]:
-    """Yield (form, token) for real word tokens, applying the official UD-eval
-    convention once: skip MWT/empty-node ids (tuple, not int) and lemma=='_',
-    lowercase the sentence-initial (id==1) form. Callers read token['lemma'] /
-    token['upos'] as needed."""
+    """iter_word_tokens_in_sentences over the conllu file at `path`."""
     with open(path, encoding="utf-8") as filehandle:
-        for tokens in parse_incr(filehandle):
-            for token in tokens:
-                token_id = token["id"]
-                if not isinstance(token_id, int) or token["lemma"] == "_":
-                    continue
-                form = token["form"].lower() if token_id == 1 else token["form"]
-                yield form, token
+        yield from iter_word_tokens_in_sentences(parse_incr(filehandle))

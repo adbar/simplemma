@@ -4,6 +4,10 @@ DefaultStrategy chain over an arbitrary in-memory dictionary and score it
 against a UD treebank. Used by the prune functions in wikidata_lexemes.py, by
 eval_gate.py, and by the validate_* scripts, so the eval protocol lives in
 exactly one place.
+
+This is the dictionary-quality gate protocol: a bare strategy with identity
+fallback. Distinct from `evaluate_simplemma`, which scores the full
+user-facing Lemmatizer (lowercase fallback) for the published README numbers.
 """
 
 from collections import Counter, defaultdict

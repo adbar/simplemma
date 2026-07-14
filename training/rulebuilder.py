@@ -29,14 +29,14 @@ from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
 
 from simplemma.strategies.dictionaries.dictionary_factory import (
-    DefaultDictionaryFactory,
+    DEFAULT_DICTIONARY_FACTORY,
 )
 from simplemma.utils import strip_diacritics
 
 Cells = dict[tuple[str, str], int]
 Rules = dict[re.Pattern[str], str]
 
-FACTORY = DefaultDictionaryFactory()
+FACTORY = DEFAULT_DICTIONARY_FACTORY  # shared process-wide cache
 MIN_LEN_DEFAULT = 6
 SUPPORT_MIN_DEFAULT = 100
 PREC_MIN_DEFAULT = 99.0

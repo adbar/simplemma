@@ -17,7 +17,7 @@ from typing import cast
 from simplemma.strategies.affix_decomposition import AffixDecompositionStrategy
 from simplemma.strategies.dictionaries.dictionary_factory import (
     SUPPORTED_LANGUAGES,
-    DefaultDictionaryFactory,
+    DEFAULT_DICTIONARY_FACTORY,
 )
 from simplemma.strategies.dictionary_lookup import DictionaryLookupStrategy
 from simplemma.strategies.hyphen_removal import HyphenRemovalStrategy
@@ -30,7 +30,7 @@ SAMPLE_DEFAULT = 4000
 SEED_DEFAULT = 7
 MINCOMPLEN_DEFAULT = 4
 
-FACTORY = DefaultDictionaryFactory()
+FACTORY = DEFAULT_DICTIONARY_FACTORY  # shared process-wide cache
 _DICT_LOOKUP = DictionaryLookupStrategy(FACTORY)
 _HYPHEN = HyphenRemovalStrategy(_DICT_LOOKUP)
 _RULES = RulesStrategy()
