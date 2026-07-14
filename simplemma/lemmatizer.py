@@ -50,6 +50,7 @@ class Lemmatizer:
         "_cached_lemmatize",
         "_fallback_lemmatization_strategy",
         "_lemmatization_strategy",
+        "_member",
         "_tokenizer",
     ]
 
@@ -77,6 +78,13 @@ class Lemmatizer:
         self._tokenizer = tokenizer
         self._lemmatization_strategy = lemmatization_strategy
         self._fallback_lemmatization_strategy = fallback_lemmatization_strategy
+        # A strategy exposing raw membership enables the gated/acronym casing
+        # heuristics; others fall back to base initial-lowering.
+        self._member = (
+            lemmatization_strategy.is_dictionary_member
+            if isinstance(lemmatization_strategy, SupportsMembership)
+            else None
+        )
         self._cached_lemmatize = lru_cache(maxsize=cache_max_size)(self._lemmatize)
 
     def lemmatize(
@@ -143,16 +151,10 @@ class Lemmatizer:
             str: The lemmatized tokens in the text.
         """
         langs = validate_lang_input(lang)
-        # Any strategy exposing raw membership enables the gated / acronym
-        # heuristics; others fall back to base initial-lowering.
-        strategy = self._lemmatization_strategy
-        member = (
-            strategy.is_dictionary_member
-            if isinstance(strategy, SupportsMembership)
-            else None
-        )
-        casing = SentenceCasing(lang, langs[0], member, self._cached_lemmatize)
-        yield from casing.apply(self._tokenizer.split_text(text))
+        casing = SentenceCasing(langs[0], self._member)
+        for surface, keep in casing.apply(self._tokenizer.split_text(text)):
+            # surface arrives NFC, so skip lemmatize()'s re-normalization
+            yield surface if keep else self._cached_lemmatize(surface, lang)
 
 
 # From here down are legacy function pre-1.0

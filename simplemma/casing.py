@@ -14,8 +14,6 @@ from .utils import normalize_token
 
 # (token, lang) -> is it a literal dictionary key? (no case/apostrophe fallback)
 MembershipCheck = Callable[[str, str], bool]
-# (nfc_token, lang) -> lemma
-LemmatizeFn = Callable[[str, "str | tuple[str, ...]"], str]
 
 
 @runtime_checkable
@@ -58,31 +56,25 @@ def is_keepable_allcaps(token: str) -> bool:
 
 
 class SentenceCasing:
-    """Applies the casing heuristics for one request over a token stream,
-    delegating lemma lookup to `lemmatize`. `member` is the raw dictionary
-    membership check; None (strategy has no dictionary) disables the gated
-    and acronym heuristics, leaving only base initial-lowering."""
+    """Makes the casing decisions for one request over a token stream; the
+    caller lemmatizes. `member` is the raw dictionary membership check; None
+    (strategy has no dictionary) disables the gated and acronym heuristics,
+    leaving only base initial-lowering."""
 
-    __slots__ = ("_lang", "_lang0", "_member", "_lemmatize", "_gated", "_acronym")
+    __slots__ = ("_lang0", "_member", "_gated", "_acronym")
 
-    def __init__(
-        self,
-        lang: str | tuple[str, ...],
-        lang0: str,
-        member: MembershipCheck | None,
-        lemmatize: LemmatizeFn,
-    ) -> None:
-        self._lang = lang
+    def __init__(self, lang0: str, member: MembershipCheck | None) -> None:
         self._lang0 = lang0
         self._member = member
-        self._lemmatize = lemmatize
         self._gated = member is not None and lang0 in GATED_INITIAL_LOWERING_LANGS
         self._acronym = member is not None and lang0 in ALLCAPS_KEEP_LANGS
 
-    def apply(self, tokens: Iterator[str]) -> Iterator[str]:
-        """Lemmatize raw tokenizer `tokens` with casing applied. The acronym
-        path buffers one sentence at a time (it needs the whole sentence's
-        shouting ratio); the default path streams in constant memory."""
+    def apply(self, tokens: Iterator[str]) -> Iterator[tuple[str, bool]]:
+        """Casing decisions for raw tokenizer `tokens`: (surface, keep) pairs
+        where surface is NFC (safe to look up as-is) and keep means yield it
+        verbatim as an acronym instead of lemmatizing. The acronym path buffers
+        one sentence at a time (it needs the whole sentence's shouting ratio);
+        the default path streams in constant memory."""
         nfc = (normalize_token(t) for t in tokens)  # NFC once: probes match dicts
         return self._buffered(nfc) if self._acronym else self._streaming(nfc)
 
@@ -97,11 +89,7 @@ class SentenceCasing:
             return lowered
         return token
 
-    def _lemma(self, token: str, is_initial: bool) -> str:
-        surface = self.initial_surface(token) if is_initial else token
-        return self._lemmatize(surface, self._lang)
-
-    def _streaming(self, tokens: Iterator[str]) -> Iterator[str]:
+    def _streaming(self, tokens: Iterator[str]) -> Iterator[tuple[str, bool]]:
         # Legacy semantics on purpose (do NOT widen to the buffered rule): any
         # first token consumes the initial slot, only a whole-token terminator
         # resets it. Widening is UD-measured harmful -- en_gum +11/-5 (fails
@@ -109,10 +97,10 @@ class SentenceCasing:
         # proper-noun-dominated.
         initial = True
         for token in tokens:
-            yield self._lemma(token, initial)
+            yield (self.initial_surface(token) if initial else token, False)
             initial = token in PUNCTUATION
 
-    def _buffered(self, tokens: Iterator[str]) -> Iterator[str]:
+    def _buffered(self, tokens: Iterator[str]) -> Iterator[tuple[str, bool]]:
         sentence: list[str] = []
         at_start = True
         for token in tokens:
@@ -125,7 +113,7 @@ class SentenceCasing:
         if sentence:
             yield from self._emit(sentence, at_start)
 
-    def _emit(self, tokens: list[str], at_start: bool) -> Iterator[str]:
+    def _emit(self, tokens: list[str], at_start: bool) -> Iterator[tuple[str, bool]]:
         n_alpha = n_shout = 0
         for token in tokens:
             if token.isalpha():
@@ -141,9 +129,9 @@ class SentenceCasing:
         )
         for i, token in enumerate(tokens):
             if self._keep_as_acronym(token, i == initial, shouting):
-                yield token  # already NFC
+                yield (token, True)
             else:
-                yield self._lemma(token, i == initial)
+                yield (self.initial_surface(token) if i == initial else token, False)
 
     def _keep_as_acronym(self, token: str, initial: bool, shouting: bool) -> bool:
         """Yield this ALL-CAPS token verbatim instead of lemmatizing? Initial

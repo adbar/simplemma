@@ -74,14 +74,34 @@ def test_rule_quality(lang: str) -> None:
     mod = _rules_module(lang)
     rules = mod.DEFAULT_RULES if mod is not None else None
     branches = {p: pattern_alts(p) for p in rules} if rules is not None else {}
-    # Skip entries no rule can match (guaranteed fn None) -- one combined regex,
-    # widened by any bespoke match surface the fn matches outside the table.
-    prefilter = None
-    if rules:
-        alts = [f"(?:{p.pattern})" for p in rules]
-        if (extra := _EXTRA_MATCH_SURFACE.get(lang)) is not None:
-            alts.append(f"(?:{extra})")
-        prefilter = re.compile("|".join(alts))
+    ordered = list(rules.items()) if rules is not None else []
+    # Skip entries no rule can match (guaranteed fn None). The shipped rule
+    # shapes reduce to literal suffixes (pattern_alts), so a hash probe replaces
+    # the union-regex scan (~5x on fi); shapes pattern_alts lumps and bespoke
+    # match surfaces keep a regex fallback. A suffix hit also names its rule,
+    # which narrows cell attribution to the few candidate patterns below.
+    suffix_rule: dict[str, int] = {}
+    lumped: list[int] = []
+    for i, (pattern, _repl) in enumerate(ordered):
+        alts = branches[pattern]
+        # lumped: pattern_alts fell back to the pattern itself, or an alt is a
+        # regex fragment, not a literal suffix (eo's merged stem-class shapes)
+        if alts == [pattern.pattern] or any(re.escape(a) != a for a in alts):
+            lumped.append(i)
+        else:
+            for alt in alts:
+                suffix_rule[alt] = i  # unique: see test_no_alternation_overlap
+    lumped_set = frozenset(lumped)  # constant candidate rules for attribution
+    # probe only suffix lengths that can end in the token's final character
+    lens_by_last: dict[str, list[int]] = {}
+    for alt in suffix_rule:
+        lens = lens_by_last.setdefault(alt[-1], [])
+        if len(alt) not in lens:
+            lens.append(len(alt))
+    fallback_alts = [f"(?:{ordered[i][0].pattern})" for i in lumped]
+    if (extra := _EXTRA_MATCH_SURFACE.get(lang)) is not None:
+        fallback_alts.append(f"(?:{extra})")
+    fallback = re.compile("|".join(fallback_alts)) if fallback_alts else None
     legacy = lang in _LEGACY_REAL_WORD_LANGS
     fold = lang in _ACCENT_FOLD_LANGS
     # A skip must never be resolvable by fn, else its output escapes measurement.
@@ -91,11 +111,18 @@ def test_rule_quality(lang: str) -> None:
     fired = ok = 0
     cells: dict[tuple[str, str], list[int]] = {}
     escaped: list[str] = []
+    hits: list[int] = []
     for f, gold in d.items():
-        if prefilter is not None and prefilter.search(f) is None:
-            if verify_skips and fn(f) is not None:
-                escaped.append(f)
-            continue
+        if rules is not None:
+            hits = [
+                suffix_rule[sfx]
+                for L in lens_by_last.get(f[-1:], ())
+                if len(f) >= L and (sfx := f[-L:]) in suffix_rule
+            ]
+            if not hits and (fallback is None or fallback.search(f) is None):
+                if verify_skips and fn(f) is not None:
+                    escaped.append(f)
+                continue
         p = fn(f)
         if p is None:
             continue
@@ -109,9 +136,11 @@ def test_rule_quality(lang: str) -> None:
         if p != f and d.get(p) is None:
             p2 = fn(p)
             assert p2 is None or p2 == p, f"{lang}: not idempotent: {f} -> {p} -> {p2}"
-        # attribute to the firing cell (data-driven languages only)
+        # attribute to the firing cell (data-driven languages only): first
+        # candidate rule that rewrites f, in table order (= apply_rules order)
         if rules is not None:
-            for pattern, repl in rules.items():
+            for i in sorted(lumped_set.union(hits)):
+                pattern, repl = ordered[i]
                 if pattern.sub(repl, f) != f:
                     alt = max(
                         (a for a in branches[pattern] if f.endswith(a)),

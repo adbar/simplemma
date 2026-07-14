@@ -611,70 +611,27 @@ def test_get_lemmas_in_text() -> None:
     )
 
 
-def test_get_lemmas_in_text_initial_casing() -> None:
-    """Sentence-initial casing gate: allowlisted languages keep proper-noun
-    capitals and case-significant lemmas, but still lower common words and
-    all-caps forms; other languages lower unconditionally as before."""
+# (lang, text, expected first lemma): sentence-initial casing policy per
+# language. Gated languages (da/de/en) keep probable proper nouns; all-caps
+# initials are lowered (and may be recovered by lookup); non-gated languages
+# lower unconditionally as before.
+_INITIAL_CASING_CASES = [
+    ("en", "Iran is large.", "Iran"),  # proper noun kept
+    ("en", "The cat sleeps.", "the"),  # common word lowered
+    ("de", "BERLIN meldet Erfolg.", "Berlin"),  # all-caps recovered
+    ("de", "Schöne Tage kommen.", "schön"),  # adjective lowered
+    ("de", "Häuser stehen dort.", "Haus"),  # noun kept
+    ("da", "MED venlig hilsen.", "med"),  # da: all-caps still lowered
+    ("es", "Pepa baila.", "pepa"),  # non-gated lang: unchanged
+    ("de", "DENIC verwaltet die Domains.", "DENIC"),  # initial acronym kept
+    ("de", "MIT dem Auto fahren.", "mit"),  # dateline homograph defers to D' gate
+]
+
+
+@pytest.mark.parametrize("lang, text, first", _INITIAL_CASING_CASES)
+def test_sentence_initial_casing(lang: str, text: str, first: str) -> None:
     lem = Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=False))
-
-    def first(text: str, lang: str) -> str:
-        return next(iter(lem.get_lemmas_in_text(text, lang)))
-
-    # en: proper noun kept, common word lowered
-    assert first("Iran is large.", "en") == "Iran"
-    assert first("The cat sleeps.", "en") == "the"
-    # de: all-caps recovered, adjective lowered, noun kept
-    assert first("BERLIN meldet Erfolg.", "de") == "Berlin"
-    assert first("Schöne Tage kommen.", "de") == "schön"
-    assert first("Häuser stehen dort.", "de") == "Haus"
-    assert first("MED venlig hilsen.", "da") == "med"  # da: all-caps still lowered
-    assert first("Pepa baila.", "es") == "pepa"  # non-gated lang: unchanged
-
-    # non-DefaultStrategy has no dictionary to probe, so the gate stays off
-    class _NullStrategy(LemmatizationStrategy):
-        def get_lemma(self, token: str, lang: str) -> str | None:
-            return None
-
-    custom = Lemmatizer(lemmatization_strategy=_NullStrategy())
-    assert next(iter(custom.get_lemmas_in_text("Iran is large.", "en"))) == "iran"
-
-
-def test_gated_langs_disjoint_from_fallback_lowering() -> None:
-    """A language the fallback already lowercases must not also be gated:
-    the two per-language casing policies would conflict."""
-    from simplemma.casing import GATED_INITIAL_LOWERING_LANGS
-    from simplemma.strategies.fallback.to_lowercase import BETTER_LOWER
-
-    assert GATED_INITIAL_LOWERING_LANGS.isdisjoint(BETTER_LOWER)
-
-
-def test_sentence_boundary_detects_collapsed_runs() -> None:
-    """Buffered-path boundary: first char, so collapsed runs ('...', '!!')
-    match but alnum-final tokens ('.270') don't."""
-    from simplemma.casing import is_sentence_boundary
-
-    for term in [".", "?", "!", "…", "։", "...", "!!", "??", "?!"]:
-        assert is_sentence_boundary(term), term
-    for other in ["hello", "3.14", ".270", "l'homme", ""]:
-        assert not is_sentence_boundary(other), other
-
-
-def test_streaming_path_keeps_legacy_boundary() -> None:
-    """Streaming path must NOT reset after collapsed runs ('...') -- widening it
-    is UD-measured harmful; guards the revert (see casing._streaming)."""
-    from simplemma.casing import SentenceCasing
-
-    casing = SentenceCasing("fr", "fr", None, lambda t, _l: t)  # echo lemmatize
-    # 'Fin' initial -> lowered; '...' does not reset; 'Alain' stays capitalized
-    assert list(casing.apply(iter(["Fin", "...", "Alain"]))) == ["fin", "...", "Alain"]
-
-    # end-to-end (buffered path): a '...' run isolates the shouted headline
-    # from the next sentence just like '!!!' does.
-    lem = Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=False))
-    out = list(
-        lem.get_lemmas_in_text("УВАГА НЕБЕЗПЕКА... Це речення про природу.", "uk")
-    )
-    assert "небезпека" in out and "НЕБЕЗПЕКА" not in out
+    assert next(lem.get_lemmas_in_text(text, lang)) == first
 
 
 # (lang, text, kept, dropped): tokens that must / must not survive verbatim.
@@ -688,7 +645,12 @@ _ACRONYM_CASES = [
     ("pt", "O IBGE informou que os EUA assinaram.", ["IBGE"], []),
     ("ca", "La FEDER i la USA financen el projecte.", ["USA"], []),
     ("de", "Das steht in Kapitel XII.", ["XII"], []),  # Roman numeral, not an acronym
+    # 2-char Roman-numeral lookalikes stay keepable as acronyms
+    ("es", "El disco CD es popular hoy.", ["CD"], []),
+    ("de", "MM und DC sind hier bekannt.", ["MM", "DC"], []),
     ("uk", "Це СБУ.", ["СБУ"], []),  # lone acronym isn't "shouting" (leave-one-out)
+    # an opening quote shifts neither the initial slot nor the flush
+    ("de", "„MIT dem Auto fahren.“", ["mit"], ["MIT"]),
     # hy: the Armenian full stop isolates the shouted heading from sentence 2
     (
         "hy",
@@ -696,10 +658,17 @@ _ACRONYM_CASES = [
         ["ՀՀ"],
         ["ԱՅՍՏԵՂ"],
     ),
-    # punctuation runs end the sentence: the shouted headline stays isolated
+    # punctuation runs ('!!!', '...') end the sentence: the shouted headline
+    # stays isolated from the next sentence
     (
         "uk",
         "УВАГА НЕБЕЗПЕКА!!! Це звичайне речення про природу.",
+        ["небезпека"],
+        ["НЕБЕЗПЕКА"],
+    ),
+    (
+        "uk",
+        "УВАГА НЕБЕЗПЕКА... Це речення про природу.",
         ["небезпека"],
         ["НЕБЕЗПЕКА"],
     ),
@@ -722,52 +691,28 @@ def test_allcaps_acronym_keeping(
         assert token not in out, (token, out)
 
 
-def test_allcaps_acronym_initial_and_shouting() -> None:
-    """Initial acronym kept; a fully shouted sentence and a dateline still defer
-    to the D' gate; an opening quote shifts neither the initial slot nor flush."""
+def test_shouted_sentence_defers_to_gate() -> None:
+    """A fully shouted sentence turns acronym-keep off; the initial D' gate
+    still lowers the first word."""
     lem = Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=False))
-
-    def lemmas(text: str, lang: str) -> list[str]:
-        return list(lem.get_lemmas_in_text(text, lang))
-
-    assert lemmas("WARNUNG VOR DEM HUNDE", "de") == ["Warnung", "vor", "der", "HUNDE"]
-    assert lemmas("DENIC verwaltet die Domains.", "de")[0] == "DENIC"
-    assert lemmas("BERLIN meldet einen Erfolg.", "de")[0] == "Berlin"
-    assert lemmas("MIT dem Auto fahren.", "de")[0] == "mit"
-    assert lemmas("„MIT dem Auto fahren.“", "de")[1] == "mit"
+    out = list(lem.get_lemmas_in_text("WARNUNG VOR DEM HUNDE", "de"))
+    assert out == ["Warnung", "vor", "der", "HUNDE"]
 
 
-def test_allcaps_acronym_off_for_custom_strategy() -> None:
-    """Acronym-keep needs a dictionary-membership check; a strategy without one
-    stays off and lowers as before."""
+def test_casing_heuristics_off_without_membership() -> None:
+    """Both casing heuristics need a dictionary-membership check; a strategy
+    without one falls back to unconditional initial-lowering."""
 
     class _LowerStrategy(LemmatizationStrategy):
         def get_lemma(self, token: str, lang: str) -> str | None:
             return token.lower()
 
     custom = Lemmatizer(lemmatization_strategy=_LowerStrategy())
+    # en gate off: initial proper noun lowered
+    assert next(custom.get_lemmas_in_text("Iran is large.", "en")) == "iran"
+    # de acronym-keep off: all-caps token lowered as before
     out = list(custom.get_lemmas_in_text("Die Firma heißt MIT und.", "de"))
     assert "mit" in out and "MIT" not in out
-
-
-def test_allcaps_short_roman_numerals_kept_as_acronyms() -> None:
-    """The Roman-numeral exclusion applies only to 3+ char numerals; 2-char
-    tokens (CD/DC/MM/XL) stay keepable as acronyms."""
-    from simplemma.casing import is_keepable_allcaps
-
-    for acronym in ["CD", "DC", "MM", "MI", "MC", "XL", "XX", "USB", "SQL"]:
-        assert is_keepable_allcaps(acronym), acronym
-    for numeral in ["XII", "XIV", "MCM", "MIX", "MMXX"]:
-        assert not is_keepable_allcaps(numeral), numeral
-
-    lem = Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=False))
-
-    def lemmas(text: str, lang: str) -> list[str]:
-        return list(lem.get_lemmas_in_text(text, lang))
-
-    assert "CD" in lemmas("El disco CD es popular hoy.", "es")
-    assert "MM" in lemmas("MM und DC sind hier bekannt.", "de")
-    assert "XII" in lemmas("Das steht in Kapitel XII.", "de")  # 3-char, not kept
 
 
 def test_lang_tuple_casing_follows_first_language() -> None:
@@ -779,42 +724,18 @@ def test_lang_tuple_casing_follows_first_language() -> None:
 
 
 def test_gate_probes_nfc_normalized() -> None:
-    """Casing-gate dict probes must see NFC even if a tokenizer yields NFD."""
-    from simplemma.casing import SentenceCasing
+    """The casing gate must find NFD tokenizer output in the NFC dictionaries
+    (unit-level coverage lives in test_casing.py)."""
 
     class _NFDTokenizer:
         def split_text(self, text: str) -> Iterator[str]:
             return (unicodedata.normalize("NFD", t) for t in text.split(" "))
 
-    strategy = DefaultStrategy()
-    lem = Lemmatizer(tokenizer=_NFDTokenizer(), lemmatization_strategy=strategy)
-    # end-to-end: the NFD initial token is still found in the dict and lowered
-    assert list(lem.get_lemmas_in_text("Schöne Tage kommen .", "de"))[0] == "schön"
-    # apply() NFC-normalizes before the gate probe (de "schöne" is a dict entry)
-    casing = SentenceCasing("de", "de", strategy.is_dictionary_member, lambda t, _l: t)
-    out = list(casing.apply(iter([unicodedata.normalize("NFD", "Schöne")])))
-    assert out[0] == "schöne"
-
-
-def test_allcaps_buffer_cap_keeps_streaming() -> None:
-    """Punctuation-free input must flush at the cap, not buffer until EOF."""
-    from simplemma.casing import SENTENCE_BUFFER_CAP
-
-    consumed = 0
-
-    class _CountingTokenizer:
-        def split_text(self, text: str) -> Iterator[str]:
-            nonlocal consumed
-            for token in text.split():
-                consumed += 1
-                yield token
-
     lem = Lemmatizer(
-        tokenizer=_CountingTokenizer(), lemmatization_strategy=DefaultStrategy()
+        tokenizer=_NFDTokenizer(), lemmatization_strategy=DefaultStrategy()
     )
-    out = lem.get_lemmas_in_text("Wort " * (3 * SENTENCE_BUFFER_CAP), "de")
-    assert next(out) == "Wort"
-    assert consumed <= SENTENCE_BUFFER_CAP
+    # the NFD initial token is still found in the dict and lowered
+    assert list(lem.get_lemmas_in_text("Schöne Tage kommen .", "de"))[0] == "schön"
 
 
 def test_nfc_normalization() -> None:
