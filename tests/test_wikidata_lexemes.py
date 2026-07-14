@@ -1,13 +1,14 @@
 import gzip
 import json
 from pathlib import Path
+from typing import Any
 
 from simplemma.strategies import DefaultStrategy
 from training import wikidata_lexemes as wl
 from training.eval_harness import FixedDictionaryFactory
 
 
-def _write_dump(tmp_path, lexemes: list[dict]) -> Path:
+def _write_dump(tmp_path: Path, lexemes: list[dict[str, Any]]) -> Path:
     """Mirrors the real dump's exact byte format: `[`, one compact (no
     whitespace) JSON object per line, `,`-terminated except the last, `]`."""
     path = tmp_path / "lexemes.json.gz"
