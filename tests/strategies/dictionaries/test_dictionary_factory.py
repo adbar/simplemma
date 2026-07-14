@@ -9,7 +9,7 @@ from simplemma.strategies.dictionaries.dictionary_factory import (
 
 def test_load_dictionary_rejects_non_dict(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        "simplemma.strategies.dictionaries.dictionary_factory.pickle.load",
+        "simplemma.strategies.dictionaries.frontcode.pickle.load",
         lambda _filehandle: ["not", "a", "dict"],
     )
     with pytest.raises(TypeError, match="unexpected data"):

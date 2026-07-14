@@ -1,7 +1,8 @@
 """
-Functions used to created lemmatization dictionaries out of word lists.
+Functions used to create lemmatization dictionaries out of word lists.
 Input format: lemma, tab, word, newline
-Output format: pickled Python dictionary compressed with lzma.
+Output format: an lzma-compressed dict[bytes, bytes] -- a pickle by default,
+or the front-coded byte stream (see frontcode.py) with --frontcode.
 """
 
 import argparse
@@ -18,8 +19,7 @@ from simplemma.strategies.defaultrules import RULE_FUNCTIONS
 from simplemma.strategies.dictionaries import frontcode
 from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
 from simplemma.utils import levenshtein_dist, normalize_token
-from training.clean_wordlist import check_field
-from training.eval_harness import load_lemma_form_tsv
+from training.clean_wordlist import check_field, read_pairs
 
 # Swahili inflection is prefixal, so a lemma's forms share an ENDING not a
 # start; front-coding the reversed bytes exposes that shared structure.
@@ -139,16 +139,25 @@ def _load_dict(
 
 
 def _layer_entries(path: Path) -> dict[bytes, bytes]:
-    """A lemma<TAB>form layer file as an NFC-normalized bytes mapping, applying
-    the same key hygiene as the base path: drop forms with a space (unreachable
-    keys -- the tokenizer never yields a spaced token, e.g. multi-word Wikidata
-    lexemes like 'top hat') and drop mojibake/control-char entries."""
-    entries: dict[bytes, bytes] = {}
-    for raw_form, raw_lemma in load_lemma_form_tsv(path).items():
-        form, lemma = normalize_token(raw_form), normalize_token(raw_lemma)
-        if " " in form or check_field(form) or check_field(lemma):
-            continue
-        entries[form.encode()] = lemma.encode()
+    """A curated lemma<TAB>form layer file as a bytes form->lemma mapping.
+
+    read_pairs enforces the shared key hygiene (NFC, no empty/junk field, no
+    conflicting duplicate form) and fails loud on corruption. The one skip
+    here is policy, not corruption: a multi-word form carries a space, which
+    the tokenizer never yields as a single token (e.g. Wikidata lexemes like
+    'top hat'), so it is an unreachable key."""
+    pairs = read_pairs(path)
+    entries = {
+        form.encode(): lemma.encode()
+        for form, lemma in pairs.items()
+        if " " not in form
+    }
+    if len(entries) < len(pairs):
+        LOGGER.info(
+            "%s: skipped %d unreachable spaced forms",
+            path.name,
+            len(pairs) - len(entries),
+        )
     return entries
 
 

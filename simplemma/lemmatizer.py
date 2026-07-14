@@ -15,7 +15,6 @@ from collections.abc import Iterator
 
 from .casing import SentenceCasing, SupportsMembership
 from .strategies import (
-    DefaultDictionaryFactory,
     DefaultStrategy,
     DictionaryLookupStrategy,
     LemmatizationFallbackStrategy,
@@ -158,19 +157,14 @@ class Lemmatizer:
 
 
 # From here down are legacy function pre-1.0
+# All strategy defaults share DEFAULT_DICTIONARY_FACTORY, so the dictionaries
+# are cached once process-wide.
 
-_legacy_dictionary_factory = DefaultDictionaryFactory()
-_legacy_lemmatizer = Lemmatizer(
-    lemmatization_strategy=DefaultStrategy(
-        dictionary_factory=_legacy_dictionary_factory
-    )
-)
+_legacy_lemmatizer = Lemmatizer(lemmatization_strategy=DefaultStrategy())
 _legacy_greedy_lemmatizer = Lemmatizer(
-    lemmatization_strategy=DefaultStrategy(
-        greedy=True, dictionary_factory=_legacy_dictionary_factory
-    )
+    lemmatization_strategy=DefaultStrategy(greedy=True)
 )
-_legacy_dictionary_lookup = DictionaryLookupStrategy(_legacy_dictionary_factory)
+_legacy_dictionary_lookup = DictionaryLookupStrategy()
 
 
 def is_known(token: str, lang: str | tuple[str, ...]) -> bool:

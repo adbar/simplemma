@@ -172,3 +172,57 @@ def test_main_cli_custom_report_path(tmp_path) -> None:
     ]
     clean_wordlist.main()
     assert report_path.exists()
+
+
+def test_read_pairs_basic(tmp_path) -> None:
+    path = tmp_path / "override.tsv"
+    path.write_text("el\tel\nacest\taceste\n", encoding="utf-8")
+    assert clean_wordlist.read_pairs(path) == {"el": "el", "aceste": "acest"}
+
+
+def test_read_pairs_empty_file(tmp_path) -> None:
+    path = tmp_path / "empty.tsv"
+    path.write_text("", encoding="utf-8")
+    assert clean_wordlist.read_pairs(path) == {}
+
+
+def test_read_pairs_nfc_normalizes(tmp_path) -> None:
+    """Fields are NFC-normalized on read, matching runtime lookups."""
+    decomposed = "café"  # e + combining acute
+    path = tmp_path / "nfc.tsv"
+    path.write_text(f"{decomposed}\t{decomposed}s\n", encoding="utf-8")
+    assert clean_wordlist.read_pairs(path) == {"cafés": "café"}
+
+
+def test_read_pairs_repeated_identical_pair_is_kept_once(tmp_path) -> None:
+    path = tmp_path / "dup.tsv"
+    path.write_text("el\tel\nel\tel\n", encoding="utf-8")
+    assert clean_wordlist.read_pairs(path) == {"el": "el"}
+
+
+def test_read_pairs_raises_on_malformed_row(tmp_path) -> None:
+    path = tmp_path / "bad.tsv"
+    path.write_text("el\tel\nnotabhere\n", encoding="utf-8")
+    with pytest.raises(ValueError, match=r"bad\.tsv:2: expected 'lemma<TAB>form'"):
+        clean_wordlist.read_pairs(path)
+
+
+def test_read_pairs_raises_on_empty_field(tmp_path) -> None:
+    path = tmp_path / "empty_field.tsv"
+    path.write_text("el\tel\nlemma\t\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="empty field"):
+        clean_wordlist.read_pairs(path)
+
+
+def test_read_pairs_raises_on_junk_field(tmp_path) -> None:
+    path = tmp_path / "junk.tsv"
+    path.write_text("el\tel\nbad\tba\x01d\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="rejected"):
+        clean_wordlist.read_pairs(path)
+
+
+def test_read_pairs_raises_on_conflicting_form(tmp_path) -> None:
+    path = tmp_path / "conflict.tsv"
+    path.write_text("acest\taceste\nacela\taceste\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="maps to both"):
+        clean_wordlist.read_pairs(path)

@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pytest
 
+from training.clean_wordlist import read_pairs
+
 OVERRIDES_DIR = Path(__file__).parent.parent / "training" / "overrides"
 OVERRIDE_FILES = sorted(OVERRIDES_DIR.glob("*.tsv"))
 
@@ -19,23 +21,8 @@ def test_at_least_one_override_shipped():
 
 
 @pytest.mark.parametrize("path", OVERRIDE_FILES, ids=lambda p: p.stem)
-def test_override_file_is_well_formed(path):
-    lines = path.read_text(encoding="utf-8").splitlines()
-    assert lines, f"{path} is empty"
-    for line in lines:
-        columns = line.split("\t")
-        assert len(columns) == 2, f"{path}: expected 2 columns, got {columns!r}"
-        lemma, form = columns
-        assert lemma and form, f"{path}: empty field in {columns!r}"
-
-
-@pytest.mark.parametrize("path", OVERRIDE_FILES, ids=lambda p: p.stem)
-def test_override_file_has_no_conflicting_forms(path):
-    """The same form mapping to two different lemmas within one override
-    file would silently pick whichever line dict.update() sees last."""
-    seen: dict[str, str] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        lemma, form = line.split("\t")
-        if form in seen and seen[form] != lemma:
-            pytest.fail(f"{path}: {form!r} maps to both {seen[form]!r} and {lemma!r}")
-        seen[form] = lemma
+def test_override_file_reads_cleanly(path):
+    """read_pairs is the shared strict reader: it enforces well-formedness, NFC,
+    no empty/junk field, and no conflicting duplicate form. A corrupt hand-edit
+    fails here rather than silently shipping."""
+    assert read_pairs(path), f"{path} is empty"

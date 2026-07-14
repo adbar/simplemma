@@ -8,7 +8,6 @@ It loads the dictionaries that are shipped with simplemma and caches them as con
 
 """
 
-import pickle
 from abc import abstractmethod
 from functools import lru_cache
 from pathlib import Path
@@ -36,34 +35,13 @@ SUPPORTED_LANGUAGES = frozenset(f.stem for f in DATA_FOLDER.glob("*.plzma"))
 
 
 def _load_dictionary_from_disk(langcode: str) -> dict[bytes, bytes]:
-    """
-    Load a dictionary from disk.
+    """Load the shipped `data/{langcode}.plzma` as a bytes->bytes dict.
 
-    Args:
-        langcode (str): The language code.
-
-    Returns:
-        dict[str, str]: The loaded dictionary.
-
-    Raises:
-        TypeError: If the loaded object is not a dictionary.
-
-    Note:
-        This function assumes that the dictionary file is stored in the 'data' folder relative to this module.
-        The file name is constructed by appending '.plzma' to the language code.
+    Raises TypeError if a legacy pickle payload is not a dict.
     """
     filepath = DATA_FOLDER / f"{langcode}.plzma"
     with lzma.open(filepath, "rb") as filehandle:
-        # Peek the header to pick a format, then rewind: legacy pickle then
-        # streams; only front-coded is read whole (the decoder needs it all).
-        is_frontcoded = frontcode.is_frontcoded(filehandle.read(len(frontcode.MAGIC)))
-        filehandle.seek(0)
-        if is_frontcoded:
-            return frontcode.decode_stream(filehandle.read())
-        pickled_dict = pickle.load(filehandle)
-    if not isinstance(pickled_dict, dict):
-        raise TypeError(f"unexpected data in {filepath}: {type(pickled_dict)}")
-    return pickled_dict
+        return frontcode.load(filehandle)
 
 
 class DictionaryFactory(Protocol):
@@ -160,16 +138,10 @@ class DefaultDictionaryFactory(DictionaryFactory):
         self,
         lang: str,
     ) -> Mapping[str, str]:
-        """
-        Get the dictionary for a specific language.
-
-        Args:
-            lang (str): The language code.
-
-        Returns:
-            Mapping[str, str]: The dictionary for the specified language.
-
-        Raises:
-            ValueError: If the specified language is not supported.
-        """
+        """The cached dictionary for `lang` (see the `DictionaryFactory` protocol)."""
         return self._get_dictionary(lang)
+
+
+# Process-wide default: the strategy defaults and the legacy helpers all share
+# this one instance, so the shipped dictionaries are cached once, not per site.
+DEFAULT_DICTIONARY_FACTORY = DefaultDictionaryFactory()

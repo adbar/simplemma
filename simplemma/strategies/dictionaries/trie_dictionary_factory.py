@@ -1,8 +1,7 @@
 import logging
-from collections.abc import MutableMapping
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import TypeVar, overload
 from collections.abc import Iterator, Mapping
 
 try:
@@ -26,28 +25,30 @@ from simplemma.strategies.dictionaries.dictionary_factory import (
 
 logger = logging.getLogger(__name__)
 
+_T = TypeVar("_T")
 
-class TrieWrapDict(MutableMapping[str, Any]):
-    """Wrapper around BytesTrie to make them behave like dicts."""
+
+class TrieWrapDict(Mapping[str, str]):
+    """Read-only Mapping view over a BytesTrie (values decoded on access)."""
 
     __slots__ = ("_trie",)
 
     def __init__(self, trie: BytesTrie) -> None:
         self._trie = trie
 
-    def __getitem__(self, item: str) -> Any:
-        return self._trie[item][0].decode()
+    def __getitem__(self, item: str) -> str:
+        # str(): the untyped trie returns Any; mypy needs the concrete type.
+        return str(self._trie[item][0].decode())
 
-    def get(self, key: str, default: Any = None) -> Any:
-        # Avoids MutableMapping.get's EAFP path (a KeyError raised on every miss).
+    # The overloads mirror Mapping.get's signature for strict mypy.
+    @overload
+    def get(self, key: str) -> str | None: ...
+    @overload
+    def get(self, key: str, default: str | _T) -> str | _T: ...
+    def get(self, key: str, default: str | _T | None = None) -> str | _T | None:
+        # Avoids Mapping.get's EAFP path (a KeyError raised on every miss).
         value = self._trie.get(key)
-        return value[0].decode() if value else default
-
-    def __setitem__(self, key: Any, value: Any) -> None:
-        raise NotImplementedError
-
-    def __delitem__(self, key: Any) -> None:
-        raise NotImplementedError
+        return str(value[0].decode()) if value else default
 
     def __iter__(self) -> Iterator[str]:
         yield from self._trie.iterkeys()
@@ -101,8 +102,8 @@ class TrieDictionaryFactory(DictionaryFactory):
             self._get_dictionary_uncached
         )
 
-    def _create_trie_from_pickled_dict(self, lang: str) -> BytesTrie:
-        """Create a trie from a pickled dictionary."""
+    def _build_trie(self, lang: str) -> BytesTrie:
+        """Build a trie from the shipped dictionary for `lang`."""
         raw = _load_dictionary_from_disk(lang)
         return BytesTrie(
             ((k.decode(), v) for k, v in raw.items()),
@@ -137,7 +138,7 @@ class TrieDictionaryFactory(DictionaryFactory):
                 logger.warning("Corrupt trie cache for %s, regenerating.", lang)
                 cache_path.unlink(missing_ok=True)
 
-        trie = self._create_trie_from_pickled_dict(lang)
+        trie = self._build_trie(lang)
         if self._use_disk_cache:
             try:
                 self._write_trie_to_disk(lang, trie)

@@ -9,10 +9,14 @@ dict, because adjacent inflected forms end up byte-adjacent instead of
 scattered by pickle's own ordering.
 
 Decoding lives here (runtime dependency); encoding is called from
-`training/dictionary_pickler.py` (build-time only).
+`training/dictionary_pickler.py` (build-time only). `load` owns reading a
+`.plzma` payload off an open handle, auto-detecting this format vs a legacy
+pickle, so the dictionary factory only does file I/O.
 """
 
 import lzma
+import pickle
+from typing import IO
 
 MAGIC = b"SMFC1"
 _REVERSE_FLAG = 0x01
@@ -109,8 +113,10 @@ def encode(mapping: dict[bytes, bytes], reverse_key: bool = False) -> bytes:
 def decode_stream(data: bytes) -> dict[bytes, bytes]:
     """Decode already-decompressed front-coded bytes (see `is_frontcoded`).
 
-    Assumes a well-formed stream as produced by `encode`; a truncated or
-    corrupt stream raises IndexError rather than a specific decode error."""
+    Assumes a well-formed stream as produced by `encode`. A stream truncated
+    mid-record overruns a slice and is caught by the trailing length check
+    below (or raises IndexError on a truncated varint/trim byte); trailing
+    garbage is rejected the same way."""
     if not is_frontcoded(data):
         raise ValueError("not a front-coded stream")
     pos = len(MAGIC)
@@ -149,9 +155,29 @@ def decode_stream(data: bytes) -> dict[bytes, bytes]:
         prev_key = stored_key
         prev_value = stored_value
 
+    # Every slice advanced pos by its claimed length, so a stream truncated
+    # mid-record leaves pos past the end and trailing garbage leaves it short.
+    if pos != len(data):
+        raise ValueError("truncated or corrupt front-coded stream")
     return result
 
 
 def decode(blob: bytes) -> dict[bytes, bytes]:
     """Decompress and decode a full front-coded blob (as produced by `encode`)."""
     return decode_stream(lzma.decompress(blob))
+
+
+def load(filehandle: IO[bytes]) -> dict[bytes, bytes]:
+    """Read a `dict[bytes, bytes]` off an open, decompressing `.plzma` handle.
+
+    Auto-detects the payload from its header: this module's front-coded stream
+    (read whole -- the decoder needs it all) or a legacy pickled dict (streamed
+    via pickle.load, so the large legacy dicts don't sit in memory twice)."""
+    header = filehandle.read(len(MAGIC))
+    filehandle.seek(0)
+    if is_frontcoded(header):
+        return decode_stream(filehandle.read())
+    payload = pickle.load(filehandle)
+    if not isinstance(payload, dict):
+        raise TypeError(f"unexpected data in .plzma payload: {type(payload)}")
+    return payload

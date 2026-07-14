@@ -19,6 +19,7 @@ import argparse
 import gzip
 import json
 import logging
+import sys
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
 from pathlib import Path
@@ -28,6 +29,7 @@ from simplemma.strategies import DefaultStrategy
 from simplemma.strategies.dictionaries.dictionary_factory import (
     _load_dictionary_from_disk,
 )
+from training.clean_wordlist import check_field
 from training.eval_harness import FixedDictionaryFactory
 
 log = logging.getLogger(__name__)
@@ -153,6 +155,22 @@ def drop_ambiguous(
     return kept, stats
 
 
+def drop_junk_pairs(
+    pairs: Iterable[tuple[str, str]],
+) -> tuple[list[tuple[str, str]], dict[str, int]]:
+    """Drop pairs with a mojibake/control-char lemma or form, so the written
+    fill file is strict-readable by the pickler's read_pairs (which fails the
+    build on such a field). Shares check_field, so this producer and that
+    consumer agree by construction on what counts as junk."""
+    all_pairs = list(pairs)
+    kept = [
+        (lemma, form)
+        for lemma, form in all_pairs
+        if not check_field(lemma) and not check_field(form)
+    ]
+    return kept, {"total": len(all_pairs), "kept": len(kept)}
+
+
 def _prune_with_anchor(
     fill_pairs: list[tuple[str, str]], anchor: dict[str, str], lang: str
 ) -> tuple[list[tuple[str, str]], dict[str, int]]:
@@ -197,10 +215,16 @@ def stem_anchored_prune(
     for lemma in fill_lemmas:
         anchor.setdefault(lemma, lemma)
     kept, stats = _prune_with_anchor(fill_pairs, anchor, lang)
-    # Re-add anchoring self-maps not in shipped: identity forms are always
-    # derivable so never survive _prune (disjoint from kept); shipped wins ties.
-    self_maps = [(lemma, lemma) for lemma in fill_lemmas if lemma not in shipped]
-    kept = kept + self_maps
+    # Re-add anchoring self-maps not in shipped (identity forms are always
+    # derivable, so they never survive _prune). The pruning-safety invariant
+    # requires L->L present, so a self-map must win over any surviving pair
+    # whose FORM is L -- drop that conflicting pair explicitly rather than
+    # relying on append order / last-writer (which would clobber it silently).
+    self_map_lemmas = {lemma for lemma in fill_lemmas if lemma not in shipped}
+    deconflicted = [(lem, form) for lem, form in kept if form not in self_map_lemmas]
+    self_maps = [(lemma, lemma) for lemma in self_map_lemmas]
+    stats["dropped_form_lemma_conflict"] = len(kept) - len(deconflicted)
+    kept = deconflicted + self_maps
     stats["self_maps_added"] = len(self_maps)
     stats["kept"] = len(kept)
     return kept, stats
@@ -238,6 +262,16 @@ def main() -> None:
     log.info(f"Extracting {args.lang} pairs from {args.dump}...")
     raw_pairs = list(extract_language(args.dump, LANGUAGE_QIDS[args.lang], args.lang))
     log.info(f"Extracted {len(raw_pairs)} raw pairs")
+    if not raw_pairs:
+        # A dump-format change (e.g. whitespace in the JSON) would silently
+        # defeat stream_lexemes' substring prefilter -- fail loud, don't ship
+        # an empty fill that a long dump scan produced with no error.
+        print(
+            f"ERROR: extracted 0 pairs for {args.lang!r} -- wrong QID or "
+            f"unexpected dump format ({args.dump})",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     kept_pairs, ambiguity_stats = drop_ambiguous(raw_pairs)
     log.info(f"Ambiguity filter: {ambiguity_stats}")
@@ -251,6 +285,9 @@ def main() -> None:
         )
         kept_pairs, prune_stats = prune_fn(kept_pairs, shipped, args.lang)
         log.info(f"{args.prune} prune: {prune_stats}")
+
+    kept_pairs, junk_stats = drop_junk_pairs(kept_pairs)
+    log.info(f"Junk filter: {junk_stats}")
 
     count = write_tsv(kept_pairs, args.output)
     log.info(f"Wrote {count} pairs to {args.output}")

@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from simplemma.strategies import DefaultStrategy
 from training import wikidata_lexemes as wl
 from training.eval_harness import FixedDictionaryFactory
@@ -131,6 +133,22 @@ def test_drop_ambiguous_same_pair_repeated_is_not_ambiguous():
     assert stats["ambiguous_forms"] == 0
 
 
+def test_drop_junk_pairs_removes_control_and_mojibake():
+    """A pair with a control-char or mojibake lemma/form is dropped, so the
+    written fill file is strict-readable by the pickler's read_pairs."""
+    pairs = [("cat", "cats"), ("bad", "ba\x01d"), ("w�rd", "words")]
+    kept, stats = wl.drop_junk_pairs(pairs)
+    assert kept == [("cat", "cats")]
+    assert stats == {"total": 3, "kept": 1}
+
+
+def test_drop_junk_pairs_keeps_clean_pairs_unchanged():
+    pairs = [("café", "cafés"), ("run", "running")]
+    kept, stats = wl.drop_junk_pairs(pairs)
+    assert kept == pairs
+    assert stats == {"total": 2, "kept": 2}
+
+
 def test_rule_redundancy_prune_drops_pairs_the_shipped_chain_already_gets_right():
     shipped = {"talo": "talo"}  # fi: "house" is already a self-mapped lemma
     fill_pairs = [("talo", "talossa")]  # -ssa suffix: fi rules can derive this
@@ -167,6 +185,23 @@ def test_stem_anchored_prune_omits_self_maps_already_in_shipped():
     kept, stats = wl.stem_anchored_prune(fill_pairs, shipped, "fi")
     assert kept == []  # talossa derivable; talo self-map already in shipped
     assert stats["self_maps_added"] == 0
+
+
+def test_stem_anchored_prune_self_map_deconflicts_with_kept_form():
+    """A self-map (L, L) and a surviving pair whose FORM is L can't both ship:
+    the pruning-safety invariant needs L->L, so the conflicting pair is dropped
+    explicitly (never left to silent append-order last-writer)."""
+    shipped: dict[str, str] = {}
+    # form "le" survives pruning as (x -> le), and "le" is itself a fill lemma
+    # (from le -> lesse), so it also earns a self-map (le -> le): a conflict.
+    fill_pairs = [("x", "le"), ("le", "lesse")]
+    kept, stats = wl.stem_anchored_prune(fill_pairs, shipped, "fi")
+
+    forms = [form for _, form in kept]
+    assert len(forms) == len(set(forms)), f"duplicate form in {kept!r}"
+    assert ("le", "le") in kept  # self-map wins
+    assert ("x", "le") not in kept  # conflicting attested pair dropped
+    assert stats["dropped_form_lemma_conflict"] == 1
 
 
 def test_stem_anchored_prune_pruned_form_still_lemmatizes_after_merge():
@@ -208,6 +243,21 @@ def test_main_end_to_end(tmp_path, monkeypatch):
     assert "Hund\tHunde" in result
     assert "Katze\tKatzen" in result
     assert "cat" not in result
+
+
+def test_main_exits_nonzero_on_zero_pairs(tmp_path, monkeypatch):
+    """A dump with no matching lexemes (e.g. a format change defeating the
+    prefilter) must fail loud, not write an empty fill file."""
+    dump_path = _write_dump(tmp_path, [_lexeme("Q1860", "en", "cat", ["cats"])])
+    output_path = tmp_path / "de_wikidata.tsv"
+    monkeypatch.setattr(
+        "sys.argv",
+        ["wikidata_lexemes.py", "de", str(dump_path), str(output_path)],  # no Q188
+    )
+    with pytest.raises(SystemExit) as excinfo:
+        wl.main()
+    assert excinfo.value.code == 1
+    assert not output_path.exists()
 
 
 def test_language_qids_are_distinct():

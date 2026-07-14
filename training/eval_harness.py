@@ -88,23 +88,3 @@ def score_type(
     gold lemma on ties). Guards against the token metric's frequency weighting
     hiding a rare/tail-word regression. Returns (accuracy, type_count)."""
     return accuracy(strategy, lang, gold_types(gold_tokens))
-
-
-def load_lemma_form_tsv(path: Path) -> dict[str, str]:
-    """Load a lemma<TAB>form file (the pickler/override/fill convention) into
-    a runtime form->lemma mapping. Blank lines are skipped; any other line
-    without exactly one tab raises, naming the file and line number."""
-    mapping = {}
-    with open(path, encoding="utf-8") as filehandle:
-        for line_no, line in enumerate(filehandle, start=1):
-            stripped = line.rstrip("\n")
-            if not stripped:
-                continue
-            parts = stripped.split("\t")
-            if len(parts) != 2:
-                raise ValueError(
-                    f"{path}:{line_no}: expected 'lemma<TAB>form', got {stripped!r}"
-                )
-            lemma, form = parts
-            mapping[form] = lemma
-    return mapping

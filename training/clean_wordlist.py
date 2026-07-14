@@ -77,6 +77,44 @@ def check_field(text: str) -> str | None:
     return None
 
 
+def read_pairs(path: Path) -> dict[str, str]:
+    """Strictly load a curated ``lemma<TAB>form`` file into a form->lemma dict.
+
+    For reviewed artifacts (overrides/fill), NOT bulk wordlists: fields are
+    NFC-normalized (matching runtime and the shipped dicts) and any corruption
+    is an ERROR, not a silently-dropped row. Raises ValueError (naming
+    ``file:line``) on a malformed row, an empty field, a mojibake/control-char
+    field, or a form mapped to two DIFFERENT lemmas. Blank lines are skipped;
+    a line repeating an identical pair is harmless and kept once."""
+    mapping: dict[str, str] = {}
+    with open(path, encoding="utf-8") as filehandle:
+        for line_no, line in enumerate(filehandle, start=1):
+            stripped = line.rstrip("\n")
+            if not stripped:
+                continue
+            parts = stripped.split("\t")
+            if len(parts) != 2:
+                raise ValueError(
+                    f"{path}:{line_no}: expected 'lemma<TAB>form', got {stripped!r}"
+                )
+            lemma, form = (normalize_token(part) for part in parts)
+            if not lemma or not form:
+                raise ValueError(f"{path}:{line_no}: empty field in {stripped!r}")
+            for name, value in (("lemma", lemma), ("form", form)):
+                reason = check_field(value)
+                if reason:
+                    raise ValueError(
+                        f"{path}:{line_no}: {name} {value!r} rejected ({reason})"
+                    )
+            if form in mapping and mapping[form] != lemma:
+                raise ValueError(
+                    f"{path}:{line_no}: form {form!r} maps to both "
+                    f"{mapping[form]!r} and {lemma!r}"
+                )
+            mapping[form] = lemma
+    return mapping
+
+
 @dataclass
 class CleanReport:
     total: int = 0

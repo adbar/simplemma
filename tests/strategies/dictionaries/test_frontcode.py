@@ -1,3 +1,5 @@
+import lzma
+
 import pytest
 
 from simplemma.strategies.dictionaries import frontcode
@@ -56,3 +58,17 @@ def test_is_frontcoded_rejects_other_data() -> None:
 def test_decode_stream_rejects_non_frontcoded_data() -> None:
     with pytest.raises(ValueError, match="not a front-coded stream"):
         frontcode.decode_stream(b"\x80\x05some pickle bytes")
+
+
+def test_decode_stream_rejects_truncated_trailing_suffix() -> None:
+    """Truncation inside a trailing value-suffix overruns a slice silently; the
+    length check must reject it instead of returning a corrupt short value."""
+    raw = lzma.decompress(frontcode.encode({b"dog": b"dog", b"zz": b"zzabc"}))
+    with pytest.raises(ValueError, match="truncated or corrupt"):
+        frontcode.decode_stream(raw[:-1])
+
+
+def test_decode_stream_rejects_trailing_garbage() -> None:
+    raw = lzma.decompress(frontcode.encode({b"dog": b"dog"}))
+    with pytest.raises(ValueError, match="truncated or corrupt"):
+        frontcode.decode_stream(raw + b"\x00")

@@ -3,6 +3,8 @@ import pickle
 
 from pathlib import Path
 
+import pytest
+
 from simplemma import Lemmatizer
 from simplemma.strategies import DefaultStrategy, DictionaryFactory
 from simplemma.strategies.dictionaries import dictionary_factory
@@ -154,17 +156,32 @@ def test_apply_layers_drops_spaced_forms(tmp_path, monkeypatch) -> None:
     assert merged == {b"cats": b"cat"}  # 'top hats' dropped (space in form)
 
 
-def test_apply_layers_drops_junk_entries(tmp_path, monkeypatch) -> None:
-    """Layer entries with mojibake/control chars are dropped too, mirroring the
-    base path's key hygiene (not only NFC + the space filter)."""
+def test_apply_layers_rejects_junk_entries(tmp_path, monkeypatch) -> None:
+    """A curated layer file with mojibake/control chars is corruption: the
+    build fails loud (read_pairs raises), not a silent skip."""
     (tmp_path / "fill").mkdir()
     (tmp_path / "fill" / "zz.tsv").write_text(
-        "good\tgoods\nbad\tba\x01d\n", encoding="utf-8"  # control char in 2nd form
+        "good\tgoods\nbad\tba\x01d\n",
+        encoding="utf-8",  # control char in 2nd form
     )
     monkeypatch.setattr(dictionary_pickler, "FILL_DIR", tmp_path / "fill")
     monkeypatch.setattr(dictionary_pickler, "OVERRIDES_DIR", tmp_path / "nope")
-    merged = dictionary_pickler._apply_layers({}, "zz")
-    assert merged == {b"goods": b"good"}  # 'ba\x01d' dropped
+    with pytest.raises(ValueError, match="rejected"):
+        dictionary_pickler._apply_layers({}, "zz")
+
+
+def test_apply_layers_rejects_empty_fields(tmp_path, monkeypatch) -> None:
+    """An empty lemma/form in a curated layer file fails the build rather than
+    silently shipping a form->'' or a b'' key."""
+    (tmp_path / "fill").mkdir()
+    (tmp_path / "fill" / "zz.tsv").write_text(
+        "good\tgoods\nlemma\t\n",
+        encoding="utf-8",  # empty form
+    )
+    monkeypatch.setattr(dictionary_pickler, "FILL_DIR", tmp_path / "fill")
+    monkeypatch.setattr(dictionary_pickler, "OVERRIDES_DIR", tmp_path / "nope")
+    with pytest.raises(ValueError, match="empty field"):
+        dictionary_pickler._apply_layers({}, "zz")
 
 
 def test_apply_layers_precedence(tmp_path, monkeypatch) -> None:

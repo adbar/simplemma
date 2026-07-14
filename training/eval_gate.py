@@ -23,12 +23,12 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from training.clean_wordlist import read_pairs
 from training.eval_harness import (
     accuracy,
     build_strategy,
     gold_types,
     load_gold_tokens,
-    load_lemma_form_tsv,
 )
 from training.ud_conllu import dataset_to_lang
 
@@ -124,8 +124,8 @@ def main() -> None:
     parser.add_argument("--epsilon", type=float, default=DEFAULT_EPSILON)
     args = parser.parse_args()
 
-    baseline = load_lemma_form_tsv(args.baseline_tsv)
-    candidate = load_lemma_form_tsv(args.candidate_tsv)
+    baseline = read_pairs(args.baseline_tsv)
+    candidate = read_pairs(args.candidate_tsv)
     results = gate(args.lang, baseline, candidate)
 
     for result in results:

@@ -2,7 +2,6 @@ from training.eval_harness import (
     FixedDictionaryFactory,
     build_strategy,
     load_gold_tokens,
-    load_lemma_form_tsv,
     score_token,
     score_type,
 )
@@ -113,18 +112,6 @@ def test_type_accuracy_uses_majority_gold_for_ambiguous_form(tmp_path):
     )
     assert n == 1  # one distinct form
     assert acc == 1.0  # matches the majority gold (3 vs 1)
-
-
-def test_load_lemma_form_tsv(tmp_path):
-    path = tmp_path / "override.tsv"
-    path.write_text("el\tel\nacest\taceste\n", encoding="utf-8")
-    assert load_lemma_form_tsv(path) == {"el": "el", "aceste": "acest"}
-
-
-def test_load_lemma_form_tsv_empty_file(tmp_path):
-    path = tmp_path / "empty.tsv"
-    path.write_text("", encoding="utf-8")
-    assert load_lemma_form_tsv(path) == {}
 
 
 def test_type_and_token_agree_when_no_repeats(tmp_path):

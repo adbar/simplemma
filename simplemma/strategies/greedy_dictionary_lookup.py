@@ -4,7 +4,10 @@ It provides lemmatization using a greedy dictionary lookup strategy.
 """
 
 from ..utils import levenshtein_dist
-from .dictionaries.dictionary_factory import DefaultDictionaryFactory, DictionaryFactory
+from .dictionaries.dictionary_factory import (
+    DEFAULT_DICTIONARY_FACTORY,
+    DictionaryFactory,
+)
 from .lemmatization_strategy import LemmatizationStrategy
 
 # UD-validated per language (see training/data/affix_eval/); shared with
@@ -26,7 +29,7 @@ class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
 
     def __init__(
         self,
-        dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
+        dictionary_factory: DictionaryFactory = DEFAULT_DICTIONARY_FACTORY,
         steps: int = 1,
         distance: int = 5,
     ):
@@ -35,7 +38,7 @@ class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
 
         Args:
             dictionary_factory (DictionaryFactory): The dictionary factory used to obtain language dictionaries.
-                Defaults to [`DefaultDictionaryFactory()`][simplemma.strategies.dictionaries.dictionary_factory.DefaultDictionaryFactory]..
+                Defaults to the shared [`DEFAULT_DICTIONARY_FACTORY`][simplemma.strategies.dictionaries.dictionary_factory.DEFAULT_DICTIONARY_FACTORY].
             steps (int): The maximum number of lemmatization steps to perform. Defaults to `1`.
             distance (int): The maximum allowed Levenshtein distance between candidate lemmas. Defaults to `5`.
 
