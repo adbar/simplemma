@@ -22,14 +22,16 @@ def _read(tmp_path, lang: str, text: str) -> dict[bytes, bytes]:
 def test_logic(tmp_path) -> None:
     """Test if certain code parts correspond to the intended logic."""
     testfile = str(TEST_DIR / "data/zz.txt")
+    # 6 entries: the 1-char-lemma pair (s/st) is kept now that the per-language
+    # min-lemma exemption is collapsed to a uniform "non-empty" floor.
     mydict = dictionary_pickler._read_dict(testfile, "zz", silent=True)
-    assert len(mydict) == 4
+    assert len(mydict) == 6
     mydict = dictionary_pickler._load_dict(
         "zz", listpath=str(TEST_DIR / "data"), silent=True
     )
-    assert len(mydict) == 4
+    assert len(mydict) == 6
     mydict = dictionary_pickler._read_dict(testfile, "zz", silent=False)
-    assert len(mydict) == 4
+    assert len(mydict) == 6
 
     assert dictionary_pickler._determine_path("lists", "de").endswith("de.txt")
 
@@ -39,7 +41,7 @@ def test_logic(tmp_path) -> None:
     with lzma.open(temp_outputfile, "rb") as f:
         roundtripped = pickle.load(f)
     assert isinstance(roundtripped, dict)
-    assert len(roundtripped) == 4
+    assert len(roundtripped) == 6
     assert all(isinstance(k, bytes) for k in roundtripped)
 
     # in_place=True writes into the real package data dir
@@ -101,14 +103,17 @@ def test_read_dict_unattested_identity_yields_to_reduction(tmp_path) -> None:
     assert result[b"lansare"] == b"lansat"
 
 
-def test_read_dict_voc_limit(tmp_path) -> None:
-    """VOC_LIMIT language drops entries longer than MAXLENGTH (16)."""
+def test_read_dict_keeps_long_and_single_char_entries(tmp_path) -> None:
+    """No length cap (former VOC_LIMIT/MAXLENGTH gone) and no per-language
+    min-lemma exemption (former SAFE_LIMIT collapsed): long agglutinative
+    forms and legitimate 1-char lemmas are both kept for every language."""
     result = _read(
         tmp_path,
         "fi",
-        "talo\ttalot\nshort\tthiswordislongerthan16\n",
+        "pitkä\tpitkänmatkanjuoksija\no\to\n",  # long form; 1-char lemma
     )
-    assert result == {b"talo": b"talo", b"talot": b"talo"}
+    assert result["pitkänmatkanjuoksija".encode()] == "pitkä".encode()
+    assert result[b"o"] == b"o"
 
 
 def test_read_dict_buffer_hack(tmp_path) -> None:
@@ -117,6 +122,77 @@ def test_read_dict_buffer_hack(tmp_path) -> None:
     assert non_hack[b"bb"] == b"xx"
     hack = _read(tmp_path, "et", "xx\tbb\nbb\tyy\n")  # et is in BUFFER_HACK
     assert hack[b"bb"] == b"bb"
+
+
+def test_read_dict_normalizes_to_nfc(tmp_path) -> None:
+    """Keys/values are NFC regardless of how the input list was prepared --
+    runtime lookups NFC-normalize, so non-NFC keys would never match."""
+    decomposed = "café"  # e + combining acute (NFD)
+    result = _read(tmp_path, "en", f"{decomposed}\t{decomposed}s\n")
+    nfc = "café".encode()
+    assert result == {nfc: nfc, "cafés".encode(): nfc}
+
+
+def test_read_dict_rejects_control_and_mojibake_keys(tmp_path) -> None:
+    """Mojibake/control-char keys are rejected at the pickler even if the
+    optional clean_wordlist stage was skipped (INPUT_PUNCT doesn't catch them)."""
+    result = _read(tmp_path, "en", "dog\tdogs\nbad\tba\x01d\nx\tw�rd\n")
+    assert result == {b"dog": b"dog", b"dogs": b"dog"}  # \x01 and U+FFFD lines gone
+
+
+def test_apply_layers_drops_spaced_forms(tmp_path, monkeypatch) -> None:
+    """Multi-word layer forms are unreachable keys (the tokenizer never yields
+    a spaced token) and are dropped."""
+    (tmp_path / "fill").mkdir()
+    (tmp_path / "fill" / "zz.tsv").write_text(
+        "top hat\ttop hats\ncat\tcats\n",
+        encoding="utf-8",  # lemma<TAB>form
+    )
+    monkeypatch.setattr(dictionary_pickler, "FILL_DIR", tmp_path / "fill")
+    monkeypatch.setattr(dictionary_pickler, "OVERRIDES_DIR", tmp_path / "nope")
+    merged = dictionary_pickler._apply_layers({}, "zz")
+    assert merged == {b"cats": b"cat"}  # 'top hats' dropped (space in form)
+
+
+def test_apply_layers_drops_junk_entries(tmp_path, monkeypatch) -> None:
+    """Layer entries with mojibake/control chars are dropped too, mirroring the
+    base path's key hygiene (not only NFC + the space filter)."""
+    (tmp_path / "fill").mkdir()
+    (tmp_path / "fill" / "zz.tsv").write_text(
+        "good\tgoods\nbad\tba\x01d\n", encoding="utf-8"  # control char in 2nd form
+    )
+    monkeypatch.setattr(dictionary_pickler, "FILL_DIR", tmp_path / "fill")
+    monkeypatch.setattr(dictionary_pickler, "OVERRIDES_DIR", tmp_path / "nope")
+    merged = dictionary_pickler._apply_layers({}, "zz")
+    assert merged == {b"goods": b"good"}  # 'ba\x01d' dropped
+
+
+def test_apply_layers_precedence(tmp_path, monkeypatch) -> None:
+    """overrides > base > fill: fill only adds, overrides always win."""
+    (tmp_path / "fill").mkdir()
+    (tmp_path / "overrides").mkdir()
+    # layer files are lemma<TAB>form
+    (tmp_path / "fill" / "zz.tsv").write_text(
+        "filllemma\tdogs\nnew\tnews\n", encoding="utf-8"
+    )
+    (tmp_path / "overrides" / "zz.tsv").write_text(
+        "overridden\tcats\n", encoding="utf-8"
+    )
+    monkeypatch.setattr(dictionary_pickler, "FILL_DIR", tmp_path / "fill")
+    monkeypatch.setattr(dictionary_pickler, "OVERRIDES_DIR", tmp_path / "overrides")
+
+    base = {b"dogs": b"dog", b"cats": b"cat"}
+    merged = dictionary_pickler._apply_layers(base, "zz")
+    assert merged[b"dogs"] == b"dog"  # fill never displaces a base entry
+    assert merged[b"news"] == b"new"  # fill adds what's missing
+    assert merged[b"cats"] == b"overridden"  # override always wins
+
+
+def test_apply_layers_without_layer_files_is_identity(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(dictionary_pickler, "FILL_DIR", tmp_path / "fill")
+    monkeypatch.setattr(dictionary_pickler, "OVERRIDES_DIR", tmp_path / "overrides")
+    base = {b"dogs": b"dog"}
+    assert dictionary_pickler._apply_layers(base, "zz") == base
 
 
 def test_read_dict_rule_mismatch_print(tmp_path, capsys) -> None:

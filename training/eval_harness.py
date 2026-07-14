@@ -48,11 +48,12 @@ def build_strategy(mapping: dict[str, str]) -> DefaultStrategy:
     return DefaultStrategy(dictionary_factory=FixedDictionaryFactory(mapping))
 
 
-def _accuracy(
+def accuracy(
     strategy: DefaultStrategy, lang: str, pairs: Iterable[tuple[str, str]]
 ) -> tuple[float, int]:
     """Fraction of (form, gold_lemma) pairs the strategy lemmatizes to gold
-    (identity fallback on a miss). Returns (accuracy, count)."""
+    (identity fallback on a miss). Returns (accuracy, count). Token- vs
+    type-level is just which pair list you pass (gold_tokens vs gold_types)."""
     correct = 0
     total = 0
     for form, gold_lemma in pairs:
@@ -62,29 +63,31 @@ def _accuracy(
     return correct / total if total else 0.0, total
 
 
+def gold_types(gold_tokens: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Reduce occurrence pairs to one (form, majority-gold-lemma) pair per
+    DISTINCT form. Strategy-independent, so build once per treebank and reuse
+    across strategies (a form's majority gold is a property of the corpus)."""
+    by_form: defaultdict[str, Counter[str]] = defaultdict(Counter)
+    for form, gold_lemma in gold_tokens:
+        by_form[form][gold_lemma] += 1
+    return [(form, counts.most_common(1)[0][0]) for form, counts in by_form.items()]
+
+
 def score_token(
     strategy: DefaultStrategy, lang: str, gold_tokens: list[tuple[str, str]]
 ) -> tuple[float, int]:
-    """Token-level (frequency-weighted) accuracy: each occurrence in the corpus
-    counts once, so common forms dominate. Returns (accuracy, token_count)."""
-    return _accuracy(strategy, lang, gold_tokens)
+    """Token-level (frequency-weighted) accuracy: each occurrence counts once,
+    so common forms dominate. Returns (accuracy, token_count)."""
+    return accuracy(strategy, lang, gold_tokens)
 
 
 def score_type(
     strategy: DefaultStrategy, lang: str, gold_tokens: list[tuple[str, str]]
 ) -> tuple[float, int]:
-    """Type-level (unweighted) accuracy: one vote per DISTINCT form regardless
-    of how often it occurs (majority gold lemma if a form has more than one).
-    Guards against the token-level metric's frequency weighting hiding a
-    rare/tail-word regression (frequency pruning can look "free" on tokens
-    while gutting tail coverage). Returns (accuracy, type_count)."""
-    gold_by_form: defaultdict[str, Counter[str]] = defaultdict(Counter)
-    for form, gold_lemma in gold_tokens:
-        gold_by_form[form][gold_lemma] += 1
-    majority = (
-        (form, counts.most_common(1)[0][0]) for form, counts in gold_by_form.items()
-    )
-    return _accuracy(strategy, lang, majority)
+    """Type-level (unweighted) accuracy: one vote per DISTINCT form (majority
+    gold lemma on ties). Guards against the token metric's frequency weighting
+    hiding a rare/tail-word regression. Returns (accuracy, type_count)."""
+    return accuracy(strategy, lang, gold_types(gold_tokens))
 
 
 def load_lemma_form_tsv(path: Path) -> dict[str, str]:

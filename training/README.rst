@@ -195,7 +195,12 @@ inputs live under ``training/data/``):
   test treebank for the language (cross-treebank is automatic).
 
 ``ud_conllu.py`` holds the shared UD conventions (the dataset-name → language
-map and the gold-token iteration rule) these tools read with. Finally,
-``dictionary_pickler.py --frontcode`` writes the smaller front-coded
-byte-stream format instead of a pickle; simplemma reads both, so existing
-``.plzma`` files keep working.
+map and the gold-token iteration rule) these tools read with.
+
+``dictionary_pickler.py`` composes the layers itself when building a
+dictionary: a reviewed ``training/overrides/<code>.tsv`` always wins, the base
+wordlist comes next, and an optional ``training/fill/<code>.tsv`` (git-ignored,
+``wikidata_lexemes.py`` output) only fills gaps, never overriding. Keys are
+NFC-normalized at build time, matching runtime lookups. Passing
+``--frontcode`` writes the smaller front-coded byte-stream format instead of a
+pickle; simplemma reads both, so existing ``.plzma`` files keep working.

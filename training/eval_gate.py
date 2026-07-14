@@ -24,11 +24,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from training.eval_harness import (
+    accuracy,
     build_strategy,
+    gold_types,
     load_gold_tokens,
     load_lemma_form_tsv,
-    score_token,
-    score_type,
 )
 from training.ud_conllu import dataset_to_lang
 
@@ -67,10 +67,11 @@ def _file_lang(path: Path) -> str:
     return dataset_to_lang(path.name.removesuffix("-ud-test.conllu"))
 
 
-def discover_test_treebanks(lang: str, ud_splits: Path = UD_SPLITS) -> list[Path]:
+def discover_test_treebanks(lang: str, ud_splits: Path | None = None) -> list[Path]:
     """Every *-ud-test.conllu file whose dataset belongs to `lang` (dataset
     name is `{code}_{treebank}`, e.g. ro_rrt, ro_simonero -- multiple matches
     here is exactly what makes the gate cross-treebank automatically)."""
+    ud_splits = ud_splits or UD_SPLITS
     return sorted(
         p for p in ud_splits.glob("*-ud-test.conllu") if _file_lang(p) == lang
     )
@@ -80,16 +81,14 @@ def gate(
     lang: str,
     baseline: dict[str, str],
     candidate: dict[str, str],
-    ud_splits: Path = UD_SPLITS,
+    ud_splits: Path | None = None,
 ) -> list[TreebankResult]:
     """Run token+type accuracy for baseline and candidate on every available
     test treebank for `lang`. Raises if none are found (a gate that silently
     checks nothing must not be mistaken for a gate that passed)."""
     treebanks = discover_test_treebanks(lang, ud_splits)
     if not treebanks:
-        raise ValueError(
-            f"no UD test treebank found for language {lang!r} in {ud_splits}"
-        )
+        raise ValueError(f"no UD test treebank found for language {lang!r}")
 
     # Build each strategy once (encoding the mapping is the costly part), reuse.
     baseline_strategy = build_strategy(baseline)
@@ -98,10 +97,11 @@ def gate(
     results = []
     for test_path in treebanks:
         gold_tokens = load_gold_tokens(test_path)
-        baseline_token, n_tokens = score_token(baseline_strategy, lang, gold_tokens)
-        candidate_token, _ = score_token(candidate_strategy, lang, gold_tokens)
-        baseline_type, n_types = score_type(baseline_strategy, lang, gold_tokens)
-        candidate_type, _ = score_type(candidate_strategy, lang, gold_tokens)
+        gold_type_pairs = gold_types(gold_tokens)  # strategy-independent; build once
+        baseline_token, n_tokens = accuracy(baseline_strategy, lang, gold_tokens)
+        candidate_token, _ = accuracy(candidate_strategy, lang, gold_tokens)
+        baseline_type, n_types = accuracy(baseline_strategy, lang, gold_type_pairs)
+        candidate_type, _ = accuracy(candidate_strategy, lang, gold_type_pairs)
         results.append(
             TreebankResult(
                 treebank=test_path.stem,
@@ -126,8 +126,7 @@ def main() -> None:
 
     baseline = load_lemma_form_tsv(args.baseline_tsv)
     candidate = load_lemma_form_tsv(args.candidate_tsv)
-    # Pass UD_SPLITS explicitly so a test's monkeypatch of it takes effect.
-    results = gate(args.lang, baseline, candidate, ud_splits=UD_SPLITS)
+    results = gate(args.lang, baseline, candidate)
 
     for result in results:
         status = "PASS" if result.passed(args.epsilon) else "FAIL"

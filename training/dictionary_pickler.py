@@ -17,38 +17,23 @@ import simplemma
 from simplemma.strategies.defaultrules import RULE_FUNCTIONS
 from simplemma.strategies.dictionaries import frontcode
 from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
-from simplemma.utils import levenshtein_dist
+from simplemma.utils import levenshtein_dist, normalize_token
+from training.clean_wordlist import check_field
+from training.eval_harness import load_lemma_form_tsv
 
 # Swahili inflection is prefixal, so a lemma's forms share an ENDING not a
 # start; front-coding the reversed bytes exposes that shared structure.
 FRONTCODE_REVERSE_KEY_LANGS = {"sw"}
 
+# Optional per-language source layers merged by _apply_layers (precedence:
+# overrides > base wordlist > fill).
+OVERRIDES_DIR = Path(__file__).parent / "overrides"
+FILL_DIR = Path(__file__).parent / "fill"
+
 LOGGER = logging.getLogger(__name__)
 
 INPUT_PUNCT = re.compile(r"[,:*/\+_]|.+-$|.+-\t|^-.+")
-SAFE_LIMIT = {
-    "cs",
-    "da",
-    "el",
-    "en",
-    "es",
-    "fi",
-    "fr",
-    "ga",
-    "hu",
-    "it",
-    "lv",
-    "pl",
-    "pt",
-    "ru",
-    "sk",
-    "tr",
-}
-
-VOC_LIMIT = {"fi", "la", "pl", "pt", "sk", "tr"}
 BUFFER_HACK = {"bg", "es", "et", "fi", "fr", "it", "lt", "pl", "sk", "uk"}  # "da", "nl"
-
-MAXLENGTH = 16
 
 
 def _determine_path(listpath: str, langcode: str) -> str:
@@ -62,23 +47,22 @@ def _collect_candidates(
     """First pass: filter input lines, counting each (form, lemma) pair as evidence."""
     candidates: defaultdict[str, Counter[str]] = defaultdict(Counter)
     lemmas: set[str] = set()
-    leftlimit = 1 if langcode in SAFE_LIMIT else 2
     with open(filepath, encoding="utf-8") as filehandle:
         for line in filehandle:
             # skip potentially invalid lines, e.g. with punctuation
             if " " in line or INPUT_PUNCT.search(line):
                 continue
-            columns = line.strip().split("\t")
-            # invalid: remove noise
-            if len(columns) != 2 or len(columns[0]) < leftlimit:
-                # or len(columns[1]) < 2:
+            # NFC at the choke point: runtime lookups NFC-normalize, so keys
+            # must be NFC no matter how the input list was prepared.
+            columns = [normalize_token(c) for c in line.strip().split("\t")]
+            # invalid: wrong shape or empty lemma
+            if len(columns) != 2 or not columns[0]:
                 if not silent:
                     LOGGER.warning("wrong format: %s", line.strip())
                 continue
-            # too long
-            if langcode in VOC_LIMIT and (
-                len(columns[0]) > MAXLENGTH or len(columns[1]) > MAXLENGTH
-            ):
+            # reject mojibake / control-char keys (clean_wordlist's guard) so
+            # junk can't become a key even if that optional stage was skipped.
+            if any(check_field(c) for c in columns):
                 continue
             # length difference
             if len(columns[0]) == 1 and len(columns[1]) > 6:
@@ -154,6 +138,37 @@ def _load_dict(
     return _read_dict(filepath, langcode, silent)
 
 
+def _layer_entries(path: Path) -> dict[bytes, bytes]:
+    """A lemma<TAB>form layer file as an NFC-normalized bytes mapping, applying
+    the same key hygiene as the base path: drop forms with a space (unreachable
+    keys -- the tokenizer never yields a spaced token, e.g. multi-word Wikidata
+    lexemes like 'top hat') and drop mojibake/control-char entries."""
+    entries: dict[bytes, bytes] = {}
+    for raw_form, raw_lemma in load_lemma_form_tsv(path).items():
+        form, lemma = normalize_token(raw_form), normalize_token(raw_lemma)
+        if " " in form or check_field(form) or check_field(lemma):
+            continue
+        entries[form.encode()] = lemma.encode()
+    return entries
+
+
+def _apply_layers(base: dict[bytes, bytes], langcode: str) -> dict[bytes, bytes]:
+    """Merge the optional per-language source layers into the base wordlist
+    dict with explicit precedence: overrides > base > fill. Fill (e.g.
+    Wikidata) never displaces a base entry; reviewed overrides always win."""
+    merged = dict(base)
+    fill_path = FILL_DIR / f"{langcode}.tsv"
+    if fill_path.exists():
+        for form, lemma in _layer_entries(fill_path).items():
+            merged.setdefault(form, lemma)
+        LOGGER.info("%s: fill layer applied -> %s entries", langcode, len(merged))
+    override_path = OVERRIDES_DIR / f"{langcode}.tsv"
+    if override_path.exists():
+        merged.update(_layer_entries(override_path))
+        LOGGER.info("%s: override layer applied -> %s entries", langcode, len(merged))
+    return merged
+
+
 def _determine_pickle_path(langcode: str = "en", in_place: bool = False) -> str:
     """in_place=True overwrites shipped data; default writes to training/output/."""
     filename = f"{langcode}.plzma"
@@ -172,7 +187,7 @@ def _pickle_dict(
     in_place: bool = False,
     use_frontcode: bool = False,
 ) -> None:
-    mydict = _load_dict(langcode, listpath)
+    mydict = _apply_layers(_load_dict(langcode, listpath), langcode)
     if filepath is None:
         filepath = _determine_pickle_path(langcode, in_place)
     if use_frontcode:

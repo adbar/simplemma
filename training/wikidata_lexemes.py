@@ -192,17 +192,14 @@ def stem_anchored_prune(
     otherwise a pruned form regenerates to a base lemma absent from the
     final dict and lemmatizes to None.
     """
+    fill_lemmas = {lemma for lemma, _ in fill_pairs}
     anchor = dict(shipped)
-    for lemma, _ in fill_pairs:
+    for lemma in fill_lemmas:
         anchor.setdefault(lemma, lemma)
     kept, stats = _prune_with_anchor(fill_pairs, anchor, lang)
     # Re-add anchoring self-maps not in shipped: identity forms are always
     # derivable so never survive _prune (disjoint from kept); shipped wins ties.
-    self_maps = [
-        (lemma, lemma)
-        for lemma in {lemma for lemma, _ in fill_pairs}
-        if lemma not in shipped
-    ]
+    self_maps = [(lemma, lemma) for lemma in fill_lemmas if lemma not in shipped]
     kept = kept + self_maps
     stats["self_maps_added"] = len(self_maps)
     stats["kept"] = len(kept)
