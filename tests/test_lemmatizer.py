@@ -378,7 +378,7 @@ def test_subwords() -> None:
             "durchgestyltes", lang="de"
         )
         == lemmatize("durchgestyltes", lang="de", greedy=True)
-        == "durchgestylt"
+        == "durchstylen"  # de fill adds the infinitive; greedy reaches it
     )
     assert (
         Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
@@ -536,7 +536,7 @@ def test_get_lemmas_in_text() -> None:
         == [
             "pepa",
             "e",
-            "iván",
+            "Iván",
             "son",
             "uno",
             "pareja",
@@ -561,7 +561,7 @@ def test_get_lemmas_in_text() -> None:
         == [
             "pepa",
             "e",
-            "iván",
+            "Iván",
             "son",
             "uno",
             "pareja",
@@ -647,7 +647,9 @@ _ACRONYM_CASES = [
     ("de", "Das steht in Kapitel XII.", ["XII"], []),  # Roman numeral, not an acronym
     # 2-char Roman-numeral lookalikes stay keepable as acronyms
     ("es", "El disco CD es popular hoy.", ["CD"], []),
-    ("de", "MM und DC sind hier bekannt.", ["MM", "DC"], []),
+    # MM now lowercases: v2.0 fill adds 'mm' (millimetre) as a known de word,
+    # so it's no longer treated as an acronym; DC has no such homograph, kept.
+    ("de", "MM und DC sind hier bekannt.", ["DC"], ["MM"]),
     ("uk", "Це СБУ.", ["СБУ"], []),  # lone acronym isn't "shouting" (leave-one-out)
     # an opening quote shifts neither the initial slot nor the flush
     ("de", "„MIT dem Auto fahren.“", ["mit"], ["MIT"]),

@@ -332,18 +332,18 @@ morphology rather than a data error.
 | `ast` | Asturian | 154 | 36 |  |  |
 | `bg` | Bulgarian | 215 | 18 | 0.80 | on UD BG-BTB |
 | `ca` | Catalan | 640 | 63 | 0.82 | on UD CA-AnCora |
-| `cs` | Czech | 200 | 26 | 0.89 | on UD CS-FicTree |
+| `cs` | Czech | 356 | 45 | 0.91 | on UD CS-FicTree |
 | `cy` | Welsh | 363 | 14 | 0.59 | on UD CY-CCG |
-| `da` | Danish | 555 | 81 | 0.92 | on UD DA-DDT, alternative: [lemmy](https://github.com/sorenlind/lemmy) |
-| `de` | German | 730 | 246 | 0.94 | on UD DE-GSD, see also [German-NLP list](https://github.com/adbar/German-NLP#Lemmatization) |
-| `el` | Greek | 185 | 21 | 0.88 | on UD EL-GDT |
-| `en` | English | 139 | 50 | 0.95 | on UD EN-LinES, alternative: [LemmInflect](https://github.com/bjascob/LemmInflect) |
+| `da` | Danish | 778 | 115 | 0.92 | on UD DA-DDT, alternative: [lemmy](https://github.com/sorenlind/lemmy) |
+| `de` | German | 1,116 | 334 | 0.94 | on UD DE-GSD, see also [German-NLP list](https://github.com/adbar/German-NLP#Lemmatization) |
+| `el` | Greek | 187 | 21 | 0.89 | on UD EL-GDT |
+| `en` | English | 182 | 78 | 0.95 | on UD EN-LinES, alternative: [LemmInflect](https://github.com/bjascob/LemmInflect) |
 | `enm` | Middle English | 43 | 6 |  |  |
 | `eo` | Esperanto | 191 | 18 | 0.95 | on UD EO-PraGo |
-| `es` | Spanish | 666 | 72 | 0.89 | on UD ES-AnCora |
-| `et` | Estonian | 141 | 34 | 0.80 | on UD ET-EWT, low coverage |
+| `es` | Spanish | 824 | 88 | 0.90 | on UD ES-AnCora |
+| `et` | Estonian | 2,662 | 92 | 0.82 | on UD ET-EWT, low coverage |
 | `fa` | Persian | 13 | 4 | 0.79 | on UD FA-Seraji, experimental |
-| `fi` | Finnish | 3,549 | 124 | 0.81 | on UD FI-FTB, see [this benchmark](https://github.com/aajanki/finnish-pos-accuracy) |
+| `fi` | Finnish | 3,549 | 125 | 0.81 | on UD FI-FTB, see [this benchmark](https://github.com/aajanki/finnish-pos-accuracy) |
 | `fr` | French | 248 | 37 | 0.93 | on UD FR-Sequoia |
 | `ga` | Irish | 399 | 46 | 0.81 | on UD GA-IDT |
 | `gd` | Gaelic | 59 | 12 | 0.73 | on UD GD-ARCOSG |
@@ -357,28 +357,28 @@ morphology rather than a data error.
 | `is` | Icelandic | 177 | 15 | 0.67 | on UD IS-GC |
 | `it` | Italian | 357 | 28 | 0.93 | on UD IT-ISDT |
 | `ka` | Georgian | 66 | 4 | 0.67 | on UD KA-GLC |
-| `la` | Latin | 892 | 52 | 0.82 | on UD LA-PROIEL |
+| `la` | Latin | 1,223 | 64 | 0.83 | on UD LA-PROIEL |
 | `lb` | Luxembourgish | 306 | 79 |  | only a <1k-token UD treebank available |
 | `lt` | Lithuanian | 268 | 25 | 0.77 | on UD LT-ALKSNIS |
 | `lv` | Latvian | 166 | 14 | 0.75 | on UD LV-LVTB |
 | `mk` | Macedonian | 67 | 16 | 0.65 | on UD MK-MTB |
 | `ms` | Malay | 18 | 4 |  |  |
 | `nb` | Norwegian (Bokmål) | 618 | 134 | 0.73 | on UD NO-Bokmaal |
-| `nl` | Dutch | 366 | 124 | 0.92 | on UD NL-Alpino, excl. underscore-joined compound lemmas |
+| `nl` | Dutch | 369 | 125 | 0.92 | on UD NL-Alpino, excl. underscore-joined compound lemmas |
 | `nn` | Norwegian (Nynorsk) | 68 | 18 | 0.57 | on UD NO-Nynorsk |
-| `pl` | Polish | 3,670 | 264 | 0.91 | on UD PL-LFG |
-| `pt` | Portuguese | 924 | 94 | 0.91 | on UD PT-GSD |
-| `ro` | Romanian | 342 | 36 | 0.85 | on UD RO-RRT |
-| `ru` | Russian | 633 | 54 | 0.86 | on UD RU-GSD, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
+| `pl` | Polish | 3,671 | 264 | 0.93 | on UD PL-LFG |
+| `pt` | Portuguese | 926 | 95 | 0.91 | on UD PT-GSD |
+| `ro` | Romanian | 342 | 36 | 0.92 | on UD RO-RRT |
+| `ru` | Russian | 1,318 | 128 | 0.86 | on UD RU-GSD, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
 | `se` | Northern Sámi | 115 | 7 | 0.95 | on UD SME-Giella |
-| `sk` | Slovak | 889 | 71 | 0.92 | on UD SK-SNK |
+| `sk` | Slovak | 907 | 73 | 0.92 | on UD SK-SNK |
 | `sl` | Slovene | 165 | 30 | 0.83 | on UD SL-SSJ |
 | `sq` | Albanian | 38 | 5 | 0.61 | on UD SQ-STAF |
-| `sv` | Swedish | 745 | 93 | 0.78 | on UD SV-Talbanken, alternative: [lemmy](https://github.com/sorenlind/lemmy) |
+| `sv` | Swedish | 871 | 114 | 0.79 | on UD SV-Talbanken, alternative: [lemmy](https://github.com/sorenlind/lemmy) |
 | `sw` | Swahili | 4,870 | 4 |  | experimental |
 | `tl` | Tagalog | 39 | 8 | 0.67 | on UD TL-Ugnayan, experimental |
 | `tr` | Turkish | 1,236 | 40 | 0.91 | on UD TR-KeNet |
-| `uk` | Ukrainian | 388 | 22 | 0.87 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
+| `uk` | Ukrainian | 616 | 37 | 0.87 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
 
 
 Languages marked as having low coverage may be better suited to
