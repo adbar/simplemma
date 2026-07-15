@@ -1,13 +1,11 @@
-import lzma
-import pickle
-
+import logging
 from pathlib import Path
 
 import pytest
 
 from simplemma import Lemmatizer
 from simplemma.strategies import DefaultStrategy, DictionaryFactory
-from simplemma.strategies.dictionaries import dictionary_factory
+from simplemma.strategies.dictionaries import dictionary_factory, frontcode
 from simplemma.strategies.dictionaries.dictionary_factory import MappingStrToByteString
 from training import dictionary_pickler
 
@@ -38,17 +36,16 @@ def test_logic(tmp_path) -> None:
     assert dictionary_pickler._determine_path("lists", "de").endswith("de.txt")
 
     listpath = str(TEST_DIR / "data")
-    temp_outputfile = str(tmp_path / "zz.pkl")
-    dictionary_pickler._pickle_dict("zz", listpath, temp_outputfile)
-    with lzma.open(temp_outputfile, "rb") as f:
-        roundtripped = pickle.load(f)
+    temp_outputfile = str(tmp_path / "zz.plzma")
+    dictionary_pickler._build_dictionary("zz", listpath, temp_outputfile)
+    roundtripped = frontcode.decode(Path(temp_outputfile).read_bytes())
     assert isinstance(roundtripped, dict)
     assert len(roundtripped) == 6
     assert all(isinstance(k, bytes) for k in roundtripped)
 
     # in_place=True writes into the real package data dir
-    dictionary_pickler._pickle_dict("zz", listpath, in_place=True)
-    filepath = dictionary_pickler._determine_pickle_path("zz", in_place=True)
+    dictionary_pickler._build_dictionary("zz", listpath, in_place=True)
+    filepath = dictionary_pickler._determine_output_path("zz", in_place=True)
     Path(filepath).unlink(missing_ok=True)
 
 
@@ -212,11 +209,21 @@ def test_apply_layers_without_layer_files_is_identity(tmp_path, monkeypatch) -> 
     assert dictionary_pickler._apply_layers(base, "zz") == base
 
 
-def test_read_dict_rule_mismatch_print(tmp_path, capsys) -> None:
-    """A DEFAULT_RULES lemma disagreeing with the list prints a diagnostic."""
+def test_read_dict_rule_mismatch_logged(tmp_path, caplog) -> None:
+    """A DEFAULT_RULES lemma disagreeing with the list logs a diagnostic --
+    but only when not silent (the silent contract covers it too)."""
+    fixture = tmp_path / "de.txt"
     # rule("Bäckerei") == "Bäckerei", but the list gives a different lemma.
-    _read(tmp_path, "de", "baeckerei\tBäckerei\n")
-    assert capsys.readouterr().out == "Bäckerei baeckerei Bäckerei\n"
+    fixture.write_text("baeckerei\tBäckerei\n", encoding="utf-8")
+
+    with caplog.at_level(logging.WARNING):
+        dictionary_pickler._read_dict(str(fixture), "de", silent=False)
+    assert "Bäckerei" in caplog.text and "rule mismatch" in caplog.text
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        dictionary_pickler._read_dict(str(fixture), "de", silent=True)
+    assert caplog.text == ""
 
 
 def test_lemmatizes_language_built_from_wordlist(tmp_path) -> None:
@@ -235,36 +242,10 @@ def test_lemmatizes_language_built_from_wordlist(tmp_path) -> None:
 
 
 def test_generated_plzma_loads_through_real_reader(tmp_path, monkeypatch) -> None:
-    """A pickled .plzma loads via the production reader and lemmatizes."""
+    """A built (front-coded) .plzma loads via the production reader and lemmatizes."""
     (tmp_path / "zz.txt").write_text("dog\tdogs\ncat\tcats\n", encoding="utf-8")
-    dictionary_pickler._pickle_dict(
+    dictionary_pickler._build_dictionary(
         "zz", listpath=str(tmp_path), filepath=str(tmp_path / "zz.plzma")
-    )
-
-    monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
-    raw = dictionary_factory._load_dictionary_from_disk("zz")
-
-    class GeneratedFactory(DictionaryFactory):
-        def get_dictionary(self, lang: str) -> MappingStrToByteString:
-            return MappingStrToByteString(raw)
-
-    lemmatizer = Lemmatizer(
-        lemmatization_strategy=DefaultStrategy(dictionary_factory=GeneratedFactory())
-    )
-    assert lemmatizer.lemmatize("dogs", lang="zz") == "dog"
-
-
-def test_generated_frontcoded_plzma_loads_through_real_reader(
-    tmp_path, monkeypatch
-) -> None:
-    """A front-coded .plzma loads via the production reader and lemmatizes
-    identically to the legacy pickle format."""
-    (tmp_path / "zz.txt").write_text("dog\tdogs\ncat\tcats\n", encoding="utf-8")
-    dictionary_pickler._pickle_dict(
-        "zz",
-        listpath=str(tmp_path),
-        filepath=str(tmp_path / "zz.plzma"),
-        use_frontcode=True,
     )
 
     monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
@@ -281,17 +262,29 @@ def test_generated_frontcoded_plzma_loads_through_real_reader(
     assert lemmatizer.lemmatize("dogs", lang="zz") == "dog"
 
 
-def test_pickle_dict_frontcode_smaller_than_legacy(tmp_path) -> None:
-    """Sanity check: front-coding a realistic-shaped wordlist doesn't grow it."""
-    lines = "".join(f"form{i}\tlemma{i % 20}\n" for i in range(500))
-    (tmp_path / "zz.txt").write_text(lines, encoding="utf-8")
+def test_build_dictionary_from_shipped_composes_over_decoded_base(
+    tmp_path, monkeypatch
+) -> None:
+    """--from-shipped (Phase-5a) builds on the decoded shipped dict, not a
+    wordlist rebuild: base entries survive, overrides win, new forms are added."""
+    # a "shipped" zz.plzma to serve as the decoded base
+    (tmp_path / "zz.txt").write_text("dog\tdogs\ncat\tcats\n", encoding="utf-8")
+    dictionary_pickler._build_dictionary(
+        "zz", listpath=str(tmp_path), filepath=str(tmp_path / "zz.plzma")
+    )
+    monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
 
-    legacy_path = tmp_path / "legacy.plzma"
-    frontcoded_path = tmp_path / "frontcoded.plzma"
-    dictionary_pickler._pickle_dict(
-        "zz", listpath=str(tmp_path), filepath=str(legacy_path)
+    # override layer: one collision (cats -> CAT) + one new form (birds -> bird)
+    (tmp_path / "ov").mkdir()
+    (tmp_path / "ov" / "zz.tsv").write_text(
+        "CAT\tcats\nbird\tbirds\n", encoding="utf-8"
     )
-    dictionary_pickler._pickle_dict(
-        "zz", listpath=str(tmp_path), filepath=str(frontcoded_path), use_frontcode=True
-    )
-    assert frontcoded_path.stat().st_size < legacy_path.stat().st_size
+    monkeypatch.setattr(dictionary_pickler, "OVERRIDES_DIR", tmp_path / "ov")
+    monkeypatch.setattr(dictionary_pickler, "FILL_DIR", tmp_path / "nope")
+
+    built = tmp_path / "out.plzma"
+    dictionary_pickler._build_dictionary("zz", filepath=str(built), from_shipped=True)
+    result = frontcode.decode(built.read_bytes())
+    assert result[b"dogs"] == b"dog"  # decoded-shipped base survives
+    assert result[b"cats"] == b"CAT"  # override wins the collision
+    assert result[b"birds"] == b"bird"  # new form added

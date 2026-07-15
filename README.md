@@ -364,7 +364,7 @@ morphology rather than a data error.
 | `mk` | Macedonian | 67 | 16 | 0.65 | on UD MK-MTB |
 | `ms` | Malay | 18 | 4 |  |  |
 | `nb` | Norwegian (Bokmål) | 618 | 134 | 0.73 | on UD NO-Bokmaal |
-| `nl` | Dutch | 366 | 124 | 0.88 | on UD NL-Alpino |
+| `nl` | Dutch | 366 | 124 | 0.92 | on UD NL-Alpino, excl. underscore-joined compound lemmas |
 | `nn` | Norwegian (Nynorsk) | 68 | 18 | 0.57 | on UD NO-Nynorsk |
 | `pl` | Polish | 3,670 | 264 | 0.91 | on UD PL-LFG |
 | `pt` | Portuguese | 924 | 94 | 0.91 | on UD PT-GSD |

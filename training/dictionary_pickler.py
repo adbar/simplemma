@@ -1,23 +1,24 @@
 """
 Functions used to create lemmatization dictionaries out of word lists.
 Input format: lemma, tab, word, newline
-Output format: an lzma-compressed dict[bytes, bytes] -- a pickle by default,
-or the front-coded byte stream (see frontcode.py) with --frontcode.
+Output format: the front-coded, lzma-compressed byte stream (see frontcode.py)
+that the runtime loads. Written to .plzma; `frontcode.load` also still reads
+the legacy pickled dicts shipped before v2.0.
 """
 
 import argparse
 import logging
-import lzma
-import pickle
 import re
 from collections import Counter, defaultdict
-from operator import itemgetter
 from pathlib import Path
 
-import simplemma
 from simplemma.strategies.defaultrules import RULE_FUNCTIONS
 from simplemma.strategies.dictionaries import frontcode
-from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
+from simplemma.strategies.dictionaries.dictionary_factory import (
+    DATA_FOLDER,
+    SUPPORTED_LANGUAGES,
+    _load_dictionary_from_disk,
+)
 from simplemma.utils import levenshtein_dist, normalize_token
 from training.clean_wordlist import check_field, read_pairs
 
@@ -69,15 +70,18 @@ def _collect_candidates(
                 continue
             if len(columns[0]) > 6 and len(columns[1]) == 1:
                 continue
-            # print line if the rule is wrong
+            # diagnose rules disagreeing with the list (skipped when silent)
             if (
-                len(columns[1]) > 6
+                not silent
+                and len(columns[1]) > 6
                 and langcode in RULE_FUNCTIONS
                 and columns[1] != columns[0]
             ):
                 rule = RULE_FUNCTIONS[langcode](columns[1])
                 if rule and rule != columns[0]:
-                    print(columns[1], columns[0], rule)
+                    LOGGER.warning(
+                        "rule mismatch: %s %s %s", columns[1], columns[0], rule
+                    )
             candidates[columns[1]][columns[0]] += 1
             lemmas.add(columns[0])
     return candidates, lemmas
@@ -122,8 +126,8 @@ def _resolve_candidates(
         for word in lemmas:
             mydict.setdefault(word, word)
     LOGGER.debug("%s %s", langcode, len(mydict))
-    # sort and convert to bytestrings
-    return {k.encode("utf-8"): v.encode("utf-8") for k, v in sorted(mydict.items())}
+    # convert to bytestrings; no need to sort, frontcode.encode sorts by key
+    return {k.encode("utf-8"): v.encode("utf-8") for k, v in mydict.items()}
 
 
 def _read_dict(filepath: str, langcode: str, silent: bool) -> dict[bytes, bytes]:
@@ -178,36 +182,37 @@ def _apply_layers(base: dict[bytes, bytes], langcode: str) -> dict[bytes, bytes]
     return merged
 
 
-def _determine_pickle_path(langcode: str = "en", in_place: bool = False) -> str:
+def _determine_output_path(langcode: str = "en", in_place: bool = False) -> str:
     """in_place=True overwrites shipped data; default writes to training/output/."""
     filename = f"{langcode}.plzma"
     if in_place:
-        directory = Path(simplemma.__file__).parent / "strategies/dictionaries/data"
+        directory = DATA_FOLDER  # where the runtime loads from
     else:
         directory = Path(__file__).parent / "output"
         directory.mkdir(parents=True, exist_ok=True)
     return str(directory / filename)
 
 
-def _pickle_dict(
+def _build_dictionary(
     langcode: str = "en",
     listpath: str = "lists",
     filepath: str | None = None,
     in_place: bool = False,
-    use_frontcode: bool = False,
+    from_shipped: bool = False,
 ) -> None:
-    mydict = _apply_layers(_load_dict(langcode, listpath), langcode)
+    # from_shipped: Phase-5a reship base = the already-built shipped dict decoded
+    # verbatim (NOT re-run through _read_dict's filters), so only the override/
+    # fill layers change content. Otherwise rebuild the base from the wordlists.
+    base = (
+        _load_dictionary_from_disk(langcode)
+        if from_shipped
+        else _load_dict(langcode, listpath)
+    )
+    mydict = _apply_layers(base, langcode)
     if filepath is None:
-        filepath = _determine_pickle_path(langcode, in_place)
-    if use_frontcode:
-        reverse_key = langcode in FRONTCODE_REVERSE_KEY_LANGS
-        Path(filepath).write_bytes(frontcode.encode(mydict, reverse_key=reverse_key))
-    else:
-        # sort dictionary to help saving space during compression
-        if langcode not in ("lt", "sw"):
-            mydict = dict(sorted(mydict.items(), key=itemgetter(1)))
-        with lzma.open(filepath, "wb") as filehandle:  # , filters=my_filters, preset=9
-            pickle.dump(mydict, filehandle, protocol=5)
+        filepath = _determine_output_path(langcode, in_place)
+    reverse_key = langcode in FRONTCODE_REVERSE_KEY_LANGS
+    Path(filepath).write_bytes(frontcode.encode(mydict, reverse_key=reverse_key))
     LOGGER.debug("%s %s", langcode, len(mydict))
 
 
@@ -221,13 +226,17 @@ if __name__ == "__main__":
         "to training/output/ instead.",
     )
     parser.add_argument(
-        "--frontcode",
+        "--from-shipped",
         action="store_true",
-        help="Write the front-coded byte-stream format instead of a pickle "
-        "(smaller on disk, requires a simplemma release that can read it).",
+        help="Phase-5a reship: compose from the shipped dict + override/fill "
+        "layers instead of rebuilding the base from wordlists.",
     )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.DEBUG)
     for listcode in sorted(SUPPORTED_LANGUAGES):
-        _pickle_dict(listcode, in_place=args.in_place, use_frontcode=args.frontcode)
+        _build_dictionary(
+            listcode,
+            in_place=args.in_place,
+            from_shipped=args.from_shipped,
+        )

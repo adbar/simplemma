@@ -187,23 +187,16 @@ def _prune_with_anchor(
     return kept, {"total": len(fill_pairs), "pruned": pruned, "kept": len(kept)}
 
 
-def rule_redundancy_prune(
-    fill_pairs: list[tuple[str, str]], shipped: dict[str, str], lang: str
-) -> tuple[list[tuple[str, str]], dict[str, int]]:
-    """Drop fill pairs already redundant with shipped-dict + rules/affix alone."""
-    return _prune_with_anchor(fill_pairs, shipped, lang)
-
-
 def stem_anchored_prune(
     fill_pairs: list[tuple[str, str]], shipped: dict[str, str], lang: str
 ) -> tuple[list[tuple[str, str]], dict[str, int]]:
     """Anchor on shipped + every fill lemma's own self-map, then keep only
     forms the affix chain still can't regenerate from those anchors alone.
 
-    Stronger than rule_redundancy_prune (adds self-maps for fill lemmas that
-    aren't already in `shipped`), so it prunes more -- worth it for
-    agglutinative languages where affix decomposition can regenerate most
-    inflected forms from just the base form.
+    A RAM-only lever (front-coding makes full-fill smallest on disk, so we ship
+    that): prunes ~half the entries, accuracy-neutral, most so for agglutinative
+    languages where affix decomposition regenerates inflected forms from the
+    base form.
 
     CRUCIAL: the fill-lemma self-maps that make the pruning safe are NOT
     guaranteed to be in `shipped`, so they must ship with the kept output --
@@ -252,10 +245,10 @@ def main() -> None:
     parser.add_argument("output", type=Path, help="Output TSV path (lemma TAB form)")
     parser.add_argument(
         "--prune",
-        choices=("none", "rule-redundancy", "stem-anchored"),
+        choices=("none", "stem-anchored"),
         default="none",
-        help="Drop fill pairs the shipped-dict+rules/affix chain already "
-        "reproduces without them (see the two prune functions' docstrings).",
+        help="stem-anchored: drop fill pairs the shipped-dict+rules/affix chain "
+        "already regenerates (RAM lever; we ship full-fill by default).",
     )
     args = parser.parse_args()
 
@@ -276,15 +269,10 @@ def main() -> None:
     kept_pairs, ambiguity_stats = drop_ambiguous(raw_pairs)
     log.info(f"Ambiguity filter: {ambiguity_stats}")
 
-    if args.prune != "none":
+    if args.prune == "stem-anchored":
         shipped = shipped_dict_as_str_mapping(args.lang)
-        prune_fn = (
-            rule_redundancy_prune
-            if args.prune == "rule-redundancy"
-            else stem_anchored_prune
-        )
-        kept_pairs, prune_stats = prune_fn(kept_pairs, shipped, args.lang)
-        log.info(f"{args.prune} prune: {prune_stats}")
+        kept_pairs, prune_stats = stem_anchored_prune(kept_pairs, shipped, args.lang)
+        log.info(f"stem-anchored prune: {prune_stats}")
 
     kept_pairs, junk_stats = drop_junk_pairs(kept_pairs)
     log.info(f"Junk filter: {junk_stats}")

@@ -149,22 +149,6 @@ def test_drop_junk_pairs_keeps_clean_pairs_unchanged():
     assert stats == {"total": 2, "kept": 2}
 
 
-def test_rule_redundancy_prune_drops_pairs_the_shipped_chain_already_gets_right():
-    shipped = {"talo": "talo"}  # fi: "house" is already a self-mapped lemma
-    fill_pairs = [("talo", "talossa")]  # -ssa suffix: fi rules can derive this
-    kept, stats = wl.rule_redundancy_prune(fill_pairs, shipped, "fi")
-    assert kept == []
-    assert stats == {"total": 1, "pruned": 1, "kept": 0}
-
-
-def test_rule_redundancy_prune_keeps_pairs_the_chain_cannot_derive():
-    shipped = {}  # empty: nothing for the chain to work with
-    fill_pairs = [("xyzzy", "xyzzyxyzzy")]  # not derivable by any rule/affix
-    kept, stats = wl.rule_redundancy_prune(fill_pairs, shipped, "fi")
-    assert kept == fill_pairs
-    assert stats == {"total": 1, "pruned": 0, "kept": 1}
-
-
 def test_stem_anchored_prune_keeps_self_maps_not_in_shipped():
     """Both derivable forms are pruned, but the fill lemma's self-map must be
     KEPT (it's not in shipped): without it, the pruned inflected form would
