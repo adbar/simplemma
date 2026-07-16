@@ -40,7 +40,7 @@ def _rules_module(lang: str):
 
 
 # Languages whose rules are a {regex: repl} table are auto-detected here, so a
-# newly registered language is gated by the per-cell test without editing it.
+# newly registered language is gated by the overlap test without editing it.
 DATA_DRIVEN = sorted(lang for lang in RULE_LANGS if _rules_module(lang) is not None)
 
 THRESHOLD = 99.0

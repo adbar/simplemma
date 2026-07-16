@@ -30,6 +30,10 @@ from simplemma.strategies.dictionaries.dictionary_factory import (
     _load_dictionary_from_disk,
 )
 from training.clean_wordlist import check_field
+
+# Re-exported ship-decision constant: defined next to its enforcement point
+# (fill-layer application), still importable here on the extraction side.
+from training.dictionary_builder import V2_FILL_LANGS as V2_FILL_LANGS
 from training.eval_harness import FixedDictionaryFactory
 
 log = logging.getLogger(__name__)
@@ -58,30 +62,6 @@ LANGUAGE_QIDS = {
     "fi": "Q1412",
     "tr": "Q256",
 }
-
-# Subset that ships Wikidata fill in v2.0 (gated by assess_wikidata_fill.py):
-# fr/it/tr regress cross-treebank, nb has no UD treebank.
-V2_FILL_LANGS = frozenset(
-    {
-        "cs",
-        "da",
-        "de",
-        "el",
-        "en",
-        "es",
-        "et",
-        "fi",
-        "la",
-        "nb",
-        "nl",
-        "pl",
-        "pt",
-        "ru",
-        "sk",
-        "sv",
-        "uk",
-    }
-)
 
 
 def stream_lexemes(

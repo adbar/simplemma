@@ -43,6 +43,12 @@ def _layers(
             directory.mkdir(exist_ok=True)
             (directory / "zz.tsv").write_text(text, encoding="utf-8")
         monkeypatch.setattr(dictionary_builder, attr, directory)
+    if fill is not None:  # allowlist the test language for the fill layer
+        monkeypatch.setattr(
+            dictionary_builder,
+            "V2_FILL_LANGS",
+            dictionary_builder.V2_FILL_LANGS | {"zz"},
+        )
 
 
 def test_logic(tmp_path, monkeypatch) -> None:
@@ -362,6 +368,18 @@ def test_apply_layers_cleans_machine_fill(tmp_path, monkeypatch) -> None:
     _layers(tmp_path, monkeypatch, fill="-al\t-al\ncat\tcats\n")
     merged = dictionary_builder._apply_layers({}, "zz")
     assert merged == {"cats": "cat"}  # '-al' affix key dropped
+
+
+def test_apply_layers_rejects_unlisted_fill(tmp_path, monkeypatch) -> None:
+    """A fill file for a language outside V2_FILL_LANGS fails the build loud:
+    fill/ is gitignored, so a stale local TSV from an assessment run must not
+    ship silently against the reviewed decision."""
+    fill_dir = tmp_path / "fill"
+    fill_dir.mkdir()
+    (fill_dir / "fr.tsv").write_text("chat\tchats\n", encoding="utf-8")
+    monkeypatch.setattr(dictionary_builder, "FILL_DIR", fill_dir)
+    with pytest.raises(ValueError, match="V2_FILL_LANGS"):
+        dictionary_builder._apply_layers({}, "fr")
 
 
 def test_build_from_shipped_scrubs_placeholder(tmp_path, monkeypatch) -> None:

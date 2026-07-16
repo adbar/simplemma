@@ -49,6 +49,33 @@ FRONTCODE_REVERSE_KEY_LANGS = {"sw"}
 OVERRIDES_DIR = Path(__file__).parent / "overrides"
 FILL_DIR = Path(__file__).parent / "fill"
 
+# Languages whose Wikidata fill ships in v2.0 (gated by assess_wikidata_fill.py):
+# fr/it/tr were assessed and HELD (cross-treebank regressions), nb has no UD
+# treebank. _apply_layers enforces this allowlist -- fill/ is gitignored, so a
+# stale local TSV from an assessment run must fail the build, not ship silently.
+# Gating a new language later = pass the gate, add it here.
+V2_FILL_LANGS = frozenset(
+    {
+        "cs",
+        "da",
+        "de",
+        "el",
+        "en",
+        "es",
+        "et",
+        "fi",
+        "la",
+        "nb",
+        "nl",
+        "pl",
+        "pt",
+        "ru",
+        "sk",
+        "sv",
+        "uk",
+    }
+)
+
 LOGGER = logging.getLogger(__name__)
 
 # Punctuation a tokenizer never yields inside one token: a comma/colon/star/
@@ -176,6 +203,12 @@ def _apply_layers(base: dict[str, str], langcode: str) -> dict[str, str]:
     merged = dict(base)
     fill_path = FILL_DIR / f"{langcode}.tsv"
     if fill_path.exists():
+        if langcode not in V2_FILL_LANGS:
+            raise ValueError(
+                f"{fill_path}: fill present for {langcode!r}, which is not in "
+                f"V2_FILL_LANGS (the reviewed ship decision) -- delete the stale "
+                f"file or gate the language and add it to the allowlist"
+            )
         # fill is machine-extracted (Wikidata), so unlike reviewed overrides it
         # gets the same aggressive key hygiene as the base (suffix lexemes like
         # "-al" are unreachable keys).
