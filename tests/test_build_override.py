@@ -102,6 +102,18 @@ def test_resolve_overrides_picks_majority_not_first():
     assert overrides == {"la": "la"}
 
 
+def test_resolve_overrides_drops_symbol_forms():
+    # treebank annotation noise: a symbol "form" would become a runtime bug
+    # (bg ":" -> "на"); closed-class words carry letters.
+    candidates = {
+        ":": Counter({"на": 10}),
+        "&": Counter({"&": 10}),
+        "d'": Counter({"de": 10}),  # elision WITH letters: kept
+    }
+    overrides, stats = bo.resolve_overrides(candidates, min_count=3, min_agreement=0.90)
+    assert overrides == {"d'": "de"}
+
+
 def test_main_end_to_end(tmp_path, monkeypatch):
     train_path = tmp_path / "train.conllu"
     rows = [[(1, "el", "el", "PRON")] for _ in range(5)]

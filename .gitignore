@@ -118,6 +118,9 @@ training/**/data
 training/output/
 training/fill/
 training/local/
+# regenerable wordlists (kaikki_to_tsv output) and session scratch
+training/lists/
+scratchpad/
 
 # uv lockfile: pyproject.toml pins exact versions already
 uv.lock

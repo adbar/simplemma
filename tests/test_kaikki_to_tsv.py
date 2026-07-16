@@ -300,6 +300,6 @@ def test_output_is_valid_pickler_input(tmp_path):
     list_path = tmp_path / "de.txt"
     main(input_path, list_path)
 
-    result = dictionary_pickler._read_dict(str(list_path), "de", silent=True)
+    result = dictionary_pickler._read_dict(str(list_path), "de")
     assert result[b"Hunde"] == b"Hund"
     assert result[b"Katzen"] == b"Katze"

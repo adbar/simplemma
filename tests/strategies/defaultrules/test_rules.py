@@ -57,8 +57,8 @@ def test_DEFAULT_RULES() -> None:
     assert rules_strategy.get_lemma("akslingane", "nn") == "aksling"
     assert rules_strategy.get_lemma("kaptein", "nn") is None
 
-    assert rules_strategy.get_lemma("авторката", "mk") == "авторка"
-    assert rules_strategy.get_lemma("автостоперката", "mk") == "автостоперка"
+    assert rules_strategy.get_lemma("убавоста", "mk") == "убавост"
+    assert rules_strategy.get_lemma("организираат", "mk") == "организира"
 
     assert rules_strategy.get_lemma("близького", "uk") == "близький"
     assert rules_strategy.get_lemma("авторського", "uk") == "авторський"

@@ -73,6 +73,7 @@ V2_FILL_LANGS = frozenset(
         "et",
         "fi",
         "la",
+        "nb",
         "nl",
         "pl",
         "pt",

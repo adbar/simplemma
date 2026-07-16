@@ -48,6 +48,10 @@ def resolve_overrides(
     dropped_low_count = 0
     dropped_low_agreement = 0
     for form, counts in candidates.items():
+        # closed-class words carry letters; symbol "forms" (&, :, =) are
+        # treebank annotation noise and become runtime bugs (: -> на).
+        if not any(ch.isalpha() for ch in form):
+            continue
         total = sum(counts.values())
         if total < min_count:
             dropped_low_count += 1

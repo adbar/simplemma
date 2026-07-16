@@ -253,7 +253,7 @@ def test_v2_fill_langs_is_the_reviewed_decision():
     fr/it/tr were assessed and HELD (cross-treebank regressions); nb is
     un-gateable (no UD treebank). Guard against silently re-adding them."""
     assert wl.V2_FILL_LANGS <= set(wl.LANGUAGE_QIDS)  # only extractable langs
-    assert wl.V2_FILL_LANGS.isdisjoint({"fr", "it", "tr", "nb"})
+    assert wl.V2_FILL_LANGS.isdisjoint({"fr", "it", "tr"})
     assert wl.V2_FILL_LANGS == {
         "cs",
         "da",
@@ -264,6 +264,7 @@ def test_v2_fill_langs_is_the_reviewed_decision():
         "et",
         "fi",
         "la",
+        "nb",
         "nl",
         "pl",
         "pt",

@@ -142,7 +142,7 @@ Building the dictionaries
 
 ``training/dictionary_pickler.py`` reads a language's word list and writes the compressed, front-coded ``.plzma`` dictionary the runtime loads (see ``frontcode.py``; the runtime still reads the legacy pickled dicts shipped before v2.0). Two things to know before running it:
 
-- Without ``--in-place``, output goes to ``training/output/`` (gitignored) rather than the real package data, so a run never clobbers a shipped dictionary by accident. Pass ``--in-place`` to write into the installed package and actually update what ships. ``--from-shipped`` composes from the shipped dict + override/fill layers instead of rebuilding the base from wordlists.
+- Without ``--in-place``, output goes to ``training/output/`` (gitignored) rather than the real package data, so a run never clobbers a shipped dictionary by accident. Pass ``--in-place`` to write into the installed package and actually update what ships. ``--from-shipped`` composes from the shipped dict + override/fill layers instead of rebuilding the base from wordlists. ``--merge-shipped`` (policy B) rebuilds the base from a fresh word list but keeps the curated shipped mappings on shared keys, so the fresh extraction only *adds* new keys and existing mappings change only via a reviewed override; it reads the currently installed dict, so run it once from a clean checkout before ``--in-place`` overwrites it.
 - Its ``__main__`` CLI (``python3 -m training.dictionary_pickler --in-place``) only *rebuilds* languages already in ``SUPPORTED_LANGUAGES``, since that set is derived from the ``.plzma`` files already on disk. To add a genuinely *new* language, call ``_build_dictionary`` directly instead, e.g.:
 
 .. code-block:: python
@@ -189,7 +189,18 @@ inputs live under ``training/data/``):
   shipped dict + rules/affix chain already reproduces.
 - ``build_override.py <lang> <train.conllu> <out.tsv>`` — mine a closed-class
   override lexicon (pronouns, determiners, adpositions, …) from a UD train
-  split, the one place Wiktionary is systematically thin.
+  split, the one place Wiktionary is systematically thin. Deterministic given a
+  pinned UD version (``download_eval_data.py`` fixes UD 2.18, md5-verified).
+
+  The committed ``training/overrides/<code>.tsv`` files are **reviewed
+  source-of-truth, not a build output**: edit them directly, do not expect a
+  re-run to reproduce them. Two reasons a fresh mine differs: (1) the shipped
+  files were mined across *all* of a language's train treebanks (this CLI takes
+  one), and (2) they were then trimmed to drop entries that merely duplicated
+  the shipped base at trim time — so a re-mine yields the fuller, untrimmed set.
+  That trim makes each remaining line a real correction/addition, at the cost of
+  coupling the file to that base: to refresh after a UD bump, re-mine the full
+  set, re-review, and re-trim rather than regenerating in place.
 - ``eval_gate.py <lang> <baseline.tsv> <candidate.tsv>`` — release gate:
   refuse a candidate that regresses token- OR type-level accuracy on any UD
   test treebank for the language (cross-treebank is automatic).
