@@ -1,7 +1,5 @@
 import logging
-from functools import lru_cache
 from pathlib import Path
-from typing import TypeVar, overload
 from collections.abc import Iterator, Mapping
 
 try:
@@ -18,17 +16,16 @@ except ImportError:
 
 from simplemma.__metadata__ import __version__ as SIMPLEMMA_VERSION
 from simplemma.strategies.dictionaries.dictionary_factory import (
-    DictionaryFactory,
+    CachingDictionaryFactory,
+    DecodedStrMapping,
     SUPPORTED_LANGUAGES,
     _load_dictionary_from_disk,
 )
 
 logger = logging.getLogger(__name__)
 
-_T = TypeVar("_T")
 
-
-class TrieWrapDict(Mapping[str, str]):
+class TrieWrapDict(DecodedStrMapping):
     """Read-only Mapping view over a BytesTrie (values decoded on access)."""
 
     __slots__ = ("_trie",)
@@ -36,19 +33,10 @@ class TrieWrapDict(Mapping[str, str]):
     def __init__(self, trie: BytesTrie) -> None:
         self._trie = trie
 
-    def __getitem__(self, item: str) -> str:
+    def _lookup(self, key: str) -> str | None:
         # str(): the untyped trie returns Any; mypy needs the concrete type.
-        return str(self._trie[item][0].decode())
-
-    # The overloads mirror Mapping.get's signature for strict mypy.
-    @overload
-    def get(self, key: str) -> str | None: ...
-    @overload
-    def get(self, key: str, default: str | _T) -> str | _T: ...
-    def get(self, key: str, default: str | _T | None = None) -> str | _T | None:
-        # Avoids Mapping.get's EAFP path (a KeyError raised on every miss).
         value = self._trie.get(key)
-        return str(value[0].decode()) if value else default
+        return str(value[0].decode()) if value else None
 
     def __iter__(self) -> Iterator[str]:
         yield from self._trie.iterkeys()
@@ -57,7 +45,7 @@ class TrieWrapDict(Mapping[str, str]):
         return len(self._trie)
 
 
-class TrieDictionaryFactory(DictionaryFactory):
+class TrieDictionaryFactory(CachingDictionaryFactory):
     """Memory optimized DictionaryFactory backed by MARISA-tries.
 
     This dictionary factory creates dictionaries, which are backed by a
@@ -66,7 +54,7 @@ class TrieDictionaryFactory(DictionaryFactory):
     lookup performance isn't as good as with dicts.
     """
 
-    __slots__ = ["_cache_dir", "_use_disk_cache", "_get_dictionary"]
+    __slots__ = ("_cache_dir", "_use_disk_cache")
 
     def __init__(
         self,
@@ -98,9 +86,7 @@ class TrieDictionaryFactory(DictionaryFactory):
                 Path(user_cache_dir("simplemma")) / "marisa_trie" / SIMPLEMMA_VERSION
             )
         self._use_disk_cache = use_disk_cache
-        self._get_dictionary = lru_cache(maxsize=cache_max_size)(
-            self._get_dictionary_uncached
-        )
+        super().__init__(cache_max_size)
 
     def _build_trie(self, lang: str) -> BytesTrie:
         """Build a trie from the shipped dictionary for `lang`."""
@@ -126,7 +112,6 @@ class TrieDictionaryFactory(DictionaryFactory):
             raise
 
     def _get_dictionary_uncached(self, lang: str) -> Mapping[str, str]:
-        """Get the dictionary for the given language."""
         if lang not in SUPPORTED_LANGUAGES:
             raise ValueError(f"Unsupported language: {lang}")
 
@@ -145,10 +130,3 @@ class TrieDictionaryFactory(DictionaryFactory):
             except Exception:
                 logger.warning("Failed to cache trie for %s on disk.", lang)
         return TrieWrapDict(trie)
-
-    def get_dictionary(
-        self,
-        lang: str,
-    ) -> Mapping[str, str]:
-        "Retrieves a dictionary for the specified language."
-        return self._get_dictionary(lang)

@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from training import dictionary_pickler
+from training import dictionary_builder
 from training.kaikki_to_tsv import extract_pairs, main
 
 
@@ -221,7 +221,7 @@ def test_extract_pairs_skips_targets_missing_word_but_keeps_others():
 
 def test_extract_pairs_dedups_repeated_pair_across_senses():
     """Two senses of the SAME entry reducing to the same lemma is not two
-    independent attestations -- dictionary_pickler's R2 treats line count
+    independent attestations -- dictionary_builder's R2 treats line count
     as evidence, so a single entry must contribute at most one line per pair."""
     entry = {
         "word": "Hunde",
@@ -288,7 +288,7 @@ def test_main_preserves_unicode(tmp_path):
 
 
 def test_output_is_valid_pickler_input(tmp_path):
-    """The produced TSV must be directly consumable by dictionary_pickler."""
+    """The produced TSV must be directly consumable by dictionary_builder."""
     input_path = tmp_path / "kaikki.json"
     entries = [
         {"word": "Hunde", "senses": [{"form_of": [{"word": "Hund"}]}]},
@@ -300,6 +300,6 @@ def test_output_is_valid_pickler_input(tmp_path):
     list_path = tmp_path / "de.txt"
     main(input_path, list_path)
 
-    result = dictionary_pickler._read_dict(str(list_path), "de")
-    assert result[b"Hunde"] == b"Hund"
-    assert result[b"Katzen"] == b"Katze"
+    result = dictionary_builder._read_dict(list_path, "de")
+    assert result["Hunde"] == "Hund"
+    assert result["Katzen"] == "Katze"

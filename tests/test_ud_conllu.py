@@ -21,9 +21,7 @@ def test_iter_word_tokens_skips_mwt_and_empty_nodes():
 
 
 def test_iter_word_tokens_lowercases_sentence_initial_only():
-    forms = dict(
-        (t["id"], f) for f, t in iter_word_tokens_in_sentences(parse(CONLLU))
-    )
+    forms = dict((t["id"], f) for f, t in iter_word_tokens_in_sentences(parse(CONLLU)))
     assert forms[1] == "do"  # id==1 lowered ("Do" -> "do")
     assert forms[3] == "know"  # non-initial kept as-is
 

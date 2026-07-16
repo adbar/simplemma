@@ -1,7 +1,7 @@
 from simplemma.strategies import PrefixDecompositionStrategy
 
 
-def test_test_prefixes_de():
+def test_prefixes_de() -> None:
     prefix_decomposition_strategy = PrefixDecompositionStrategy()
     assert (
         prefix_decomposition_strategy.get_lemma("zerlemmatisiertes", "de")

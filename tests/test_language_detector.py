@@ -3,7 +3,7 @@
 from simplemma import LanguageDetector, in_target_language, langdetect
 from simplemma.strategies import DefaultStrategy
 
-from .test_token_sampler import CustomTokenSampler
+from .conftest import CustomTokenSampler
 
 
 def test_langdetect_no_samplers() -> None:

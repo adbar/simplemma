@@ -2,6 +2,30 @@
 History
 =======
 
+2.0.0
+-----
+
+- All dictionaries rebuilt from fresh sources, adding Wikidata lexemes and
+  reviewed closed-class overrides: accuracy improves markedly for more than
+  20 languages (e.g. Welsh 0.59 → 0.91, Armenian 0.63 → 0.88,
+  Swedish 0.79 → 0.91, Russian 0.86 → 0.89)
+- Breaking: new front-coded dictionary format shrinks the shipped data from
+  67 MB to 17 MB; pre-2.0 pickled ``.plzma`` files are no longer read
+- More accurate default rules covering more languages: near-100% precision
+  enforced against the dictionaries, new rule sets (e.g. Galician, Georgian,
+  Icelandic, Macedonian) (#175)
+- More targeted affix handling, validated per language on UD treebanks: new
+  clitic-decomposition and apostrophe strategies, simplified greedy affix
+  search, updated prefix handling (#176)
+- Improved tokenization (apostrophes, hyphens) and new sentence-initial
+  casing handling in ``get_lemmas_in_text``, with a new ``casing`` module
+  (#177)
+- Lower memory footprint: all strategies share one process-wide default
+  dictionary factory, so the dictionaries are cached once per process
+- Rebuilt training pipeline: layered dictionary builds (word-list base +
+  Wikidata fill + reviewed overrides) gated by cross-treebank evaluation
+
+
 1.2.0
 -----
 

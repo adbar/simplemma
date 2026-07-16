@@ -7,23 +7,23 @@ from simplemma import Lemmatizer
 from simplemma.strategies import DefaultStrategy, DictionaryFactory
 from simplemma.strategies.dictionaries import dictionary_factory, frontcode
 from simplemma.strategies.dictionaries.dictionary_factory import MappingStrToByteString
-from training import dictionary_pickler
+from training import dictionary_builder
 
 TEST_DIR = Path(__file__).parent
 
 
-def _read(tmp_path, lang: str, text: str) -> dict[bytes, bytes]:
+def _read(tmp_path, lang: str, text: str) -> dict[str, str]:
     """Write a TSV fixture and return the parsed dictionary."""
     fixture = tmp_path / f"{lang}.txt"
     fixture.write_text(text, encoding="utf-8")
-    return dictionary_pickler._read_dict(str(fixture), lang)
+    return dictionary_builder._read_dict(fixture, lang)
 
 
 def _make_shipped(tmp_path, monkeypatch, text: str) -> None:
     """Build a zz.plzma from a wordlist and install it as the shipped dict
     (DATA_FOLDER -> tmp_path), the arrange shared by the base-mode tests."""
     (tmp_path / "zz.txt").write_text(text, encoding="utf-8")
-    dictionary_pickler._build_dictionary(
+    dictionary_builder._build_dictionary(
         "zz", listpath=str(tmp_path), filepath=str(tmp_path / "zz.plzma")
     )
     monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
@@ -42,22 +42,19 @@ def _layers(
         if text is not None:
             directory.mkdir(exist_ok=True)
             (directory / "zz.tsv").write_text(text, encoding="utf-8")
-        monkeypatch.setattr(dictionary_pickler, attr, directory)
+        monkeypatch.setattr(dictionary_builder, attr, directory)
 
 
 def test_logic(tmp_path, monkeypatch) -> None:
     """Test if certain code parts correspond to the intended logic."""
-    testfile = str(TEST_DIR / "data/zz.txt")
     # 6 entries: the 1-char-lemma pair (s/st) is kept now that the per-language
     # min-lemma exemption is collapsed to a uniform "non-empty" floor.
-    mydict = dictionary_pickler._read_dict(testfile, "zz")
-    assert len(mydict) == 6
-    mydict = dictionary_pickler._load_dict("zz", listpath=str(TEST_DIR / "data"))
+    mydict = dictionary_builder._read_dict(TEST_DIR / "data/zz.txt", "zz")
     assert len(mydict) == 6
 
     listpath = str(TEST_DIR / "data")
     temp_outputfile = str(tmp_path / "zz.plzma")
-    dictionary_pickler._build_dictionary("zz", listpath, temp_outputfile)
+    dictionary_builder._build_dictionary("zz", listpath, temp_outputfile)
     roundtripped = frontcode.decode(Path(temp_outputfile).read_bytes())
     assert isinstance(roundtripped, dict)
     assert len(roundtripped) == 6
@@ -68,7 +65,7 @@ def test_logic(tmp_path, monkeypatch) -> None:
     # computed from that dir's *.plzma listing). The pickler reads DATA_FOLDER
     # from the factory module at call time, so this is the one patch point.
     monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
-    dictionary_pickler._build_dictionary("zz", listpath, in_place=True)
+    dictionary_builder._build_dictionary("zz", listpath, in_place=True)
     assert (tmp_path / "zz.plzma").exists()
 
 
@@ -87,11 +84,11 @@ def test_read_dict_filtering(tmp_path) -> None:
         "xunning\trunning\n",  # tied counts: closer lemma wins
     )
     assert result == {
-        b"dog": b"dog",
-        b"dogs": b"dog",
-        b"run": b"run",
-        b"running": b"xunning",
-        b"xunning": b"xunning",  # losing a conflict doesn't cost the identity
+        "dog": "dog",
+        "dogs": "dog",
+        "run": "run",
+        "running": "xunning",
+        "xunning": "xunning",  # losing a conflict doesn't cost the identity
     }  # 'good'/'-bad' contribute nothing: the whole line is skipped pre-collect
 
 
@@ -101,13 +98,13 @@ def test_read_dict_order_independent(tmp_path) -> None:
     forward = _read(tmp_path, "de", "".join(lines))
     reverse = _read(tmp_path, "de", "".join(reversed(lines)))
     assert forward == reverse
-    assert forward[b"de"] == b"de"
+    assert forward["de"] == "de"
 
 
 def test_read_dict_attested_identity_beats_lone_challenger(tmp_path) -> None:
     """A single stray line cannot overwrite an explicitly attested identity."""
     result = _read(tmp_path, "de", "de\tde\neen\tde\n")
-    assert result[b"de"] == b"de"
+    assert result["de"] == "de"
 
 
 def test_read_dict_attestation_count_beats_distance(tmp_path) -> None:
@@ -117,7 +114,7 @@ def test_read_dict_attestation_count_beats_distance(tmp_path) -> None:
         "en",
         "run\trunning\n" * 2 + "runninx\trunning\n",
     )
-    assert result[b"running"] == b"run"
+    assert result["running"] == "run"
 
 
 def test_read_dict_lemma_headword_never_reduces(tmp_path) -> None:
@@ -126,8 +123,8 @@ def test_read_dict_lemma_headword_never_reduces(tmp_path) -> None:
     reduces. Language-independent (formerly the per-language BUFFER_HACK set);
     gate-confirmed net-positive on every language."""
     result = _read(tmp_path, "en", "lansa\tlansat\nlansat\tlansare\n")
-    assert result[b"lansat"] == b"lansat"  # 'lansat' is a lemma -> itself
-    assert result[b"lansare"] == b"lansat"  # 'lansare' only ever a form -> reduces
+    assert result["lansat"] == "lansat"  # 'lansat' is a lemma -> itself
+    assert result["lansare"] == "lansat"  # 'lansare' only ever a form -> reduces
 
 
 def test_read_dict_keeps_long_and_single_char_entries(tmp_path) -> None:
@@ -139,8 +136,8 @@ def test_read_dict_keeps_long_and_single_char_entries(tmp_path) -> None:
         "fi",
         "pitkä\tpitkänmatkanjuoksija\no\to\n",  # long form; 1-char lemma
     )
-    assert result["pitkänmatkanjuoksija".encode()] == "pitkä".encode()
-    assert result[b"o"] == b"o"
+    assert result["pitkänmatkanjuoksija"] == "pitkä"
+    assert result["o"] == "o"
 
 
 def test_read_dict_normalizes_to_nfc(tmp_path) -> None:
@@ -148,8 +145,7 @@ def test_read_dict_normalizes_to_nfc(tmp_path) -> None:
     runtime lookups NFC-normalize, so non-NFC keys would never match."""
     decomposed = "café"  # e + combining acute (NFD)
     result = _read(tmp_path, "en", f"{decomposed}\t{decomposed}s\n")
-    nfc = "café".encode()
-    assert result == {nfc: nfc, "cafés".encode(): nfc}
+    assert result == {"café": "café", "cafés": "café"}
 
 
 def test_read_dict_rejects_control_and_mojibake_keys(tmp_path) -> None:
@@ -157,15 +153,15 @@ def test_read_dict_rejects_control_and_mojibake_keys(tmp_path) -> None:
     optional clean_wordlist stage was skipped (check_field, not the punct
     filter, catches them)."""
     result = _read(tmp_path, "en", "dog\tdogs\nbad\tba\x01d\nx\tw�rd\n")
-    assert result == {b"dog": b"dog", b"dogs": b"dog"}  # \x01 and U+FFFD lines gone
+    assert result == {"dog": "dog", "dogs": "dog"}  # \x01 and U+FFFD lines gone
 
 
 def test_apply_layers_drops_spaced_forms(tmp_path, monkeypatch) -> None:
     """Multi-word layer forms are unreachable keys (the tokenizer never yields
     a spaced token) and are dropped."""
     _layers(tmp_path, monkeypatch, fill="top hat\ttop hats\ncat\tcats\n")
-    merged = dictionary_pickler._apply_layers({}, "zz")
-    assert merged == {b"cats": b"cat"}  # 'top hats' dropped (space in form)
+    merged = dictionary_builder._apply_layers({}, "zz")
+    assert merged == {"cats": "cat"}  # 'top hats' dropped (space in form)
 
 
 def test_apply_layers_rejects_junk_entries(tmp_path, monkeypatch) -> None:
@@ -173,7 +169,7 @@ def test_apply_layers_rejects_junk_entries(tmp_path, monkeypatch) -> None:
     build fails loud (read_pairs raises), not a silent skip."""
     _layers(tmp_path, monkeypatch, fill="good\tgoods\nbad\tba\x01d\n")
     with pytest.raises(ValueError, match="rejected"):
-        dictionary_pickler._apply_layers({}, "zz")
+        dictionary_builder._apply_layers({}, "zz")
 
 
 def test_apply_layers_rejects_empty_fields(tmp_path, monkeypatch) -> None:
@@ -181,7 +177,7 @@ def test_apply_layers_rejects_empty_fields(tmp_path, monkeypatch) -> None:
     silently shipping a form->'' or a b'' key."""
     _layers(tmp_path, monkeypatch, fill="good\tgoods\nlemma\t\n")
     with pytest.raises(ValueError, match="empty field"):
-        dictionary_pickler._apply_layers({}, "zz")
+        dictionary_builder._apply_layers({}, "zz")
 
 
 def test_apply_layers_precedence(tmp_path, monkeypatch) -> None:
@@ -192,64 +188,64 @@ def test_apply_layers_precedence(tmp_path, monkeypatch) -> None:
         fill="filllemma\tdogs\nnew\tnews\n",
         overrides="overridden\tcats\n",
     )
-    base = {b"dogs": b"dog", b"cats": b"cat"}
-    merged = dictionary_pickler._apply_layers(base, "zz")
-    assert merged[b"dogs"] == b"dog"  # fill never displaces a base entry
-    assert merged[b"news"] == b"new"  # fill adds what's missing
-    assert merged[b"cats"] == b"overridden"  # override always wins
+    base = {"dogs": "dog", "cats": "cat"}
+    merged = dictionary_builder._apply_layers(base, "zz")
+    assert merged["dogs"] == "dog"  # fill never displaces a base entry
+    assert merged["news"] == "new"  # fill adds what's missing
+    assert merged["cats"] == "overridden"  # override always wins
 
 
 def test_apply_layers_without_layer_files_is_identity(tmp_path, monkeypatch) -> None:
     _layers(tmp_path, monkeypatch)  # no fill, no override
-    base = {b"dogs": b"dog"}
-    assert dictionary_pickler._apply_layers(base, "zz") == base
+    base = {"dogs": "dog"}
+    assert dictionary_builder._apply_layers(base, "zz") == base
 
 
 def test_scrub_drops_unreachable_keys_and_fixes_junk_values() -> None:
     d = {
-        b"dogs": b"dog",  # clean: kept as-is
-        ("\ufeff" + "cat").encode(): b"cat",  # BOM key: unreachable -> dropped
-        b"as": ("\ufeff" + "a").encode(),  # BOM in value: normalized to clean lemma
-        b"hithau": b"prpers",  # template placeholder value -> dropped
-        ("Andre" + "\u0306" + "as").encode(): b"andreas",  # decomposed key -> dropped
-        "don\u2019t".encode(): b"do",  # curly-quote key: reachable (runtime is
+        "dogs": "dog",  # clean: kept as-is
+        "\ufeff" + "cat": "cat",  # BOM key: unreachable -> dropped
+        "as": "\ufeff" + "a",  # BOM in value: normalized to clean lemma
+        "hithau": "prpers",  # template placeholder value -> dropped
+        "Andre" + "\u0306" + "as": "andreas",  # decomposed key -> dropped
+        "don\u2019t": "do",  # curly-quote key: reachable (runtime is
         # NFC-only, keeps curly quotes) -> kept, not silently dropped
     }
-    out = dictionary_pickler._scrub(d)
-    assert out == {b"dogs": b"dog", b"as": b"a", "don\u2019t".encode(): b"do"}
+    out = dictionary_builder._scrub(d)
+    assert out == {"dogs": "dog", "as": "a", "don\u2019t": "do"}
 
 
 def test_curly_quote_override_form_survives(tmp_path, monkeypatch) -> None:
     """A reviewed override form spelled with a typographic apostrophe must not
     be silently dropped post-layer (read_pairs and _valid_key agree: NFC-only)."""
     _layers(tmp_path, monkeypatch, overrides="do\tdon\u2019t\n")
-    out = dictionary_pickler._scrub(dictionary_pickler._apply_layers({}, "zz"))
-    assert out == {"don\u2019t".encode(): b"do"}
+    out = dictionary_builder._scrub(dictionary_builder._apply_layers({}, "zz"))
+    assert out == {"don\u2019t": "do"}
 
 
 def test_clean_base_drops_junk_keys_keeps_values() -> None:
     d = {
-        b"dogs": b"dog",  # clean: kept
-        b"-la": "\u00e9l".encode(),  # leading-hyphen key (affix fragment) -> dropped
-        b"astro-": b"astro-",  # trailing-hyphen key -> dropped
-        b"a_b": b"ab",  # underscore key -> dropped
-        b"Alssund": b"Als Sund",  # spaced VALUE is legit -> kept
+        "dogs": "dog",  # clean: kept
+        "-la": "\u00e9l",  # leading-hyphen key (affix fragment) -> dropped
+        "astro-": "astro-",  # trailing-hyphen key -> dropped
+        "a_b": "ab",  # underscore key -> dropped
+        "Alssund": "Als Sund",  # spaced VALUE is legit -> kept
     }
-    out = dictionary_pickler._clean_base(d)
-    assert out == {b"dogs": b"dog", b"Alssund": b"Als Sund"}
+    out = dictionary_builder._clean_base(d)
+    assert out == {"dogs": "dog", "Alssund": "Als Sund"}
 
 
 def test_scrub_drops_affix_values_keeps_identities() -> None:
     d = {
-        b"schaft": b"-schaft",  # non-identity affix value -> dropped
-        b"astro": b"astro-",  # trailing-hyphen value -> dropped
-        b"?": b";",  # non-identity no-alpha value -> dropped
-        b":": "на".encode(),  # symbol form -> word value (mined noise) -> dropped
-        b"&": b"&",  # identity: kept (is_known contract)
-        b"10": b"10",  # identity number: kept
+        "schaft": "-schaft",  # non-identity affix value -> dropped
+        "astro": "astro-",  # trailing-hyphen value -> dropped
+        "?": ";",  # non-identity no-alpha value -> dropped
+        ":": "на",  # symbol form -> word value (mined noise) -> dropped
+        "&": "&",  # identity: kept (is_known contract)
+        "10": "10",  # identity number: kept
     }
-    out = dictionary_pickler._scrub(d)
-    assert out == {b"&": b"&", b"10": b"10"}
+    out = dictionary_builder._scrub(d)
+    assert out == {"&": "&", "10": "10"}
 
 
 def test_read_dict_rule_mismatch_logged(tmp_path, caplog) -> None:
@@ -259,19 +255,22 @@ def test_read_dict_rule_mismatch_logged(tmp_path, caplog) -> None:
     # rule("Bäckerei") == "Bäckerei", but the list gives a different lemma.
     fixture.write_text("baeckerei\tBäckerei\n", encoding="utf-8")
 
-    with caplog.at_level(logging.DEBUG, logger=dictionary_pickler.LOGGER.name):
-        dictionary_pickler._read_dict(str(fixture), "de")
+    with caplog.at_level(logging.DEBUG, logger=dictionary_builder.LOGGER.name):
+        dictionary_builder._read_dict(fixture, "de")
     assert "Bäckerei" in caplog.text and "rule mismatch" in caplog.text
 
     caplog.clear()
-    with caplog.at_level(logging.INFO, logger=dictionary_pickler.LOGGER.name):
-        dictionary_pickler._read_dict(str(fixture), "de")
+    with caplog.at_level(logging.INFO, logger=dictionary_builder.LOGGER.name):
+        dictionary_builder._read_dict(fixture, "de")
     assert "rule mismatch" not in caplog.text
 
 
 def test_lemmatizes_language_built_from_wordlist(tmp_path) -> None:
-    """End-to-end: a pickler-built bytes-dict is consumable by the Lemmatizer."""
-    raw = _read(tmp_path, "zz", "dog\tdogs\ncat\tcats\n")
+    """End-to-end: a wordlist-built dict is consumable by the Lemmatizer."""
+    raw = {
+        k.encode(): v.encode()
+        for k, v in _read(tmp_path, "zz", "dog\tdogs\ncat\tcats\n").items()
+    }
 
     class WordlistFactory(DictionaryFactory):
         def get_dictionary(self, lang: str) -> MappingStrToByteString:
@@ -308,7 +307,7 @@ def test_build_base_shipped_composes_over_decoded_dict(tmp_path, monkeypatch) ->
     _layers(tmp_path, monkeypatch, overrides="CAT\tcats\nbird\tbirds\n")
 
     built = tmp_path / "out.plzma"
-    dictionary_pickler._build_dictionary("zz", filepath=str(built), base="shipped")
+    dictionary_builder._build_dictionary("zz", filepath=str(built), base="shipped")
     result = frontcode.decode(built.read_bytes())
     assert result[b"dogs"] == b"dog"  # decoded-shipped base survives
     assert result[b"cats"] == b"CAT"  # override wins the collision
@@ -328,7 +327,7 @@ def test_build_base_merged_keeps_curated_mappings(tmp_path, monkeypatch) -> None
         "WRONGDOG\tdogs\nbird\tbirds\n", encoding="utf-8"
     )
     built = tmp_path / "out.plzma"
-    dictionary_pickler._build_dictionary(
+    dictionary_builder._build_dictionary(
         "zz", listpath=str(tmp_path / "fresh"), filepath=str(built), base="merged"
     )
     result = frontcode.decode(built.read_bytes())
@@ -341,7 +340,7 @@ def test_build_base_merged_keeps_curated_mappings(tmp_path, monkeypatch) -> None
 def test_build_dictionary_rejects_unknown_base(tmp_path) -> None:
     """An unrecognized base mode fails loud rather than silently building fresh."""
     with pytest.raises(ValueError, match="unknown base mode"):
-        dictionary_pickler._build_dictionary(
+        dictionary_builder._build_dictionary(
             "zz", filepath=str(tmp_path / "out.plzma"), base="bogus"
         )
 
@@ -351,8 +350,8 @@ def test_build_dictionary_is_deterministic(tmp_path) -> None:
     cache is keyed on the shipped bytes, so rebuilds must not drift)."""
     (tmp_path / "zz.txt").write_text("dog\tdogs\ncat\tcats\n", encoding="utf-8")
     a, b = tmp_path / "a.plzma", tmp_path / "b.plzma"
-    dictionary_pickler._build_dictionary("zz", listpath=str(tmp_path), filepath=str(a))
-    dictionary_pickler._build_dictionary("zz", listpath=str(tmp_path), filepath=str(b))
+    dictionary_builder._build_dictionary("zz", listpath=str(tmp_path), filepath=str(a))
+    dictionary_builder._build_dictionary("zz", listpath=str(tmp_path), filepath=str(b))
     assert a.read_bytes() == b.read_bytes()
 
 
@@ -361,8 +360,8 @@ def test_apply_layers_cleans_machine_fill(tmp_path, monkeypatch) -> None:
     affix-fragment key (-al) is unreachable and dropped, unlike a reviewed
     override which keeps its deliberate elisions."""
     _layers(tmp_path, monkeypatch, fill="-al\t-al\ncat\tcats\n")
-    merged = dictionary_pickler._apply_layers({}, "zz")
-    assert merged == {b"cats": b"cat"}  # '-al' affix key dropped
+    merged = dictionary_builder._apply_layers({}, "zz")
+    assert merged == {"cats": "cat"}  # '-al' affix key dropped
 
 
 def test_build_from_shipped_scrubs_placeholder(tmp_path, monkeypatch) -> None:
@@ -373,5 +372,5 @@ def test_build_from_shipped_scrubs_placeholder(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
     _layers(tmp_path, monkeypatch)  # no fill, no override
     out = tmp_path / "out.plzma"
-    dictionary_pickler._build_dictionary("zz", filepath=str(out), base="shipped")
+    dictionary_builder._build_dictionary("zz", filepath=str(out), base="shipped")
     assert frontcode.decode(out.read_bytes()) == {b"dogs": b"dog"}

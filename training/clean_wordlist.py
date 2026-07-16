@@ -1,6 +1,6 @@
 """
 Scripted replacement for the semi-manual "eyeball the TSV" clean step between
-kaikki_to_tsv.py extraction and dictionary_pickler.py's `_read_dict`.
+kaikki_to_tsv.py extraction and dictionary_builder.py's `_read_dict`.
 
 Scope: language-independent character hygiene ONLY -- NFC-normalize,
 canonicalize lookalike quotes, strip invisible/editorial characters, and
@@ -11,7 +11,7 @@ was deliberately removed (measured ~0% yield on clean languages, and wrong
 drops of legitimate forms on messy ones) -- do not re-add it.
 
 Input/output: TSV `lemma<TAB>word` per line. Duplicate lines are preserved
-verbatim -- R2's evidence-count signal in `dictionary_pickler` depends on line
+verbatim -- R2's evidence-count signal in `dictionary_builder` depends on line
 multiplicity; never dedup here.
 """
 
@@ -33,24 +33,27 @@ LOOKALIKE_MAP = {
     "“": '"',
     "”": '"',  # curly double quotes -> straight
 }
+# Named escapes, not literals: these are invisible in an editor/diff.
 STRIP_CHARS = {
-    "﻿",  # BOM
-    "­",  # soft hyphen
-    "​",  # zero-width space
-    "‎",
-    "‏",  # LRM/RLM bidi marks
+    "\N{ZERO WIDTH NO-BREAK SPACE}",  # BOM
+    "\N{SOFT HYPHEN}",
+    "\N{ZERO WIDTH SPACE}",
+    "\N{LEFT-TO-RIGHT MARK}",
+    "\N{RIGHT-TO-LEFT MARK}",
 }
 
 # Categories never valid in a word form. Cf included (stray format chars are
 # junk) except the two word-internal joiners below (Perso-Arabic, Indic).
 _REJECT_CATEGORIES = ("Cc", "Cf", "Cs", "Co", "Cn")
-_ALLOWED_FORMAT = {"‌", "‍"}  # ZWNJ, ZWJ
+_ALLOWED_FORMAT = {"\N{ZERO WIDTH NON-JOINER}", "\N{ZERO WIDTH JOINER}"}
 
 DEFAULT_MAX_REJECT_PCT = 5.0
 
 
-def normalize(text: str) -> tuple[str, Counter[str]]:
-    """Stage 1: fix, don't reject. Returns normalized text + counts for the report."""
+def canonicalize(text: str) -> tuple[str, Counter[str]]:
+    """Stage 1: fix, don't reject. Returns canonicalized text + counts for the
+    report. Named to contrast with utils.normalize_token (NFC only): this ALSO
+    folds lookalike quotes and strips invisible characters."""
     counts: Counter[str] = Counter()
     kept_chars = []
     for ch in normalize_token(text):  # NFC, matching the shipped dicts
@@ -155,7 +158,7 @@ def clean_wordlist(lines: list[str]) -> tuple[list[str], CleanReport]:
         normalized_columns = []
         reason = None
         for column in columns:
-            normalized, norm_counts = normalize(column)
+            normalized, norm_counts = canonicalize(column)
             report.normalization_counts.update(norm_counts)
             reason = check_field(normalized)
             if reason:

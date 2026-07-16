@@ -1,6 +1,6 @@
 """
 Convert a kaikki.org JSONL Wiktionary dump into a lemma-form TSV word list
-suitable as input for `dictionary_pickler.py` (see training/README.rst for
+suitable as input for `dictionary_builder.py` (see training/README.rst for
 the full data-preparation pipeline this script is one step of).
 
 Input format: one JSON object per line, as downloaded from kaikki.org.
@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Any
 
 log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 # Tags marking rows that are never real inflected forms.
 _UNCONDITIONAL_DROP_TAGS = frozenset(
@@ -30,7 +29,7 @@ _UNCONDITIONAL_DROP_TAGS = frozenset(
 
 # Cross-reference rows (e.g. a pronoun's page listing other pronouns);
 # dropped only when the form differs from the entry's own word, so a
-# genuine self-mapping keeps its vote in dictionary_pickler's resolution.
+# genuine self-mapping keeps its vote in dictionary_builder's resolution.
 _CROSS_REFERENCE_TAGS = frozenset({"pronoun", "possessive", "auxiliary"})
 
 _PLACEHOLDER_FORM = "-"  # marks a form that doesn't exist for this word
@@ -83,7 +82,7 @@ def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
 
     Deduplicates pairs repeated across senses of the SAME entry, so a pair's
     line count in the output TSV reflects independent attestations --
-    dictionary_pickler's R2 resolution treats line count as evidence, and a
+    dictionary_builder's R2 resolution treats line count as evidence, and a
     single entry describing its own relation twice is not two attestations.
     """
     yield from dict.fromkeys(_extract_pairs_raw(entry))
@@ -104,6 +103,7 @@ def main(input_path: Path, output_path: Path) -> None:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", type=Path, help="kaikki.org JSONL dump")
     parser.add_argument("output", type=Path, help="output TSV path (lemma TAB word)")

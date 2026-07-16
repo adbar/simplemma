@@ -33,7 +33,6 @@ from training.clean_wordlist import check_field
 from training.eval_harness import FixedDictionaryFactory
 
 log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 # Languages with a verified Wikidata QID (i.e. everything extractable).
 LANGUAGE_QIDS = {
@@ -136,7 +135,7 @@ def drop_ambiguous(
     """Drop pairs where `form` is attested with more than one distinct lemma.
 
     Wikidata is high-precision but not conflict-free; unlike
-    dictionary_pickler's R2, there's no evidence-count signal here to
+    dictionary_builder's R2, there's no evidence-count signal here to
     arbitrate a genuine ambiguity, so the safe choice is to drop it rather
     than guess (matches the research's "599,653 unambiguous pairs" method).
     """
@@ -283,4 +282,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()

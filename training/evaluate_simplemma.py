@@ -22,7 +22,6 @@ from simplemma.strategies.default import DefaultStrategy
 from training.ud_conllu import dataset_to_lang, iter_word_tokens_in_sentences
 
 log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 DATA_FOLDER = Path(__file__).parent / "data"
 CLEAN_DATA_FOLDER = DATA_FOLDER / "UD"
@@ -157,4 +156,5 @@ def main(
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()

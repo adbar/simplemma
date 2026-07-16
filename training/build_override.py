@@ -23,7 +23,6 @@ from pathlib import Path
 from training.ud_conllu import iter_word_tokens
 
 log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 CLOSED_CLASS_POS = frozenset({"PRON", "DET", "ADP", "CCONJ", "SCONJ", "AUX", "PART"})
 
@@ -91,4 +90,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()

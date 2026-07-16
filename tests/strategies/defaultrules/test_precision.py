@@ -1,6 +1,7 @@
 """Enforcement harness for the default rules: aggregate precision over the
 shipped dictionary must stay at/above the per-language floor (lemma-first: the
-output must BE the dict lemma), and rules must be idempotent and not overlap.
+output must BE the dict lemma), rule chains must converge within two steps,
+and rules must not overlap.
 _LEGACY_REAL_WORD_LANGS (eo only) keeps the older any-dictionary-entry tolerance.
 
 Fill-augmented languages (v2.0 Wikidata fill in the shipped dict) get a lowered
@@ -23,7 +24,6 @@ from simplemma.strategies.dictionaries.dictionary_factory import (
     DefaultDictionaryFactory,
 )
 from training.rulebuilder import _ACCENT_FOLD_LANGS, output_is_lemma, pattern_alts
-from training.wikidata_lexemes import V2_FILL_LANGS
 
 RULE_LANGS = sorted(
     RULE_FUNCTIONS
@@ -47,7 +47,10 @@ THRESHOLD = 99.0
 # Per-language aggregate floor override (default THRESHOLD). Lowered where the
 # shipped dict carries Wikidata fill the rules score against but never serve at
 # runtime: the value is the current full-dict precision minus ~0.4pp headroom,
-# so a genuine rule regression still trips it (et measures 98.38%, la 96.06%).
+# so a genuine rule regression still trips it (et measures 98.38%, la 96.06%;
+# excluding fill forms both clear THRESHOLD: et 99.48%, la 99.83% -- the fill
+# misses are convention mismatches, e.g. Wikidata lemmatizes la participles to
+# the verb, not rule defects; measured 2026-07-16).
 _AGGREGATE_BASELINE = {"et": 98.0, "la": 95.5}
 
 # Gate still accepts any dictionary-entry output for these (see docstring).
@@ -140,13 +143,18 @@ def test_rule_quality(lang: str) -> None:
         )
         ok += good
         # idempotence: a produced lemma must be a fixed point unless it is a
-        # dict entry (the pipeline tries dictionary lookup before rules).
-        # Skipped for fill-augmented langs: a fill form the rules never serve at
-        # runtime can surface a chain here (la centensimabam->centensimo->
-        # centensimus); idempotence for them is enforced at build (base dict).
-        if p != f and d.get(p) is None and lang not in V2_FILL_LANGS:
+        # dict entry (the pipeline tries dictionary lookup before rules). One
+        # extra hop is tolerated if the chain terminates there: v2.0 fill forms
+        # the rules never serve at runtime can surface 2-step chains (la
+        # centensimabam -> centensimo -> centensimus; measured 2026-07-16,
+        # only la needs this, 49 chains, none longer).
+        if p != f and d.get(p) is None:
             p2 = fn(p)
-            assert p2 is None or p2 == p, f"{lang}: not idempotent: {f} -> {p} -> {p2}"
+            if p2 is not None and p2 != p and d.get(p2) is None:
+                p3 = fn(p2)
+                assert p3 is None or p3 == p2, (
+                    f"{lang}: rule chain doesn't converge: {f} -> {p} -> {p2} -> {p3}"
+                )
 
     assert not escaped, (
         f"{lang}: prefilter skipped entries fn resolves ({escaped[:5]}); a "

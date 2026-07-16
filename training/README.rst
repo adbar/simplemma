@@ -134,20 +134,21 @@ Adding languages
 
 - The Simplemma approach currently works best on languages written from left to right, results will be impacted otherwise (e.g. Urdu).
 - The target language has to be prone to lemmatization by allowing for the reduction of at least two word forms to a single dictionary entry (e.g. Korean does not fit the current scope).
-- The new language (two- or three-letter ISO code) needs a word list at ``training/lists/<code>.txt`` (tab-separated, see "Input data" above) and has to be added to the dictionary data using the ``dictionary_pickler`` script, it should then be available in ``SUPPORTED_LANGUAGES``.
+- The new language (two- or three-letter ISO code) needs a word list at ``training/lists/<code>.txt`` (tab-separated, see "Input data" above) and has to be added to the dictionary data using the ``dictionary_builder`` script, it should then be available in ``SUPPORTED_LANGUAGES``.
 
 
 Building the dictionaries
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-``training/dictionary_pickler.py`` reads a language's word list and writes the compressed, front-coded ``.plzma`` dictionary the runtime loads (see ``frontcode.py``; the runtime still reads the legacy pickled dicts shipped before v2.0). Two things to know before running it:
+``training/dictionary_builder.py`` reads a language's word list and writes the compressed, front-coded ``.plzma`` dictionary the runtime loads (see ``frontcode.py``, which replaced the pickled format in 2.0.0). Two things to know before running it:
 
-- Without ``--in-place``, output goes to ``training/output/`` (gitignored) rather than the real package data, so a run never clobbers a shipped dictionary by accident. Pass ``--in-place`` to write into the installed package and actually update what ships. ``--from-shipped`` composes from the shipped dict + override/fill layers instead of rebuilding the base from wordlists. ``--merge-shipped`` (policy B) rebuilds the base from a fresh word list but keeps the curated shipped mappings on shared keys, so the fresh extraction only *adds* new keys and existing mappings change only via a reviewed override; it reads the currently installed dict, so run it once from a clean checkout before ``--in-place`` overwrites it.
-- Its ``__main__`` CLI (``python3 -m training.dictionary_pickler --in-place``) only *rebuilds* languages already in ``SUPPORTED_LANGUAGES``, since that set is derived from the ``.plzma`` files already on disk. To add a genuinely *new* language, call ``_build_dictionary`` directly instead, e.g.:
+- Without ``--in-place``, output goes to ``training/output/`` (gitignored) rather than the real package data, so a run never clobbers a shipped dictionary by accident. Pass ``--in-place`` to write into the installed package and actually update what ships.
+- ``--base`` selects the base the override/fill layers compose over: ``fresh`` (default) rebuilds from the word list, ``shipped`` reuses the installed ``.plzma`` verbatim, and ``merged`` (policy B) rebuilds a fresh base but keeps the curated shipped mappings on shared keys, so the fresh extraction only *adds* new keys and existing mappings change only via a reviewed override. ``shipped`` and ``merged`` read the currently installed dict, so run them once from a clean checkout before ``--in-place`` overwrites it.
+- Its ``__main__`` CLI (``python3 -m training.dictionary_builder --in-place``) only *rebuilds* languages already in ``SUPPORTED_LANGUAGES``, since that set is derived from the ``.plzma`` files already on disk. To add a genuinely *new* language, call ``_build_dictionary`` directly instead, e.g.:
 
 .. code-block:: python
 
-    from training.dictionary_pickler import _build_dictionary
+    from training.dictionary_builder import _build_dictionary
     _build_dictionary("xx", in_place=True)
 
 
@@ -166,8 +167,8 @@ Since a source has to comprise enough words without sacrificing quality, the `ka
 
 This prefers explicit inflection relations (``form_of``/``alt_of``) and falls back to an entry's own ``forms`` table, while dropping known-noisy rows (structural placeholders, romanization/transliteration entries, stress marks, cross-reference tables that list unrelated words rather than inflections).
 
-3. Don't deduplicate the output: ``dictionary_pickler.py`` counts repeated ``lemma\tword`` lines as evidence and uses that count to resolve conflicting lemmas for the same word form, so duplicates should be left as-is.
-4. Check the output by exploring the data by hand to spot inconsistencies; ``dictionary_pickler.py`` itself filters out lines that are too short or otherwise malformed once you run it.
+3. Don't deduplicate the output: ``dictionary_builder.py`` counts repeated ``lemma\tword`` lines as evidence and uses that count to resolve conflicting lemmas for the same word form, so duplicates should be left as-is.
+4. Check the output by exploring the data by hand to spot inconsistencies; ``dictionary_builder.py`` itself filters out lines that are too short or otherwise malformed once you run it.
 
 
 The dictionary data pipeline
@@ -208,10 +209,10 @@ inputs live under ``training/data/``):
 ``ud_conllu.py`` holds the shared UD conventions (the dataset-name → language
 map and the gold-token iteration rule) these tools read with.
 
-``dictionary_pickler.py`` composes the layers itself when building a
+``dictionary_builder.py`` composes the layers itself when building a
 dictionary: a reviewed ``training/overrides/<code>.tsv`` always wins, the base
 wordlist comes next, and an optional ``training/fill/<code>.tsv`` (git-ignored,
 ``wikidata_lexemes.py`` output) only fills gaps, never overriding. Keys are
 NFC-normalized at build time, matching runtime lookups. Output is the
-front-coded byte-stream format (see ``frontcode.py``); simplemma also reads the
-legacy pickled ``.plzma`` shipped before v2.0, so old files keep working.
+front-coded byte-stream format (see ``frontcode.py``), which replaced the
+pickled ``.plzma`` format in 2.0.0.

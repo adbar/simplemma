@@ -1,6 +1,5 @@
 import io
 import lzma
-import pickle
 
 import pytest
 
@@ -11,13 +10,12 @@ from simplemma.strategies.dictionaries.dictionary_factory import (
 )
 
 
-def test_load_rejects_non_dict_legacy_pickle() -> None:
-    # a legacy (non-front-coded) .plzma payload that isn't a dict: frontcode.load
-    # falls through to pickle.load and must reject it. (Shipped dicts are now
-    # front-coded, so this exercises the legacy-pickle branch directly.)
-    blob = lzma.compress(pickle.dumps(["not", "a", "dict"]))
+def test_load_rejects_non_frontcoded_payload() -> None:
+    # Pre-2.0 pickled .plzma (or any non-front-coded payload) is no longer
+    # readable: load must reject it, not silently mis-parse it.
+    blob = lzma.compress(b"\x80\x05 legacy pickle bytes, no SMFC1 magic")
     with lzma.open(io.BytesIO(blob), "rb") as fh:
-        with pytest.raises(TypeError, match="unexpected data"):
+        with pytest.raises(ValueError, match="front-coded"):
             frontcode.load(fh)
 
 

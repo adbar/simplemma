@@ -35,10 +35,7 @@ SUPPORTED_LANGUAGES = frozenset(f.stem for f in DATA_FOLDER.glob("*.plzma"))
 
 
 def _load_dictionary_from_disk(langcode: str) -> dict[bytes, bytes]:
-    """Load the shipped `data/{langcode}.plzma` as a bytes->bytes dict.
-
-    Raises TypeError if a legacy pickle payload is not a dict.
-    """
+    """Load the shipped `data/{langcode}.plzma` as a bytes->bytes dict."""
     filepath = DATA_FOLDER / f"{langcode}.plzma"
     with lzma.open(filepath, "rb") as filehandle:
         return frontcode.load(filehandle)
@@ -75,26 +72,48 @@ class DictionaryFactory(Protocol):
         raise NotImplementedError
 
 
-class MappingStrToByteString(Mapping[str, str]):
-    """Wrapper around ByString dict to make them behave like str dict."""
+class DecodedStrMapping(Mapping[str, str]):
+    """Read-only str->str view over a bytes-backed store, decoding on access.
 
-    __slots__ = ["_dict"]
+    Subclasses implement `_lookup` (None on a miss) plus `__iter__`/`__len__`;
+    the shared `__getitem__`/`get` machinery -- including the strict-mypy
+    overloads and the miss-cheap `get` that avoids Mapping.get's
+    KeyError-per-miss EAFP path -- lives here once.
+    """
 
-    def __init__(self, dictionary: dict[bytes, bytes]) -> None:
-        self._dict = dictionary
+    __slots__ = ()
 
-    def __getitem__(self, item: str) -> str:
-        return self._dict[item.encode()].decode()
+    @abstractmethod
+    def _lookup(self, key: str) -> str | None:
+        """The decoded value for `key`, or None if absent."""
+        raise NotImplementedError
 
-    # The overloads mirror Mapping.get's signature for strict mypy.
+    def __getitem__(self, key: str) -> str:
+        value = self._lookup(key)
+        if value is None:
+            raise KeyError(key)
+        return value
+
     @overload
     def get(self, key: str) -> str | None: ...
     @overload
     def get(self, key: str, default: str | _T) -> str | _T: ...
     def get(self, key: str, default: str | _T | None = None) -> str | _T | None:
-        # Avoids Mapping.get's EAFP path (a KeyError raised on every miss).
+        value = self._lookup(key)
+        return value if value is not None else default
+
+
+class MappingStrToByteString(DecodedStrMapping):
+    """Wrapper around a bytes->bytes dict to make it behave like a str dict."""
+
+    __slots__ = ("_dict",)
+
+    def __init__(self, dictionary: dict[bytes, bytes]) -> None:
+        self._dict = dictionary
+
+    def _lookup(self, key: str) -> str | None:
         value = self._dict.get(key.encode())
-        return value.decode() if value is not None else default
+        return value.decode() if value is not None else None
 
     def __iter__(self) -> Iterator[str]:
         for key in self._dict:
@@ -104,35 +123,32 @@ class MappingStrToByteString(Mapping[str, str]):
         return len(self._dict)
 
 
-class DefaultDictionaryFactory(DictionaryFactory):
-    """
-    Default Dictionary Factory.
+class CachingDictionaryFactory(DictionaryFactory):
+    """Base for factories that build a per-language dictionary once and cache it.
 
-    This class is a concrete implementation of the `DictionaryFactory` protocol.
-    It provides functionality for loading and caching dictionaries from disk that are included in Simplemma.
+    `__init__` wires an lru cache around `_get_dictionary_uncached` (which
+    subclasses implement); `get_dictionary` serves from it. Caching the built
+    value, not the raw data, avoids rebuilding on every call and lets the lru
+    bound memory by evicting whole entries together.
     """
 
-    __slots__ = ["_get_dictionary"]
+    __slots__ = ("_get_dictionary",)
 
     def __init__(self, cache_max_size: int = 8) -> None:
         """
-        Initialize the DefaultDictionaryFactory.
-
         Args:
-            cache_max_size (int): The maximum size of the cache for loaded dictionaries.
-                Defaults to `8`.
+            cache_max_size (int): The maximum number of dictionaries to keep in
+                memory. Defaults to `8`.
         """
-        # Cache the wrapper, not the raw dict, to avoid re-wrapping on every
-        # call; the lru evicts wrapper and dict together, bounding memory.
         self._get_dictionary = lru_cache(maxsize=cache_max_size)(
             self._get_dictionary_uncached
         )
 
+    @abstractmethod
     def _get_dictionary_uncached(self, lang: str) -> Mapping[str, str]:
-        """Build the dictionary for a language, without caching."""
-        if lang not in SUPPORTED_LANGUAGES:
-            raise ValueError(f"Unsupported language: {lang}")
-        return MappingStrToByteString(_load_dictionary_from_disk(lang))
+        """Build the dictionary for `lang` without caching (raise ValueError if
+        the language is unsupported)."""
+        raise NotImplementedError
 
     def get_dictionary(
         self,
@@ -140,6 +156,22 @@ class DefaultDictionaryFactory(DictionaryFactory):
     ) -> Mapping[str, str]:
         """The cached dictionary for `lang` (see the `DictionaryFactory` protocol)."""
         return self._get_dictionary(lang)
+
+
+class DefaultDictionaryFactory(CachingDictionaryFactory):
+    """
+    Default Dictionary Factory.
+
+    This class is a concrete implementation of the `DictionaryFactory` protocol.
+    It provides functionality for loading and caching dictionaries from disk that are included in Simplemma.
+    """
+
+    __slots__ = ()
+
+    def _get_dictionary_uncached(self, lang: str) -> Mapping[str, str]:
+        if lang not in SUPPORTED_LANGUAGES:
+            raise ValueError(f"Unsupported language: {lang}")
+        return MappingStrToByteString(_load_dictionary_from_disk(lang))
 
 
 # Process-wide default: the strategy defaults and the legacy helpers all share

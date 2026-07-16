@@ -297,7 +297,13 @@ def test_subwords() -> None:
         lemmatize("insulinproduzierende", lang="de", greedy=True)
         == "insulinproduzierend"
     )
-    # assert Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize("Urlaubsreisenden", lang="de") == lemmatize("Urlaubsreisenden", lang="de", greedy=True) == "Urlaubsreisende"
+    assert (
+        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
+            "Urlaubsreisenden", lang="de"
+        )
+        == lemmatize("Urlaubsreisenden", lang="de", greedy=True)
+        == "Urlaubsreisende"
+    )
     assert (
         Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
             "Grünenvorsitzende", lang="de"
@@ -348,7 +354,13 @@ def test_subwords() -> None:
         == lemmatize("Gen-Sequenzierungen", lang="de", greedy=True)
         == "Gen-Sequenzierung"
     )
-    # assert Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize("wiederverwendbaren", lang="de") == lemmatize("wiederverwendbaren", lang="de", greedy=True) == "wiederverwendbar"
+    assert (
+        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
+            "wiederverwendbaren", lang="de"
+        )
+        == lemmatize("wiederverwendbaren", lang="de", greedy=True)
+        == "wiederverwendbar"
+    )
     assert (
         Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
             "Spitzenposten", lang="de"
@@ -367,12 +379,13 @@ def test_subwords() -> None:
         lemmatize("PCR-Bestätigungstests", lang="de", greedy=True)
         == "PCR-Bestätigungstest"
     )
-    # assert (
-    #    lemmatize("standortübergreifend", lang="de", greedy=True)
-    #    == "standortübergreifend"
-    # )
-    # assert Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize("obamamäßigsten", lang="de") == lemmatize("obamamäßigsten", lang="de", greedy=True) == "obamamäßig"
-    # assert Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize("obamaartigere", lang="de") == lemmatize("obamaartigere", lang="de", greedy=True) == "obamaartig"
+    assert (
+        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
+            "obamaartigere", lang="de"
+        )
+        == lemmatize("obamaartigere", lang="de", greedy=True)
+        == "obamaartig"
+    )
     assert (
         Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
             "durchgestyltes", lang="de"
@@ -405,10 +418,10 @@ def test_subwords() -> None:
         lemmatize("Anspruchsberechtigten", lang="de", greedy=True)
         == "Anspruchsberechtigte"
     )
-    # assert (
-    #    lemmatize("Bürgerschaftsabgeordneter", lang="de", greedy=True)
-    #    == "Bürgerschaftsabgeordnete"
-    # )
+    assert (
+        lemmatize("Bürgerschaftsabgeordneter", lang="de", greedy=True)
+        == "Bürgerschaftsabgeordnete"
+    )
     assert (
         Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
             "Lichtbild-Ausweis", lang="de"
@@ -431,14 +444,41 @@ def test_subwords() -> None:
         == "Pharmagröße"
     )
 
-    # assert Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize("beständigsten", lang="de") == lemmatize("beständigsten", lang="de", greedy=True) == "beständig"
-    # assert Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize('zweitstärkster', lang='de') == lemmatize('zweitstärkster', lang='de', greedy=True) == 'zweitstärkste'
-    # assert Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize('Abholservices', lang='de') == lemmatize('Abholservices', lang='de', greedy=True) == 'Abholservice'
-    # assert Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize('Funktionärsebene', lang='de') == lemmatize('Funktionärsebene', lang='de', greedy=True) == 'Funktionärsebene'
-    # assert Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize('strafbewehrte', lang='de') == lemmatize('strafbewehrte', lang='de', greedy=True) == 'strafbewehrt'
-    # assert Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize('fälschungssicheren', lang='de') == lemmatize('fälschungssicheren', lang='de', greedy=True) == 'fälschungssicher'
-    # assert Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize('Spargelstangen', lang='de') == lemmatize('Spargelstangen', lang='de', greedy=True) == 'Spargelstange'
-    # assert Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize("Bandmitgliedern", lang="de") == lemmatize("Bandmitgliedern", lang="de", greedy=True) == "Bandmitglied"
+    assert (
+        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
+            "Funktionärsebene", lang="de"
+        )
+        == lemmatize("Funktionärsebene", lang="de", greedy=True)
+        == "Funktionärsebene"
+    )
+    assert (
+        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
+            "strafbewehrte", lang="de"
+        )
+        == lemmatize("strafbewehrte", lang="de", greedy=True)
+        == "strafbewehrt"
+    )
+    assert (
+        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
+            "fälschungssicheren", lang="de"
+        )
+        == lemmatize("fälschungssicheren", lang="de", greedy=True)
+        == "fälschungssicher"
+    )
+    assert (
+        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
+            "Spargelstangen", lang="de"
+        )
+        == lemmatize("Spargelstangen", lang="de", greedy=True)
+        == "Spargelstange"
+    )
+    assert (
+        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
+            "Bandmitgliedern", lang="de"
+        )
+        == lemmatize("Bandmitgliedern", lang="de", greedy=True)
+        == "Bandmitglied"
+    )
 
     # prefixes
     assert (

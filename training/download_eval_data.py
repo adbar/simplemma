@@ -9,10 +9,12 @@ To move to a newer release, bump UD_HANDLE and re-run the evaluation
 (annotation conventions change between releases).
 """
 
+import argparse
 import hashlib
 import json
 import logging
 import re
+import shutil
 import tarfile
 import urllib.request
 from collections.abc import Iterable
@@ -23,7 +25,6 @@ from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGU
 from training.ud_conllu import dataset_to_lang
 
 log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 UD_VERSION = "2.18"
 UD_HANDLE = "11234/1-6149"
@@ -119,7 +120,7 @@ def _safe_extract(tar: tarfile.TarFile, dest: Path) -> None:
             tar.extract(member, dest)
 
 
-def main() -> None:
+def main(keep_download: bool = False) -> None:
     if DATA_FOLDER.exists() or CLEAN_DATA_FOLDER.exists():
         raise Exception(
             "Data folder seems to be already present. Delete it before creating new data."
@@ -164,8 +165,25 @@ def main() -> None:
     VERSION_FILE.write_text(
         f"version={UD_VERSION}\nhandle={UD_HANDLE}\nmd5={expected_md5}\n"
     )
+
+    # Nothing downstream reads _download/ (the raw tgz + fully extracted
+    # 250-treebank archive, several GB); the concats and splits/ are all that's
+    # used. Drop it unless asked to keep it (it proved useful once, for a
+    # hand-recovery of a missing treebank).
+    if not keep_download:
+        log.info("Removing raw download folder...")
+        shutil.rmtree(DATA_FOLDER)
+
     log.info(f"Done. Wrote provenance to {VERSION_FILE}")
 
 
 if __name__ == "__main__":
-    main()
+    logging.basicConfig(level=logging.INFO)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--keep-download",
+        action="store_true",
+        help="keep the raw tgz + extracted archive under data/UD/_download/ "
+        "(several GB; nothing downstream reads it)",
+    )
+    main(keep_download=parser.parse_args().keep_download)

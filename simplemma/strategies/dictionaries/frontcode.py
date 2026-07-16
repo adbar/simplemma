@@ -9,13 +9,12 @@ dict, because adjacent inflected forms end up byte-adjacent instead of
 scattered by pickle's own ordering.
 
 Decoding lives here (runtime dependency); encoding is called from
-`training/dictionary_pickler.py` (build-time only). `load` owns reading a
-`.plzma` payload off an open handle, auto-detecting this format vs a legacy
-pickle, so the dictionary factory only does file I/O.
+`training/dictionary_builder.py` (build-time only). `load` owns reading a
+`.plzma` payload off an open handle, so the dictionary factory only does
+file I/O.
 """
 
 import lzma
-import pickle
 from typing import IO
 
 MAGIC = b"SMFC1"
@@ -58,7 +57,7 @@ def _common_prefix_len(a: bytes, b: bytes) -> int:
 
 
 def is_frontcoded(data: bytes) -> bool:
-    """Peek at already-decompressed bytes to distinguish this format from a legacy pickle."""
+    """Peek at already-decompressed bytes to check for this format's magic header."""
     return data[: len(MAGIC)] == MAGIC
 
 
@@ -168,16 +167,7 @@ def decode(blob: bytes) -> dict[bytes, bytes]:
 
 
 def load(filehandle: IO[bytes]) -> dict[bytes, bytes]:
-    """Read a `dict[bytes, bytes]` off an open, decompressing `.plzma` handle.
-
-    Auto-detects the payload from its header: this module's front-coded stream
-    (read whole -- the decoder needs it all) or a legacy pickled dict (streamed
-    via pickle.load, so the large legacy dicts don't sit in memory twice)."""
-    header = filehandle.read(len(MAGIC))
-    filehandle.seek(0)
-    if is_frontcoded(header):
-        return decode_stream(filehandle.read())
-    payload = pickle.load(filehandle)
-    if not isinstance(payload, dict):
-        raise TypeError(f"unexpected data in .plzma payload: {type(payload)}")
-    return payload
+    """Read a `dict[bytes, bytes]` off an open, decompressing `.plzma` handle
+    (read whole -- the decoder needs it all). Raises ValueError if the payload
+    is not a front-coded stream (e.g. a pre-2.0 pickled dict)."""
+    return decode_stream(filehandle.read())

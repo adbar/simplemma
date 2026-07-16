@@ -9,18 +9,18 @@ from training.clean_wordlist import clean_wordlist as run_clean
 
 def test_nfc_normalization() -> None:
     decomposed = "é"  # e + combining acute
-    normalized, _ = clean_wordlist.normalize(decomposed)
+    normalized, _ = clean_wordlist.canonicalize(decomposed)
     assert normalized == "é"  # precomposed é
 
 
 def test_lookalike_canonicalization() -> None:
-    text, counts = clean_wordlist.normalize("‘word’")
+    text, counts = clean_wordlist.canonicalize("‘word’")
     assert text == "'word'"
     assert sum(counts.values()) == 2
 
 
 def test_strip_invisible_chars() -> None:
-    text, counts = clean_wordlist.normalize("﻿word­​")
+    text, counts = clean_wordlist.canonicalize("﻿word­​")
     assert text == "word"
     assert sum(counts.values()) == 3
 

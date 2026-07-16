@@ -1,22 +1,12 @@
-from collections.abc import Iterable
-
 from simplemma import (
-    BaseTokenSampler,
     MostCommonTokenSampler,
     RelaxedMostCommonTokenSampler,
 )
 
-
-class CustomTokenSampler(BaseTokenSampler):
-    def __init__(self, skip_tokens: int) -> None:
-        super().__init__()
-        self.skip_tokens: int = skip_tokens
-
-    def sample_tokens(self, tokens: Iterable[str]) -> list[str]:
-        return list(tokens)[self.skip_tokens :]
+from .conftest import CustomTokenSampler
 
 
-def test_token_sampler():
+def test_token_sampler() -> None:
     sampler = MostCommonTokenSampler()
     assert sampler.sample_text("ABCD Efgh ijkl mn") == ["ijkl"]
     assert sampler.sample_text("Abcd_E Abcde") == ["Abcd", "Abcde"]

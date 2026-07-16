@@ -33,7 +33,6 @@ from training.eval_harness import (
 from training.ud_conllu import dataset_to_lang
 
 log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 UD_SPLITS = Path(__file__).parent / "data" / "UD" / "splits"
 
@@ -144,4 +143,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     main()
