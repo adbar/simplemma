@@ -116,8 +116,11 @@ Makefile
 UD/
 training/**/data
 training/output/
-# local-only dev tooling (audit/eval scripts), never shipped
+training/fill/
 training/local/
+# regenerable wordlists (kaikki_to_tsv output) and session scratch
+training/lists/
+scratchpad/
 
 # uv lockfile: pyproject.toml pins exact versions already
 uv.lock

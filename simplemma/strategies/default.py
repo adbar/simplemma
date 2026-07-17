@@ -6,7 +6,10 @@ It provides lemmatization using a combination of different strategies such as di
 from .affix_decomposition import AffixDecompositionStrategy
 from .apostrophe_boundary import ApostropheBoundaryStrategy
 from .clitic_decomposition import CliticDecompositionStrategy
-from .dictionaries.dictionary_factory import DefaultDictionaryFactory, DictionaryFactory
+from .dictionaries.dictionary_factory import (
+    DEFAULT_DICTIONARY_FACTORY,
+    DictionaryFactory,
+)
 from .dictionary_lookup import DictionaryLookupStrategy
 from .greedy_dictionary_lookup import GreedyDictionaryLookupStrategy
 from .hyphen_removal import HyphenRemovalStrategy
@@ -35,7 +38,7 @@ class DefaultStrategy(LemmatizationStrategy):
     def __init__(
         self,
         greedy: bool = False,
-        dictionary_factory: DictionaryFactory = DefaultDictionaryFactory(),
+        dictionary_factory: DictionaryFactory = DEFAULT_DICTIONARY_FACTORY,
     ):
         """
         Initialize the Default Strategy.
@@ -43,7 +46,7 @@ class DefaultStrategy(LemmatizationStrategy):
         Args:
             greedy (bool): Whether to use a greedy approach for dictionary lookup. Defaults to `False`.
             dictionary_factory (DictionaryFactory): A factory for creating dictionaries.
-                Defaults to [`DefaultDictionaryFactory()`][simplemma.strategies.dictionaries.dictionary_factory.DefaultDictionaryFactory]..
+                Defaults to the shared [`DEFAULT_DICTIONARY_FACTORY`][simplemma.strategies.dictionaries.dictionary_factory.DEFAULT_DICTIONARY_FACTORY].
 
         """
         self._dictionary_lookup = DictionaryLookupStrategy(dictionary_factory)

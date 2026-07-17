@@ -130,8 +130,9 @@ docs = [
 [tool.mypy]
 python_version = "3.10"
 files = ["simplemma", "training", "tests"]
-strict = true
+# local-only dev tooling + downloaded UD/Kaikki/Wikidata artifacts, not our code
 exclude = ["training/local/", "training/data/"]
+strict = true
 
 [[tool.mypy.overrides]]
 # tests and training scripts are not fully annotated

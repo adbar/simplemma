@@ -76,8 +76,8 @@ def test_no_disk_cache() -> None:
         with (
             patch.object(
                 TrieDictionaryFactory,
-                "_create_trie_from_pickled_dict",
-                wraps=dictionaries._create_trie_from_pickled_dict,
+                "_build_trie",
+                wraps=dictionaries._build_trie,
             ) as create_trie_mock,
             patch.object(
                 TrieDictionaryFactory,
@@ -107,8 +107,8 @@ def test_disk_cache() -> None:
         with (
             patch.object(
                 TrieDictionaryFactory,
-                "_create_trie_from_pickled_dict",
-                wraps=dictionaries._create_trie_from_pickled_dict,
+                "_build_trie",
+                wraps=dictionaries._build_trie,
             ) as create_trie_mock,
             patch.object(
                 TrieDictionaryFactory,
@@ -168,8 +168,8 @@ def test_corrupted_disk_cache() -> None:
         with (
             patch.object(
                 TrieDictionaryFactory,
-                "_create_trie_from_pickled_dict",
-                wraps=dictionaries._create_trie_from_pickled_dict,
+                "_build_trie",
+                wraps=dictionaries._build_trie,
             ) as create_trie_mock,
             patch.object(
                 TrieDictionaryFactory,
@@ -241,8 +241,8 @@ def test_disabled_disk_cache_ignores_existing_file() -> None:
         )
         with patch.object(
             TrieDictionaryFactory,
-            "_create_trie_from_pickled_dict",
-            wraps=dictionaries._create_trie_from_pickled_dict,
+            "_build_trie",
+            wraps=dictionaries._build_trie,
         ) as create_trie_mock:
             dictionaries.get_dictionary("en")
         # use_disk_cache=False must rebuild, not load the existing file.
@@ -288,9 +288,10 @@ def test_trie_wrap_dict():
     assert isinstance(wrapped_trie.items(), ItemsView)
     assert len(wrapped_trie) == 3
 
-    with pytest.raises(NotImplementedError):
+    # read-only Mapping: assignment/deletion unsupported
+    with pytest.raises(TypeError):
         wrapped_trie["houses"] = "teapot"
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(TypeError):
         del wrapped_trie["balconies"]
 
     assert [key for key in wrapped_trie] == ["balconies", "houses", "ponies"]

@@ -4,7 +4,10 @@ It provides lemmatization using dictionary lookup.
 """
 
 from ..utils import apostrophe_variants, has_apostrophe
-from .dictionaries.dictionary_factory import DefaultDictionaryFactory, DictionaryFactory
+from .dictionaries.dictionary_factory import (
+    DEFAULT_DICTIONARY_FACTORY,
+    DictionaryFactory,
+)
 from .lemmatization_strategy import LemmatizationStrategy
 
 
@@ -14,14 +17,14 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
     __slots__ = ["_dictionary_factory"]
 
     def __init__(
-        self, dictionary_factory: DictionaryFactory = DefaultDictionaryFactory()
+        self, dictionary_factory: DictionaryFactory = DEFAULT_DICTIONARY_FACTORY
     ):
         """
         Initialize the Dictionary Lookup Strategy.
 
         Args:
             dictionary_factory (DictionaryFactory): The dictionary factory used to obtain language dictionaries.
-                Defaults to [`DefaultDictionaryFactory()`][simplemma.strategies.dictionaries.dictionary_factory.DefaultDictionaryFactory].
+                Defaults to the shared [`DEFAULT_DICTIONARY_FACTORY`][simplemma.strategies.dictionaries.dictionary_factory.DEFAULT_DICTIONARY_FACTORY].
         """
         self._dictionary_factory = dictionary_factory
 

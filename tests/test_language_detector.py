@@ -3,7 +3,7 @@
 from simplemma import LanguageDetector, in_target_language, langdetect
 from simplemma.strategies import DefaultStrategy
 
-from .test_token_sampler import CustomTokenSampler
+from .conftest import CustomTokenSampler
 
 
 def test_langdetect_no_samplers() -> None:
@@ -54,11 +54,11 @@ def test_proportion_in_each_language() -> None:
     lang = ("cs", "sk")
     text = '"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."'
     assert LanguageDetector(lang=lang).proportion_in_each_language(text) == {
-        "cs": 0.75,
-        "sk": 0.125,
-        "unk": 0.25,
+        "cs": 1.0,
+        "sk": 0.25,
+        "unk": 0.0,
     }
-    assert langdetect(text, lang=lang) == [("cs", 0.75), ("sk", 0.125), ("unk", 0.25)]
+    assert langdetect(text, lang=lang) == [("cs", 1.0), ("sk", 0.25), ("unk", 0.0)]
 
     lang = ("cs", "en")
     text = '"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.'
@@ -91,13 +91,13 @@ def test_in_target_language() -> None:
     assert (
         LanguageDetector(lang=(lang,)).proportion_in_target_languages(text)
         == in_target_language(text, lang=(lang,))
-        == 0.5
+        == 2 / 3  # la fill raised coverage of this text from 0.5
     )
 
     assert (
         LanguageDetector(lang=lang).proportion_in_target_languages(text)
         == in_target_language(text, lang=lang)
-        == 0.5
+        == 2 / 3  # la fill raised coverage of this text from 0.5
     )
 
     lang = "en"

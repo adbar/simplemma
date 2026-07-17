@@ -1,19 +1,21 @@
+import io
+import lzma
+
 import pytest
 
 from simplemma.strategies import DefaultDictionaryFactory
+from simplemma.strategies.dictionaries import frontcode
 from simplemma.strategies.dictionaries.dictionary_factory import (
     MappingStrToByteString,
-    _load_dictionary_from_disk,
 )
 
 
-def test_load_dictionary_rejects_non_dict(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        "simplemma.strategies.dictionaries.dictionary_factory.pickle.load",
-        lambda _filehandle: ["not", "a", "dict"],
-    )
-    with pytest.raises(TypeError, match="unexpected data"):
-        _load_dictionary_from_disk("en")
+def test_load_rejects_non_frontcoded_payload() -> None:
+    # Pre-2.0 pickled .plzma is no longer readable: load must reject it, not mis-parse it.
+    blob = lzma.compress(b"\x80\x05 legacy pickle bytes, no SMFC1 magic")
+    with lzma.open(io.BytesIO(blob), "rb") as fh:
+        with pytest.raises(ValueError, match="front-coded"):
+            frontcode.load(fh)
 
 
 def test_mapping_str_to_bytestring() -> None:

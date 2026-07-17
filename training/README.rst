@@ -134,21 +134,22 @@ Adding languages
 
 - The Simplemma approach currently works best on languages written from left to right, results will be impacted otherwise (e.g. Urdu).
 - The target language has to be prone to lemmatization by allowing for the reduction of at least two word forms to a single dictionary entry (e.g. Korean does not fit the current scope).
-- The new language (two- or three-letter ISO code) needs a word list at ``training/lists/<code>.txt`` (tab-separated, see "Input data" above) and has to be added to the dictionary data using the ``dictionary_pickler`` script, it should then be available in ``SUPPORTED_LANGUAGES``.
+- The new language (two- or three-letter ISO code) needs a word list at ``training/lists/<code>.txt`` (tab-separated, see "Input data" above) and has to be added to the dictionary data using the ``dictionary_builder`` script, it should then be available in ``SUPPORTED_LANGUAGES``.
 
 
-Building the pickled dictionaries
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Building the dictionaries
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-``training/dictionary_pickler.py`` reads a language's word list and writes the compressed, pickled dictionary the runtime loads. Two things to know before running it:
+``training/dictionary_builder.py`` reads a language's word list and writes the compressed, front-coded ``.plzma`` dictionary the runtime loads (see ``frontcode.py``, which replaced the pickled format in 2.0.0). Two things to know before running it:
 
 - Without ``--in-place``, output goes to ``training/output/`` (gitignored) rather than the real package data, so a run never clobbers a shipped dictionary by accident. Pass ``--in-place`` to write into the installed package and actually update what ships.
-- Its ``__main__`` CLI (``python3 training/dictionary_pickler.py --in-place``) only *rebuilds* languages already in ``SUPPORTED_LANGUAGES``, since that set is derived from the ``.plzma`` files already on disk. To add a genuinely *new* language, call ``_pickle_dict`` directly instead, e.g.:
+- ``--base`` selects the base the override/fill layers compose over: ``fresh`` (default) rebuilds from the word list, ``shipped`` reuses the installed ``.plzma`` verbatim, and ``merged`` (policy B) rebuilds a fresh base but keeps the curated shipped mappings on shared keys, so the fresh extraction only *adds* new keys and existing mappings change only via a reviewed override. ``shipped`` and ``merged`` read the currently installed dict, so run them once from a clean checkout before ``--in-place`` overwrites it.
+- Its ``__main__`` CLI (``python3 -m training.dictionary_builder --in-place``) only *rebuilds* languages already in ``SUPPORTED_LANGUAGES``, since that set is derived from the ``.plzma`` files already on disk. To add a genuinely *new* language, call ``_build_dictionary`` directly instead, e.g.:
 
 .. code-block:: python
 
-    from training.dictionary_pickler import _pickle_dict
-    _pickle_dict("xx", in_place=True)
+    from training.dictionary_builder import _build_dictionary
+    _build_dictionary("xx", in_place=True)
 
 
 Example using ``kaikki.org``
@@ -157,14 +158,61 @@ Example using ``kaikki.org``
 Since a source has to comprise enough words without sacrificing quality, the `kaikki.org <https://kaikki.org>`_ project is currently a good place to start. It leverages information from the Wiktionary project and is rather extensive. Its main drawbacks are lack of coverage for less-resourced languages and errors during processing of entries as the Wiktionary form tables are not all alike.
 
 
-1. Find the link to all word senses for a given language, e.g. "Download JSON data for all word senses in the Lithuanian dictionary" leading to ``https://kaikki.org/dictionary/Lithuanian/kaikki.org-dictionary-Lithuanian.json``.
-2. Convert the JSON dump to a tab-separated word list with ``training/kaikki_to_tsv.py``:
+1. Find the link to all word senses for a given language, e.g. "Download JSON data for all word senses in the Lithuanian dictionary" leading to ``https://kaikki.org/dictionary/Lithuanian/kaikki.org-dictionary-Lithuanian.jsonl``.
+2. Convert the JSONL dump to a tab-separated word list with ``training/kaikki_to_tsv.py``:
 
 .. code-block:: shell
 
-    python3 training/kaikki_to_tsv.py kaikki.org-dictionary-Lithuanian.json training/lists/lt.txt
+    python3 training/kaikki_to_tsv.py kaikki.org-dictionary-Lithuanian.jsonl training/lists/lt.txt
 
 This prefers explicit inflection relations (``form_of``/``alt_of``) and falls back to an entry's own ``forms`` table, while dropping known-noisy rows (structural placeholders, romanization/transliteration entries, stress marks, cross-reference tables that list unrelated words rather than inflections).
 
-3. Don't deduplicate the output: ``dictionary_pickler.py`` counts repeated ``lemma\tword`` lines as evidence and uses that count to resolve conflicting lemmas for the same word form, so duplicates should be left as-is.
-4. Check the output by exploring the data by hand to spot inconsistencies; ``dictionary_pickler.py`` itself filters out lines that are too short or otherwise malformed once you run it.
+3. Don't deduplicate the output: ``dictionary_builder.py`` counts repeated ``lemma\tword`` lines as evidence and uses that count to resolve conflicting lemmas for the same word form, so duplicates should be left as-is.
+4. Check the output by exploring the data by hand to spot inconsistencies; ``dictionary_builder.py`` itself filters out lines that are too short or otherwise malformed once you run it.
+
+
+The dictionary data pipeline
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Beyond the raw ``kaikki_to_tsv`` extraction above, the dictionaries are
+prepared and validated with a few small standalone CLIs (their git-ignored
+inputs live under ``training/data/``):
+
+- ``clean_wordlist.py <in.tsv> <out.tsv>`` — language-independent character
+  hygiene between extraction and building: NFC-normalize, canonicalize curly
+  quotes, strip invisible characters, reject mojibake and control/unassigned
+  codepoints. Keeps duplicate lines (dictionary_builder treats line count as
+  evidence) and exits nonzero if the reject rate exceeds ``--max-reject-pct``
+  (a data-drift alarm).
+- ``wikidata_lexemes.py <lang> <dump> <out.tsv>`` — extract extra
+  ``(lemma, form)`` pairs from a Wikidata lexeme dump as an OOV *fill* layered
+  onto (never overriding) the shipped dictionary; ``--prune`` drops pairs the
+  shipped dict + rules/affix chain already reproduces.
+- ``build_override.py <lang> <train.conllu> <out.tsv>`` — mine a closed-class
+  override lexicon (pronouns, determiners, adpositions, …) from a UD train
+  split, the one place Wiktionary is systematically thin. Deterministic given a
+  pinned UD version (``download_eval_data.py`` fixes UD 2.18, md5-verified).
+
+  The committed ``training/overrides/<code>.tsv`` files are **reviewed
+  source-of-truth, not a build output**: edit them directly, do not expect a
+  re-run to reproduce them. Two reasons a fresh mine differs: (1) the shipped
+  files were mined across *all* of a language's train treebanks (this CLI takes
+  one), and (2) they were then trimmed to drop entries that merely duplicated
+  the shipped base at trim time — so a re-mine yields the fuller, untrimmed set.
+  That trim makes each remaining line a real correction/addition, at the cost of
+  coupling the file to that base: to refresh after a UD bump, re-mine the full
+  set, re-review, and re-trim rather than regenerating in place.
+- ``eval_gate.py <lang> <baseline.tsv> <candidate.tsv>`` — release gate:
+  refuse a candidate that regresses token- OR type-level accuracy on any UD
+  test treebank for the language (cross-treebank is automatic).
+
+``ud_conllu.py`` holds the shared UD conventions (the dataset-name → language
+map and the gold-token iteration rule) these tools read with.
+
+``dictionary_builder.py`` composes the layers itself when building a
+dictionary: a reviewed ``training/overrides/<code>.tsv`` always wins, the base
+wordlist comes next, and an optional ``training/fill/<code>.tsv`` (git-ignored,
+``wikidata_lexemes.py`` output) only fills gaps, never overriding. Keys are
+NFC-normalized at build time, matching runtime lookups. Output is the
+front-coded byte-stream format (see ``frontcode.py``), which replaced the
+pickled ``.plzma`` format in 2.0.0.

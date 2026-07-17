@@ -5,6 +5,7 @@ from .apostrophe_boundary import ApostropheBoundaryStrategy
 from .clitic_decomposition import CliticDecompositionStrategy
 from .default import DefaultStrategy
 from .dictionaries import (
+    DEFAULT_DICTIONARY_FACTORY,
     DefaultDictionaryFactory,
     DictionaryFactory,
     TrieDictionaryFactory,
@@ -24,6 +25,7 @@ __all__ = [
     "ApostropheBoundaryStrategy",
     "CliticDecompositionStrategy",
     "DefaultStrategy",
+    "DEFAULT_DICTIONARY_FACTORY",
     "DefaultDictionaryFactory",
     "DictionaryFactory",
     "TrieDictionaryFactory",

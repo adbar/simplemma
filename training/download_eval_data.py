@@ -9,10 +9,12 @@ To move to a newer release, bump UD_HANDLE and re-run the evaluation
 (annotation conventions change between releases).
 """
 
+import argparse
 import hashlib
 import json
 import logging
 import re
+import shutil
 import tarfile
 import urllib.request
 from collections.abc import Iterable
@@ -20,9 +22,9 @@ from pathlib import Path
 from typing import Any
 
 from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
+from training.ud_conllu import dataset_to_lang
 
 log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 UD_VERSION = "2.18"
 UD_HANDLE = "11234/1-6149"
@@ -90,11 +92,6 @@ def get_dirs(folder: Path) -> list[str]:
     return [d.name for d in folder.iterdir() if d.is_dir()]
 
 
-# UD's file-prefix isn't always simplemma's ISO code (Norwegian="no", North
-# Sami="sme") -- without this map, these are silently dropped, not misfiled.
-_DATASET_LANG_OVERRIDES = {"no_bokmaal": "nb", "no_nynorsk": "nn", "sme_giella": "se"}
-
-
 def get_relevant_language_data_folders(
     data_folder: Path,
 ) -> Iterable[tuple[str, str, Path]]:
@@ -106,7 +103,7 @@ def get_relevant_language_data_folders(
         matches_files = re.search(r"^(.+)-ud", conllu_files[0].name)
         if matches_files is not None:
             dataset_name = matches_files.groups()[0]
-            lang = _DATASET_LANG_OVERRIDES.get(dataset_name, dataset_name.split("_")[0])
+            lang = dataset_to_lang(dataset_name)
 
             if lang in SUPPORTED_LANGUAGES:
                 yield (lang, dataset_name, lang_data_folder)
@@ -123,7 +120,7 @@ def _safe_extract(tar: tarfile.TarFile, dest: Path) -> None:
             tar.extract(member, dest)
 
 
-def main() -> None:
+def main(keep_download: bool = False) -> None:
     if DATA_FOLDER.exists() or CLEAN_DATA_FOLDER.exists():
         raise Exception(
             "Data folder seems to be already present. Delete it before creating new data."
@@ -168,8 +165,23 @@ def main() -> None:
     VERSION_FILE.write_text(
         f"version={UD_VERSION}\nhandle={UD_HANDLE}\nmd5={expected_md5}\n"
     )
+
+    # nothing downstream reads the raw download (several GB); kept only on
+    # request -- useful once for hand-recovering a missing treebank
+    if not keep_download:
+        log.info("Removing raw download folder...")
+        shutil.rmtree(DATA_FOLDER)
+
     log.info(f"Done. Wrote provenance to {VERSION_FILE}")
 
 
 if __name__ == "__main__":
-    main()
+    logging.basicConfig(level=logging.INFO)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--keep-download",
+        action="store_true",
+        help="keep the raw tgz + extracted archive under data/UD/_download/ "
+        "(several GB; nothing downstream reads it)",
+    )
+    main(keep_download=parser.parse_args().keep_download)

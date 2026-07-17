@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from training import dictionary_pickler
+from training import dictionary_builder
 from training.kaikki_to_tsv import extract_pairs, main
 
 
@@ -200,6 +200,56 @@ def test_extract_pairs_skips_auxiliary_cross_reference():
     assert list(extract_pairs(entry)) == [("sein", "sein")]
 
 
+def test_extract_pairs_emits_all_form_of_targets():
+    """A multi-target form_of must not silently discard candidates after the first."""
+    entry = {
+        "word": "colour",
+        "senses": [{"form_of": [{"word": "color"}, {"word": "colour2"}]}],
+    }
+    assert list(extract_pairs(entry)) == [("color", "colour"), ("colour2", "colour")]
+
+
+def test_extract_pairs_emits_all_alt_of_targets():
+    entry = {"word": "x", "alt_of": [{"word": "a"}, {"word": "b"}, {"word": "c"}]}
+    assert list(extract_pairs(entry)) == [("a", "x"), ("b", "x"), ("c", "x")]
+
+
+def test_extract_pairs_skips_targets_missing_word_but_keeps_others():
+    entry = {"word": "x", "form_of": [{}, {"word": "y"}]}
+    assert list(extract_pairs(entry)) == [("y", "x")]
+
+
+def test_extract_pairs_dedups_repeated_pair_across_senses():
+    """Two senses of the same entry reducing to the same lemma isn't two independent
+    attestations -- R2 treats line count as evidence, so one entry contributes one line."""
+    entry = {
+        "word": "Hunde",
+        "senses": [
+            {"form_of": [{"word": "Hund"}]},
+            {"form_of": [{"word": "Hund"}]},  # different sense, same relation
+        ],
+    }
+    assert list(extract_pairs(entry)) == [("Hund", "Hunde")]
+
+
+def test_extract_pairs_dedup_preserves_first_seen_order():
+    entry = {
+        "word": "x",
+        "senses": [
+            {"form_of": [{"word": "b"}]},
+            {"form_of": [{"word": "a"}]},
+            {"form_of": [{"word": "b"}]},
+        ],
+    }
+    assert list(extract_pairs(entry)) == [("b", "x"), ("a", "x")]
+
+
+def test_extract_pairs_dedup_does_not_affect_forms_fallback_duplicates():
+    """Genuinely repeated forms still dedup; fallback only runs with no relation at all."""
+    entry = {"word": "x", "forms": [{"form": "y"}, {"form": "y"}]}
+    assert list(extract_pairs(entry)) == [("x", "y")]
+
+
 def test_extract_pairs_handles_missing_data():
     assert list(extract_pairs({})) == []
     assert list(extract_pairs({"word": "x", "senses": [{}]})) == []
@@ -235,8 +285,8 @@ def test_main_preserves_unicode(tmp_path):
     assert output_path.read_text(encoding="utf-8") == "Bäckerei\tBäckereien\n"
 
 
-def test_output_is_valid_pickler_input(tmp_path):
-    """The produced TSV must be directly consumable by dictionary_pickler."""
+def test_output_is_valid_builder_input(tmp_path):
+    """The produced TSV must be directly consumable by dictionary_builder."""
     input_path = tmp_path / "kaikki.json"
     entries = [
         {"word": "Hunde", "senses": [{"form_of": [{"word": "Hund"}]}]},
@@ -248,6 +298,6 @@ def test_output_is_valid_pickler_input(tmp_path):
     list_path = tmp_path / "de.txt"
     main(input_path, list_path)
 
-    result = dictionary_pickler._read_dict(str(list_path), "de", silent=True)
-    assert result[b"Hunde"] == b"Hund"
-    assert result[b"Katzen"] == b"Katze"
+    result = dictionary_builder._read_dict(list_path, "de")
+    assert result["Hunde"] == "Hund"
+    assert result["Katzen"] == "Katze"

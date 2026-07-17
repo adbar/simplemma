@@ -1,6 +1,6 @@
 """
 Convert a kaikki.org JSONL Wiktionary dump into a lemma-form TSV word list
-suitable as input for `dictionary_pickler.py` (see training/README.rst for
+suitable as input for `dictionary_builder.py` (see training/README.rst for
 the full data-preparation pipeline this script is one step of).
 
 Input format: one JSON object per line, as downloaded from kaikki.org.
@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Any
 
 log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 # Tags marking rows that are never real inflected forms.
 _UNCONDITIONAL_DROP_TAGS = frozenset(
@@ -30,7 +29,7 @@ _UNCONDITIONAL_DROP_TAGS = frozenset(
 
 # Cross-reference rows (e.g. a pronoun's page listing other pronouns);
 # dropped only when the form differs from the entry's own word, so a
-# genuine self-mapping keeps its vote in dictionary_pickler's resolution.
+# genuine self-mapping keeps its vote in dictionary_builder's resolution.
 _CROSS_REFERENCE_TAGS = frozenset({"pronoun", "possessive", "auxiliary"})
 
 _PLACEHOLDER_FORM = "-"  # marks a form that doesn't exist for this word
@@ -43,8 +42,9 @@ def _strip_stress_marks(text: str) -> str:
     return text.translate(_STRESS_MARKS_TABLE)
 
 
-def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
-    """Yield (lemma, word_form) pairs, preferring form_of/alt_of over forms."""
+def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
+    """Yield (lemma, word_form) pairs, preferring form_of/alt_of over forms.
+    May repeat a pair across senses of the same entry -- extract_pairs dedups."""
     word = entry.get("word")
     if not word:
         return
@@ -53,9 +53,11 @@ def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
     found_relation = False
     for relation_source in (entry, *entry.get("senses", ())):
         refs = relation_source.get("form_of") or relation_source.get("alt_of")
-        if refs and refs[0].get("word"):
-            yield (_strip_stress_marks(refs[0]["word"]), stripped_word)
-            found_relation = True
+        for ref in refs or ():
+            ref_word = ref.get("word")
+            if ref_word:
+                yield (_strip_stress_marks(ref_word), stripped_word)
+                found_relation = True
 
     if found_relation:
         return
@@ -73,6 +75,15 @@ def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
         yield (stripped_word, _strip_stress_marks(word_form))
 
 
+def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
+    """Yield (lemma, word_form) pairs, preferring form_of/alt_of over forms.
+
+    Dedups pairs repeated across senses of the same entry -- dictionary_builder's
+    R2 resolution treats line count as evidence, so a repeat must not count
+    as a second attestation."""
+    yield from dict.fromkeys(_extract_pairs_raw(entry))
+
+
 def main(input_path: Path, output_path: Path) -> None:
     log.info(f"Extracting pairs from {input_path}")
     pair_count = 0
@@ -88,6 +99,7 @@ def main(input_path: Path, output_path: Path) -> None:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", type=Path, help="kaikki.org JSONL dump")
     parser.add_argument("output", type=Path, help="output TSV path (lemma TAB word)")

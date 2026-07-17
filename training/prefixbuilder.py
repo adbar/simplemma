@@ -19,10 +19,10 @@ import sys
 from collections import Counter
 
 from simplemma.strategies.dictionaries.dictionary_factory import (
-    DefaultDictionaryFactory,
+    DEFAULT_DICTIONARY_FACTORY,
 )
 
-FACTORY = DefaultDictionaryFactory()
+FACTORY = DEFAULT_DICTIONARY_FACTORY  # shared process-wide cache
 MIN_LEN_DEFAULT = 6  # shortest word considered for a prefix split
 SUPPORT_MIN_DEFAULT = 30
 PREFIX_LENS = range(2, 7)

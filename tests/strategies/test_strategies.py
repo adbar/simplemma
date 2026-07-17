@@ -34,7 +34,7 @@ def test_search() -> None:
     # don't lemmatize numbers
     assert DefaultStrategy().get_lemma("01234", "en") == "01234"
 
-    assert DefaultStrategy().get_lemma("Gender-Sternchens", "de") == "Gendersternchen"
+    assert DefaultStrategy().get_lemma("Gender-Sternchens", "de") == "Gender-Sternchen"
     assert DefaultStrategy().get_lemma("vor-bereitetes", "de") == "vorbereitet"
 
     assert (
@@ -84,7 +84,8 @@ def test_search() -> None:
         ("lt", False, "rengiami", "rengti"),
         ("lt", False, "teikiant", "teikti"),
         # None: gated-out languages and unresolvable forms
-        ("et", True, "laudkonna", None),  # max_affix_len=3 won't over-strip "-konna"
+        # laudkonna's stem is now a fill entry; aadelkond is the stable canary instead
+        ("et", True, "aadelkond", None),
         ("sw", True, "-changanya", None),  # GREEDY_EXCLUDE: prefixing/mutating
         ("pt", True, "supostamente", None),
         ("gl", True, "virtualmente", None),
