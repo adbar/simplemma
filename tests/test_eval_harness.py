@@ -1,22 +1,20 @@
 from training.eval_harness import (
     FixedDictionaryFactory,
+    accuracy,
     build_strategy,
+    gold_types,
     load_gold_tokens,
-    score_token,
-    score_type,
 )
 
+from .conftest import conllu as _conllu
 
-def _conllu(sentences: list[list[tuple[int, str, str]]]) -> str:
-    """Build minimal CoNLL-U text from (id, form, lemma) rows per sentence."""
-    blocks = []
-    for rows in sentences:
-        lines = [
-            "\t".join([str(i), form, lemma, "X", "_", "_", "0", "root", "_", "_"])
-            for i, form, lemma in rows
-        ]
-        blocks.append("\n".join(lines))
-    return "\n\n".join(blocks) + "\n\n"
+
+def score_token(strategy, lang, gold_tokens):
+    return accuracy(strategy, lang, gold_tokens)
+
+
+def score_type(strategy, lang, gold_tokens):
+    return accuracy(strategy, lang, gold_types(gold_tokens))
 
 
 def test_fixed_dictionary_factory_serves_the_mapping():
@@ -37,8 +35,7 @@ def test_token_accuracy_perfect_dictionary(tmp_path):
 
 
 def test_token_accuracy_identity_fallback_on_miss(tmp_path):
-    """A form absent from the dict falls back to itself, matching gold only
-    when the gold lemma equals the surface form."""
+    """A form absent from the dict falls back to itself, matching gold only when equal."""
     path = tmp_path / "test.conllu"
     path.write_text(_conllu([[(1, "run", "run")]]), encoding="utf-8")
     acc, n = score_token(build_strategy({}), "en", load_gold_tokens(path))
@@ -72,8 +69,7 @@ def test_token_accuracy_skips_multiword_tokens(tmp_path):
 
 
 def test_token_accuracy_is_frequency_weighted(tmp_path):
-    """A form seen 3x and a form seen once must NOT be weighted equally at
-    the token level -- the wrong prediction on the frequent form costs more."""
+    """Token-level weighting is by occurrence count, not distinct form."""
     path = tmp_path / "test.conllu"
     rows = [[(1, "common", "commonlemma")] for _ in range(3)] + [
         [(1, "rare", "rarelemma")]
@@ -86,8 +82,7 @@ def test_token_accuracy_is_frequency_weighted(tmp_path):
 
 
 def test_type_accuracy_weights_repeated_form_once(tmp_path):
-    """Same scenario as the token-level test above, but type-level must give
-    'common' and 'rare' EQUAL weight regardless of the 3x/1x frequency."""
+    """Type-level gives 'common' and 'rare' equal weight, unlike token-level."""
     path = tmp_path / "test.conllu"
     rows = [[(1, "common", "commonlemma")] for _ in range(3)] + [
         [(1, "rare", "rarelemma")]
@@ -100,8 +95,7 @@ def test_type_accuracy_weights_repeated_form_once(tmp_path):
 
 
 def test_type_accuracy_uses_majority_gold_for_ambiguous_form(tmp_path):
-    """A form with inconsistent gold lemmas across occurrences (annotation
-    noise or a real homograph) is scored against its MAJORITY gold lemma."""
+    """A form with inconsistent gold lemmas is scored against its majority gold lemma."""
     path = tmp_path / "test.conllu"
     rows = [[(1, "bank", "bank_river")] for _ in range(3)] + [
         [(1, "bank", "bank_money")] for _ in range(1)
@@ -115,8 +109,7 @@ def test_type_accuracy_uses_majority_gold_for_ambiguous_form(tmp_path):
 
 
 def test_type_and_token_agree_when_no_repeats(tmp_path):
-    """A sanity cross-check: with no repeated forms, token- and type-level
-    accuracy must be identical (every form has weight 1 either way)."""
+    """With no repeated forms, token- and type-level accuracy must be identical."""
     path = tmp_path / "test.conllu"
     path.write_text(
         _conllu([[(1, "a", "a"), (2, "b", "b"), (3, "c", "WRONG")]]),
@@ -132,10 +125,8 @@ def test_type_and_token_agree_when_no_repeats(tmp_path):
 
 
 def test_real_affix_chain_is_exercised_not_just_dict_lookup(tmp_path):
-    """Not a stub -- the real DefaultStrategy chain runs affix decomposition:
-    "talossa" isn't itself in the dict, but is derivable from the anchored
-    base "talo" via Finnish's -ssa suffix rule (verified directly against
-    the real chain, not assumed)."""
+    """Exercises the real DefaultStrategy affix chain: "talossa" isn't in the dict
+    but is derivable from "talo" via Finnish's -ssa suffix rule."""
     path = tmp_path / "test.conllu"
     path.write_text(_conllu([[(1, "talossa", "talo")]]), encoding="utf-8")
     acc, n = score_token(build_strategy({"talo": "talo"}), "fi", load_gold_tokens(path))

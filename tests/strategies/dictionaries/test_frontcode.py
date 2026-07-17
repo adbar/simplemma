@@ -29,7 +29,7 @@ def test_roundtrip_repeated_values_run_encoding() -> None:
 def test_roundtrip_reverse_key() -> None:
     """reverse_key=True front-codes shared suffixes (prefixal morphology)."""
     mapping = {
-        b"nakisoma": b"soma",  # subject+TAM markers prepended, stem shared at the end
+        b"nakisoma": b"soma",  # stem shared at the end
         b"anasoma": b"soma",
         b"atasoma": b"soma",
     }
@@ -45,8 +45,7 @@ def test_roundtrip_literal_value_fallback() -> None:
 
 
 def test_roundtrip_trim_zero_self_identity() -> None:
-    """trim=0 (self-identity/near-identity) must not corrupt the value (see the
-    documented `token[:-0]` gotcha for suffix-edit encodings)."""
+    """trim=0 must not corrupt the value (see the `token[:-0]` gotcha)."""
     mapping = {b"run": b"run", b"running": b"runningly"}
     assert frontcode.decode(frontcode.encode(mapping)) == mapping
 

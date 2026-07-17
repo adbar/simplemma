@@ -84,8 +84,7 @@ def test_search() -> None:
         ("lt", False, "rengiami", "rengti"),
         ("lt", False, "teikiant", "teikti"),
         # None: gated-out languages and unresolvable forms
-        # affix leaves the et -kond family alone (no over-strip); laudkonna's
-        # stem is now a fill entry, so aadelkond is the stable canary here.
+        # laudkonna's stem is now a fill entry; aadelkond is the stable canary instead
         ("et", True, "aadelkond", None),
         ("sw", True, "-changanya", None),  # GREEDY_EXCLUDE: prefixing/mutating
         ("pt", True, "supostamente", None),

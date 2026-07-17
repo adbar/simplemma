@@ -157,8 +157,7 @@ class Lemmatizer:
 
 
 # From here down are legacy function pre-1.0
-# All strategy defaults share DEFAULT_DICTIONARY_FACTORY, so the dictionaries
-# are cached once process-wide.
+# All strategy defaults share DEFAULT_DICTIONARY_FACTORY (cached once per process).
 
 _legacy_lemmatizer = Lemmatizer(lemmatization_strategy=DefaultStrategy())
 _legacy_greedy_lemmatizer = Lemmatizer(

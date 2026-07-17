@@ -2,17 +2,7 @@ from collections import Counter
 
 from training import build_override as bo
 
-
-def _conllu(sentences: list[list[tuple[int, str, str, str]]]) -> str:
-    """Build minimal CoNLL-U text from (id, form, lemma, upos) rows per sentence."""
-    blocks = []
-    for rows in sentences:
-        lines = [
-            "\t".join([str(i), form, lemma, upos, "_", "_", "0", "root", "_", "_"])
-            for i, form, lemma, upos in rows
-        ]
-        blocks.append("\n".join(lines))
-    return "\n\n".join(blocks) + "\n\n"
+from .conftest import conllu as _conllu
 
 
 def test_collect_candidates_filters_to_closed_class(tmp_path):
@@ -60,8 +50,7 @@ def test_collect_candidates_skips_underscore_lemma(tmp_path):
 
 
 def test_collect_candidates_skips_multiword_tokens(tmp_path):
-    """A multiword-token span row (id like '1-2') must not be treated as a
-    single closed-class token."""
+    """A multiword-token span row (id like '1-2') must not be treated as a token."""
     path = tmp_path / "train.conllu"
     text = (
         "1-2\tdel\t_\t_\t_\t_\t_\t_\t_\t_\n"

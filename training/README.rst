@@ -179,9 +179,9 @@ prepared and validated with a few small standalone CLIs (their git-ignored
 inputs live under ``training/data/``):
 
 - ``clean_wordlist.py <in.tsv> <out.tsv>`` — language-independent character
-  hygiene between extraction and pickling: NFC-normalize, canonicalize curly
+  hygiene between extraction and building: NFC-normalize, canonicalize curly
   quotes, strip invisible characters, reject mojibake and control/unassigned
-  codepoints. Keeps duplicate lines (the pickler treats line count as
+  codepoints. Keeps duplicate lines (dictionary_builder treats line count as
   evidence) and exits nonzero if the reject rate exceeds ``--max-reject-pct``
   (a data-drift alarm).
 - ``wikidata_lexemes.py <lang> <dump> <out.tsv>`` — extract extra

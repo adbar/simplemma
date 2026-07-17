@@ -220,9 +220,8 @@ def test_extract_pairs_skips_targets_missing_word_but_keeps_others():
 
 
 def test_extract_pairs_dedups_repeated_pair_across_senses():
-    """Two senses of the SAME entry reducing to the same lemma is not two
-    independent attestations -- dictionary_builder's R2 treats line count
-    as evidence, so a single entry must contribute at most one line per pair."""
+    """Two senses of the same entry reducing to the same lemma isn't two independent
+    attestations -- R2 treats line count as evidence, so one entry contributes one line."""
     entry = {
         "word": "Hunde",
         "senses": [
@@ -246,8 +245,7 @@ def test_extract_pairs_dedup_preserves_first_seen_order():
 
 
 def test_extract_pairs_dedup_does_not_affect_forms_fallback_duplicates():
-    """Genuinely repeated forms (not a same-relation artifact) still dedup;
-    forms fallback only runs when there's no relation at all."""
+    """Genuinely repeated forms still dedup; fallback only runs with no relation at all."""
     entry = {"word": "x", "forms": [{"form": "y"}, {"form": "y"}]}
     assert list(extract_pairs(entry)) == [("x", "y")]
 
@@ -287,7 +285,7 @@ def test_main_preserves_unicode(tmp_path):
     assert output_path.read_text(encoding="utf-8") == "Bäckerei\tBäckereien\n"
 
 
-def test_output_is_valid_pickler_input(tmp_path):
+def test_output_is_valid_builder_input(tmp_path):
     """The produced TSV must be directly consumable by dictionary_builder."""
     input_path = tmp_path / "kaikki.json"
     entries = [

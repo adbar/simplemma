@@ -75,10 +75,8 @@ class DictionaryFactory(Protocol):
 class DecodedStrMapping(Mapping[str, str]):
     """Read-only str->str view over a bytes-backed store, decoding on access.
 
-    Subclasses implement `_lookup` (None on a miss) plus `__iter__`/`__len__`;
-    the shared `__getitem__`/`get` machinery -- including the strict-mypy
-    overloads and the miss-cheap `get` that avoids Mapping.get's
-    KeyError-per-miss EAFP path -- lives here once.
+    Subclasses implement `_lookup` (None on a miss), `__iter__`, `__len__`; the
+    shared `__getitem__`/`get` (miss-cheap, avoiding Mapping.get's EAFP) is here.
     """
 
     __slots__ = ()
@@ -124,22 +122,12 @@ class MappingStrToByteString(DecodedStrMapping):
 
 
 class CachingDictionaryFactory(DictionaryFactory):
-    """Base for factories that build a per-language dictionary once and cache it.
-
-    `__init__` wires an lru cache around `_get_dictionary_uncached` (which
-    subclasses implement); `get_dictionary` serves from it. Caching the built
-    value, not the raw data, avoids rebuilding on every call and lets the lru
-    bound memory by evicting whole entries together.
-    """
+    """Base wiring an lru cache (size `cache_max_size`) around the subclass's
+    `_get_dictionary_uncached`; caches the built value, not the raw data."""
 
     __slots__ = ("_get_dictionary",)
 
     def __init__(self, cache_max_size: int = 8) -> None:
-        """
-        Args:
-            cache_max_size (int): The maximum number of dictionaries to keep in
-                memory. Defaults to `8`.
-        """
         self._get_dictionary = lru_cache(maxsize=cache_max_size)(
             self._get_dictionary_uncached
         )

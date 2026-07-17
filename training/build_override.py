@@ -1,18 +1,13 @@
-"""
-Derive a closed-class override lexicon (form -> lemma) from a UD train
+"""Derive a closed-class override lexicon (form -> lemma) from a UD train
 split. Closed classes (pronouns, determiners, adpositions, conjunctions,
-auxiliaries, particles) are the one place Kaikki/Wiktionary is
-systematically thin (described in prose, not inflection tables), and
-they're convention-stable across treebanks/corpora -- unlike content-word
-lemmatization, which varies by annotation convention and does NOT transfer
-safely.
+auxiliaries, particles) are where Kaikki/Wiktionary is systematically thin,
+and are convention-stable across treebanks/corpora -- unlike content-word
+lemmatization, which varies by annotation convention and does NOT transfer.
 
-This is the "closed_safe" methodology from the original research: mine a
-form's majority lemma from train data, keep it only if the train data
-itself agrees with that majority strongly and often enough. The shipped
-artifact is meant to be reviewed, not auto-applied blind -- this script
-produces the CANDIDATE list; eval_gate.py checks it actually helps on
-held-out test data (every treebank for the language, token + type).
+"closed_safe" methodology: mine a form's majority lemma from train data,
+keep it only if train data agrees with that majority strongly and often
+enough. Produces a CANDIDATE list for review, not an auto-applied artifact;
+eval_gate.py checks it actually helps on held-out test data.
 """
 
 import argparse

@@ -1,18 +1,14 @@
-"""
-Scripted replacement for the semi-manual "eyeball the TSV" clean step between
+"""Scripted replacement for the manual "eyeball the TSV" clean step between
 kaikki_to_tsv.py extraction and dictionary_builder.py's `_read_dict`.
 
-Scope: language-independent character hygiene ONLY -- NFC-normalize,
-canonicalize lookalike quotes, strip invisible/editorial characters, and
-reject rows carrying mojibake (U+FFFD) or control/format/surrogate/
-private-use/unassigned codepoints. Punctuation/length filtering is
-`_read_dict`'s job and is NOT duplicated here. Per-language script filtering
-was deliberately removed (measured ~0% yield on clean languages, and wrong
-drops of legitimate forms on messy ones) -- do not re-add it.
+Scope: language-independent character hygiene ONLY -- NFC, lookalike-quote
+canonicalization, invisible-char stripping, and rejecting mojibake/control/
+unassigned codepoints. Punctuation/length filtering stays in `_read_dict`.
+Per-language script filtering was removed (measured ~0% yield on clean
+languages, wrong drops on messy ones) -- do not re-add it.
 
-Input/output: TSV `lemma<TAB>word` per line. Duplicate lines are preserved
-verbatim -- R2's evidence-count signal in `dictionary_builder` depends on line
-multiplicity; never dedup here.
+Duplicate lines are preserved verbatim -- dictionary_builder's evidence-count
+signal depends on line multiplicity; never dedup here.
 """
 
 import argparse
@@ -26,24 +22,24 @@ from typing import Any
 
 from simplemma.utils import normalize_token
 
-# Stage 1 normalize: lookalike canonicalization + invisible-char stripping.
+# Stage 1: lookalike canonicalization + invisible-char stripping.
 LOOKALIKE_MAP = {
     "‘": "'",
-    "’": "'",  # curly single quotes -> straight apostrophe
+    "’": "'",
     "“": '"',
-    "”": '"',  # curly double quotes -> straight
+    "”": '"',
 }
-# Named escapes, not literals: these are invisible in an editor/diff.
+# Named escapes, not literals: invisible in an editor/diff.
 STRIP_CHARS = {
-    "\N{ZERO WIDTH NO-BREAK SPACE}",  # BOM
+    "\N{ZERO WIDTH NO-BREAK SPACE}",
     "\N{SOFT HYPHEN}",
     "\N{ZERO WIDTH SPACE}",
     "\N{LEFT-TO-RIGHT MARK}",
     "\N{RIGHT-TO-LEFT MARK}",
 }
 
-# Categories never valid in a word form. Cf included (stray format chars are
-# junk) except the two word-internal joiners below (Perso-Arabic, Indic).
+# Categories never valid in a word form (Cf included except the two
+# word-internal joiners allowed below).
 _REJECT_CATEGORIES = ("Cc", "Cf", "Cs", "Co", "Cn")
 _ALLOWED_FORMAT = {"\N{ZERO WIDTH NON-JOINER}", "\N{ZERO WIDTH JOINER}"}
 
@@ -51,12 +47,11 @@ DEFAULT_MAX_REJECT_PCT = 5.0
 
 
 def canonicalize(text: str) -> tuple[str, Counter[str]]:
-    """Stage 1: fix, don't reject. Returns canonicalized text + counts for the
-    report. Named to contrast with utils.normalize_token (NFC only): this ALSO
-    folds lookalike quotes and strips invisible characters."""
+    """Stage 1: fix, don't reject. Unlike utils.normalize_token (NFC only),
+    this also folds lookalike quotes and strips invisible characters."""
     counts: Counter[str] = Counter()
     kept_chars = []
-    for ch in normalize_token(text):  # NFC, matching the shipped dicts
+    for ch in normalize_token(text):
         if ch in STRIP_CHARS:
             counts[f"stripped_{ch!r}"] += 1
         elif ch in LOOKALIKE_MAP:
@@ -68,11 +63,11 @@ def canonicalize(text: str) -> tuple[str, Counter[str]]:
 
 
 def check_field(text: str) -> str | None:
-    """Stage 2: reject unambiguous junk (mojibake / control / format /
-    unassigned). Returns a rejection reason or None. No script policy."""
+    """Stage 2: reject unambiguous junk (mojibake/control/format/unassigned).
+    Returns a rejection reason or None. No script policy."""
     for ch in text:
         if ch == "�":
-            return "replacement_char"  # mojibake tell
+            return "replacement_char"
         if ch in _ALLOWED_FORMAT:
             continue
         if unicodedata.category(ch) in _REJECT_CATEGORIES:
@@ -83,12 +78,10 @@ def check_field(text: str) -> str | None:
 def read_pairs(path: Path) -> dict[str, str]:
     """Strictly load a curated ``lemma<TAB>form`` file into a form->lemma dict.
 
-    For reviewed artifacts (overrides/fill), NOT bulk wordlists: fields are
-    NFC-normalized (matching runtime and the shipped dicts) and any corruption
-    is an ERROR, not a silently-dropped row. Raises ValueError (naming
-    ``file:line``) on a malformed row, an empty field, a mojibake/control-char
-    field, or a form mapped to two DIFFERENT lemmas. Blank lines are skipped;
-    a line repeating an identical pair is harmless and kept once."""
+    For reviewed artifacts (overrides/fill), NOT bulk wordlists: corruption is
+    an ERROR, not a silently-dropped row. Raises ValueError on a malformed
+    row, empty/mojibake field, or a form mapped to two different lemmas.
+    Blank lines and exact-duplicate pairs are harmless and skipped/kept once."""
     mapping: dict[str, str] = {}
     with open(path, encoding="utf-8") as filehandle:
         for line_no, line in enumerate(filehandle, start=1):
@@ -140,7 +133,7 @@ class CleanReport:
 
 
 def clean_wordlist(lines: list[str]) -> tuple[list[str], CleanReport]:
-    """Normalize + junk-reject over raw TSV lines, return kept lines + a report."""
+    """Normalize + junk-reject raw TSV lines, return kept lines + a report."""
     report = CleanReport()
     kept_lines: list[str] = []
 
@@ -167,8 +160,7 @@ def clean_wordlist(lines: list[str]) -> tuple[list[str], CleanReport]:
             normalized_columns.append(normalized)
         if reason:
             continue
-        # A column of only strippable chars passes the raw check but normalizes
-        # to empty -- don't emit it.
+        # a column of only strippable chars normalizes to empty -- don't emit it
         if not all(normalized_columns):
             report.rejected_by_reason["empty_after_normalize"] += 1
             continue

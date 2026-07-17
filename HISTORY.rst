@@ -12,8 +12,8 @@ History
 - Breaking: new front-coded dictionary format shrinks the shipped data from
   67 MB to 17 MB; pre-2.0 pickled ``.plzma`` files are no longer read
 - More accurate default rules covering more languages: near-100% precision
-  enforced against the dictionaries, new rule sets (e.g. Galician, Georgian,
-  Icelandic, Macedonian) (#175)
+  enforced against the dictionaries, new rule sets (e.g. Georgian,
+  Icelandic) (#175)
 - More targeted affix handling, validated per language on UD treebanks: new
   clitic-decomposition and apostrophe strategies, simplified greedy affix
   search, updated prefix handling (#176)

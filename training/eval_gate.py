@@ -1,18 +1,13 @@
-"""
-Eval release gate: assert a candidate dictionary doesn't regress accuracy
-vs a baseline, on EVERY available UD test treebank for the language, using
-BOTH token-level (frequency-weighted) and type-level (unweighted) accuracy.
+"""Eval release gate: assert a candidate dictionary doesn't regress accuracy
+vs a baseline, on every available UD test treebank for the language, using
+both token-level (frequency-weighted) and type-level (unweighted) accuracy.
 
 Type-level matters because token-level alone can be fooled: a lever that
 looks ~free on running text can still gut rare/tail-word coverage, which
-token accuracy barely notices but type accuracy catches directly (frequency
-pruning is the textbook example). Cross-treebank is automatic here -- every
-discovered test treebank for the language is checked, not just one.
+token accuracy barely notices (frequency pruning is the textbook example).
 
-This is a LIBRARY function (gate()) meant to run per-language once a real
-rebuilt dictionary exists (Phase 5); the CLI is for manual spot-checks
-against already-built lemma<TAB>form TSVs (override/fill artifacts, or any
-future full rebuild's output).
+`gate()` is the library entry point; the CLI is for manual spot-checks
+against already-built lemma<TAB>form TSVs.
 
 Usage: uv run python -m training.eval_gate <lang> <baseline.tsv> <candidate.tsv>
 """
@@ -68,8 +63,8 @@ def _file_lang(path: Path) -> str:
 
 def discover_test_treebanks(lang: str, ud_splits: Path | None = None) -> list[Path]:
     """Every *-ud-test.conllu file whose dataset belongs to `lang` (dataset
-    name is `{code}_{treebank}`, e.g. ro_rrt, ro_simonero -- multiple matches
-    here is exactly what makes the gate cross-treebank automatically)."""
+    name is `{code}_{treebank}`) -- multiple matches make the gate
+    cross-treebank automatically."""
     ud_splits = ud_splits or UD_SPLITS
     return sorted(
         p for p in ud_splits.glob("*-ud-test.conllu") if _file_lang(p) == lang
@@ -89,7 +84,7 @@ def gate(
     if not treebanks:
         raise ValueError(f"no UD test treebank found for language {lang!r}")
 
-    # Build each strategy once (encoding the mapping is the costly part), reuse.
+    # build each strategy once (encoding is the costly part), reuse
     baseline_strategy = build_strategy(baseline)
     candidate_strategy = build_strategy(candidate)
 

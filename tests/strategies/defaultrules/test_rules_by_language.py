@@ -1,10 +1,8 @@
 """Per-language spot-checks of the default rules via ``RulesStrategy``.
 
-One parametrized case list, ``(lang, form, expected)`` where ``expected`` is the
-lemma the rules must produce or ``None`` when they deliberately don't fire.
-Consolidated from the former per-language ``test_<lang>.py`` files; the comments
-record why a given ``None`` case is dropped. Aggregate/per-cell precision is
-enforced separately in ``test_precision.py``.
+``(lang, form, expected)`` cases; ``expected`` is None when the rule
+deliberately doesn't fire. Aggregate/per-cell precision is checked in
+``test_precision.py``.
 """
 
 from collections.abc import Mapping
@@ -82,20 +80,85 @@ RULE_CASES = [
     ("nl", "kastelen", None),
     # -ieven dropped: collides with -ieve adjective plurals (executieven)
     ("nl", "brieven", None),
-    # --- Polish ---
-    ("pl", "wolnościach", "wolność"),
-    ("pl", "malowałbym", "malować"),
-    ("pl", "czytalibyśmy", "czytać"),
-    ("pl", "robilibyście", "robić"),
-    ("pl", "zmyłybyśmy", "zmyć"),
-    ("pl", "kotów", None),
-    ("pl", "Wolnościach", None),
     # --- Russian ---
     ("ru", "уверенностью", "уверенность"),
     ("ru", "хозяйством", "хозяйство"),
+    ("ru", "безгра́мотностью", "безгра́мотность"),
     ("ru", "своё", "свое"),
     ("ru", "кот", None),
     ("ru", "Хозяйством", None),
+    # --- Latvian ---
+    ("lv", "risinājumu", "risinājums"),
+    ("lv", "iespējamības", "iespējamība"),
+    ("lv", "Rīga", None),
+    # definite-adjective declension dropped, see lv.py
+    ("lv", "labākajiem", None),
+    ("lv", "baltajiem", None),
+    # --- Esperanto ---
+    ("eo", "domojn", "domo"),
+    ("eo", "belajn", "bela"),
+    ("eo", "kuras", "kuri"),
+    ("eo", "manĝu", "manĝi"),
+    ("eo", "kurantojn", "kuranto"),
+    ("eo", "hejmen", "hejme"),
+    # --- Estonian ---
+    ("et", "tavalised", "tavaline"),
+    ("et", "peamisteks", "peamine"),
+    ("et", "kunstnikud", "kunstnik"),
+    ("et", "keelkondade", "keelkond"),
+    ("et", "Läänemere", None),
+    # --- Malay ---
+    ("ms", "bukunya", "buku"),
+    ("ms", "rumahku", "rumah"),
+    ("ms", "baku", None),
+    # --- Georgian ---
+    ("ka", "ღვინოთა", "ღვინო"),
+    ("ka", "ტურისტმა", "ტურისტი"),
+    # -ისას abstains: the case cells cannot reach the citation form
+    ("ka", "მოძრაობისას", None),
+    # stem-final -ლთა nouns (not a case ending) stoplisted, not -> *კალი
+    ("ka", "კალთა", None),
+    # --- Norwegian Nynorsk ---
+    ("nn", "akslingane", "aksling"),
+    ("nn", "kaptein", None),
+    # --- Ukrainian ---
+    ("uk", "близького", "близький"),
+    ("uk", "авторського", "авторський"),
+    # дехто/ніхто/абихто decline like -кий adjectives but lemmatise to a pronoun
+    ("uk", "декого", None),
+    # --- Czech ---
+    ("cs", "argumentuju", "argumentovat"),
+    ("cs", "domovského", "domovský"),
+    # --- Latin ---
+    ("la", "abalienabant", "abalieno"),
+    ("la", "Roma", None),
+    # (?<=..) stem floor: whole-word match must not strip to a bare "o"
+    ("la", "abimus", None),
+    # floor on all groups: 1-char-stem matches must not strip to bare targets
+    ("la", "antium", None),
+    # --- Swedish ---
+    ("sv", "ackordssättningarna", "ackordssättning"),
+    ("sv", "lanterna", None),
+    # --- Portuguese ---
+    ("pt", "hegemônicos", "hegemônico"),
+    ("pt", "superdegustadores", "superdegustador"),
+    ("pt", "tenetehara-guajajara", None),
+    # --- Spanish ---
+    ("es", "aplicaciones", "aplicación"),
+    ("es", "mientras", None),
+    # --- Icelandic ---
+    ("is", "fagurfræðilegu", "fagurfræðilegur"),
+    ("is", "vonandi", None),
+    # --- Slovenian ---
+    ("sl", "ekonomskega", "ekonomski"),
+    ("sl", "totalno", None),
+    # --- Slovak ---
+    ("sk", "robotníkoch", "robotník"),
+    ("sk", "slovenského", "slovenský"),
+    ("sk", "naozaj", None),
+    # --- Romanian ---
+    ("ro", "profesorului", "profesor"),
+    ("ro", "explica", None),
 ]
 
 

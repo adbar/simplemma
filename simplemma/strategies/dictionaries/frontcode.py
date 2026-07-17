@@ -1,17 +1,9 @@
-"""
-Front-coded byte-stream codec for `dict[bytes, bytes]` dictionaries.
+"""Front-coded byte-stream codec for `dict[bytes, bytes]` dictionaries.
 
-Keys are sorted and front-coded (each key stores only the bytes it doesn't
-share with the previous key's prefix); values are suffix-edited relative to
-their own key (most lemmas differ from their form by only a short suffix).
-The resulting flat stream compresses far better under lzma than a pickled
-dict, because adjacent inflected forms end up byte-adjacent instead of
-scattered by pickle's own ordering.
-
-Decoding lives here (runtime dependency); encoding is called from
-`training/dictionary_builder.py` (build-time only). `load` owns reading a
-`.plzma` payload off an open handle, so the dictionary factory only does
-file I/O.
+Keys are sorted and front-coded (each stores only the bytes not shared with the
+previous key's prefix); values are suffix-edited against their own key. The flat
+stream compresses far better under lzma than a pickled dict. `decode`/`load` are
+the runtime path; `encode` runs at build time (training/dictionary_builder.py).
 """
 
 import lzma
@@ -20,7 +12,7 @@ from typing import IO
 MAGIC = b"SMFC1"
 _REVERSE_FLAG = 0x01
 
-# Trim-byte sentinels: a real trim is small, so 254/255 are free.
+# Trim-byte sentinels (a real trim is small, so 254/255 are free).
 _SAME_AS_PREV = 254
 _LITERAL_VALUE = 255
 
@@ -57,15 +49,15 @@ def _common_prefix_len(a: bytes, b: bytes) -> int:
 
 
 def is_frontcoded(data: bytes) -> bool:
-    """Peek at already-decompressed bytes to check for this format's magic header."""
+    """True if the (decompressed) `data` starts with the format magic."""
     return data[: len(MAGIC)] == MAGIC
 
 
 def encode(mapping: dict[bytes, bytes], reverse_key: bool = False) -> bytes:
     """Encode a bytes->bytes dict into a front-coded, lzma-compressed blob.
 
-    reverse_key: front-code the reversed bytes instead (helps prefixing
-    morphology, e.g. Swahili, where forms share a suffix, not a prefix).
+    reverse_key front-codes reversed bytes, for prefixing morphology (e.g.
+    Swahili, where forms share a suffix not a prefix).
     """
     items = sorted(
         mapping.items(), key=lambda kv: kv[0][::-1] if reverse_key else kv[0]
@@ -110,12 +102,10 @@ def encode(mapping: dict[bytes, bytes], reverse_key: bool = False) -> bytes:
 
 
 def decode_stream(data: bytes) -> dict[bytes, bytes]:
-    """Decode already-decompressed front-coded bytes (see `is_frontcoded`).
+    """Decode already-decompressed front-coded bytes.
 
-    Assumes a well-formed stream as produced by `encode`. A stream truncated
-    mid-record overruns a slice and is caught by the trailing length check
-    below (or raises IndexError on a truncated varint/trim byte); trailing
-    garbage is rejected the same way."""
+    Assumes a well-formed `encode` stream; truncation or trailing garbage raises
+    ValueError (trailing length check) or IndexError (truncated varint/trim)."""
     if not is_frontcoded(data):
         raise ValueError("not a front-coded stream")
     pos = len(MAGIC)
@@ -154,20 +144,18 @@ def decode_stream(data: bytes) -> dict[bytes, bytes]:
         prev_key = stored_key
         prev_value = stored_value
 
-    # Every slice advanced pos by its claimed length, so a stream truncated
-    # mid-record leaves pos past the end and trailing garbage leaves it short.
+    # a truncated or trailing-garbage stream leaves pos != len(data)
     if pos != len(data):
         raise ValueError("truncated or corrupt front-coded stream")
     return result
 
 
 def decode(blob: bytes) -> dict[bytes, bytes]:
-    """Decompress and decode a full front-coded blob (as produced by `encode`)."""
+    """Decompress and decode a full blob (inverse of `encode`)."""
     return decode_stream(lzma.decompress(blob))
 
 
 def load(filehandle: IO[bytes]) -> dict[bytes, bytes]:
-    """Read a `dict[bytes, bytes]` off an open, decompressing `.plzma` handle
-    (read whole -- the decoder needs it all). Raises ValueError if the payload
-    is not a front-coded stream (e.g. a pre-2.0 pickled dict)."""
+    """Read a `dict[bytes, bytes]` off an open decompressing `.plzma` handle.
+    Raises ValueError on a non-front-coded payload (e.g. pre-2.0 pickle)."""
     return decode_stream(filehandle.read())

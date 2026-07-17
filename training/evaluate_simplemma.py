@@ -1,10 +1,9 @@
-"""
-README-facing evaluation: score the full user-facing `Lemmatizer` (lowercase
-fallback, caching) over the UD test treebanks, emitting the published accuracy
-numbers plus greedy/baseline/ADJ+NOUN breakdowns and per-dataset error CSVs.
+"""README-facing evaluation: score the full user-facing `Lemmatizer` over the
+UD test treebanks, emitting published accuracy numbers, greedy/baseline/
+ADJ+NOUN breakdowns, and per-dataset error CSVs.
 
-Distinct from `eval_harness`, which scores a bare strategy with identity
-fallback as a dictionary-quality gate -- different protocol, not a duplicate.
+Distinct from `eval_harness`, which scores a bare strategy as a
+dictionary-quality gate -- different protocol, not a duplicate.
 """
 
 import csv
@@ -35,7 +34,7 @@ class Tally:
     total: int = 0
     greedy: int = 0
     nongreedy: int = 0
-    baseline: int = 0  # form == lemma, the "do nothing" baseline
+    baseline: int = 0  # form == lemma ("do nothing")
 
     def add(self, greedy_ok: bool, nongreedy_ok: bool, baseline_ok: bool) -> None:
         self.total += 1
@@ -86,9 +85,9 @@ def main(
             "It doesn't seem like data was downloaded and precessed for evaluation."
         )
 
-    # glob('*.conllu'), not iterdir(): the folder also holds UD_VERSION and a
-    # splits/ dir. dataset_to_lang, not split('_')[0]: UD prefixes aren't always
-    # the ISO code (no_nynorsk -> nn, sme_giella -> se), which would crash.
+    # glob, not iterdir: the folder also holds UD_VERSION and splits/.
+    # dataset_to_lang, not split('_')[0]: UD prefixes aren't always the ISO
+    # code (no_nynorsk -> nn, sme_giella -> se).
     data_files = [
         (dataset_to_lang(data_file.stem), data_file.name)
         for data_file in clean_data_folder.glob("*.conllu")
@@ -118,8 +117,7 @@ def main(
             )
         )
 
-        # Built once: the strategy defaults share DEFAULT_DICTIONARY_FACTORY,
-        # and the token caches are lang-keyed, so reuse across datasets is safe.
+        # built once: token caches are lang-keyed, so reuse across datasets is safe
         lemmatizer = Lemmatizer(lemmatization_strategy=DefaultStrategy())
         greedy_lemmatizer = Lemmatizer(
             lemmatization_strategy=DefaultStrategy(greedy=True)

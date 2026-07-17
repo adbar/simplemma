@@ -20,8 +20,7 @@ def _read(tmp_path, lang: str, text: str) -> dict[str, str]:
 
 
 def _make_shipped(tmp_path, monkeypatch, text: str) -> None:
-    """Build a zz.plzma from a wordlist and install it as the shipped dict
-    (DATA_FOLDER -> tmp_path), the arrange shared by the base-mode tests."""
+    """Build a zz.plzma and install it as the shipped dict (DATA_FOLDER -> tmp_path)."""
     (tmp_path / "zz.txt").write_text(text, encoding="utf-8")
     dictionary_builder._build_dictionary(
         "zz", listpath=str(tmp_path), filepath=str(tmp_path / "zz.plzma")
@@ -52,9 +51,7 @@ def _layers(
 
 
 def test_logic(tmp_path, monkeypatch) -> None:
-    """Test if certain code parts correspond to the intended logic."""
-    # 6 entries: the 1-char-lemma pair (s/st) is kept now that the per-language
-    # min-lemma exemption is collapsed to a uniform "non-empty" floor.
+    # 6 entries: 1-char-lemma pair (s/st) kept -- min-lemma floor is just non-empty now
     mydict = dictionary_builder._read_dict(TEST_DIR / "data/zz.txt", "zz")
     assert len(mydict) == 6
 
@@ -66,10 +63,9 @@ def test_logic(tmp_path, monkeypatch) -> None:
     assert len(roundtripped) == 6
     assert all(isinstance(k, bytes) for k in roundtripped)
 
-    # in_place=True writes into DATA_FOLDER; point it at tmp so a crash can't
-    # leave a stray zz.plzma in the real package data (SUPPORTED_LANGUAGES is
-    # computed from that dir's *.plzma listing). The pickler reads DATA_FOLDER
-    # from the factory module at call time, so this is the one patch point.
+    # in_place=True writes into DATA_FOLDER; point it at tmp_path so a crash can't
+    # leave a stray zz.plzma in the real package data. Patch the factory module,
+    # since dictionary_builder reads DATA_FOLDER from it at call time.
     monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
     dictionary_builder._build_dictionary("zz", listpath, in_place=True)
     assert (tmp_path / "zz.plzma").exists()
@@ -124,19 +120,17 @@ def test_read_dict_attestation_count_beats_distance(tmp_path) -> None:
 
 
 def test_read_dict_lemma_headword_never_reduces(tmp_path) -> None:
-    """A word attested as a lemma is forced to itself even when a line also maps
-    it as a form of something else; a word that is only ever a form still
-    reduces. Language-independent (formerly the per-language BUFFER_HACK set);
-    gate-confirmed net-positive on every language."""
+    """A word attested as a lemma is forced to itself even if also mapped as a form
+    elsewhere; a word only ever a form still reduces. Language-independent
+    (formerly the per-language BUFFER_HACK set; gate-confirmed net-positive)."""
     result = _read(tmp_path, "en", "lansa\tlansat\nlansat\tlansare\n")
     assert result["lansat"] == "lansat"  # 'lansat' is a lemma -> itself
     assert result["lansare"] == "lansat"  # 'lansare' only ever a form -> reduces
 
 
 def test_read_dict_keeps_long_and_single_char_entries(tmp_path) -> None:
-    """No length cap (former VOC_LIMIT/MAXLENGTH gone) and no per-language
-    min-lemma exemption (former SAFE_LIMIT collapsed): long agglutinative
-    forms and legitimate 1-char lemmas are both kept for every language."""
+    """No length cap (VOC_LIMIT/MAXLENGTH gone) and no per-language min-lemma
+    exemption (SAFE_LIMIT collapsed): long forms and 1-char lemmas are kept."""
     result = _read(
         tmp_path,
         "fi",
@@ -147,40 +141,34 @@ def test_read_dict_keeps_long_and_single_char_entries(tmp_path) -> None:
 
 
 def test_read_dict_normalizes_to_nfc(tmp_path) -> None:
-    """Keys/values are NFC regardless of how the input list was prepared --
-    runtime lookups NFC-normalize, so non-NFC keys would never match."""
+    """Keys/values are NFC -- runtime lookups NFC-normalize, so non-NFC keys would never match."""
     decomposed = "café"  # e + combining acute (NFD)
     result = _read(tmp_path, "en", f"{decomposed}\t{decomposed}s\n")
     assert result == {"café": "café", "cafés": "café"}
 
 
 def test_read_dict_rejects_control_and_mojibake_keys(tmp_path) -> None:
-    """Mojibake/control-char columns are rejected at the pickler even if the
-    optional clean_wordlist stage was skipped (check_field, not the punct
-    filter, catches them)."""
+    """Rejected even if clean_wordlist was skipped (check_field, not the punct filter, catches them)."""
     result = _read(tmp_path, "en", "dog\tdogs\nbad\tba\x01d\nx\tw�rd\n")
     assert result == {"dog": "dog", "dogs": "dog"}  # \x01 and U+FFFD lines gone
 
 
 def test_apply_layers_drops_spaced_forms(tmp_path, monkeypatch) -> None:
-    """Multi-word layer forms are unreachable keys (the tokenizer never yields
-    a spaced token) and are dropped."""
+    """Multi-word layer forms are unreachable keys (tokenizer never yields a spaced token)."""
     _layers(tmp_path, monkeypatch, fill="top hat\ttop hats\ncat\tcats\n")
     merged = dictionary_builder._apply_layers({}, "zz")
     assert merged == {"cats": "cat"}  # 'top hats' dropped (space in form)
 
 
 def test_apply_layers_rejects_junk_entries(tmp_path, monkeypatch) -> None:
-    """A curated layer file with mojibake/control chars is corruption: the
-    build fails loud (read_pairs raises), not a silent skip."""
+    """A curated layer file with mojibake/control chars fails the build loud, not a silent skip."""
     _layers(tmp_path, monkeypatch, fill="good\tgoods\nbad\tba\x01d\n")
     with pytest.raises(ValueError, match="rejected"):
         dictionary_builder._apply_layers({}, "zz")
 
 
 def test_apply_layers_rejects_empty_fields(tmp_path, monkeypatch) -> None:
-    """An empty lemma/form in a curated layer file fails the build rather than
-    silently shipping a form->'' or a b'' key."""
+    """An empty lemma/form in a curated layer fails the build rather than shipping a '' key."""
     _layers(tmp_path, monkeypatch, fill="good\tgoods\nlemma\t\n")
     with pytest.raises(ValueError, match="empty field"):
         dictionary_builder._apply_layers({}, "zz")
@@ -214,16 +202,14 @@ def test_scrub_drops_unreachable_keys_and_fixes_junk_values() -> None:
         "as": "\ufeff" + "a",  # BOM in value: normalized to clean lemma
         "hithau": "prpers",  # template placeholder value -> dropped
         "Andre" + "\u0306" + "as": "andreas",  # decomposed key -> dropped
-        "don\u2019t": "do",  # curly-quote key: reachable (runtime is
-        # NFC-only, keeps curly quotes) -> kept, not silently dropped
+        "don\u2019t": "do",  # curly-quote key: reachable (runtime is NFC-only) -> kept
     }
     out = dictionary_builder._scrub(d)
     assert out == {"dogs": "dog", "as": "a", "don\u2019t": "do"}
 
 
 def test_curly_quote_override_form_survives(tmp_path, monkeypatch) -> None:
-    """A reviewed override form spelled with a typographic apostrophe must not
-    be silently dropped post-layer (read_pairs and _valid_key agree: NFC-only)."""
+    """A typographic-apostrophe override form isn't dropped post-layer (read_pairs and _valid_key agree: NFC-only)."""
     _layers(tmp_path, monkeypatch, overrides="do\tdon\u2019t\n")
     out = dictionary_builder._scrub(dictionary_builder._apply_layers({}, "zz"))
     assert out == {"don\u2019t": "do"}
@@ -255,8 +241,7 @@ def test_scrub_drops_affix_values_keeps_identities() -> None:
 
 
 def test_read_dict_rule_mismatch_logged(tmp_path, caplog) -> None:
-    """A DEFAULT_RULES lemma disagreeing with the list logs a DEBUG diagnostic,
-    emitted only when DEBUG is enabled (opt-in, off in the default config)."""
+    """A DEFAULT_RULES/list lemma mismatch logs at DEBUG only (opt-in, off by default)."""
     fixture = tmp_path / "de.txt"
     # rule("Bäckerei") == "Bäckerei", but the list gives a different lemma.
     fixture.write_text("baeckerei\tBäckerei\n", encoding="utf-8")
@@ -306,8 +291,7 @@ def test_generated_plzma_loads_through_real_reader(tmp_path, monkeypatch) -> Non
 
 
 def test_build_base_shipped_composes_over_decoded_dict(tmp_path, monkeypatch) -> None:
-    """base='shipped' builds on the decoded shipped dict, not a wordlist rebuild:
-    base entries survive, overrides win, new forms are added."""
+    """base='shipped' builds on the decoded shipped dict, not a wordlist rebuild."""
     _make_shipped(tmp_path, monkeypatch, "dog\tdogs\ncat\tcats\n")
     # override layer: one collision (cats -> CAT) + one new form (birds -> bird)
     _layers(tmp_path, monkeypatch, overrides="CAT\tcats\nbird\tbirds\n")
@@ -321,9 +305,7 @@ def test_build_base_shipped_composes_over_decoded_dict(tmp_path, monkeypatch) ->
 
 
 def test_build_base_merged_keeps_curated_mappings(tmp_path, monkeypatch) -> None:
-    """base='merged' precedence override > shipped > fresh > fill: the fresh
-    wordlist only ADDS keys, the curated shipped mapping wins shared keys
-    (beating both fresh and fill), and a reviewed override beats shipped."""
+    """base='merged' precedence: override > shipped > fresh > fill."""
     _make_shipped(tmp_path, monkeypatch, "dog\tdogs\ncat\tcats\nmouse\tmice\n")
     _layers(tmp_path, monkeypatch, fill="FISH\tcats\n", overrides="RODENT\tmice\n")
 
@@ -352,8 +334,7 @@ def test_build_dictionary_rejects_unknown_base(tmp_path) -> None:
 
 
 def test_build_dictionary_is_deterministic(tmp_path) -> None:
-    """Two builds of the same input produce byte-identical .plzma (the trie
-    cache is keyed on the shipped bytes, so rebuilds must not drift)."""
+    """Two builds of the same input produce byte-identical .plzma (trie cache is keyed on shipped bytes)."""
     (tmp_path / "zz.txt").write_text("dog\tdogs\ncat\tcats\n", encoding="utf-8")
     a, b = tmp_path / "a.plzma", tmp_path / "b.plzma"
     dictionary_builder._build_dictionary("zz", listpath=str(tmp_path), filepath=str(a))
@@ -362,18 +343,16 @@ def test_build_dictionary_is_deterministic(tmp_path) -> None:
 
 
 def test_apply_layers_cleans_machine_fill(tmp_path, monkeypatch) -> None:
-    """Fill is a machine source, so _apply_layers runs _clean_base over it: an
-    affix-fragment key (-al) is unreachable and dropped, unlike a reviewed
-    override which keeps its deliberate elisions."""
+    """Fill is a machine source: _apply_layers runs _clean_base over it, dropping
+    affix-fragment keys, unlike a reviewed override which keeps its elisions."""
     _layers(tmp_path, monkeypatch, fill="-al\t-al\ncat\tcats\n")
     merged = dictionary_builder._apply_layers({}, "zz")
     assert merged == {"cats": "cat"}  # '-al' affix key dropped
 
 
 def test_apply_layers_rejects_unlisted_fill(tmp_path, monkeypatch) -> None:
-    """A fill file for a language outside V2_FILL_LANGS fails the build loud:
-    fill/ is gitignored, so a stale local TSV from an assessment run must not
-    ship silently against the reviewed decision."""
+    """A fill file outside V2_FILL_LANGS fails the build loud: fill/ is gitignored,
+    so a stale local TSV must not ship silently against the reviewed decision."""
     fill_dir = tmp_path / "fill"
     fill_dir.mkdir()
     (fill_dir / "fr.tsv").write_text("chat\tchats\n", encoding="utf-8")
@@ -383,8 +362,7 @@ def test_apply_layers_rejects_unlisted_fill(tmp_path, monkeypatch) -> None:
 
 
 def test_build_from_shipped_scrubs_placeholder(tmp_path, monkeypatch) -> None:
-    """A pre-v2 shipped dict carrying a template placeholder value is scrubbed
-    on rebuild (end-to-end through _build_dictionary, base='shipped')."""
+    """A pre-v2 shipped dict with a template placeholder value is scrubbed on rebuild."""
     raw = {b"hithau": b"prpers", b"dogs": b"dog"}
     (tmp_path / "zz.plzma").write_bytes(frontcode.encode(raw))
     monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)

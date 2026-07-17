@@ -1,13 +1,11 @@
-"""
-Shared evaluation helpers for the v2.0 dictionary work: run the real
-DefaultStrategy chain over an arbitrary in-memory dictionary and score it
-against a UD treebank. Used by the prune functions in wikidata_lexemes.py, by
-eval_gate.py, and by the validate_* scripts, so the eval protocol lives in
-exactly one place.
+"""Shared evaluation helpers: run the real DefaultStrategy chain over an
+arbitrary in-memory dictionary and score it against a UD treebank. Used by
+wikidata_lexemes.py's prune functions, eval_gate.py, and validate_* scripts,
+so the eval protocol lives in one place.
 
-This is the dictionary-quality gate protocol: a bare strategy with identity
-fallback. Distinct from `evaluate_simplemma`, which scores the full
-user-facing Lemmatizer (lowercase fallback) for the published README numbers.
+Bare strategy with identity fallback -- the dictionary-quality gate protocol.
+Distinct from `evaluate_simplemma`, which scores the full user-facing
+Lemmatizer (lowercase fallback) for the published README numbers.
 """
 
 from collections import Counter, defaultdict
@@ -39,25 +37,22 @@ def _iter_gold_tokens(test_path: Path) -> Iterator[tuple[str, str]]:
 
 
 def load_gold_tokens(test_path: Path) -> list[tuple[str, str]]:
-    """Materialize a treebank's gold tokens once, so score_token/score_type can
-    each score multiple strategies (e.g. a gate's baseline + candidate) without
-    re-parsing the conllu file per call."""
+    """Materialize a treebank's gold tokens once, so multiple strategies can
+    be scored without re-parsing the conllu file per call."""
     return list(_iter_gold_tokens(test_path))
 
 
 def build_strategy(mapping: dict[str, str]) -> DefaultStrategy:
     """The real DefaultStrategy chain over a fixed candidate mapping. Encodes
-    the whole mapping once -- build per mapping and reuse across treebanks and
-    metrics rather than rebuilding per score."""
+    once -- reuse across treebanks/metrics rather than rebuilding per score."""
     return DefaultStrategy(dictionary_factory=FixedDictionaryFactory(mapping))
 
 
 def accuracy(
     strategy: DefaultStrategy, lang: str, pairs: Iterable[tuple[str, str]]
 ) -> tuple[float, int]:
-    """Fraction of (form, gold_lemma) pairs the strategy lemmatizes to gold
-    (identity fallback on a miss). Returns (accuracy, count). Token- vs
-    type-level is just which pair list you pass (gold_tokens vs gold_types)."""
+    """Fraction of (form, gold_lemma) pairs lemmatized to gold (identity
+    fallback on a miss). Token- vs type-level is just which pairs you pass."""
     correct = 0
     total = 0
     for form, gold_lemma in pairs:
@@ -69,26 +64,12 @@ def accuracy(
 
 def gold_types(gold_tokens: list[tuple[str, str]]) -> list[tuple[str, str]]:
     """Reduce occurrence pairs to one (form, majority-gold-lemma) pair per
-    DISTINCT form. Strategy-independent, so build once per treebank and reuse
-    across strategies (a form's majority gold is a property of the corpus)."""
+    distinct form, for type-level (unweighted) accuracy -- guards against
+    token-level frequency weighting hiding a rare/tail-word regression.
+
+    Strategy-independent: build once per treebank and reuse across
+    strategies."""
     by_form: defaultdict[str, Counter[str]] = defaultdict(Counter)
     for form, gold_lemma in gold_tokens:
         by_form[form][gold_lemma] += 1
     return [(form, counts.most_common(1)[0][0]) for form, counts in by_form.items()]
-
-
-def score_token(
-    strategy: DefaultStrategy, lang: str, gold_tokens: list[tuple[str, str]]
-) -> tuple[float, int]:
-    """Token-level (frequency-weighted) accuracy: each occurrence counts once,
-    so common forms dominate. Returns (accuracy, token_count)."""
-    return accuracy(strategy, lang, gold_tokens)
-
-
-def score_type(
-    strategy: DefaultStrategy, lang: str, gold_tokens: list[tuple[str, str]]
-) -> tuple[float, int]:
-    """Type-level (unweighted) accuracy: one vote per DISTINCT form (majority
-    gold lemma on ties). Guards against the token metric's frequency weighting
-    hiding a rare/tail-word regression. Returns (accuracy, type_count)."""
-    return accuracy(strategy, lang, gold_types(gold_tokens))

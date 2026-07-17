@@ -166,10 +166,8 @@ def main(keep_download: bool = False) -> None:
         f"version={UD_VERSION}\nhandle={UD_HANDLE}\nmd5={expected_md5}\n"
     )
 
-    # Nothing downstream reads _download/ (the raw tgz + fully extracted
-    # 250-treebank archive, several GB); the concats and splits/ are all that's
-    # used. Drop it unless asked to keep it (it proved useful once, for a
-    # hand-recovery of a missing treebank).
+    # nothing downstream reads the raw download (several GB); kept only on
+    # request -- useful once for hand-recovering a missing treebank
     if not keep_download:
         log.info("Removing raw download folder...")
         shutil.rmtree(DATA_FOLDER)

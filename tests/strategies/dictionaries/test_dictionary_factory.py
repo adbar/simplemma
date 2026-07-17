@@ -11,8 +11,7 @@ from simplemma.strategies.dictionaries.dictionary_factory import (
 
 
 def test_load_rejects_non_frontcoded_payload() -> None:
-    # Pre-2.0 pickled .plzma (or any non-front-coded payload) is no longer
-    # readable: load must reject it, not silently mis-parse it.
+    # Pre-2.0 pickled .plzma is no longer readable: load must reject it, not mis-parse it.
     blob = lzma.compress(b"\x80\x05 legacy pickle bytes, no SMFC1 magic")
     with lzma.open(io.BytesIO(blob), "rb") as fh:
         with pytest.raises(ValueError, match="front-coded"):

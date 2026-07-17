@@ -30,8 +30,7 @@ def test_check_field_accepts_plain_latin() -> None:
 
 
 def test_check_field_accepts_any_script() -> None:
-    """No script policy: letters of any script pass (script-inventory filtering
-    was removed as low-yield/net-harmful on real data)."""
+    """No script policy: letters of any script pass."""
     assert clean_wordlist.check_field("догс") is None  # Cyrillic
     assert clean_wordlist.check_field("犬") is None  # Han
 
@@ -55,8 +54,7 @@ def test_check_field_allows_marks() -> None:
 
 
 def test_check_field_allows_zwnj_and_zwj() -> None:
-    """ZWNJ/ZWJ are word-internal joiners in Perso-Arabic (fa) and Indic (hi);
-    allowed universally, so no per-language config is needed for them."""
+    """ZWNJ/ZWJ are word-internal joiners in Perso-Arabic/Indic scripts; allowed universally."""
     assert clean_wordlist.check_field("mی‌خواهم") is None  # contains ZWNJ
     assert clean_wordlist.check_field("wo‍rd") is None  # contains ZWJ
 
@@ -77,8 +75,7 @@ def test_clean_wordlist_rejects_malformed_lines() -> None:
 
 
 def test_clean_wordlist_rejects_column_empty_after_normalize() -> None:
-    """A column of only strippable chars (here a lone soft hyphen) passes the
-    raw malformed check but normalizes to empty -- must not be emitted."""
+    """A column of only strippable chars normalizes to empty -- must not be emitted."""
     kept, report = run_clean(["­\tword\n"])  # lemma column is just a soft hyphen
     assert kept == []
     assert report.rejected_by_reason["empty_after_normalize"] == 1
@@ -123,8 +120,7 @@ def test_report_to_json_roundtrips() -> None:
 
 
 def test_main_cli_writes_output_and_report(tmp_path, capsys) -> None:
-    # 19 good lines + 1 bad one keeps the reject rate under the 5% default
-    # threshold, so this exercises the happy path, not the drift alarm.
+    # reject rate stays under the 5% default threshold: happy path, not drift alarm
     good_lines = "".join(f"dog{i}\tdogs{i}\n" for i in range(19))
     input_path = tmp_path / "en.txt"
     input_path.write_text(good_lines + "cat\tca\x01ts\n", encoding="utf-8")

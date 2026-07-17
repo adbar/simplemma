@@ -4,13 +4,12 @@ import pytest
 
 from training import eval_gate
 
+from .conftest import conllu
+
 
 def _conllu(rows: list[tuple[int, str, str]]) -> str:
-    lines = [
-        "\t".join([str(i), form, lemma, "X", "_", "_", "0", "root", "_", "_"])
-        for i, form, lemma in rows
-    ]
-    return "\n".join(lines) + "\n\n"
+    """One-sentence wrapper over the shared conftest builder."""
+    return conllu([rows])
 
 
 def test_discover_test_treebanks_matches_language_prefix(tmp_path):
@@ -35,10 +34,9 @@ def test_discover_test_treebanks_none_found(tmp_path):
 
 
 def test_discover_test_treebanks_handles_lang_prefix_overrides(tmp_path):
-    """UD names some files by dataset prefix, not simplemma's language code
-    (both Norwegian datasets are 'no_*'; North Sami is 'sme_giella-*') -- a
-    naive first-underscore split misses them and can't tell Bokmål from
-    Nynorsk (both would collapse to 'no')."""
+    """UD names some files by dataset prefix, not simplemma's language code (both
+    Norwegian datasets are 'no_*') -- a naive first-underscore split can't tell
+    Bokmål from Nynorsk."""
     (tmp_path / "no_bokmaal-ud-test.conllu").write_text("", encoding="utf-8")
     (tmp_path / "no_nynorsk-ud-test.conllu").write_text("", encoding="utf-8")
     (tmp_path / "sme_giella-ud-test.conllu").write_text("", encoding="utf-8")

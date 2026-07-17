@@ -687,8 +687,7 @@ _ACRONYM_CASES = [
     ("de", "Das steht in Kapitel XII.", ["XII"], []),  # Roman numeral, not an acronym
     # 2-char Roman-numeral lookalikes stay keepable as acronyms
     ("es", "El disco CD es popular hoy.", ["CD"], []),
-    # MM now lowercases: v2.0 fill adds 'mm' (millimetre) as a known de word,
-    # so it's no longer treated as an acronym; DC has no such homograph, kept.
+    # MM now lowercases: v2.0 fill adds 'mm' as a known de word; DC has no such homograph
     ("de", "MM und DC sind hier bekannt.", ["DC"], ["MM"]),
     ("uk", "Це СБУ.", ["СБУ"], []),  # lone acronym isn't "shouting" (leave-one-out)
     # an opening quote shifts neither the initial slot nor the flush

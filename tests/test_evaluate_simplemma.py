@@ -68,8 +68,7 @@ def test_main_writes_results(tmp_path):
     clean = tmp_path / "UD"
     clean.mkdir()
     (clean / "en_test.conllu").write_text(CONLLU, encoding="utf-8")
-    # decoys the downloader colocates with the treebanks: main() must skip
-    # them (glob '*.conllu'), not crash on the dir or the versionless file.
+    # downloader-colocated decoys: main() must skip them (glob '*.conllu'), not crash
     (clean / "UD_VERSION").write_text("2.18", encoding="utf-8")
     (clean / "splits").mkdir()
     results = tmp_path / "results"
@@ -90,8 +89,7 @@ def test_main_requires_data(tmp_path):
 
 
 def test_main_maps_dataset_name_to_lang(tmp_path):
-    """A dataset whose UD prefix isn't the ISO code (no_nynorsk -> nn) must be
-    evaluated via dataset_to_lang, not split('_')[0] (which crashed on 'no')."""
+    """A UD prefix that isn't the ISO code (no_nynorsk) must go through dataset_to_lang."""
     clean = tmp_path / "UD"
     clean.mkdir()
     (clean / "no_nynorsk.conllu").write_text(CONLLU, encoding="utf-8")

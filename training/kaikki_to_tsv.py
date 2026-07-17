@@ -44,9 +44,7 @@ def _strip_stress_marks(text: str) -> str:
 
 def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
     """Yield (lemma, word_form) pairs, preferring form_of/alt_of over forms.
-
-    May repeat a pair across senses of the same entry -- extract_pairs dedups.
-    """
+    May repeat a pair across senses of the same entry -- extract_pairs dedups."""
     word = entry.get("word")
     if not word:
         return
@@ -80,11 +78,9 @@ def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
 def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
     """Yield (lemma, word_form) pairs, preferring form_of/alt_of over forms.
 
-    Deduplicates pairs repeated across senses of the SAME entry, so a pair's
-    line count in the output TSV reflects independent attestations --
-    dictionary_builder's R2 resolution treats line count as evidence, and a
-    single entry describing its own relation twice is not two attestations.
-    """
+    Dedups pairs repeated across senses of the same entry -- dictionary_builder's
+    R2 resolution treats line count as evidence, so a repeat must not count
+    as a second attestation."""
     yield from dict.fromkeys(_extract_pairs_raw(entry))
 
 

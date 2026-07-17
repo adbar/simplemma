@@ -1,10 +1,6 @@
-"""
-Shared conventions for reading the UD treebank files fetched by
-download_eval_data.py: the dataset-name -> simplemma-code override map and the
-one token-iteration convention used by every evaluator/miner (eval_harness,
-build_override, eval_gate, and the local eval tooling), so the convention lives
-in exactly one place.
-"""
+"""Shared conventions for reading the UD treebank files fetched by
+download_eval_data.py: the dataset-name -> simplemma-code override map and
+the one token-iteration convention used by every evaluator/miner."""
 
 from collections.abc import Iterable, Iterator
 from pathlib import Path
@@ -30,10 +26,9 @@ def dataset_to_lang(dataset_name: str) -> str:
 def iter_word_tokens_in_sentences(
     sentences: Iterable[Any],
 ) -> Iterator[tuple[str, Any]]:
-    """Yield (form, token) for real word tokens in already-parsed sentences,
-    applying the official UD-eval convention once: skip MWT/empty-node ids
-    (tuple, not int) and lemma=='_', lowercase the sentence-initial (id==1)
-    form. Callers read token['lemma'] / token['upos'] as needed."""
+    """Yield (form, token) for real word tokens, applying the official UD-eval
+    convention: skip MWT/empty-node ids (tuple, not int) and lemma=='_',
+    lowercase the sentence-initial (id==1) form."""
     for tokens in sentences:
         for token in tokens:
             token_id = token["id"]

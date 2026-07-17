@@ -1,27 +1,15 @@
-"""
-Build a language's runtime lemmatization dictionary (a form->lemma map).
+"""Build a language's runtime lemmatization dictionary (a form->lemma map).
 
-Pipeline: a BASE (one of three sources) is composed with optional per-language
-layers, cleaned, and serialized. Everything runs on plain str dicts; bytes
-appear only at the two edges (decoding a shipped dict in, encoding to frontcode
-out):
+Pipeline: _base_source -> _apply_layers (fill, override) -> _scrub -> frontcode.
+Plain str dicts throughout; bytes only at the two edges.
 
-    _base_source  ->  _apply_layers (fill, override)  ->  _scrub  ->  frontcode
+Base modes (--base): fresh (rebuild from wordlist, duplicate lines = evidence),
+shipped (installed .plzma verbatim), merged (fresh + shipped layered on top,
+shipped wins shared keys).
 
-The base comes from `_base_source(base=...)` / the CLI `--base` flag:
-  - fresh:   `_read_dict` resolves one lemma per form from a raw wordlist
-             (lemma<TAB>word lines, duplicate attestations = evidence).
-  - shipped: the installed .plzma decoded verbatim.
-  - merged:  fresh base with the shipped map layered on top (shipped wins
-             shared keys).
-
-Cleaning has two named key invariants (see _valid_key / _reachable_key): the
-strict one filters machine sources (base/fill), the plain one is the universal
-post-layer guard; reviewed overrides are exempt from the strict filter because
-they carry deliberate elisions (e.g. ro "de-").
-
-Output: the front-coded, lzma-compressed .plzma the runtime loads (see
-frontcode.py), which replaced the pickled format in 2.0.0.
+Key invariants: _valid_key (universal post-layer guard) vs _reachable_key
+(stricter, machine sources only; overrides exempt for deliberate elisions
+like ro "de-").
 """
 
 import argparse
@@ -39,21 +27,18 @@ from simplemma.strategies.dictionaries.dictionary_factory import (
 from simplemma.utils import levenshtein_dist, normalize_token
 from training.clean_wordlist import canonicalize, check_field, read_pairs
 
-# Swahili inflection is prefixal, so a lemma's forms share an ENDING not a
-# start; front-coding the reversed bytes exposes that shared structure.
+# sw inflection is prefixal (forms share an ending, not a start), so
+# front-coding uses reversed-byte keys here.
 FRONTCODE_REVERSE_KEY_LANGS = {"sw"}
 
-# Optional per-language source layers merged by _apply_layers (precedence:
-# overrides > base > fill; the base itself may already fold in the shipped
-# dict, see _base_source).
+# Per-language source layers merged by _apply_layers (precedence: overrides >
+# base > fill; base may already fold in the shipped dict, see _base_source).
 OVERRIDES_DIR = Path(__file__).parent / "overrides"
 FILL_DIR = Path(__file__).parent / "fill"
 
 # Languages whose Wikidata fill ships in v2.0 (gated by assess_wikidata_fill.py):
-# fr/it/tr were assessed and HELD (cross-treebank regressions), nb has no UD
-# treebank. _apply_layers enforces this allowlist -- fill/ is gitignored, so a
-# stale local TSV from an assessment run must fail the build, not ship silently.
-# Gating a new language later = pass the gate, add it here.
+# fr/it/tr HELD (cross-treebank regressions), nb has no UD treebank. Enforced
+# here because fill/ is gitignored -- a stale local TSV must fail loud.
 V2_FILL_LANGS = frozenset(
     {
         "cs",
@@ -78,9 +63,8 @@ V2_FILL_LANGS = frozenset(
 
 LOGGER = logging.getLogger(__name__)
 
-# Punctuation a tokenizer never yields inside one token: a comma/colon/star/
+# Punctuation a tokenizer never yields inside one token: comma/colon/star/
 # slash/plus/underscore anywhere, or a leading/trailing hyphen (affix fragment).
-# Checked per field (form and lemma), so a hyphen affix in either column is caught.
 FIELD_PUNCT = re.compile(r"[,:*/\+_]|.+-$|^-.+")
 
 
@@ -89,29 +73,24 @@ def _collect_candidates(
 ) -> tuple[dict[str, Counter[str]], set[str]]:
     """First pass: filter input lines, counting each (form, lemma) pair as evidence.
 
-    Per-line diagnostics (wrong format, rule mismatch) are DEBUG: opt-in for a
-    maintainer inspecting one build, off in the default logging config, and the
-    expensive rule call is skipped unless DEBUG is enabled."""
+    Per-line diagnostics (wrong format, rule mismatch) are DEBUG-gated: the
+    rule check is otherwise skipped for cost."""
     diagnose = LOGGER.isEnabledFor(logging.DEBUG)
     candidates: defaultdict[str, Counter[str]] = defaultdict(Counter)
     lemmas: set[str] = set()
     with open(path, encoding="utf-8") as filehandle:
         for line in filehandle:
-            # NFC at the choke point: runtime lookups NFC-normalize, so keys
-            # must be NFC no matter how the input list was prepared.
+            # NFC here: runtime lookups NFC-normalize, so keys must match.
             columns = [normalize_token(c) for c in line.strip().split("\t")]
-            # invalid: wrong shape or empty lemma
             if len(columns) != 2 or not columns[0]:
                 LOGGER.debug("wrong format: %s", line.strip())
                 continue
-            # drop a field the tokenizer could never yield as one token (space
-            # or affix/punctuation) or that carries mojibake/control chars --
-            # checked per field so a hyphen affix in EITHER column is caught.
+            # drop fields a tokenizer could never yield as one token, or
+            # carrying mojibake/control chars.
             if any(
                 " " in c or FIELD_PUNCT.search(c) or check_field(c) for c in columns
             ):
                 continue
-            # length difference
             if len(columns[0]) == 1 and len(columns[1]) > 6:
                 continue
             if len(columns[0]) > 6 and len(columns[1]) == 1:
@@ -158,11 +137,10 @@ def _resolve_candidates(
                 sorted(options.items()),
             )
         mydict[word_form] = best
-    # A dictionary headword is its own lemma: force identity so a noisy wordlist
-    # line ("W is a form of X") can't reduce a valid lemma W into another
-    # paradigm. Measured net-positive on every language gated (et/sk/lt +1-2pp,
-    # bg/uk +6pp, nl +17pp) -- the old per-language BUFFER_HACK set was arbitrary
-    # (it excluded da/nl, its two biggest beneficiaries).
+    # A dictionary headword is its own lemma: force identity so a noisy
+    # wordlist line can't reduce it into another paradigm. Measured
+    # net-positive on every language gated (et/sk/lt +1-2pp, bg/uk +6pp,
+    # nl +17pp).
     for word in lemmas:
         mydict[word] = word
     return mydict
@@ -179,11 +157,9 @@ def _read_dict(path: Path, langcode: str) -> dict[str, str]:
 def _layer_entries(path: Path) -> dict[str, str]:
     """A curated lemma<TAB>form layer file as a form->lemma mapping.
 
-    read_pairs enforces the shared key hygiene (NFC, no empty/junk field, no
-    conflicting duplicate form) and fails loud on corruption. The one skip
-    here is policy, not corruption: a multi-word form carries a space, which
-    the tokenizer never yields as a single token (e.g. Wikidata lexemes like
-    'top hat'), so it is an unreachable key."""
+    read_pairs enforces key hygiene and fails loud on corruption. Skipping a
+    multi-word form (e.g. Wikidata 'top hat') is policy, not corruption --
+    the tokenizer never yields it as a single token, so it's unreachable."""
     pairs = read_pairs(path)
     entries = {form: lemma for form, lemma in pairs.items() if " " not in form}
     if len(entries) < len(pairs):
@@ -197,9 +173,7 @@ def _layer_entries(path: Path) -> dict[str, str]:
 
 def _apply_layers(base: dict[str, str], langcode: str) -> dict[str, str]:
     """Merge the optional per-language source layers into the base dict.
-    Precedence: overrides > base > fill. Fill (e.g. Wikidata) never displaces a
-    base entry; reviewed overrides always win. (Any shipped-dict merge is folded
-    into `base` upstream by _base_source, so it wins shared keys over fill here.)"""
+    Precedence: overrides > base > fill; fill never displaces a base entry."""
     merged = dict(base)
     fill_path = FILL_DIR / f"{langcode}.tsv"
     if fill_path.exists():
@@ -209,9 +183,8 @@ def _apply_layers(base: dict[str, str], langcode: str) -> dict[str, str]:
                 f"V2_FILL_LANGS (the reviewed ship decision) -- delete the stale "
                 f"file or gate the language and add it to the allowlist"
             )
-        # fill is machine-extracted (Wikidata), so unlike reviewed overrides it
-        # gets the same aggressive key hygiene as the base (suffix lexemes like
-        # "-al" are unreachable keys).
+        # fill is machine-extracted, so unlike overrides it gets the base's
+        # aggressive key hygiene (e.g. suffix lexemes like "-al" are unreachable).
         for form, lemma in _clean_base(_layer_entries(fill_path)).items():
             merged.setdefault(form, lemma)
         LOGGER.info("%s: fill layer applied -> %s entries", langcode, len(merged))
@@ -245,8 +218,7 @@ def _reachable_key(key: str) -> bool:
 
 def _clean_base(base: dict[str, str]) -> dict[str, str]:
     """Drop unreachable keys from a machine source used as a base or layer.
-    Pre-layer ONLY: any override-originated entry this would drop is re-applied
-    afterwards by _apply_layers, so it never touches reviewed override content."""
+    Pre-layer ONLY: overrides are re-applied afterwards, so they're untouched."""
     out = {k: v for k, v in base.items() if _reachable_key(k)}
     if len(out) < len(base):
         LOGGER.info("clean_base: dropped %d unreachable keys", len(base) - len(out))
@@ -254,11 +226,11 @@ def _clean_base(base: dict[str, str]) -> dict[str, str]:
 
 
 def _junk_entry(key: str, value: str) -> bool:
-    """A non-identity entry whose value is an affix fragment or carries no
-    letters, or whose key is a symbol mapped to a word (bg ":" -> "на", mined
-    UD noise). Junk from Wiktionary affix tables (schaft -> -schaft). Identity
-    entries stay: dropping "&" -> "&" or "10" -> "10" only breaks is_known().
-    Deliberately narrow -- commas/underscores appear in legit compound lemmas."""
+    """A non-identity entry whose value is an affix fragment (Wiktionary
+    junk, e.g. schaft -> -schaft) or carries no letters, or whose key has
+    none (mined UD noise, e.g. bg ":" -> "на"). Identity entries stay, and
+    the check is deliberately narrow -- commas/underscores appear in legit
+    compound lemmas."""
     if value == key:
         return False
     return (
@@ -270,17 +242,12 @@ def _junk_entry(key: str, value: str) -> bool:
 
 
 def _scrub(mydict: dict[str, str]) -> dict[str, str]:
-    """Final post-layer pass over the composed dict. Drops keys failing the
-    universal invariant (unreachable), normalizes each value and drops the
-    entry if the value is still junk, an affix fragment, or a placeholder.
-    Uses _valid_key not _reachable_key: it runs AFTER overrides, whose elisions
-    must survive.
-
-    Values (unlike keys) go through clean_wordlist.canonicalize, so a lemma is
-    canonicalized to a straight apostrophe even when its key keeps a curly one
-    (keys use normalize_token, see _valid_key). That asymmetry is intentional
-    and harmless: the runtime's apostrophe-variant lookup fallback bridges the
-    two glyphs, so every folded form stays reachable."""
+    """Final post-layer pass: drops keys failing _valid_key (not the stricter
+    _reachable_key, since override elisions must survive) and drops values
+    that are junk/placeholder after canonicalize. Values, unlike keys, go
+    through canonicalize (straight apostrophe) even when the key keeps a
+    curly one -- harmless, since the runtime's apostrophe-variant fallback
+    bridges the two glyphs."""
     out: dict[str, str] = {}
     dropped_key = fixed_val = dropped_val = 0
     for k, v in mydict.items():
@@ -321,8 +288,8 @@ def _base_source(base: str, langcode: str, listpath: str) -> dict[str, str]:
                mappings win shared keys (the fresh wordlist only ADDS keys)."""
     if base == "shipped":
         return _clean_base(_shipped_str_dict(langcode))
-    # an absolute listpath (as tests pass) discards the training-dir prefix per
-    # pathlib join semantics; a relative one resolves under training/.
+    # an absolute listpath (as tests pass) discards the training-dir prefix
+    # per pathlib join semantics.
     source = _read_dict(Path(__file__).parent / listpath / f"{langcode}.txt", langcode)
     if base == "merged":
         source.update(_clean_base(_shipped_str_dict(langcode)))

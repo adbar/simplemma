@@ -1,14 +1,11 @@
-"""Enforcement harness for the default rules: aggregate precision over the
-shipped dictionary must stay at/above the per-language floor (lemma-first: the
-output must BE the dict lemma), rule chains must converge within two steps,
-and rules must not overlap.
-_LEGACY_REAL_WORD_LANGS (eo only) keeps the older any-dictionary-entry tolerance.
+"""Enforcement harness for the default rules: aggregate precision over the shipped
+dict must clear the per-language floor (lemma-first), rule chains must converge
+within two steps, and rules must not overlap. _LEGACY_REAL_WORD_LANGS (eo only)
+keeps the older any-dictionary-entry tolerance.
 
-Fill-augmented languages (v2.0 Wikidata fill in the shipped dict) get a lowered
-floor: the rules fire on fill forms in this scoring pass but NEVER at runtime
-(dict-lookup precedes rules), so fill drags the measured precision down with no
-runtime effect. Granular per-cell/lemma-first enforcement is a build-time
-concern (rulebuilder.evaluate on the base dict), not re-checked here.
+Fill-augmented languages get a lowered floor: rules score against v2.0 fill
+forms they never serve at runtime (dict-lookup precedes rules), so fill drags
+measured precision down with no runtime effect.
 """
 
 import ast
@@ -27,7 +24,7 @@ from training.rulebuilder import _ACCENT_FOLD_LANGS, output_is_lemma, pattern_al
 
 RULE_LANGS = sorted(
     RULE_FUNCTIONS
-)  # every registered language, e.g. de en eo et fi lv nl pl ru
+)  # every registered language, e.g. de en eo et fi lv nl ru
 FACTORY = DefaultDictionaryFactory()
 
 
@@ -44,13 +41,10 @@ def _rules_module(lang: str):
 DATA_DRIVEN = sorted(lang for lang in RULE_LANGS if _rules_module(lang) is not None)
 
 THRESHOLD = 99.0
-# Per-language aggregate floor override (default THRESHOLD). Lowered where the
-# shipped dict carries Wikidata fill the rules score against but never serve at
-# runtime: the value is the current full-dict precision minus ~0.4pp headroom,
-# so a genuine rule regression still trips it (et measures 98.38%, la 96.06%;
-# excluding fill forms both clear THRESHOLD: et 99.48%, la 99.83% -- the fill
-# misses are convention mismatches, e.g. Wikidata lemmatizes la participles to
-# the verb, not rule defects; measured 2026-07-16).
+# Per-language floor override for langs with Wikidata fill in the shipped dict
+# (rules score against fill but never serve it at runtime). Value = full-dict
+# precision minus ~0.4pp headroom (et 98.38%, la 96.06%; misses are convention
+# mismatches, not rule defects -- excluding fill clears THRESHOLD for both).
 _AGGREGATE_BASELINE = {"et": 98.0, "la": 95.5}
 
 # Gate still accepts any dictionary-entry output for these (see docstring).
@@ -145,9 +139,7 @@ def test_rule_quality(lang: str) -> None:
         # idempotence: a produced lemma must be a fixed point unless it is a
         # dict entry (the pipeline tries dictionary lookup before rules). One
         # extra hop is tolerated if the chain terminates there: v2.0 fill forms
-        # the rules never serve at runtime can surface 2-step chains (la
-        # centensimabam -> centensimo -> centensimus; measured 2026-07-16,
-        # only la needs this, 49 chains, none longer).
+        # can surface 2-step chains (la centensimabam -> centensimo -> centensimus).
         if p != f and d.get(p) is None:
             p2 = fn(p)
             if p2 is not None and p2 != p and d.get(p2) is None:
