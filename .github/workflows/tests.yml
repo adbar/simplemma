@@ -71,3 +71,13 @@ jobs:
     - if: ${{ matrix.env.MINIMAL == 'false'}}
       run: uv sync --extra dev --extra marisa-trie
     - run: uv run pytest
+
+  # Single stable context for branch protection: require only `all-checks`, so
+  # the matrix above can change freely without touching the protection rule.
+  all-checks:
+    if: always()
+    needs: [quality, coverage, tests]
+    runs-on: ubuntu-latest
+    steps:
+    - if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+      run: exit 1
