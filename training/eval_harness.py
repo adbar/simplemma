@@ -10,11 +10,21 @@ Lemmatizer (lowercase fallback) for the published README numbers.
 
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Iterator
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Any
+
+from conllu import parse_incr
 
 from simplemma.strategies import DefaultStrategy, DictionaryFactory
 from simplemma.strategies.dictionaries.dictionary_factory import MappingStrToByteString
-from training.ud_conllu import iter_word_tokens
+from training.ud_conllu import (  # _strip_mwt_artifact: private, sibling module
+    CONTENT_POS,
+    _strip_mwt_artifact,
+    canon_lemma,
+    iter_word_tokens,
+    iter_word_tokens_in_sentences,
+)
 
 
 class FixedDictionaryFactory(DictionaryFactory):
@@ -30,22 +40,109 @@ class FixedDictionaryFactory(DictionaryFactory):
         return self._wrapped
 
 
-def _iter_gold_tokens(test_path: Path) -> Iterator[tuple[str, str]]:
-    """(form, gold_lemma) for a test treebank, UD-eval convention applied."""
-    for form, token in iter_word_tokens(test_path):
+def _iter_gold_tokens(test_path: Path, lang: str) -> Iterator[tuple[str, str]]:
+    """(form, gold_lemma) for a test treebank. The gold lemma is already
+    canonicalized for `lang` by iter_word_tokens (a no-op outside
+    _CANON_TABLES): e.g. PADT's vocalized gold is compared in the dict's own
+    unvocalized key space."""
+    for form, token in iter_word_tokens(test_path, lang):
         yield form, token["lemma"]
 
 
-def load_gold_tokens(test_path: Path) -> list[tuple[str, str]]:
+def load_gold_tokens(test_path: Path, lang: str) -> list[tuple[str, str]]:
     """Materialize a treebank's gold tokens once, so multiple strategies can
     be scored without re-parsing the conllu file per call."""
-    return list(_iter_gold_tokens(test_path))
+    return list(_iter_gold_tokens(test_path, lang))
+
+
+def iter_real_word_tokens(test_path: Path, lang: str) -> Iterator[tuple[str, str]]:
+    """(surface_form, gold_lemma) treating each REAL orthographic word as one
+    input, unlike `iter_word_tokens`'s per-UD-sub-token protocol. A fused MWT
+    span (he/ar proclitic+article glued onto a host word, e.g. he "שיכולת",
+    ar "والكتاب") never occurs pre-split in real text -- simplemma's
+    tokenizer receives it as ONE token -- so it's yielded as its own whole
+    surface form, scored against its CONTENT sub-token's gold lemma
+    (CONTENT_POS; the span's last sub-token if none qualify). This is the
+    protocol that exposed the ~28pp he UD-vs-real-world gap: a language
+    whose script fuses closed-class particles onto content words will always
+    score higher under the standard per-sub-token protocol than in practice.
+    Gold is canonicalized for `lang` (a no-op outside _CANON_TABLES)."""
+    with open(test_path, encoding="utf-8") as filehandle:
+        for tokens in parse_incr(filehandle):
+            by_id = {t["id"]: t for t in tokens}
+            span_ranges: set[int] = set()
+            for t in tokens:
+                tid = t["id"]
+                if not (isinstance(tid, tuple) and tid[1] == "-"):
+                    continue
+                lo, hi = tid[0], tid[2]
+                subs = [by_id[i] for i in range(lo, hi + 1) if i in by_id]
+                span_ranges.update(range(lo, hi + 1))
+                content = [
+                    s for s in subs if s["upos"] in CONTENT_POS and s["lemma"] != "_"
+                ]
+                pick = content or subs
+                if pick and pick[-1]["lemma"] != "_":
+                    # span sub-tokens are read straight from by_id, so apply
+                    # the shared gold transform here (the sentence iterator
+                    # below only touches the non-span tokens it yields).
+                    lemma = canon_lemma(pick[-1]["lemma"], lang)
+                    yield _strip_mwt_artifact(t["form"]), lemma
+            for form, token in iter_word_tokens_in_sentences([tokens], lang):
+                if token["id"] not in span_ranges:
+                    yield form, token["lemma"]
 
 
 def build_strategy(mapping: dict[str, str]) -> DefaultStrategy:
     """The real DefaultStrategy chain over a fixed candidate mapping. Encodes
     once -- reuse across treebanks/metrics rather than rebuilding per score."""
     return DefaultStrategy(dictionary_factory=FixedDictionaryFactory(mapping))
+
+
+def _mechanism_target(mechanism: str) -> dict[Any, Any]:
+    """The dict the RUNTIME actually reads for `mechanism` -- NOT the source of
+    truth a derived structure shadows. This is the one hard fact a held-out
+    A/B must get right; getting it wrong gives a silent false +0.00pp, which
+    happened TWICE this arc:
+      - "prefix": DEFAULT_KNOWN_PREFIXES is bound once as PrefixDecomposition's
+        default arg, so reassigning the module name is invisible -- must mutate
+        this object in place.
+      - "clitic": CLITIC_LANGS is the source, but the lookup reads the
+        precomputed _CLITIC_SUFFIXES cache -- mutating CLITIC_LANGS never
+        touches it.
+    """
+    import simplemma.strategies.clitic_decomposition as clitic
+    import simplemma.strategies.defaultprefixes as prefixes
+    import simplemma.utils as utils
+
+    targets: dict[str, dict[Any, Any]] = {
+        "prefix": prefixes.DEFAULT_KNOWN_PREFIXES,
+        "clitic": clitic._CLITIC_SUFFIXES,
+        "canon": utils._CANON_TABLES,
+    }
+    if mechanism not in targets:
+        raise ValueError(f"unknown mechanism {mechanism!r}, expected {sorted(targets)}")
+    return targets[mechanism]
+
+
+@contextmanager
+def mechanism_disabled(mechanism: str, lang: str) -> Iterator[None]:
+    """Temporarily remove `lang` from one lemmatization mechanism (prefix /
+    clitic / canon) for a held-out A/B, restoring on exit. Mutates the object
+    the runtime reads (see `_mechanism_target`), and RAISES if `lang` isn't
+    there -- a disable that changes nothing would silently measure the same
+    config twice (the false-+0.00pp trap)."""
+    target = _mechanism_target(mechanism)
+    if lang not in target:
+        raise KeyError(
+            f"{lang!r} not in the {mechanism!r} table -- nothing to disable "
+            f"(a no-op A/B would falsely read as zero effect)"
+        )
+    saved = target.pop(lang)
+    try:
+        yield
+    finally:
+        target[lang] = saved
 
 
 def accuracy(

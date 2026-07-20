@@ -126,6 +126,66 @@ def test_readme() -> None:
         ).lemmatize("スパゲッティ", lang="pt")
 
 
+def test_nn_fill_full_pipeline() -> None:
+    """The WD fill added standalone "ane" (a real nn verb), which makes
+    AffixDecompositionStrategy alone mis-split "underleverandørane" (see
+    test_strategies.py's affix_decomposition cases) -- but dictionary_lookup
+    runs first in the full pipeline and hits the fill-added whole-word entry,
+    so the user-facing lemmatize() result is unaffected."""
+    assert lemmatize("underleverandørane", lang="nn") == "underleverandør"
+
+
+def test_hbs_closed_class_override() -> None:
+    """The mined hbs override fixes two shipped-dict defects: a Latin
+    closed-class word must not lemmatize to its Cyrillic spelling (was
+    na->на), and a high-frequency homograph must resolve to its real lemma
+    (je is 3sg of biti, not the pronoun ju)."""
+    assert lemmatize("na", lang="hbs") == "na"  # was "на" (cross-script bug)
+    assert lemmatize("je", lang="hbs") == "biti"  # was "ju" (homograph clash)
+    # pitch-fold alias: the dict's marked key Afganìstān gains a plain twin
+    assert lemmatize("Afganistan", lang="hbs") == "Afganistan"
+    # script-consistency: a Latin key's Cyrillic value is transliterated
+    assert lemmatize("Milorad", lang="hbs") == "Milorad"  # was "Милорад"
+    # ś/ź (Montenegrin letters) survive the pitch fold's keep= guard
+    assert lemmatize("dośetka", lang="hbs") == "dośetka"
+    assert lemmatize("źenica", lang="hbs") == "źenica"
+    assert lemmatize("doseci", lang="hbs") == "doseci"  # no longer -> dosetka
+
+
+def test_stress_mark_fold_aliases() -> None:
+    """Same BUILD_NORMALIZATION mechanism, four more languages: a dictionary-
+    only stress/pitch/length-marked key (Wiktionary headword convention,
+    never typed in real text) gains a plain-spelled alias twin. bg/uk
+    examples are Cyrillic-scripted (Latin-scripted marked keys are academic
+    romanization noise, dropped by _drop_junk_keys instead -- see
+    test_foreign_script_key_drop below)."""
+    assert lemmatize("Авакуме", lang="bg") == "Авакум"  # was unreachable
+    assert lemmatize("Єзуча", lang="uk") == "Єзуч"
+    assert lemmatize("Abadauskai", lang="lt") == "Abadauskas"
+    assert lemmatize("Afganistanom", lang="sl") == "Afganistan"
+    assert lemmatize("Abobrigae", lang="la") == "Abobriga"
+
+
+def test_foreign_script_key_drop() -> None:
+    """Wiktionary academic-transliteration/IPA rows that leaked in as if
+    they were real word forms are unreachable (identity fallback), not
+    resolved to the wrong-script lemma: ar IPA transcriptions, grc Beta-code
+    romanization, bg/uk BGN/PCGN-style transliteration, hi Perso-Arabic
+    (Urdu-script) leaks. ms is asymmetric: a Jawi query correctly resolves
+    to its Rumi citation lemma (kept), but a Rumi query must never resolve
+    to a Jawi lemma (dropped)."""
+    assert lemmatize("rádost", lang="bg") == "rádost"  # was "радост"
+    assert lemmatize("zanos", lang="uk") == "zanos"  # was "занос"
+    assert lemmatize("hubrisin", lang="grc") == "hubrisin"  # was "ὑβρίς"
+    assert lemmatize("uð.ðu.ki.ruː", lang="ar") == "uð.ðu.ki.ruː"  # was "اذكروا"
+    assert lemmatize("سفید", lang="hi") == "سفید"  # was "सफ़ेद"
+    assert lemmatize("جون", lang="ms") == "Jun"  # Jawi->Rumi: still correct
+    assert lemmatize("pintu", lang="ms") == "pintu"  # Rumi->Jawi: was "ڤينتو"
+    assert lemmatize("Abadauskai", lang="lt") == "Abadauskas"
+    assert lemmatize("Afganistanom", lang="sl") == "Afganistan"
+    assert lemmatize("Abobrigae", lang="la") == "Abobriga"
+
+
 def test_apostrophe_variants() -> None:
     """All three apostrophe glyphs fold to the same lemma, including the
     modifier-letter U+02BC common in Ukrainian text (dict keys use U+0027)."""

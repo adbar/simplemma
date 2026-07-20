@@ -10,6 +10,7 @@ Output format: lemma, tab, word form, newline.
 import argparse
 import json
 import logging
+import unicodedata
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -34,12 +35,37 @@ _CROSS_REFERENCE_TAGS = frozenset({"pronoun", "possessive", "auxiliary"})
 
 _PLACEHOLDER_FORM = "-"  # marks a form that doesn't exist for this word
 
-# literal codepoints, not NFD/NFC: that would also strip Latin precomposed accents
+# Only the combining grave/acute (Cyrillic stress marking); NOT decomposition,
+# which would expose precomposed Latin/Greek accents to stripping too.
 _STRESS_MARKS_TABLE = str.maketrans("", "", "̀́")
 
 
 def _strip_stress_marks(text: str) -> str:
-    return text.translate(_STRESS_MARKS_TABLE)
+    # NFC first: precomposes Greek/Latin accents (kept) so only genuinely
+    # combining stress marks are dropped, whatever form the dump arrives in.
+    return unicodedata.normalize("NFC", text).translate(_STRESS_MARKS_TABLE)
+
+
+# Languages whose Wiktionary forms carry pedagogical vowel-LENGTH marks
+# (macron/breve) that normal orthography and UD omit -- 67% of grc forms, 0% in
+# UD grc. NOT global: macron is orthographic in e.g. Latvian (garā), so folding
+# it there would corrupt real words.
+_LENGTH_MARK_LANGS = {"grc"}
+_LENGTH_MARKS_TABLE = str.maketrans("", "", "̄̆")  # combining macron, breve
+
+
+def _fold_length_marks(text: str) -> str:
+    # Decompose so precomposed length letters (e.g. ῠ U+1FE0) expose their mark,
+    # drop macron/breve only, recompose -- accents/breathings are other
+    # codepoints and survive.
+    decomposed = unicodedata.normalize("NFD", text).translate(_LENGTH_MARKS_TABLE)
+    return unicodedata.normalize("NFC", decomposed)
+
+
+def _normalize(text: str, fold: bool) -> str:
+    """Stress-strip always; length-fold for grc-like langs (`fold`)."""
+    text = _strip_stress_marks(text)
+    return _fold_length_marks(text) if fold else text
 
 
 def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
@@ -48,7 +74,9 @@ def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
     word = entry.get("word")
     if not word:
         return
-    stripped_word = _strip_stress_marks(word)
+
+    fold = entry.get("lang_code") in _LENGTH_MARK_LANGS
+    norm_word = _normalize(word, fold)
 
     found_relation = False
     for relation_source in (entry, *entry.get("senses", ())):
@@ -56,7 +84,7 @@ def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
         for ref in refs or ():
             ref_word = ref.get("word")
             if ref_word:
-                yield (_strip_stress_marks(ref_word), stripped_word)
+                yield (_normalize(ref_word, fold), norm_word)
                 found_relation = True
 
     if found_relation:
@@ -72,7 +100,7 @@ def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
             or (word_form != word and _CROSS_REFERENCE_TAGS.intersection(tags))
         ):
             continue
-        yield (stripped_word, _strip_stress_marks(word_form))
+        yield (norm_word, _normalize(word_form, fold))
 
 
 def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:

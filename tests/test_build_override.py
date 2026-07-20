@@ -18,8 +18,17 @@ def test_collect_candidates_filters_to_closed_class(tmp_path):
         ),
         encoding="utf-8",
     )
-    candidates = bo.collect_candidates(path)
+    candidates = bo.collect_candidates(path, "es")
     assert candidates == {"el": {"el": 1}}
+
+
+def test_collect_candidates_inherits_canon(tmp_path):
+    """The mined lemma is canonicalized for lang (via iter_word_tokens), so
+    the override ships in the dict's key space -- the ar dead-key bug came
+    from doing this by hand. Here a vocalized ar gold lemma is folded."""
+    path = tmp_path / "train.conllu"
+    path.write_text("1\tب\tبِ\tADP\t_\t_\t0\troot\t_\t_\n\n", encoding="utf-8")
+    assert bo.collect_candidates(path, "ar") == {"ب": {"ب": 1}}  # بِ -> ب
 
 
 def test_collect_candidates_lowercases_sentence_initial_only(tmp_path):
@@ -36,7 +45,7 @@ def test_collect_candidates_lowercases_sentence_initial_only(tmp_path):
         ),
         encoding="utf-8",
     )
-    candidates = bo.collect_candidates(path)
+    candidates = bo.collect_candidates(path, "es")
     assert candidates == {"el": {"el": 1}, "El": {"el": 1}}
 
 
@@ -46,7 +55,7 @@ def test_collect_candidates_skips_underscore_lemma(tmp_path):
         _conllu([[(1, "x", "_", "PRON")]]),
         encoding="utf-8",
     )
-    assert bo.collect_candidates(path) == {}
+    assert bo.collect_candidates(path, "es") == {}
 
 
 def test_collect_candidates_skips_multiword_tokens(tmp_path):
@@ -58,7 +67,7 @@ def test_collect_candidates_skips_multiword_tokens(tmp_path):
         "2\tel\tel\tDET\t_\t_\t0\troot\t_\t_\n\n"
     )
     path.write_text(text, encoding="utf-8")
-    candidates = bo.collect_candidates(path)
+    candidates = bo.collect_candidates(path, "es")
     assert candidates == {"de": {"de": 1}, "el": {"el": 1}}
 
 

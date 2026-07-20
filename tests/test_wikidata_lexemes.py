@@ -238,9 +238,14 @@ def test_language_qids_are_distinct():
 
 
 def test_v2_fill_langs_is_the_reviewed_decision():
-    """Locks the ship decision: fr/it/tr held (regressions), nb un-gateable (no UD treebank)."""
+    """Locks the ship decision: fr/it/tr held (regressions), nb un-gateable
+    (no UD treebank). 2026-07-17 wave: nn PASS+shipped (+0.0025/+0.0074
+    no_nynorsk-ud-test); id/fa FAILED the gate (id = WD's meN-active lemma
+    convention vs shipped's root convention; fa = verb-stem ambiguity noise)
+    -- never added; se PASSED but +0.0000pp (already 115k entries/0.95 acc)
+    -- dropped by user call despite passing."""
     assert V2_FILL_LANGS <= set(wl.LANGUAGE_QIDS)  # only extractable langs
-    assert V2_FILL_LANGS.isdisjoint({"fr", "it", "tr"})
+    assert V2_FILL_LANGS.isdisjoint({"fr", "it", "tr", "id", "fa", "se"})
     assert V2_FILL_LANGS == {
         "cs",
         "da",
@@ -253,6 +258,7 @@ def test_v2_fill_langs_is_the_reviewed_decision():
         "la",
         "nb",
         "nl",
+        "nn",
         "pl",
         "pt",
         "ru",

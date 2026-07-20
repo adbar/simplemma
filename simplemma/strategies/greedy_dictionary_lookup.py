@@ -3,7 +3,7 @@ This module defines the `GreedyDictionaryLookupStrategy` class, which is a concr
 It provides lemmatization using a greedy dictionary lookup strategy.
 """
 
-from ..utils import levenshtein_dist
+from ..utils import canonicalize_token, levenshtein_dist
 from .dictionaries.dictionary_factory import (
     DEFAULT_DICTIONARY_FACTORY,
     DictionaryFactory,
@@ -63,6 +63,10 @@ class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
             str: The lemma for the token.
 
         """
+        # no-op for unregistered langs: matches DictionaryLookupStrategy's
+        # canonicalization, so a vocalized/accented token still resolves
+        # when this strategy is used standalone or reordered ahead of it.
+        token = canonicalize_token(token, lang)
         if len(token) <= greedy_min_length(lang):
             return token
 

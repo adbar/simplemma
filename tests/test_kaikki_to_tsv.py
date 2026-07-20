@@ -135,6 +135,37 @@ def test_extract_pairs_strips_stress_marks_from_relations():
     assert list(extract_pairs(entry)) == [("указ", "укази")]
 
 
+def test_extract_pairs_folds_grc_length_marks_keeping_accents():
+    """grc (lang_code in the allowlist): pedagogical vowel-length marks are
+    dropped from forms, but accents/breathings survive."""
+    entry = {
+        "lang_code": "grc",
+        "word": "σκύλος",  # lemma: normal orthography (acute), no length mark
+        "forms": [{"form": "σκῠλους"}],  # breve (U+1FE0) length mark on υ
+    }
+    assert list(extract_pairs(entry)) == [
+        ("σκύλος", "σκυλους")
+    ]  # breve gone, acute kept
+
+
+def test_extract_pairs_does_not_fold_length_marks_for_other_langs():
+    """Latvian macron is orthographic -- length folding must NOT touch non-allowlisted
+    langs, or garā -> gara would corrupt real words."""
+    entry = {"lang_code": "lv", "word": "garš", "forms": [{"form": "garā"}]}
+    assert list(extract_pairs(entry)) == [("garš", "garā")]  # macron preserved
+
+
+def test_extract_pairs_keeps_polytonic_greek_accents_from_nfd_input():
+    """NFD (decomposed) polytonic Greek must keep its accents: the stress-strip
+    targets only Cyrillic combining marks, not Greek/Latin precomposed accents."""
+    import unicodedata
+
+    word = unicodedata.normalize("NFD", "ἄνθρωπος")  # decomposed accents
+    form = unicodedata.normalize("NFD", "ἀνθρώπους")
+    entry = {"word": word, "forms": [{"form": form}]}
+    assert list(extract_pairs(entry)) == [("ἄνθρωπος", "ἀνθρώπους")]  # NFC, intact
+
+
 def test_extract_pairs_skips_romanization_forms():
     """A 'romanization' row transliterates the headword, it's not an inflected form."""
     entry = {

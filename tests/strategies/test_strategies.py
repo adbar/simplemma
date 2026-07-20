@@ -61,6 +61,9 @@ def test_search() -> None:
         )
         == "getestet"
     )
+    # canonicalize_token must apply here too, not just in DictionaryLookupStrategy,
+    # so a vocalized token resolves even when this strategy runs standalone.
+    assert GreedyDictionaryLookupStrategy().get_lemma("آذربايجانَ", "ar") == "أذربيجان"
 
     assert PrefixDecompositionStrategy().get_lemma("auf", "de") is None
 
@@ -76,7 +79,11 @@ def test_search() -> None:
         ("da", False, "drabsdagen", "drabsdag"),
         ("da", False, "menighedsrådsvalget", "menighedsrådsvalg"),
         ("nn", False, "pastasalaten", "pastasalat"),
-        ("nn", False, "underleverandørane", "underleverandør"),
+        # WD fill added standalone "ane" (a real nn verb), which wins this
+        # word's affix-only split; the full pipeline still resolves it
+        # correctly via dictionary_lookup (locked by
+        # test_lemmatizer.py::test_nn_fill_full_pipeline).
+        ("nn", False, "underleverandørane", "underleverandørane"),
         # es re-admitted on UD v2.18 (old es_gsd PROPN-convention artifact fixed)
         ("es", False, "microrregiones", "microrregión"),
         ("es", False, "estanquillas", "estanquilla"),
@@ -112,6 +119,27 @@ def test_affix_decomposition_guards() -> None:
     assert affix._suffix_decomposition("-changanya", "sw", 4) is not None
     assert affix.get_lemma("a" * 101, "fi") is None
     assert affix.get_lemma("a" * 100000, "fi") is None
+
+
+def test_clitic_decomposition_skips_diacritic_fold_for_canon_languages() -> None:
+    """strip_diacritics is a blind NFD combining-mark strip built for Romance
+    stress accents; for ar (a _CANON_TABLES language) it also decomposes
+    hamza letters, which can land on a real but UNRELATED dictionary entry.
+    A _CANON_TABLES language must skip that retry, not fire it."""
+
+    class F(DictionaryFactory):
+        def get_dictionary(self, lang: str) -> Mapping[str, str]:
+            # Only the hamza-decomposed form is a (deliberately unrelated)
+            # dict entry; the correctly-spelled stem itself is absent.
+            return {"مومن": "أيمن"}
+
+    clitic = CliticDecompositionStrategy(
+        dictionary_lookup=DictionaryLookupStrategy(dictionary_factory=F())
+    )
+    # "مؤمنه" ("مؤمن" + the "ه" enclitic) must NOT resolve to "أيمن" via the
+    # fold -- it must fail cleanly (None) since the correctly-spelled stem
+    # isn't a real dictionary entry here.
+    assert clitic.get_lemma("مؤمنه", "ar") is None
 
 
 def test_clitic_decomposition() -> None:
@@ -205,6 +233,22 @@ def test_clitic_decomposition_proclitic_guards() -> None:
     assert clitic.get_lemma("aujourd'hui", "fr") is None
 
 
+def test_clitic_decomposition_ar_enclitic_pronouns() -> None:
+    """Arabic possessive/object pronoun suffixes strip to the bare noun/verb
+    lemma, same drop-not-reattach shape as Romance enclitics. ك/ي are
+    deliberately NOT in CLITIC_LANGS["ar"] -- measured net-negative (collide
+    with native root-final letters/nisba endings), so "كتابك" must not strip."""
+    clitic = CliticDecompositionStrategy()
+    assert clitic.get_lemma("كتابه", "ar") == "كتاب"
+    assert clitic.get_lemma("كتابها", "ar") == "كتاب"
+    assert clitic.get_lemma("كتابهم", "ar") == "كتاب"
+    assert clitic.get_lemma("كتابك", "ar") is None  # ك excluded: no strip attempted
+    # MIN_STEM_LEN=4 (the shared default, no ar override needed): a 3-letter
+    # stem is rejected, matching every other enclitic language's floor.
+    assert clitic.get_lemma("بيته", "ar") is None  # "بيت" is under the stem floor
+    assert clitic.get_lemma("كِتَابُهُ", "ar") == "كتاب"  # vocalized: folded first
+
+
 def test_apostrophe_boundary() -> None:
     """Turkish marks a fixed proper-noun/suffix boundary with an
     apostrophe; the head is lemmatized via the full pipeline."""
@@ -242,6 +286,52 @@ def test_dictionary_lookup_apostrophe_variant() -> None:
     # Probe order preserved across variants: this glyph-mixed fi entry keeps
     # its straight-variant answer.
     assert lookup.get_lemma("Vaa'assa", "fi") == "vaaka"
+
+
+def test_dictionary_lookup_grc_accent_canon() -> None:
+    """grc: a positional-grave query resolves against an acute-keyed dict
+    (the form dictionary_builder ships); other languages are untouched."""
+
+    class F(DictionaryFactory):
+        def get_dictionary(self, lang: str) -> Mapping[str, str]:
+            return {"δέ": "δέ", "garā": "gara"}  # grc acute key; lv macron key
+
+    lookup = DictionaryLookupStrategy(dictionary_factory=F())
+    assert lookup.get_lemma("δὲ", "grc") == "δέ"  # grave query -> acute key
+    assert lookup.get_lemma("garā", "lv") == "gara"  # unrelated: no fold applied
+    assert lookup.is_dictionary_member("δὲ", "grc")
+    assert lookup.exact_lemma("δὲ", "grc") == "δέ"
+
+
+def test_dictionary_lookup_he_niqqud_canon() -> None:
+    """he: a pointed query resolves against an unpointed-keyed dict (the form
+    dictionary_builder ships); other languages are untouched."""
+
+    class F(DictionaryFactory):
+        def get_dictionary(self, lang: str) -> Mapping[str, str]:
+            return {"בית": "בית"}  # unpointed key
+
+    lookup = DictionaryLookupStrategy(dictionary_factory=F())
+    assert lookup.get_lemma("בַּיִת", "he") == "בית"  # pointed query -> unpointed key
+    assert lookup.get_lemma("בַּיִת", "ar") is None  # unrelated: no fold applied
+
+
+def test_prefix_decomposition_drops_particle_for_drop_prefix_langs() -> None:
+    """he (DROP_PREFIX_LANGS): the matched prefix is its own grammatical
+    particle, not part of the stem's lemma, so only the stem's lemma is
+    returned -- unlike de/ru/uk, where the prefix stays attached (see
+    test_prefixes_de/ru/uk)."""
+    import re
+
+    class F(DictionaryFactory):
+        def get_dictionary(self, lang: str) -> Mapping[str, str]:
+            return {"בית": "בית"}
+
+    strategy = PrefixDecompositionStrategy(
+        known_prefixes={"he": re.compile("^(ב)")},
+        dictionary_lookup=DictionaryLookupStrategy(dictionary_factory=F()),
+    )
+    assert strategy.get_lemma("בבית", "he") == "בית"  # prefix dropped, not "בבית"
 
 
 def test_dictionary_lookup_apostrophe_variant_recased() -> None:

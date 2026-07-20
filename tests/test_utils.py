@@ -7,6 +7,7 @@ import pytest
 from simplemma import is_known, lemmatize
 from simplemma.utils import (
     apostrophe_variants,
+    canonicalize_token,
     has_apostrophe,
     levenshtein_dist,
     normalize_apostrophes,
@@ -29,6 +30,37 @@ def test_strip_diacritics() -> None:
     assert strip_diacritics("café") == "cafe"
     assert strip_diacritics("señor") == "senor"
     assert strip_diacritics("plain") == "plain"
+
+
+def test_canonicalize_token() -> None:
+    # grc: positional grave -> citation acute (letters, breathing combos, iota subscript)
+    assert canonicalize_token("ἐγὼ καὶ δὲ", "grc") == "ἐγώ καί δέ"
+    assert canonicalize_token("ἀκούσας", "grc") == "ἀκούσας"  # already acute: no-op
+    # he: niqqud/cantillation points stripped (pedagogical, absent from running text)
+    assert canonicalize_token("וְהַבַּיִת", "he") == "והבית"
+    assert canonicalize_token("והבית", "he") == "והבית"  # already unpointed: no-op
+    # ar: tashkeel/dagger-alef/tatweel stripped (same pedagogical-vocalization
+    # mismatch); fa shares the script but must be UNAFFECTED (own table key)
+    assert canonicalize_token("كِتَابٌ", "ar") == "كتاب"
+    assert canonicalize_token("كِتَابٌ", "fa") == "كِتَابٌ"
+    # not extended to other languages -- lv macron is orthographic, not positional
+    assert canonicalize_token("garā", "lv") == "garā"
+    assert canonicalize_token("garā", "en") == "garā"
+    assert (
+        canonicalize_token("וְהַבַּיִת", "ar") == "וְהַבַּיִת"
+    )  # he table not applied elsewhere
+
+
+def test_canon_langs_disjoint_from_raw_token_strategies() -> None:
+    """Affix/rule strategies match the raw token, so canon langs must never
+    join AFFIX_LANGS/RULE_FUNCTIONS (see _CANON_TABLES)."""
+    from simplemma.strategies.affix_decomposition import AFFIX_LANGS
+    from simplemma.strategies.defaultrules import RULE_FUNCTIONS
+    from simplemma.utils import _CANON_TABLES
+
+    canon = set(_CANON_TABLES)
+    assert canon.isdisjoint(AFFIX_LANGS)
+    assert canon.isdisjoint(RULE_FUNCTIONS)
 
 
 def test_apostrophe_helpers() -> None:

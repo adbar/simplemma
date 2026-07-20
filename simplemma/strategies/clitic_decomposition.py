@@ -8,7 +8,12 @@ throughout (strip the clitic, verify the remaining stem, drop the
 clitic) -- only which end gets stripped differs.
 """
 
-from ..utils import normalize_apostrophes, strip_diacritics
+from ..utils import (
+    _CANON_TABLES,  # private, but this is a sibling module within simplemma/
+    canonicalize_token,
+    normalize_apostrophes,
+    strip_diacritics,
+)
 from .dictionary_lookup import DictionaryLookupStrategy
 from .lemmatization_strategy import LemmatizationStrategy
 
@@ -57,6 +62,10 @@ CLITIC_LANGS: dict[str, tuple[str, ...]] = {
     # English contractions/possessives; the stem lemma is single-valued even
     # for multi-valued "'s"/"'d". Irregulars won't/can't/shan't handled below.
     "en": ("n't", "'re", "'ve", "'ll", "'m", "'s", "'d"),
+    # Arabic possessive/object pronoun suffixes (UD-validated, +0.57pp).
+    # ك/ي EXCLUDED: they collide with native root-final letters/nisba
+    # endings and net WORSE accuracy despite more raw fixes.
+    "ar": ("هن", "هم", "ها", "ه", "كم", "نا"),
 }
 # English auxiliary stems (do/is/I...) are shorter than Romance verb stems.
 MIN_STEM_LEN_OVERRIDES = {"en": 1}
@@ -78,6 +87,7 @@ _CLITIC_SEPARATORS: dict[str, tuple[str, ...]] = {
     "it": ("",),
     "gl": ("-", ""),
     "en": ("",),
+    "ar": ("",),
 }
 # Precompute "separator + clitic" suffixes once, longest clitic first so a
 # short one can't shadow a longer one; clitic-major order = first-match order.
@@ -195,12 +205,20 @@ class CliticDecompositionStrategy(LemmatizationStrategy):
         Returns:
             str | None: The lemma of the token if found, or None otherwise.
         """
+        # fold before matching, like the other dict-matching strategies
+        token = canonicalize_token(token, lang)
         return self._enclitic_lemma(token, lang) or self._proclitic_lemma(token, lang)
 
     def _stem_lookup(self, stem: str, lang: str) -> str | None:
         lemma = self._dictionary_lookup.get_lemma(stem, lang)
         if lemma is not None:
             return lemma
+        # For a _CANON_TABLES language the lookup already applied the right
+        # fold; strip_diacritics (a blind NFD mark strip, built for Romance
+        # stress accents) would also decompose ar hamza letters
+        # (مؤمن -> مومن, an unrelated real word) and land on wrong entries.
+        if lang in _CANON_TABLES:
+            return None
         # Enclisis can add a stress accent (calificar+le -> calificándole);
         # retry folded, but only if folding changes the stem.
         folded = strip_diacritics(stem)
