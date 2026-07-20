@@ -6,6 +6,7 @@ It provides lemmatization using a combination of different strategies such as di
 from .affix_decomposition import AffixDecompositionStrategy
 from .apostrophe_boundary import ApostropheBoundaryStrategy
 from .clitic_decomposition import CliticDecompositionStrategy
+from .dictionaries import make_low_memory_factory
 from .dictionaries.dictionary_factory import (
     DEFAULT_DICTIONARY_FACTORY,
     DictionaryFactory,
@@ -38,17 +39,33 @@ class DefaultStrategy(LemmatizationStrategy):
     def __init__(
         self,
         greedy: bool = False,
-        dictionary_factory: DictionaryFactory = DEFAULT_DICTIONARY_FACTORY,
+        dictionary_factory: DictionaryFactory | None = None,
+        low_memory: bool = False,
     ):
         """
         Initialize the Default Strategy.
 
         Args:
             greedy (bool): Whether to use a greedy approach for dictionary lookup. Defaults to `False`.
-            dictionary_factory (DictionaryFactory): A factory for creating dictionaries.
-                Defaults to the shared [`DEFAULT_DICTIONARY_FACTORY`][simplemma.strategies.dictionaries.dictionary_factory.DEFAULT_DICTIONARY_FACTORY].
+            dictionary_factory (DictionaryFactory | None): A factory for creating dictionaries.
+                Defaults to the shared [`DEFAULT_DICTIONARY_FACTORY`][simplemma.strategies.dictionaries.dictionary_factory.DEFAULT_DICTIONARY_FACTORY],
+                or to [`make_low_memory_factory()`][simplemma.strategies.dictionaries.make_low_memory_factory] if `low_memory` is set.
+            low_memory (bool): Use the most memory-efficient available dictionary
+                backend. Not allowed together with `dictionary_factory`. Defaults to `False`.
+
+        Raises:
+            ValueError: If both `dictionary_factory` and `low_memory=True` are given.
 
         """
+        if dictionary_factory is None:
+            dictionary_factory = (
+                make_low_memory_factory() if low_memory else DEFAULT_DICTIONARY_FACTORY
+            )
+        elif low_memory:
+            raise ValueError(
+                "low_memory selects a dictionary_factory automatically; "
+                "pass one or the other, not both"
+            )
         self._dictionary_lookup = DictionaryLookupStrategy(dictionary_factory)
         self._hyphen_search = HyphenRemovalStrategy(self._dictionary_lookup)
         self._rules_search = RulesStrategy()

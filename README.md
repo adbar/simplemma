@@ -259,15 +259,40 @@ For more information see the
 ### Reducing memory usage
 
 Simplemma provides an alternative solution for situations where low
-memory usage and fast initialization time are more important than
-lemmatization and language detection performance. This solution uses a
-`DictionaryFactory` that employs a trie as its underlying data structure,
-rather than a Python dict.
+memory usage is more important than lemmatization and language
+detection performance. The quickest way to opt in is the `low_memory`
+flag, available on `lemmatize`, `text_lemmatizer`, `lemma_iterator`,
+`is_known`, `langdetect` and `in_target_language`:
 
-The `TrieDictionaryFactory` reduces memory usage by an average of
-20x and initialization time by 100x, but this comes at the cost of
-potentially reducing performance by 50% or more, depending on the
-specific usage.
+``` python
+>>> from simplemma import lemmatize
+>>> lemmatize('doughnuts', lang='en', low_memory=True)
+'doughnut'
+```
+
+This picks the most memory-efficient dictionary backend available:
+`TrieDictionaryFactory` (see below) if `marisa-trie` is installed,
+otherwise the stdlib-only `StreamDictionaryFactory`. For explicit
+control over which backend is used — including with `Lemmatizer` and
+`LanguageDetector` instances — build a strategy directly, as described
+in the rest of this section. `DefaultStrategy` also accepts the same
+`low_memory` flag, but not together with an explicit
+`dictionary_factory`:
+
+``` python
+>>> from simplemma import Lemmatizer
+>>> from simplemma.strategies import DefaultStrategy
+
+>>> strategy = DefaultStrategy(low_memory=True)
+>>> Lemmatizer(lemmatization_strategy=strategy).lemmatize('doughnuts', lang='en')
+'doughnut'
+```
+
+The `TrieDictionaryFactory` employs a trie as its underlying data
+structure, rather than a Python dict. It reduces memory usage by an
+average of 20x and initialization time by 100x, but this comes at the
+cost of potentially reducing performance by 50% or more, depending on
+the specific usage.
 
 To use the `TrieDictionaryFactory` you have to install Simplemma with
 the `marisa-trie` extra dependency (available from version 1.1.0):

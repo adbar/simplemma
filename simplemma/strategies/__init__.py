@@ -10,6 +10,7 @@ from .dictionaries import (
     DictionaryFactory,
     StreamDictionaryFactory,
     TrieDictionaryFactory,
+    make_low_memory_factory,
 )
 from .dictionary_lookup import DictionaryLookupStrategy
 from .fallback.lemmatization_fallback_strategy import LemmatizationFallbackStrategy
@@ -31,6 +32,7 @@ __all__ = [
     "DictionaryFactory",
     "StreamDictionaryFactory",
     "TrieDictionaryFactory",
+    "make_low_memory_factory",
     "DictionaryLookupStrategy",
     "LemmatizationFallbackStrategy",
     "RaiseErrorFallbackStrategy",
