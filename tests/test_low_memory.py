@@ -19,12 +19,16 @@ from simplemma.strategies import (
     TrieDictionaryFactory,
 )
 from simplemma.strategies.dictionaries import make_low_memory_factory
+from simplemma.strategies.dictionaries.trie_dictionary_factory import (
+    _TRIE_DEPS_AVAILABLE,
+)
 
 
 def _factory_of(strategy: DefaultStrategy) -> DictionaryFactory:
     return strategy._dictionary_lookup._dictionary_factory
 
 
+@pytest.mark.skipif(not _TRIE_DEPS_AVAILABLE, reason="marisa_trie not installed")
 def test_make_low_memory_factory_prefers_trie_when_available() -> None:
     assert isinstance(make_low_memory_factory(), TrieDictionaryFactory)
 

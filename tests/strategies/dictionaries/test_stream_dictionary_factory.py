@@ -81,7 +81,7 @@ def test_misses(lang: str) -> None:
     assert stream.get(absent) is None
     assert stream.get(absent, "fallback") == "fallback"
     with pytest.raises(KeyError):
-        stream[absent]
+        _ = stream[absent]
     assert (absent in stream) is False
 
 
@@ -121,3 +121,17 @@ def test_synthetic_block_boundaries(
     assert stream.get("aaaaaa") is None
     assert stream.get("zzzzzz") is None
     assert stream.get("word000000extra") is None
+
+
+def test_synthetic_literal_value(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # A key too long for its value to be suffix-coded forces the rare
+    # _LITERAL_VALUE branch (shipped dicts have no keys this long).
+    key = "a" * 300
+    reference = {key.encode(): b"lemma"}
+    (tmp_path / "tst.plzma").write_bytes(frontcode.encode(reference))
+    monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
+    stream = StreamMap("tst")
+
+    assert len(stream) == 1
+    assert list(stream) == [key]
+    assert stream.get(key) == "lemma"
