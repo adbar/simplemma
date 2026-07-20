@@ -4,10 +4,14 @@ Keys are sorted and front-coded (each stores only the bytes not shared with the
 previous key's prefix); values are suffix-edited against their own key. The flat
 stream compresses far better under lzma than a pickled dict. `decode`/`load` are
 the runtime path; `encode` runs at build time (training/dictionary_builder.py).
+
+`read_header`/`iter_records` expose the format at record granularity, resumable
+from any boundary via its (prev_key, prev_value) seed (for partial reads).
 """
 
 import lzma
 from typing import IO
+from collections.abc import Iterator
 
 MAGIC = b"SMFC1"
 _REVERSE_FLAG = 0x01
@@ -101,17 +105,57 @@ def encode(mapping: dict[bytes, bytes], reverse_key: bool = False) -> bytes:
     return lzma.compress(bytes(stream), preset=9 | lzma.PRESET_EXTREME)
 
 
-def decode_stream(data: bytes) -> dict[bytes, bytes]:
-    """Decode already-decompressed front-coded bytes.
-
-    Assumes a well-formed `encode` stream; truncation or trailing garbage raises
-    ValueError (trailing length check) or IndexError (truncated varint/trim)."""
+def read_header(data: bytes) -> tuple[bool, int, int]:
+    """Parse the magic/flag/count header. Returns (reverse_key, count, pos)
+    where pos is the byte offset of the first record."""
     if not is_frontcoded(data):
         raise ValueError("not a front-coded stream")
     pos = len(MAGIC)
     reverse_key = bool(data[pos] & _REVERSE_FLAG)
     pos += 1
     count, pos = _read_varint(data, pos)
+    return reverse_key, count, pos
+
+
+def iter_records(
+    data: bytes, pos: int, prev_key: bytes = b"", prev_value: bytes = b""
+) -> Iterator[tuple[int, bytes, bytes]]:
+    """Yield (record_start, stored_key, stored_value) from `pos` to the end of
+    `data`, resuming front-code decoding from the given seed. Keys/values are
+    in on-disk form: sorted, and not un-reversed for `reverse_key` streams.
+    """
+    while pos < len(data):
+        record_start = pos
+        shared, pos = _read_varint(data, pos)
+        suflen, pos = _read_varint(data, pos)
+        suffix = data[pos : pos + suflen]
+        pos += suflen
+        stored_key = prev_key[:shared] + suffix
+
+        trim = data[pos]
+        pos += 1
+        if trim == _SAME_AS_PREV:
+            stored_value = prev_value
+        elif trim == _LITERAL_VALUE:
+            vlen, pos = _read_varint(data, pos)
+            stored_value = data[pos : pos + vlen]
+            pos += vlen
+        else:
+            vlen, pos = _read_varint(data, pos)
+            value_suffix = data[pos : pos + vlen]
+            pos += vlen
+            stored_value = stored_key[: len(stored_key) - trim] + value_suffix
+
+        yield record_start, stored_key, stored_value
+        prev_key, prev_value = stored_key, stored_value
+
+
+def decode_stream(data: bytes) -> dict[bytes, bytes]:
+    """Decode already-decompressed front-coded bytes.
+
+    Assumes a well-formed `encode` stream; truncation or trailing garbage raises
+    ValueError (trailing length check) or IndexError (truncated varint/trim)."""
+    reverse_key, count, pos = read_header(data)
 
     result: dict[bytes, bytes] = {}
     prev_key = b""

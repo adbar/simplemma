@@ -34,11 +34,16 @@ DATA_FOLDER = Path(__file__).parent / "data"
 SUPPORTED_LANGUAGES = frozenset(f.stem for f in DATA_FOLDER.glob("*.plzma"))
 
 
+def _read_decompressed(langcode: str) -> bytes:
+    """Read and lzma-decompress the shipped `data/{langcode}.plzma` to its raw
+    front-coded byte stream (the single owner of the file path + codec)."""
+    with lzma.open(DATA_FOLDER / f"{langcode}.plzma", "rb") as filehandle:
+        return filehandle.read()
+
+
 def _load_dictionary_from_disk(langcode: str) -> dict[bytes, bytes]:
     """Load the shipped `data/{langcode}.plzma` as a bytes->bytes dict."""
-    filepath = DATA_FOLDER / f"{langcode}.plzma"
-    with lzma.open(filepath, "rb") as filehandle:
-        return frontcode.load(filehandle)
+    return frontcode.decode_stream(_read_decompressed(langcode))
 
 
 class DictionaryFactory(Protocol):

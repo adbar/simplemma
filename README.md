@@ -306,6 +306,25 @@ generate the trie dictionaries, they can also be generated on another
 computer with the same CPU architecture and copied over to the cache
 directory.
 
+If installing `marisa-trie` isn't an option, `StreamDictionaryFactory`
+offers a similar memory/speed trade-off using only the standard library.
+It reads the shipped dictionary files directly instead of loading them
+into a Python dict, at the cost of much slower lookups (measured on
+`de`: 46MB vs 180MB RSS, and roughly 4x slower lemmatization end-to-end
+through `Lemmatizer`'s cache; the gap is wider for one-off, uncached
+lookups). There's no on-disk cache to warm up, so throughput is
+consistent from the first call.
+
+``` python
+>>> from simplemma import Lemmatizer
+>>> from simplemma.strategies import DefaultStrategy
+>>> from simplemma.strategies.dictionaries import StreamDictionaryFactory
+
+>>> strategy = DefaultStrategy(dictionary_factory=StreamDictionaryFactory())
+>>> Lemmatizer(lemmatization_strategy=strategy).lemmatize('doughnuts', lang='en')
+'doughnut'
+```
+
 
 <!-- include:intro:end -->
 ## Supported languages

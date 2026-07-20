@@ -8,6 +8,7 @@ from .dictionaries import (
     DEFAULT_DICTIONARY_FACTORY,
     DefaultDictionaryFactory,
     DictionaryFactory,
+    StreamDictionaryFactory,
     TrieDictionaryFactory,
 )
 from .dictionary_lookup import DictionaryLookupStrategy
@@ -28,6 +29,7 @@ __all__ = [
     "DEFAULT_DICTIONARY_FACTORY",
     "DefaultDictionaryFactory",
     "DictionaryFactory",
+    "StreamDictionaryFactory",
     "TrieDictionaryFactory",
     "DictionaryLookupStrategy",
     "LemmatizationFallbackStrategy",
