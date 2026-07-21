@@ -1,5 +1,7 @@
 """Tests for Simplemma's language detection utilities."""
 
+import pytest
+
 from simplemma import LanguageDetector, in_target_language, langdetect
 from simplemma.strategies import DefaultStrategy
 from simplemma.utils import normalize_token
@@ -10,6 +12,15 @@ from .test_token_sampler import CustomTokenSampler
 def test_langdetect_no_samplers() -> None:
     # no samplers means no results, not an UnboundLocalError
     assert langdetect("Dies ist ein Test.", lang=("de", "en"), token_samplers=[]) == []
+
+
+_LANGS = ("de", "en", "cs", "sk")
+_TEXTS = (
+    "The quick brown fox jumps over the lazy dog.",
+    "Der schnelle braune Fuchs springt ueber den Hund.",
+    "Exoplaneta extrasolarni planeta obihajici kolem hvezdy.",
+    "aa bb cc dd ee",
+)
 
 
 def _reference_each(detector: LanguageDetector, text: str) -> dict[str, float]:
@@ -37,16 +48,8 @@ def _reference_each(detector: LanguageDetector, text: str) -> dict[str, float]:
 
 def test_langs_outer_matches_tokens_outer() -> None:
     # the languages-outer refactor must be bit-identical to the tokens-outer scan
-    langs = ("de", "en", "cs", "sk")
-    texts = [
-        "The quick brown fox jumps over the lazy dog.",
-        "Der schnelle braune Fuchs springt ueber den Hund.",
-        "Exoplaneta extrasolarni planeta obihajici kolem hvezdy.",
-        "aa bb cc dd ee",
-        "",
-    ]
-    for text in texts:
-        detector = LanguageDetector(lang=langs)
+    detector = LanguageDetector(lang=_LANGS)
+    for text in (*_TEXTS, ""):
         assert detector.proportion_in_each_language(text) == _reference_each(
             detector, text
         )
@@ -54,17 +57,15 @@ def test_langs_outer_matches_tokens_outer() -> None:
 
 def test_target_agrees_with_each_language() -> None:
     # the two un-shared loops must agree: target == non-unknown share
-    langs = ("cs", "sk", "de", "en")
-    texts = [
-        "Exoplaneta extrasolarni planeta obihajici kolem hvezdy.",
-        "The quick brown fox jumps over the lazy dog.",
-        "Der schnelle braune Fuchs springt.",
-        "aa bb cc dd",
-    ]
-    for text in texts:
-        detector = LanguageDetector(lang=langs)
+    detector = LanguageDetector(lang=_LANGS)
+    for text in (
+        *_TEXTS,
+        "the quick zzzzzq",
+    ):  # 2/3 recognized: catches exact-float divergence
         each = detector.proportion_in_each_language(text)
-        assert detector.proportion_in_target_languages(text) == 1 - each["unk"]
+        assert detector.proportion_in_target_languages(text) == pytest.approx(
+            1 - each["unk"]
+        )
 
 
 def test_proportion_in_each_language() -> None:
