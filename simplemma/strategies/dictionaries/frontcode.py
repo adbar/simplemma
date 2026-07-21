@@ -20,6 +20,10 @@ _REVERSE_FLAG = 0x01
 _SAME_AS_PREV = 254
 _LITERAL_VALUE = 255
 
+# Shared by decode_stream and StreamMap (which validate differently but report
+# the same failure); the tests match on it too.
+_CORRUPT_STREAM_MSG = "truncated or corrupt front-coded stream"
+
 
 def _write_varint(buf: bytearray, value: int) -> None:
     while True:
@@ -196,7 +200,7 @@ def decode_stream(data: bytes) -> dict[bytes, bytes]:
 
     # a truncated or trailing-garbage stream leaves pos != len(data)
     if pos != len(data):
-        raise ValueError("truncated or corrupt front-coded stream")
+        raise ValueError(_CORRUPT_STREAM_MSG)
     return result
 
 

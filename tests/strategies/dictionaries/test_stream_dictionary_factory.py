@@ -21,6 +21,15 @@ _reference = lru_cache(maxsize=None)(
 _stream = lru_cache(maxsize=None)(StreamMap)
 
 
+def _streammap_from_bytes(
+    blob: bytes, tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> StreamMap:
+    """Write a synthetic ``.plzma`` into a temp DATA_FOLDER and build its StreamMap."""
+    (tmp_path / "tst.plzma").write_bytes(blob)
+    monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
+    return StreamMap("tst")
+
+
 def test_exceptions() -> None:
     dictionary_factory = StreamDictionaryFactory()
     with pytest.raises(ValueError, match="Unsupported language"):
@@ -109,9 +118,9 @@ def test_synthetic_block_boundaries(
     reference = {
         f"word{i:06d}".encode(): f"lemma{i:06d}".encode() for i in range(count)
     }
-    (tmp_path / "tst.plzma").write_bytes(frontcode.encode(reference, reverse))
-    monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
-    stream = StreamMap("tst")
+    stream = _streammap_from_bytes(
+        frontcode.encode(reference, reverse), tmp_path, monkeypatch
+    )
 
     decoded = {k.decode(): v.decode() for k, v in reference.items()}
     assert len(stream) == count
@@ -131,16 +140,13 @@ def test_truncated_stream_raises(tmp_path, monkeypatch: pytest.MonkeyPatch) -> N
         f"word{i:04d}".encode(): f"lemma{i:04d}".encode()
         for i in range(2 * _BLOCK_SIZE)
     }
-    compressed = frontcode.encode(reference)
-    raw = lzma.decompress(compressed)
+    raw = lzma.decompress(frontcode.encode(reference))
     _, _, pos = frontcode.read_header(raw)
     starts = [start for start, _, _ in frontcode.iter_records(raw, pos)]
     truncated = raw[: starts[_BLOCK_SIZE]]
 
-    (tmp_path / "tst.plzma").write_bytes(lzma.compress(truncated))
-    monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
     with pytest.raises(ValueError, match="truncated or corrupt"):
-        StreamMap("tst")
+        _streammap_from_bytes(lzma.compress(truncated), tmp_path, monkeypatch)
 
 
 def test_trailing_garbage_raises(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -148,15 +154,12 @@ def test_trailing_garbage_raises(tmp_path, monkeypatch: pytest.MonkeyPatch) -> N
     # record count: decode_stream rejects this via its trailing-length check;
     # StreamMap's record loop must reject it via the same count mismatch.
     reference = {b"word0000": b"lemma0000", b"word0001": b"lemma0001"}
-    compressed = frontcode.encode(reference)
-    raw = lzma.decompress(compressed)
+    raw = lzma.decompress(frontcode.encode(reference))
     extra_record = bytes([0, 4]) + b"zzzz" + bytes([254])
     padded = raw + extra_record
 
-    (tmp_path / "tst.plzma").write_bytes(lzma.compress(padded))
-    monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
     with pytest.raises(ValueError, match="truncated or corrupt"):
-        StreamMap("tst")
+        _streammap_from_bytes(lzma.compress(padded), tmp_path, monkeypatch)
 
 
 def test_synthetic_literal_value(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -164,9 +167,7 @@ def test_synthetic_literal_value(tmp_path, monkeypatch: pytest.MonkeyPatch) -> N
     # _LITERAL_VALUE branch (shipped dicts have no keys this long).
     key = "a" * 300
     reference = {key.encode(): b"lemma"}
-    (tmp_path / "tst.plzma").write_bytes(frontcode.encode(reference))
-    monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
-    stream = StreamMap("tst")
+    stream = _streammap_from_bytes(frontcode.encode(reference), tmp_path, monkeypatch)
 
     assert len(stream) == 1
     assert list(stream) == [key]

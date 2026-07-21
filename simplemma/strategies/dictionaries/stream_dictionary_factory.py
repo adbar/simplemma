@@ -6,8 +6,8 @@ access needs restart points: one pass builds a sparse per-block seed index,
 then each lookup bisects to a block and decodes only its few records.
 
 Trades much lower RAM (several-fold, more for larger dicts) for slower lookups
-(~4x end-to-end through `Lemmatizer`'s cache): for memory-bound multi-language
-use, not throughput.
+(several-fold end-to-end through `Lemmatizer`'s cache, see README): for
+memory-bound multi-language use, not throughput.
 """
 
 from bisect import bisect_right
@@ -22,7 +22,7 @@ from .dictionary_factory import (
     _read_decompressed,
 )
 
-_BLOCK_SIZE = 64
+_BLOCK_SIZE = 32
 
 
 class StreamMap(DecodedStrMapping):
@@ -53,7 +53,7 @@ class StreamMap(DecodedStrMapping):
         # Mirrors decode_stream's trailing-length check: a truncated stream
         # yields too few records, a stream with trailing garbage too many.
         if n != self._count:
-            raise ValueError("truncated or corrupt front-coded stream")
+            raise ValueError(frontcode._CORRUPT_STREAM_MSG)
         self._firsts = firsts
         self._blocks = blocks
 
