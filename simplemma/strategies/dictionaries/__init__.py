@@ -1,5 +1,7 @@
 """Dictionary-based lemmatization strategy."""
 
+from functools import lru_cache
+
 from .dictionary_factory import (
     DEFAULT_DICTIONARY_FACTORY,
     DefaultDictionaryFactory,
@@ -20,6 +22,12 @@ def make_low_memory_factory() -> DictionaryFactory:
         return TrieDictionaryFactory()
     except ImportError:
         return StreamDictionaryFactory()
+
+
+# Process-wide default for the `low_memory=` flag, mirroring
+# DEFAULT_DICTIONARY_FACTORY: without this, each low_memory call site would
+# build its own backend and load its own copy of every language's dictionary.
+_shared_low_memory_factory = lru_cache(maxsize=None)(make_low_memory_factory)
 
 
 __all__ = [

@@ -41,6 +41,7 @@ class StreamMap(DecodedStrMapping):
         firsts: list[bytes] = []
         blocks: list[tuple[int, bytes, bytes]] = []
         prev_key, prev_value = b"", b""
+        n = 0
         for index, (record_start, stored_key, stored_value) in enumerate(
             frontcode.iter_records(self._data, self._pos)
         ):
@@ -48,6 +49,11 @@ class StreamMap(DecodedStrMapping):
                 firsts.append(stored_key)
                 blocks.append((record_start, prev_key, prev_value))
             prev_key, prev_value = stored_key, stored_value
+            n += 1
+        # Mirrors decode_stream's trailing-length check: a truncated stream
+        # yields too few records, a stream with trailing garbage too many.
+        if n != self._count:
+            raise ValueError("truncated or corrupt front-coded stream")
         self._firsts = firsts
         self._blocks = blocks
 

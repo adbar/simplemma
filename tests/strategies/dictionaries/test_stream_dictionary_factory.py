@@ -1,3 +1,4 @@
+import lzma
 from functools import lru_cache
 
 import pytest
@@ -121,6 +122,41 @@ def test_synthetic_block_boundaries(
     assert stream.get("aaaaaa") is None
     assert stream.get("zzzzzz") is None
     assert stream.get("word000000extra") is None
+
+
+def test_truncated_stream_raises(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Cut the stream at a record boundary, short of the header's record count:
+    # DefaultDictionaryFactory's decode_stream rejects this, StreamMap must too.
+    reference = {
+        f"word{i:04d}".encode(): f"lemma{i:04d}".encode()
+        for i in range(2 * _BLOCK_SIZE)
+    }
+    compressed = frontcode.encode(reference)
+    raw = lzma.decompress(compressed)
+    _, _, pos = frontcode.read_header(raw)
+    starts = [start for start, _, _ in frontcode.iter_records(raw, pos)]
+    truncated = raw[: starts[_BLOCK_SIZE]]
+
+    (tmp_path / "tst.plzma").write_bytes(lzma.compress(truncated))
+    monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
+    with pytest.raises(ValueError, match="truncated or corrupt"):
+        StreamMap("tst")
+
+
+def test_trailing_garbage_raises(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Append an extra, individually well-formed record beyond the header's
+    # record count: decode_stream rejects this via its trailing-length check;
+    # StreamMap's record loop must reject it via the same count mismatch.
+    reference = {b"word0000": b"lemma0000", b"word0001": b"lemma0001"}
+    compressed = frontcode.encode(reference)
+    raw = lzma.decompress(compressed)
+    extra_record = bytes([0, 4]) + b"zzzz" + bytes([254])
+    padded = raw + extra_record
+
+    (tmp_path / "tst.plzma").write_bytes(lzma.compress(padded))
+    monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
+    with pytest.raises(ValueError, match="truncated or corrupt"):
+        StreamMap("tst")
 
 
 def test_synthetic_literal_value(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:

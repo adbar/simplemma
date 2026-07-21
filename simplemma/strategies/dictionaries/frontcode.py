@@ -123,6 +123,9 @@ def iter_records(
     """Yield (record_start, stored_key, stored_value) from `pos` to the end of
     `data`, resuming front-code decoding from the given seed. Keys/values are
     in on-disk form: sorted, and not un-reversed for `reverse_key` streams.
+
+    The per-record decode logic here is duplicated (not called) by
+    `decode_stream` for speed on the hot startup path — keep both in sync.
     """
     while pos < len(data):
         record_start = pos
@@ -154,7 +157,10 @@ def decode_stream(data: bytes) -> dict[bytes, bytes]:
     """Decode already-decompressed front-coded bytes.
 
     Assumes a well-formed `encode` stream; truncation or trailing garbage raises
-    ValueError (trailing length check) or IndexError (truncated varint/trim)."""
+    ValueError (trailing length check) or IndexError (truncated varint/trim).
+
+    The per-record loop below inlines `iter_records` instead of calling it —
+    measured 5-9% faster on shipped dictionaries. Keep both in sync."""
     reverse_key, count, pos = read_header(data)
 
     result: dict[bytes, bytes] = {}

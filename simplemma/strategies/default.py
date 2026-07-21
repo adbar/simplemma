@@ -6,7 +6,7 @@ It provides lemmatization using a combination of different strategies such as di
 from .affix_decomposition import AffixDecompositionStrategy
 from .apostrophe_boundary import ApostropheBoundaryStrategy
 from .clitic_decomposition import CliticDecompositionStrategy
-from .dictionaries import make_low_memory_factory
+from .dictionaries import _shared_low_memory_factory
 from .dictionaries.dictionary_factory import (
     DEFAULT_DICTIONARY_FACTORY,
     DictionaryFactory,
@@ -59,7 +59,9 @@ class DefaultStrategy(LemmatizationStrategy):
         """
         if dictionary_factory is None:
             dictionary_factory = (
-                make_low_memory_factory() if low_memory else DEFAULT_DICTIONARY_FACTORY
+                _shared_low_memory_factory()
+                if low_memory
+                else DEFAULT_DICTIONARY_FACTORY
             )
         elif low_memory:
             raise ValueError(

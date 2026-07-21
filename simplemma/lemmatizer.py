@@ -21,8 +21,8 @@ from .strategies import (
     LemmatizationFallbackStrategy,
     LemmatizationStrategy,
     ToLowercaseFallbackStrategy,
-    make_low_memory_factory,
 )
+from .strategies.dictionaries import _shared_low_memory_factory
 from .tokenizer import RegexTokenizer, Tokenizer
 from .utils import normalize_token, validate_lang_input
 
@@ -172,7 +172,7 @@ def _legacy_lemmatizer_for(greedy: bool, low_memory: bool) -> Lemmatizer:
 @lru_cache(maxsize=None)
 def _legacy_dictionary_lookup_for(low_memory: bool) -> DictionaryLookupStrategy:
     dictionary_factory = (
-        make_low_memory_factory() if low_memory else DEFAULT_DICTIONARY_FACTORY
+        _shared_low_memory_factory() if low_memory else DEFAULT_DICTIONARY_FACTORY
     )
     return DictionaryLookupStrategy(dictionary_factory)
 

@@ -22,6 +22,13 @@ History
   (#177)
 - Lower memory footprint: all strategies share one process-wide default
   dictionary factory, so the dictionaries are cached once per process
+- New ``low_memory`` flag on ``lemmatize``, ``text_lemmatizer``,
+  ``lemma_iterator``, ``is_known``, ``langdetect``, ``in_target_language``
+  and ``DefaultStrategy`` to opt into the most memory-efficient available
+  backend (``TrieDictionaryFactory`` if ``marisa-trie`` is installed,
+  otherwise the new zero-dependency ``StreamDictionaryFactory``)
+- New ``StreamDictionaryFactory``: a stdlib-only low-memory backend that reads
+  the shipped dictionaries directly instead of loading them into a dict
 - Rebuilt training pipeline: layered dictionary builds (word-list base +
   Wikidata fill + reviewed overrides) gated by cross-treebank evaluation
 

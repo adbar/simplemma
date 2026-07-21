@@ -62,6 +62,19 @@ def test_low_memory_actually_switches_backend() -> None:
     )
 
 
+def test_low_memory_backend_is_shared_across_entry_points() -> None:
+    # Each low_memory entry point must resolve to the same backend instance,
+    # not build its own copy of every language's dictionary.
+    factories = [
+        _factory_of(DefaultStrategy(low_memory=True)),
+        _factory_of(_legacy_lemmatizer_for(False, True)._lemmatization_strategy),  # type: ignore[arg-type]
+        _factory_of(_legacy_lemmatizer_for(True, True)._lemmatization_strategy),  # type: ignore[arg-type]
+        _factory_of(_default_strategy_for(False, low_memory=True)),
+        _legacy_dictionary_lookup_for(True)._dictionary_factory,
+    ]
+    assert len({id(factory) for factory in factories}) == 1
+
+
 def test_default_strategy_low_memory_matches_default() -> None:
     default = DefaultStrategy()
     low_memory = DefaultStrategy(low_memory=True)
