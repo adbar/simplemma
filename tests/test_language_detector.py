@@ -52,15 +52,19 @@ def test_langs_outer_matches_tokens_outer() -> None:
         )
 
 
-def test_proportion_in_each_language_sampler_override() -> None:
-    # passing a sampler keeps the call stateless: the instance is never mutated
-    detector = LanguageDetector(lang=("cs", "en"))
-    original_sampler = detector._token_sampler
-    text = '"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.'
-    assert detector.proportion_in_each_language(
-        text, token_sampler=CustomTokenSampler(6)
-    ) == {"en": 1.0, "cs": 0.0, "unk": 0.0}
-    assert detector._token_sampler is original_sampler
+def test_target_agrees_with_each_language() -> None:
+    # the two un-shared loops must agree: target == non-unknown share
+    langs = ("cs", "sk", "de", "en")
+    texts = [
+        "Exoplaneta extrasolarni planeta obihajici kolem hvezdy.",
+        "The quick brown fox jumps over the lazy dog.",
+        "Der schnelle braune Fuchs springt.",
+        "aa bb cc dd",
+    ]
+    for text in texts:
+        detector = LanguageDetector(lang=langs)
+        each = detector.proportion_in_each_language(text)
+        assert detector.proportion_in_target_languages(text) == 1 - each["unk"]
 
 
 def test_proportion_in_each_language() -> None:

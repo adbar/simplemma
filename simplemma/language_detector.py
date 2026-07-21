@@ -22,7 +22,7 @@ def in_target_language(
     text: str,
     lang: str | tuple[str, ...],
     greedy: bool = False,
-    token_sampler: TokenSampler | None = None,
+    token_sampler: TokenSampler = MostCommonTokenSampler(),
 ) -> float:
     """
     Calculate the proportion of text in the target language(s).
@@ -37,9 +37,6 @@ def in_target_language(
     Returns:
         float: The proportion of text in the target language(s).
     """
-    if token_sampler is None:
-        token_sampler = MostCommonTokenSampler()
-
     return LanguageDetector(
         lang, token_sampler, DefaultStrategy(greedy)
     ).proportion_in_target_languages(text)
@@ -136,33 +133,46 @@ class LanguageDetector:
     def proportion_in_each_language(
         self,
         text: str,
-        token_sampler: TokenSampler | None = None,
     ) -> dict[str, float]:
         """
         Calculate the proportion of each language in the given text.
 
         Args:
             text (str): The input text to analyze.
-            token_sampler (TokenSampler, optional): Override the instance's token
-                sampler for this call. Passing it keeps the call stateless, so a
-                shared detector is safe to use concurrently. Defaults to the
-                instance's sampler.
 
         Returns:
             dict[str, float]: A dictionary containing the detected languages and
                 their respective proportions.
         """
-        tokens = (token_sampler or self._token_sampler).sample_text(text)
+        return self._proportion_in_each_language(text, self._token_sampler)
+
+    def _proportion_in_each_language(
+        self,
+        text: str,
+        token_sampler: TokenSampler,
+    ) -> dict[str, float]:
+        """Per-language proportions for a given sampler.
+
+        Sampler is an arg (not self's) so the call stays stateless for
+        ``main_language``. Loops languages-outer to load each dictionary once
+        instead of thrashing the cache per token.
+        """
+        tokens = [normalize_token(token) for token in token_sampler.sample_text(text)]
 
         total_tokens = len(tokens)
         if total_tokens == 0:
             return {"unk": 1}
 
-        known_tokens_count, found_any = self._count_known_tokens(tokens)
-        results: dict[str, float] = {
-            lang_code: token_count / total_tokens
-            for (lang_code, token_count) in known_tokens_count.items()
-        }
+        results: dict[str, float] = {}
+        found_any = [False] * total_tokens
+        for lang_code in self._lang:
+            count = 0
+            for index, token in enumerate(tokens):
+                if self._lemmatization_strategy.get_lemma(token, lang_code) is not None:
+                    count += 1
+                    found_any[index] = True
+            results[lang_code] = count / total_tokens
+
         results["unk"] = found_any.count(False) / total_tokens
         return results
 
@@ -183,35 +193,15 @@ class LanguageDetector:
         if len(tokens) == 0:
             return 0
 
-        _, found_any = self._count_known_tokens(tokens)
-        return found_any.count(True) / len(tokens)
-
-    def _count_known_tokens(
-        self, tokens: list[str]
-    ) -> tuple[dict[str, int], list[bool]]:
-        """Count how many sampled tokens each language recognizes.
-
-        Loops languages-outer so each language's dictionary is loaded once and
-        reused across every token, instead of being reloaded per token when the
-        candidate count exceeds the dictionary cache. Results are identical to a
-        tokens-outer scan.
-
-        Returns:
-            A per-language count of recognized tokens, plus a parallel list
-            flagging each token recognized by at least one language (used for the
-            unknown tally and the target-language proportion).
-        """
-        tokens = [normalize_token(token) for token in tokens]
-        known_tokens_count: dict[str, int] = {}
-        found_any = [False] * len(tokens)
-        for lang_code in self._lang:
-            count = 0
-            for index, token in enumerate(tokens):
+        # only "recognized by any language" matters, so break on first match
+        in_target = 0
+        for token in tokens:
+            token = normalize_token(token)
+            for lang_code in self._lang:
                 if self._lemmatization_strategy.get_lemma(token, lang_code) is not None:
-                    count += 1
-                    found_any[index] = True
-            known_tokens_count[lang_code] = count
-        return known_tokens_count, found_any
+                    in_target += 1
+                    break
+        return in_target / len(tokens)
 
     def main_language(
         self,
@@ -234,7 +224,7 @@ class LanguageDetector:
 
         for token_sampler in [self._token_sampler, *additional_token_samplers]:
             list_results = _as_list(
-                self.proportion_in_each_language(text, token_sampler)
+                self._proportion_in_each_language(text, token_sampler)
             )
             if len(list_results) > 1 and list_results[0][1] != list_results[1][1]:
                 return list_results[0][0]
