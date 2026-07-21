@@ -36,6 +36,15 @@ def test_exceptions() -> None:
         dictionary_factory.get_dictionary("abc")
 
 
+@pytest.mark.parametrize("lang", ["../secrets", "/etc/passwd", "sub/de", ""])
+def test_streammap_rejects_path_traversal(lang: str) -> None:
+    # StreamMap reads the file itself, so the traversal guard must live at the
+    # sink (not only in the factory's SUPPORTED_LANGUAGES check, which a direct
+    # StreamMap() bypasses).
+    with pytest.raises(ValueError, match="Invalid language code"):
+        StreamMap(lang)
+
+
 def test_dictionary_lru_cache() -> None:
     iterations = 10
     dictionaries = StreamDictionaryFactory()

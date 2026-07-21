@@ -37,6 +37,11 @@ SUPPORTED_LANGUAGES = frozenset(f.stem for f in DATA_FOLDER.glob("*.plzma"))
 def _read_decompressed(langcode: str) -> bytes:
     """Read and lzma-decompress the shipped `data/{langcode}.plzma` to its raw
     front-coded byte stream (the single owner of the file path + codec)."""
+    # Path-traversal guard at the sink: langcode must be a bare filename
+    # component so the read can never escape DATA_FOLDER. Callers reaching
+    # here may not have checked SUPPORTED_LANGUAGES (e.g. a direct StreamMap()).
+    if not langcode or Path(langcode).name != langcode:
+        raise ValueError(f"Invalid language code: {langcode!r}")
     with lzma.open(DATA_FOLDER / f"{langcode}.plzma", "rb") as filehandle:
         return filehandle.read()
 
