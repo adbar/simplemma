@@ -324,6 +324,25 @@ def test_drop_junk_keys_noop_for_other_langs() -> None:
     assert dictionary_builder._drop_junk_keys(d, "ga") == d
 
 
+def test_drop_junk_keys_tl_baybayin() -> None:
+    """tl: Baybayin-script keys (alt_of leaks) are dropped key-side --
+    including the handful whose VALUES are also Baybayin, which a foreign-
+    script (value-checking) test would miss. Latin entries untouched."""
+    result = dictionary_builder._drop_junk_keys(
+        {"ᜀᜀᜃᜓᜀ": "akuin", "ᜇ": "ᜇ", "akuin": "akuin"}, "tl"
+    )
+    assert result == {"akuin": "akuin"}
+
+
+def test_drop_junk_keys_he_latin_transliterations() -> None:
+    """he: a Latin key resolving to a Hebrew value is transliteration noise;
+    Hebrew keys (and non-alphabetic keys) are untouched."""
+    result = dictionary_builder._drop_junk_keys(
+        {"Slitherin": "סלית׳רין", "בית": "בית", "3": "3"}, "he"
+    )
+    assert result == {"בית": "בית", "3": "3"}
+
+
 def test_is_foreign_script_key_ipa_and_romanization_rows() -> None:
     """ar IPA transcription and grc Beta-code romanization: the key is
     entirely outside the allowed script, the value is inside it -- drop."""

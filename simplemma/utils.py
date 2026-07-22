@@ -7,6 +7,7 @@ Contains utility functions for language processing.
 - [normalize_token][simplemma.utils.normalize_token]: Normalizes a token to Unicode NFC form.
 - [strip_diacritics][simplemma.utils.strip_diacritics]: Removes combining diacritics from a token.
 - [canonicalize_token][simplemma.utils.canonicalize_token]: Per-language dictionary-matching canonicalization (grc grave->acute, he/ar vocalization-stripping).
+- [CANON_LANGS][simplemma.utils.CANON_LANGS]: Languages canonicalize_token folds (public membership view of _CANON_TABLES).
 """
 
 import unicodedata
@@ -97,6 +98,10 @@ _CANON_TABLES: dict[str, Mapping[int, int | None]] = {
     "he": _HEBREW_POINTS,
     "ar": _ARABIC_MARKS,
 }
+
+# Public membership view of _CANON_TABLES, for callers that only need to ask
+# "is this language canonicalized?" without importing the private tables dict.
+CANON_LANGS: frozenset[str] = frozenset(_CANON_TABLES)
 
 
 def canonicalize_token(token: str, lang: str) -> str:

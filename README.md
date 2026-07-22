@@ -380,7 +380,7 @@ morphology rather than a data error.
 | `sq` | Albanian | 96 | 10 | 0.72 | on UD SQ-STAF |
 | `sv` | Swedish | 871 | 114 | 0.91 | on UD SV-Talbanken, alternative: [lemmy](https://github.com/sorenlind/lemmy) |
 | `sw` | Swahili | 4,869 | 4 |  | experimental |
-| `tl` | Tagalog | 39 | 8 | 0.67 | on UD TL-Ugnayan, experimental |
+| `tl` | Tagalog | 71 | 18 | 0.80 | on UD TL-TRG, experimental |
 | `tr` | Turkish | 1,236 | 40 | 0.91 | on UD TR-KeNet |
 | `uk` | Ukrainian | 502 | 35 | 0.90 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
 

@@ -398,6 +398,16 @@ _JUNK_ENTRY_PREDICATES: dict[str, Callable[[str, str], bool]] = {
     # Rumi citation lemma, 3,301 shipped entries, KEPT) -- but a Latin/Rumi
     # key must never resolve to a Jawi value (446 shipped entries did).
     "ms": lambda k, v: _is_foreign_script_key(k, v, frozenset({"ARABIC"})),
+    # tl: Baybayin-script keys (via Wiktionary alt_of relations from Baybayin
+    # headword pages -- the Baybayin FORMS-tag drop in kaikki_to_tsv doesn't
+    # cover this path). Unlike ms's Jawi, Baybayin has no modern running-text
+    # use, so the keys are dead weight (3,909 shipped entries, 5.4%).
+    # Key-side check, not _is_foreign_script_key: 5 entries carry Baybayin
+    # VALUES too and must also go.
+    "tl": lambda k, v: "TAGALOG" in _script_classes(k),
+    # he: Latin-script keys resolving to Hebrew values (transliterated proper
+    # nouns, Latin abbreviations) -- Hebrew running text is Hebrew script.
+    "he": lambda k, v: _is_foreign_script_key(k, v, frozenset({"HEBREW"})),
 }
 
 

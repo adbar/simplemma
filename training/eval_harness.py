@@ -16,6 +16,9 @@ from typing import Any
 
 from conllu import parse_incr
 
+import simplemma.strategies.clitic_decomposition as clitic_decomposition
+import simplemma.strategies.defaultprefixes as defaultprefixes
+import simplemma.utils as simplemma_utils
 from simplemma.strategies import DefaultStrategy, DictionaryFactory
 from simplemma.strategies.dictionaries.dictionary_factory import MappingStrToByteString
 from training.ud_conllu import (  # _strip_mwt_artifact: private, sibling module
@@ -40,19 +43,13 @@ class FixedDictionaryFactory(DictionaryFactory):
         return self._wrapped
 
 
-def _iter_gold_tokens(test_path: Path, lang: str) -> Iterator[tuple[str, str]]:
-    """(form, gold_lemma) for a test treebank. The gold lemma is already
-    canonicalized for `lang` by iter_word_tokens (a no-op outside
-    _CANON_TABLES): e.g. PADT's vocalized gold is compared in the dict's own
-    unvocalized key space."""
-    for form, token in iter_word_tokens(test_path, lang):
-        yield form, token["lemma"]
-
-
 def load_gold_tokens(test_path: Path, lang: str) -> list[tuple[str, str]]:
-    """Materialize a treebank's gold tokens once, so multiple strategies can
-    be scored without re-parsing the conllu file per call."""
-    return list(_iter_gold_tokens(test_path, lang))
+    """Materialize a treebank's (form, gold_lemma) pairs once, so multiple
+    strategies can be scored without re-parsing the conllu file per call. The
+    gold lemma is already canonicalized for `lang` by iter_word_tokens (a
+    no-op outside _CANON_TABLES): e.g. PADT's vocalized gold is compared in
+    the dict's own unvocalized key space."""
+    return [(form, token["lemma"]) for form, token in iter_word_tokens(test_path, lang)]
 
 
 def iter_real_word_tokens(test_path: Path, lang: str) -> Iterator[tuple[str, str]]:
@@ -99,40 +96,29 @@ def build_strategy(mapping: dict[str, str]) -> DefaultStrategy:
     return DefaultStrategy(dictionary_factory=FixedDictionaryFactory(mapping))
 
 
-def _mechanism_target(mechanism: str) -> dict[Any, Any]:
-    """The dict the RUNTIME actually reads for `mechanism` -- NOT the source of
-    truth a derived structure shadows. This is the one hard fact a held-out
-    A/B must get right; getting it wrong gives a silent false +0.00pp, which
-    happened TWICE this arc:
+@contextmanager
+def mechanism_disabled(mechanism: str, lang: str) -> Iterator[None]:
+    """Temporarily remove `lang` from one lemmatization mechanism (prefix /
+    clitic / canon) for a held-out A/B, restoring on exit. Mutates the dict
+    the RUNTIME actually reads for `mechanism` -- NOT a source of truth a
+    derived structure shadows. Getting that target wrong gives a silent
+    false +0.00pp, which happened TWICE this arc:
       - "prefix": DEFAULT_KNOWN_PREFIXES is bound once as PrefixDecomposition's
         default arg, so reassigning the module name is invisible -- must mutate
         this object in place.
       - "clitic": CLITIC_LANGS is the source, but the lookup reads the
         precomputed _CLITIC_SUFFIXES cache -- mutating CLITIC_LANGS never
         touches it.
-    """
-    import simplemma.strategies.clitic_decomposition as clitic
-    import simplemma.strategies.defaultprefixes as prefixes
-    import simplemma.utils as utils
-
+    RAISES if `lang` isn't in the target -- a disable that changes nothing
+    would silently measure the same config twice (the false-+0.00pp trap)."""
     targets: dict[str, dict[Any, Any]] = {
-        "prefix": prefixes.DEFAULT_KNOWN_PREFIXES,
-        "clitic": clitic._CLITIC_SUFFIXES,
-        "canon": utils._CANON_TABLES,
+        "prefix": defaultprefixes.DEFAULT_KNOWN_PREFIXES,
+        "clitic": clitic_decomposition._CLITIC_SUFFIXES,
+        "canon": simplemma_utils._CANON_TABLES,
     }
     if mechanism not in targets:
         raise ValueError(f"unknown mechanism {mechanism!r}, expected {sorted(targets)}")
-    return targets[mechanism]
-
-
-@contextmanager
-def mechanism_disabled(mechanism: str, lang: str) -> Iterator[None]:
-    """Temporarily remove `lang` from one lemmatization mechanism (prefix /
-    clitic / canon) for a held-out A/B, restoring on exit. Mutates the object
-    the runtime reads (see `_mechanism_target`), and RAISES if `lang` isn't
-    there -- a disable that changes nothing would silently measure the same
-    config twice (the false-+0.00pp trap)."""
-    target = _mechanism_target(mechanism)
+    target = targets[mechanism]
     if lang not in target:
         raise KeyError(
             f"{lang!r} not in the {mechanism!r} table -- nothing to disable "

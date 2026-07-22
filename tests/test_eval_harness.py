@@ -231,6 +231,26 @@ def test_mechanism_disabled_prefix_targets_the_bound_default(tmp_path):
     )
 
 
+def test_mechanism_disabled_canon_targets_the_fold_table(tmp_path):
+    """The third target: canonicalize_token reads _CANON_TABLES directly (no
+    derived cache), but it's still worth a held-out A/B check like the other
+    two mechanisms."""
+    lem = Lemmatizer(lemmatization_strategy=DefaultStrategy())
+    # baseline: vocalized ar folds to the unvocalized dict entry
+    assert lem.lemmatize("بِيت", lang="ar") == "بيت"
+    with mechanism_disabled("canon", "ar"):
+        assert (
+            Lemmatizer(lemmatization_strategy=DefaultStrategy()).lemmatize(
+                "بِيت", lang="ar"
+            )
+            != "بيت"
+        )
+    assert (
+        Lemmatizer(lemmatization_strategy=DefaultStrategy()).lemmatize("بِيت", lang="ar")
+        == "بيت"
+    )
+
+
 def test_mechanism_disabled_raises_on_noop_disable():
     """Disabling a lang absent from the table would silently measure the same
     config twice -- it must raise instead."""

@@ -1,14 +1,13 @@
-from collections.abc import Mapping
-
 import pytest
 from conllu import parse
 
 from simplemma import Lemmatizer
-from simplemma.strategies import DictionaryFactory
 from simplemma.strategies.default import DefaultStrategy
 from simplemma.strategies.dictionaries import DefaultDictionaryFactory
 from training import evaluate_simplemma
 from training.evaluate_simplemma import evaluate_dataset
+
+from .conftest import FixedMapping
 
 # base-form tokens (form == lemma): tests the counting logic, not accuracy
 CONLLU = (
@@ -72,12 +71,9 @@ def test_evaluate_dataset_canonicalizes_ar_gold_lemma():
     forms, so the gold lemma must be canonicalized before comparison or
     every ar content lemma mismatches."""
 
-    class F(DictionaryFactory):
-        def get_dictionary(self, lang: str) -> Mapping[str, str]:
-            return {"كتاب": "كتاب"}  # unvocalized key/value
-
+    mapping = {"كتاب": "كتاب"}  # unvocalized key/value
     lemmatizer = Lemmatizer(
-        lemmatization_strategy=DefaultStrategy(dictionary_factory=F())
+        lemmatization_strategy=DefaultStrategy(dictionary_factory=FixedMapping(mapping))
     )
     conllu = "1\tكتاب\tكِتَاب\tNOUN\t_\t_\t0\troot\t_\t_\n\n"  # vocalized gold
     overall, _, errors = evaluate_dataset(parse(conllu), lemmatizer, lemmatizer, "ar")

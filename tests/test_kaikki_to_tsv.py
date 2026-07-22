@@ -117,11 +117,52 @@ def test_extract_pairs_skips_placeholder_form():
     entry = {
         "word": "gratis",
         "forms": [
-            {"form": "-", "tags": ["definite", "error-unrecognized-form"]},
-            {"form": "gratis", "tags": ["error-unrecognized-form"]},
+            {"form": "-", "tags": ["definite", "some-other-tag"]},
+            {"form": "gratis"},
         ],
     }
     assert list(extract_pairs(entry)) == [("gratis", "gratis")]
+
+
+def test_extract_pairs_skips_error_unrecognized_form_for_tagalog():
+    """kaikki tags unparsed inflection-template cells (root, bare affix, trigger
+    labels) as 'error-unrecognized-form' on Tagalog verb pages -- never a
+    verified inflection there. Scoped to tl: see the next test."""
+    entry = {
+        "lang_code": "tl",
+        "word": "akuin",
+        "forms": [
+            {"form": "ako", "tags": ["error-unrecognized-form"]},
+            {"form": "-in", "tags": ["error-unrecognized-form"]},
+            {"form": "actor", "tags": ["error-unrecognized-form"]},
+            {"form": "inako", "tags": ["completive"]},
+        ],
+    }
+    assert list(extract_pairs(entry)) == [("akuin", "inako")]
+
+
+def test_extract_pairs_keeps_error_unrecognized_form_for_other_langs():
+    """The tag is NOT a reliable junk signal outside Tagalog -- a 27-lang audit
+    found it co-occurring with real inflections (e.g. Welsh mutation, Irish
+    prothesis, Galician participles), so it must not be dropped globally."""
+    entry = {
+        "lang_code": "cy",
+        "word": "brown",
+        "forms": [{"form": "mrown", "tags": ["error-unrecognized-form"]}],
+    }
+    assert list(extract_pairs(entry)) == [("brown", "mrown")]
+
+
+def test_extract_pairs_skips_baybayin_forms():
+    """A 'Baybayin' row is a script-variant display of the headword, not a form."""
+    entry = {
+        "word": "akuin",
+        "forms": [
+            {"form": "ᜀᜃᜓᜁᜈ᜔", "tags": ["Baybayin"]},
+            {"form": "inako", "tags": ["completive"]},
+        ],
+    }
+    assert list(extract_pairs(entry)) == [("akuin", "inako")]
 
 
 def test_extract_pairs_strips_stress_marks_from_forms():
