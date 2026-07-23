@@ -38,7 +38,7 @@ class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
 
         Args:
             dictionary_factory (DictionaryFactory): The dictionary factory used to obtain language dictionaries.
-                Defaults to the shared [`DEFAULT_DICTIONARY_FACTORY`][simplemma.strategies.dictionaries.dictionary_factory.DEFAULT_DICTIONARY_FACTORY].
+                Defaults to the shared `DEFAULT_DICTIONARY_FACTORY`.
             steps (int): The maximum number of lemmatization steps to perform. Defaults to `1`.
             distance (int): The maximum allowed Levenshtein distance between candidate lemmas. Defaults to `5`.
 

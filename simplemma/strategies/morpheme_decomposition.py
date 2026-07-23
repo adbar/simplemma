@@ -74,8 +74,13 @@ _TL_PREFIXES = (
     "in",
     "i",
 )
-# Object/locative-focus suffixes.
-_TL_SUFFIXES = ("han", "hin", "an", "in")
+# Object/locative-focus suffixes, plus the linker (ligature) na fused onto
+# its host: vowel-final host + "ng" (maganda -> magandang), n-final host +
+# "g" (ulan -> ulang). Real text never splits the linker off, so the fused
+# form must be decomposed at runtime; dict verification gates the residue
+# (measured +1.1 to +2.9pp real-word on all 4 tl treebanks, at the cost of
+# a -0.1pp per-sub-token dip on newscrawl from unconstrained "g" strips).
+_TL_SUFFIXES = ("han", "hin", "an", "in", "ng", "g")
 
 MIN_STEM_LEN = 3
 _VOWELS = frozenset("aeiou")
@@ -200,8 +205,9 @@ class MorphemeDecompositionStrategy(LemmatizationStrategy):
         morphemes = MORPHEME_LANGS.get(lang)
         if morphemes is None:
             return None
-        # Match affixes case-insensitively; verb lemmas are lowercase, so
-        # look the residue up as-is rather than reconstructing casing.
+        # Lowercase a sentence-initial capital so lowercase affixes match
+        # (interior/all-caps left as-is); verb lemmas are lowercase, so look
+        # the residue up as-is rather than reconstructing casing.
         working = token[:1].lower() + token[1:] if token[:1].isupper() else token
 
         seen = {token, working}

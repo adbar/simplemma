@@ -44,6 +44,14 @@ def test_roundtrip_literal_value_fallback() -> None:
     assert frontcode.decode(frontcode.encode(mapping)) == mapping
 
 
+def test_roundtrip_long_shared_prefix() -> None:
+    """Two keys sharing a >=128-byte prefix force the multi-byte varint path
+    for `shared` (real dicts never trigger this; decode_stream's fast path
+    for single-byte varints has a separate fallback branch to cover)."""
+    mapping = {b"a" * 200 + b"aa": b"x", b"a" * 200 + b"bb": b"y"}
+    assert frontcode.decode(frontcode.encode(mapping)) == mapping
+
+
 def test_roundtrip_trim_zero_self_identity() -> None:
     """trim=0 must not corrupt the value (see the `token[:-0]` gotcha)."""
     mapping = {b"run": b"run", b"running": b"runningly"}

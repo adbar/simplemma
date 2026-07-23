@@ -52,14 +52,16 @@ def test_canonicalize_token() -> None:
 
 
 def test_canon_langs_disjoint_from_raw_token_strategies() -> None:
-    """Affix/rule strategies match the raw token, so canon langs must never
-    join AFFIX_LANGS/RULE_FUNCTIONS (see CANON_LANGS)."""
+    """Affix/rule/morpheme strategies match the raw token, so canon langs must
+    never join AFFIX_LANGS/RULE_FUNCTIONS/MORPHEME_LANGS (see CANON_LANGS)."""
     from simplemma.strategies.affix_decomposition import AFFIX_LANGS
     from simplemma.strategies.defaultrules import RULE_FUNCTIONS
+    from simplemma.strategies.morpheme_decomposition import MORPHEME_LANGS
     from simplemma.utils import CANON_LANGS
 
     assert CANON_LANGS.isdisjoint(AFFIX_LANGS)
     assert CANON_LANGS.isdisjoint(RULE_FUNCTIONS)
+    assert CANON_LANGS.isdisjoint(MORPHEME_LANGS)
 
 
 def test_apostrophe_helpers() -> None:

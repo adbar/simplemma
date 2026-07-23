@@ -24,7 +24,7 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
 
         Args:
             dictionary_factory (DictionaryFactory): The dictionary factory used to obtain language dictionaries.
-                Defaults to the shared [`DEFAULT_DICTIONARY_FACTORY`][simplemma.strategies.dictionaries.dictionary_factory.DEFAULT_DICTIONARY_FACTORY].
+                Defaults to the shared `DEFAULT_DICTIONARY_FACTORY`.
         """
         self._dictionary_factory = dictionary_factory
 

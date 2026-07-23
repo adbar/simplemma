@@ -109,6 +109,10 @@ def mechanism_disabled(mechanism: str, lang: str) -> Iterator[None]:
       - "clitic": CLITIC_LANGS is the source, but the lookup reads the
         precomputed _CLITIC_SUFFIXES cache -- mutating CLITIC_LANGS never
         touches it.
+      - "canon": TWO runtime readers -- canonicalize_token reads _CANON_TABLES,
+        and clitic_decomposition resolves the module global CANON_LANGS (a
+        frozenset snapshot) on each call. Popping _CANON_TABLES alone leaves
+        that gate active, so narrow CANON_LANGS too.
     RAISES if `lang` isn't in the target -- a disable that changes nothing
     would silently measure the same config twice (the false-+0.00pp trap)."""
     targets: dict[str, dict[Any, Any]] = {
@@ -125,10 +129,17 @@ def mechanism_disabled(mechanism: str, lang: str) -> Iterator[None]:
             f"(a no-op A/B would falsely read as zero effect)"
         )
     saved = target.pop(lang)
+    if mechanism == "canon":
+        # CANON_LANGS is re-imported (not owned) by clitic_decomposition, hence
+        # the attr-defined ignores; patch that module's own binding, not utils'.
+        canon_langs_saved = clitic_decomposition.CANON_LANGS  # type: ignore[attr-defined]
+        clitic_decomposition.CANON_LANGS = canon_langs_saved - {lang}  # type: ignore[attr-defined]
     try:
         yield
     finally:
         target[lang] = saved
+        if mechanism == "canon":
+            clitic_decomposition.CANON_LANGS = canon_langs_saved  # type: ignore[attr-defined]
 
 
 def accuracy(

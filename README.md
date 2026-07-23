@@ -343,7 +343,7 @@ morphology rather than a data error.
 | `eo` | Esperanto | 191 | 18 | 0.95 | on UD EO-PraGo |
 | `es` | Spanish | 823 | 88 | 0.91 | on UD ES-AnCora |
 | `et` | Estonian | 2,662 | 92 | 0.84 | on UD ET-EWT, low coverage |
-| `fa` | Persian | 17 | 4 | 0.89 | on UD FA-Seraji, experimental |
+| `fa` | Persian | 17 | 4 | 0.89 | on UD FA-Seraji |
 | `fi` | Finnish | 3,547 | 125 | 0.86 | on UD FI-FTB, see [this benchmark](https://github.com/aajanki/finnish-pos-accuracy) |
 | `fr` | French | 248 | 37 | 0.93 | on UD FR-Sequoia |
 | `ga` | Irish | 444 | 48 | 0.89 | on UD GA-IDT |
@@ -353,7 +353,7 @@ morphology rather than a data error.
 | `gv` | Manx | 77 | 14 | 0.84 | on UD GV-Cadhan |
 | `hbs` | Serbo-Croatian | 610 | 49 | 0.87 | on UD HR-SET + SR-SET (token-weighted); Croatian and Serbian lists to be added later |
 | `he` | Hebrew | 104 | 10 | 0.88 | on UD HE-HTB; real-world (unsegmented) input scores ≈0.77, see note below |
-| `hi` | Hindi | 53 | 11 | 0.93 | on UD HI-HDTB, experimental |
+| `hi` | Hindi | 53 | 11 | 0.93 | on UD HI-HDTB |
 | `hu` | Hungarian | 492 | 36 | 0.85 | on UD HU-Szeged |
 | `hy` | Armenian | 467 | 17 | 0.88 | on UD HY-BSUT |
 | `id` | Indonesian | 21 | 4 | 0.93 | on UD ID-CSUI |
@@ -365,7 +365,7 @@ morphology rather than a data error.
 | `lt` | Lithuanian | 365 | 28 | 0.84 | on UD LT-ALKSNIS |
 | `lv` | Latvian | 177 | 14 | 0.78 | on UD LV-LVTB |
 | `mk` | Macedonian | 551 | 39 | 0.73 | on UD MK-MTB |
-| `ml` | Malayalam | 746 | 64 | 0.69 | on UD ML-UFAL, experimental |
+| `ml` | Malayalam | 746 | 64 | 0.69 | on UD ML-UFAL (small treebank), experimental |
 | `ms` | Malay | 17 | 4 |  |  |
 | `nb` | Norwegian (Bokmål) | 633 | 138 | 0.81 | on UD NO-Bokmaal |
 | `nl` | Dutch | 369 | 125 | 0.92 | on UD NL-Alpino, excl. underscore-joined compound lemmas |
@@ -380,7 +380,7 @@ morphology rather than a data error.
 | `sq` | Albanian | 96 | 10 | 0.72 | on UD SQ-STAF |
 | `sv` | Swedish | 871 | 114 | 0.91 | on UD SV-Talbanken, alternative: [lemmy](https://github.com/sorenlind/lemmy) |
 | `sw` | Swahili | 4,869 | 4 |  | experimental |
-| `tl` | Tagalog | 71 | 18 | 0.80 | on UD TL-TRG, experimental |
+| `tl` | Tagalog | 71 | 18 | 0.84 | on UD TL-TRG |
 | `tr` | Turkish | 1,236 | 40 | 0.91 | on UD TR-KeNet |
 | `uk` | Ukrainian | 502 | 35 | 0.90 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
 

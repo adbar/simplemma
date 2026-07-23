@@ -48,7 +48,7 @@ class DefaultStrategy(LemmatizationStrategy):
         Args:
             greedy (bool): Whether to use a greedy approach for dictionary lookup. Defaults to `False`.
             dictionary_factory (DictionaryFactory): A factory for creating dictionaries.
-                Defaults to the shared [`DEFAULT_DICTIONARY_FACTORY`][simplemma.strategies.dictionaries.dictionary_factory.DEFAULT_DICTIONARY_FACTORY].
+                Defaults to the shared `DEFAULT_DICTIONARY_FACTORY`.
 
         """
         self._dictionary_lookup = DictionaryLookupStrategy(dictionary_factory)

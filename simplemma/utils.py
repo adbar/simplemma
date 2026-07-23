@@ -7,7 +7,7 @@ Contains utility functions for language processing.
 - [normalize_token][simplemma.utils.normalize_token]: Normalizes a token to Unicode NFC form.
 - [strip_diacritics][simplemma.utils.strip_diacritics]: Removes combining diacritics from a token.
 - [canonicalize_token][simplemma.utils.canonicalize_token]: Per-language dictionary-matching canonicalization (grc grave->acute, he/ar vocalization-stripping).
-- [CANON_LANGS][simplemma.utils.CANON_LANGS]: Languages canonicalize_token folds (public membership view of _CANON_TABLES).
+- `CANON_LANGS`: Languages canonicalize_token folds (public membership view of _CANON_TABLES).
 """
 
 import unicodedata

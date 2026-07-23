@@ -1,6 +1,7 @@
 import pytest
 
 from simplemma import Lemmatizer
+from simplemma.strategies import clitic_decomposition
 from simplemma.strategies.default import DefaultStrategy
 from training.eval_harness import (
     FixedDictionaryFactory,
@@ -232,9 +233,7 @@ def test_mechanism_disabled_prefix_targets_the_bound_default(tmp_path):
 
 
 def test_mechanism_disabled_canon_targets_the_fold_table(tmp_path):
-    """The third target: canonicalize_token reads _CANON_TABLES directly (no
-    derived cache), but it's still worth a held-out A/B check like the other
-    two mechanisms."""
+    """canonicalize_token reads _CANON_TABLES: disabling must stop the fold."""
     lem = Lemmatizer(lemmatization_strategy=DefaultStrategy())
     # baseline: vocalized ar folds to the unvocalized dict entry
     assert lem.lemmatize("بِيت", lang="ar") == "بيت"
@@ -249,6 +248,17 @@ def test_mechanism_disabled_canon_targets_the_fold_table(tmp_path):
         Lemmatizer(lemmatization_strategy=DefaultStrategy()).lemmatize("بِيت", lang="ar")
         == "بيت"
     )
+
+
+def test_mechanism_disabled_canon_also_narrows_clitic_snapshot():
+    """canon has a SECOND reader: clitic_decomposition gates on a CANON_LANGS
+    frozenset snapshot, not _CANON_TABLES. Disabling must narrow it too (else
+    the A/B measures a mixed state) and restore it on exit."""
+    before = clitic_decomposition.CANON_LANGS
+    assert "ar" in before
+    with mechanism_disabled("canon", "ar"):
+        assert "ar" not in clitic_decomposition.CANON_LANGS
+    assert clitic_decomposition.CANON_LANGS is before
 
 
 def test_mechanism_disabled_raises_on_noop_disable():
