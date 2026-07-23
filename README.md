@@ -270,14 +270,16 @@ flag, available on `lemmatize`, `text_lemmatizer`, `lemma_iterator`,
 'doughnut'
 ```
 
-This picks the most memory-efficient dictionary backend available:
-`TrieDictionaryFactory` (see below) if `marisa-trie` is installed,
-otherwise the stdlib-only `StreamDictionaryFactory`. For explicit
-control over which backend is used — including with `Lemmatizer` and
-`LanguageDetector` instances — build a strategy directly, as described
-in the rest of this section. `DefaultStrategy` also accepts the same
-`low_memory` flag, but not together with an explicit
-`dictionary_factory`:
+This selects the stdlib-only `StreamDictionaryFactory` (see below): the
+most memory-frugal backend, reading the dictionary stream directly with
+no full-dict build spike and no on-disk cache. `TrieDictionaryFactory`
+reaches a lower *steady-state* footprint but spikes and writes to disk on
+first use, so it is not auto-selected — request it explicitly (see below)
+when its RAM/speed trade-off suits you. For explicit control over which
+backend is used — including with `Lemmatizer` and `LanguageDetector`
+instances — build a strategy directly, as described in the rest of this
+section. `DefaultStrategy` also accepts the same `low_memory` flag, but
+not together with an explicit `dictionary_factory`:
 
 ``` python
 >>> from simplemma import Lemmatizer

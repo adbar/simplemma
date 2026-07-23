@@ -2,11 +2,11 @@
 
 Keys are sorted and front-coded (each stores only the bytes not shared with the
 previous key's prefix); values are suffix-edited against their own key. The flat
-stream compresses far better under lzma than a pickled dict. `decode`/`load` are
+stream compresses far better under lzma than a pickled dict. `decode_stream` is
 the runtime path; `encode` runs at build time (training/dictionary_builder.py).
 
-`read_header`/`iter_records` expose the format at record granularity, resumable
-from any boundary via its (prev_key, prev_value) seed (for partial reads).
+`read_header`/`iter_records` expose the format at record granularity for
+partial/resumable reads.
 """
 
 import lzma
@@ -20,8 +20,7 @@ _REVERSE_FLAG = 0x01
 _SAME_AS_PREV = 254
 _LITERAL_VALUE = 255
 
-# Shared by decode_stream and StreamMap (which validate differently but report
-# the same failure); the tests match on it too.
+# Shared by decode_stream and StreamMap; tests match on it too.
 _CORRUPT_STREAM_MSG = "truncated or corrupt front-coded stream"
 
 
@@ -46,6 +45,13 @@ def _read_varint(data: bytes, pos: int) -> tuple[int, int]:
         if not byte & 0x80:
             return result, pos
         shift += 7
+
+
+def _take(data: bytes, pos: int, length: int, n: int) -> tuple[bytes, int]:
+    end = pos + length
+    if end > n:
+        raise ValueError(_CORRUPT_STREAM_MSG)
+    return data[pos:end], end
 
 
 def _common_prefix_len(a: bytes, b: bytes) -> int:
@@ -126,80 +132,56 @@ def iter_records(
 ) -> Iterator[tuple[int, bytes, bytes]]:
     """Yield (record_start, stored_key, stored_value) from `pos` to the end of
     `data`, resuming front-code decoding from the given seed. Keys/values are
-    in on-disk form: sorted, and not un-reversed for `reverse_key` streams.
+    in on-disk form: sorted, not un-reversed for `reverse_key` streams.
 
-    The per-record decode logic here is duplicated (not called) by
-    `decode_stream` for speed on the hot startup path — keep both in sync.
+    The single per-record decoder used by both `decode_stream` and `StreamMap`;
+    raises ValueError on a slice/varint that runs past the buffer.
     """
-    while pos < len(data):
-        record_start = pos
-        shared, pos = _read_varint(data, pos)
-        suflen, pos = _read_varint(data, pos)
-        suffix = data[pos : pos + suflen]
-        pos += suflen
-        stored_key = prev_key[:shared] + suffix
+    n = len(data)
+    try:
+        while pos < n:
+            record_start = pos
+            shared, pos = _read_varint(data, pos)
+            suflen, pos = _read_varint(data, pos)
+            suffix, pos = _take(data, pos, suflen, n)
+            stored_key = prev_key[:shared] + suffix
 
-        trim = data[pos]
-        pos += 1
-        if trim == _SAME_AS_PREV:
-            stored_value = prev_value
-        elif trim == _LITERAL_VALUE:
-            vlen, pos = _read_varint(data, pos)
-            stored_value = data[pos : pos + vlen]
-            pos += vlen
-        else:
-            vlen, pos = _read_varint(data, pos)
-            value_suffix = data[pos : pos + vlen]
-            pos += vlen
-            stored_value = stored_key[: len(stored_key) - trim] + value_suffix
+            trim = data[pos]
+            pos += 1
+            if trim == _SAME_AS_PREV:
+                stored_value = prev_value
+            elif trim == _LITERAL_VALUE:
+                vlen, pos = _read_varint(data, pos)
+                stored_value, pos = _take(data, pos, vlen, n)
+            else:
+                vlen, pos = _read_varint(data, pos)
+                value_suffix, pos = _take(data, pos, vlen, n)
+                stored_value = stored_key[: len(stored_key) - trim] + value_suffix
 
-        yield record_start, stored_key, stored_value
-        prev_key, prev_value = stored_key, stored_value
+            yield record_start, stored_key, stored_value
+            prev_key, prev_value = stored_key, stored_value
+    except IndexError:
+        # a truncated varint/trim byte overruns the buffer
+        raise ValueError(_CORRUPT_STREAM_MSG) from None
 
 
 def decode_stream(data: bytes) -> dict[bytes, bytes]:
     """Decode already-decompressed front-coded bytes.
 
-    Assumes a well-formed `encode` stream; truncation or trailing garbage raises
-    ValueError (trailing length check) or IndexError (truncated varint/trim).
-
-    The per-record loop below inlines `iter_records` instead of calling it —
-    measured 5-9% faster on shipped dictionaries. Keep both in sync."""
+    Assumes a well-formed `encode` stream; truncation or trailing garbage
+    raises ValueError."""
     reverse_key, count, pos = read_header(data)
 
     result: dict[bytes, bytes] = {}
-    prev_key = b""
-    prev_value = b""
-    for _ in range(count):
-        shared, pos = _read_varint(data, pos)
-        suflen, pos = _read_varint(data, pos)
-        suffix = data[pos : pos + suflen]
-        pos += suflen
-        stored_key = prev_key[:shared] + suffix
-
-        trim = data[pos]
-        pos += 1
-        if trim == _SAME_AS_PREV:
-            stored_value = prev_value
-        elif trim == _LITERAL_VALUE:
-            vlen, pos = _read_varint(data, pos)
-            stored_value = data[pos : pos + vlen]
-            pos += vlen
-        else:
-            vlen, pos = _read_varint(data, pos)
-            value_suffix = data[pos : pos + vlen]
-            pos += vlen
-            stored_value = stored_key[: len(stored_key) - trim] + value_suffix
-
+    n = 0
+    for _, stored_key, stored_value in iter_records(data, pos):
         key = stored_key[::-1] if reverse_key else stored_key
         value = stored_value[::-1] if reverse_key else stored_value
         result[key] = value
+        n += 1
 
-        prev_key = stored_key
-        prev_value = stored_value
-
-    # a truncated or trailing-garbage stream leaves pos != len(data)
-    if pos != len(data):
+    # a truncated stream ending on a boundary yields too few records
+    if n != count:
         raise ValueError(_CORRUPT_STREAM_MSG)
     return result
 

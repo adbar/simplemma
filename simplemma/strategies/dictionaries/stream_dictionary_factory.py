@@ -1,13 +1,9 @@
 """Memory-frugal `DictionaryFactory` that reads `.plzma` front-coded streams
 directly instead of building a full `dict[bytes, bytes]` in RAM.
 
-Front-coding is sequential (each record delta-encodes the previous), so random
-access needs restart points: one pass builds a sparse per-block seed index,
-then each lookup bisects to a block and decodes only its few records.
-
-Trades much lower RAM (several-fold, more for larger dicts) for slower lookups
-(several-fold end-to-end through `Lemmatizer`'s cache, see README): for
-memory-bound multi-language use, not throughput.
+Front-coding is sequential, so random access needs restart points: one pass
+builds a sparse per-block seed index, then each lookup bisects to a block and
+decodes only its few records. Trades RAM for lookup speed; see README.
 """
 
 from bisect import bisect_right
@@ -28,8 +24,8 @@ _BLOCK_SIZE = 32
 class StreamMap(DecodedStrMapping):
     """Read-only str->str view over a front-coded stream, decoded on demand.
 
-    `_firsts` holds each block's first key (for bisect); `_blocks` holds the
-    matching (offset, prev_key, prev_value) to resume decoding that block.
+    `_firsts` holds each block's first key (for bisect); `_blocks` its
+    (offset, prev_key, prev_value) resume seed.
     """
 
     __slots__ = ("_data", "_pos", "_rev", "_count", "_firsts", "_blocks")
@@ -50,8 +46,7 @@ class StreamMap(DecodedStrMapping):
                 blocks.append((record_start, prev_key, prev_value))
             prev_key, prev_value = stored_key, stored_value
             n += 1
-        # Mirrors decode_stream's trailing-length check: a truncated stream
-        # yields too few records, a stream with trailing garbage too many.
+        # catches a stream ending on a boundary with the wrong record count
         if n != self._count:
             raise ValueError(frontcode._CORRUPT_STREAM_MSG)
         self._firsts = firsts
@@ -86,9 +81,7 @@ class StreamMap(DecodedStrMapping):
 
 
 class StreamDictionaryFactory(CachingDictionaryFactory):
-    """Memory-optimized `DictionaryFactory` backed by direct front-coded
-    stream reads (see module docstring for the RAM/speed trade-off).
-    """
+    """`DictionaryFactory` backed by direct front-coded stream reads."""
 
     __slots__ = ()
 

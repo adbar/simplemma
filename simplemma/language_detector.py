@@ -18,7 +18,7 @@ from .token_sampler import (
 )
 from .utils import normalize_token, validate_lang_input
 
-# Cached per (greedy, low_memory) so repeated calls don't rebuild the backend.
+# Cached per (greedy, low_memory) to avoid rebuilding the backend.
 _default_strategy_for = lru_cache(maxsize=None)(DefaultStrategy)
 
 
@@ -38,8 +38,8 @@ def in_target_language(
         greedy (bool, optional): Whether to use greedy lemmatization. Defaults to `False`.
         token_sampler (TokenSampler, optional): The token sampling strategy to use.
             Defaults to `MostCommonTokenSampler()`.
-        low_memory (bool, optional): Use the most memory-efficient available
-            dictionary backend. Defaults to `False`.
+        low_memory (bool, optional): Use the memory-frugal dictionary backend.
+            Defaults to `False`.
 
     Returns:
         float: The proportion of text in the target language(s).
@@ -69,8 +69,8 @@ def langdetect(
         greedy (bool, optional): Whether to use greedy lemmatization. Defaults to `False`.
         token_samplers (list[TokenSampler], optional): The list of token sampling strategies
             to use. Defaults to `[MostCommonTokenSampler(), RelaxedMostCommonTokenSampler()]`.
-        low_memory (bool, optional): Use the most memory-efficient available
-            dictionary backend. Defaults to `False`.
+        low_memory (bool, optional): Use the memory-frugal dictionary backend.
+            Defaults to `False`.
 
     Returns:
         list[tuple[str, float]]: A list of tuples containing the detected language(s)

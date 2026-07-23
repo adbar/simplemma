@@ -158,8 +158,7 @@ class Lemmatizer:
             yield surface if keep else self._cached_lemmatize(surface, lang)
 
 
-# Legacy pre-1.0 functions. Cached per (greedy, low_memory) so repeated calls
-# don't rebuild the dictionary backend.
+# Legacy pre-1.0 functions, cached per (greedy, low_memory).
 
 
 @lru_cache(maxsize=None)
@@ -183,8 +182,7 @@ def is_known(token: str, lang: str | tuple[str, ...], low_memory: bool = False) 
     Args:
         token: The token to check.
         lang: The language or languages to check in.
-        low_memory: Use the most memory-efficient available dictionary backend
-            (default: False).
+        low_memory: Use the memory-frugal dictionary backend (default: False).
 
     Returns:
         bool: True if the token is known, False otherwise.
@@ -212,8 +210,7 @@ def lemmatize(
         token: The token to lemmatize.
         lang: The language or languages for lemmatization.
         greedy: A flag indicating whether to use greedy lemmatization (default: False).
-        low_memory: Use the most memory-efficient available dictionary backend
-            (default: False).
+        low_memory: Use the memory-frugal dictionary backend (default: False).
 
     Returns:
         str: The lemmatized form of the token.
@@ -233,8 +230,7 @@ def text_lemmatizer(
         text: The text to lemmatize.
         lang: The language or languages for lemmatization.
         greedy: A flag indicating whether to use greedy lemmatization (default: False).
-        low_memory: Use the most memory-efficient available dictionary backend
-            (default: False).
+        low_memory: Use the memory-frugal dictionary backend (default: False).
 
     Returns:
         list[str]: The list of lemmatized tokens.
@@ -255,8 +251,7 @@ def lemma_iterator(
         text: The text to iterate over.
         lang: The language or languages for lemmatization.
         greedy: A flag indicating whether to use greedy lemmatization (default: False).
-        low_memory: Use the most memory-efficient available dictionary backend
-            (default: False).
+        low_memory: Use the memory-frugal dictionary backend (default: False).
 
     Yields:
         str: The lemmatized tokens in the text.

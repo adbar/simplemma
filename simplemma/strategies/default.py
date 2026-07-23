@@ -50,8 +50,8 @@ class DefaultStrategy(LemmatizationStrategy):
             dictionary_factory (DictionaryFactory | None): A factory for creating dictionaries.
                 Defaults to the shared [`DEFAULT_DICTIONARY_FACTORY`][simplemma.strategies.dictionaries.dictionary_factory.DEFAULT_DICTIONARY_FACTORY],
                 or to [`make_low_memory_factory()`][simplemma.strategies.dictionaries.make_low_memory_factory] if `low_memory` is set.
-            low_memory (bool): Use the most memory-efficient available dictionary
-                backend. Not allowed together with `dictionary_factory`. Defaults to `False`.
+            low_memory (bool): Use the memory-frugal dictionary backend. Not allowed
+                together with `dictionary_factory`. Defaults to `False`.
 
         Raises:
             ValueError: If both `dictionary_factory` and `low_memory=True` are given.

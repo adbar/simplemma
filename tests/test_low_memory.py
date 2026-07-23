@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import pytest
 
 from simplemma import (
@@ -16,29 +14,16 @@ from simplemma.strategies import (
     DefaultStrategy,
     DictionaryFactory,
     StreamDictionaryFactory,
-    TrieDictionaryFactory,
 )
 from simplemma.strategies.dictionaries import make_low_memory_factory
-from simplemma.strategies.dictionaries.trie_dictionary_factory import (
-    _TRIE_DEPS_AVAILABLE,
-)
 
 
 def _factory_of(strategy: DefaultStrategy) -> DictionaryFactory:
     return strategy._dictionary_lookup._dictionary_factory
 
 
-@pytest.mark.skipif(not _TRIE_DEPS_AVAILABLE, reason="marisa_trie not installed")
-def test_make_low_memory_factory_prefers_trie_when_available() -> None:
-    assert isinstance(make_low_memory_factory(), TrieDictionaryFactory)
-
-
-def test_make_low_memory_factory_falls_back_to_stream_without_trie_deps() -> None:
-    with patch(
-        "simplemma.strategies.dictionaries.trie_dictionary_factory._TRIE_DEPS_AVAILABLE",
-        False,
-    ):
-        assert isinstance(make_low_memory_factory(), StreamDictionaryFactory)
+def test_make_low_memory_factory_is_stream_backend() -> None:
+    assert isinstance(make_low_memory_factory(), StreamDictionaryFactory)
 
 
 def test_default_strategy_low_memory_conflicts_with_explicit_factory() -> None:
@@ -47,7 +32,6 @@ def test_default_strategy_low_memory_conflicts_with_explicit_factory() -> None:
 
 
 def test_low_memory_actually_switches_backend() -> None:
-    # Parity can't catch a silently-ignored flag, so assert the backend swapped.
     assert _factory_of(DefaultStrategy()) is DEFAULT_DICTIONARY_FACTORY
     for strategy in (
         DefaultStrategy(low_memory=True),
@@ -56,15 +40,13 @@ def test_low_memory_actually_switches_backend() -> None:
     ):
         factory = _factory_of(strategy)  # type: ignore[arg-type]
         assert factory is not DEFAULT_DICTIONARY_FACTORY
-        assert isinstance(factory, (StreamDictionaryFactory, TrieDictionaryFactory))
+        assert isinstance(factory, StreamDictionaryFactory)
     assert _legacy_dictionary_lookup_for(True)._dictionary_factory is not (
         DEFAULT_DICTIONARY_FACTORY
     )
 
 
 def test_low_memory_backend_is_shared_across_entry_points() -> None:
-    # Each low_memory entry point must resolve to the same backend instance,
-    # not build its own copy of every language's dictionary.
     factories = [
         _factory_of(DefaultStrategy(low_memory=True)),
         _factory_of(_legacy_lemmatizer_for(False, True)._lemmatization_strategy),  # type: ignore[arg-type]

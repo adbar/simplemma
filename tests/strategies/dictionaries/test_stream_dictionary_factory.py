@@ -10,11 +10,10 @@ from simplemma.strategies.dictionaries.stream_dictionary_factory import (
     StreamMap,
 )
 
-# de/en: normal (non-reversed) streams. sw: reverse-coded (suffix morphology).
+# sw is reverse-coded (suffix morphology); de/en are not.
 LANGS = ["de", "en", "sw"]
 
-# Both builders are O(n) full-stream passes; cache per lang so the LANGS-
-# parametrized tests below don't redecode sw's ~4.9M entries repeatedly.
+# Cache per lang: both builders are O(n) full-stream passes.
 _reference = lru_cache(maxsize=None)(
     lambda lang: dict(DefaultDictionaryFactory().get_dictionary(lang))
 )
@@ -24,7 +23,7 @@ _stream = lru_cache(maxsize=None)(StreamMap)
 def _streammap_from_bytes(
     blob: bytes, tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> StreamMap:
-    """Write a synthetic ``.plzma`` into a temp DATA_FOLDER and build its StreamMap."""
+    """Write a synthetic `.plzma` into a temp DATA_FOLDER and build its StreamMap."""
     (tmp_path / "tst.plzma").write_bytes(blob)
     monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
     return StreamMap("tst")
@@ -38,9 +37,6 @@ def test_exceptions() -> None:
 
 @pytest.mark.parametrize("lang", ["../secrets", "/etc/passwd", "sub/de", ""])
 def test_streammap_rejects_path_traversal(lang: str) -> None:
-    # StreamMap reads the file itself, so the traversal guard must live at the
-    # sink (not only in the factory's SUPPORTED_LANGUAGES check, which a direct
-    # StreamMap() bypasses).
     with pytest.raises(ValueError, match="Invalid language code"):
         StreamMap(lang)
 
@@ -61,8 +57,7 @@ _SAMPLE_SIZE = 3000
 
 @pytest.mark.parametrize("lang", LANGS)
 def test_get_parity_sampled_sweep(lang: str) -> None:
-    """Stride-sampled over the whole sorted key range; a full sweep of sw's
-    ~4.9M entries is too slow for routine runs (see the en full-sweep test)."""
+    """Stride-sampled; a full sw sweep is too slow for routine runs."""
     reference = _reference(lang)
     stream = _stream(lang)
 
@@ -106,8 +101,6 @@ def test_misses(lang: str) -> None:
 
 @pytest.mark.parametrize("lang", LANGS)
 def test_iter_and_len_parity(lang: str) -> None:
-    """Key-set parity via the cheap `__iter__` walk (values covered by the get
-    sweeps). Avoids `dict(stream)`, which re-decodes per-key via `__getitem__`."""
     reference = _reference(lang)
     stream = _stream(lang)
 
@@ -115,8 +108,6 @@ def test_iter_and_len_parity(lang: str) -> None:
     assert sorted(stream) == sorted(reference)
 
 
-# Only synthetic streams reach count == 0 and the sub-block / first-block edges
-# of the bisect math (the smallest shipped dict has hundreds of blocks).
 @pytest.mark.parametrize(
     "count", [0, 1, 2, _BLOCK_SIZE - 1, _BLOCK_SIZE, _BLOCK_SIZE + 1, 2 * _BLOCK_SIZE]
 )
@@ -136,15 +127,12 @@ def test_synthetic_block_boundaries(
     assert set(stream) == set(decoded)
     for key, value in decoded.items():
         assert stream.get(key) == value
-    # misses below, above, and inside the key range
     assert stream.get("aaaaaa") is None
     assert stream.get("zzzzzz") is None
     assert stream.get("word000000extra") is None
 
 
 def test_truncated_stream_raises(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
-    # Cut the stream at a record boundary, short of the header's record count:
-    # DefaultDictionaryFactory's decode_stream rejects this, StreamMap must too.
     reference = {
         f"word{i:04d}".encode(): f"lemma{i:04d}".encode()
         for i in range(2 * _BLOCK_SIZE)
@@ -159,9 +147,6 @@ def test_truncated_stream_raises(tmp_path, monkeypatch: pytest.MonkeyPatch) -> N
 
 
 def test_trailing_garbage_raises(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
-    # Append an extra, individually well-formed record beyond the header's
-    # record count: decode_stream rejects this via its trailing-length check;
-    # StreamMap's record loop must reject it via the same count mismatch.
     reference = {b"word0000": b"lemma0000", b"word0001": b"lemma0001"}
     raw = lzma.decompress(frontcode.encode(reference))
     extra_record = bytes([0, 4]) + b"zzzz" + bytes([254])
@@ -172,8 +157,7 @@ def test_trailing_garbage_raises(tmp_path, monkeypatch: pytest.MonkeyPatch) -> N
 
 
 def test_synthetic_literal_value(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
-    # A key too long for its value to be suffix-coded forces the rare
-    # _LITERAL_VALUE branch (shipped dicts have no keys this long).
+    # forces the rare _LITERAL_VALUE branch (no shipped key is this long)
     key = "a" * 300
     reference = {key.encode(): b"lemma"}
     stream = _streammap_from_bytes(frontcode.encode(reference), tmp_path, monkeypatch)

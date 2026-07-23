@@ -71,3 +71,14 @@ def test_decode_stream_rejects_trailing_garbage() -> None:
     raw = lzma.decompress(frontcode.encode({b"dog": b"dog"}))
     with pytest.raises(ValueError, match="truncated or corrupt"):
         frontcode.decode_stream(raw + b"\x00")
+
+
+def test_decode_stream_rejects_boundary_truncated_records() -> None:
+    """Dropping a whole trailing record leaves no partial garbage, so only the
+    record-count check (not iter_records' bounds check) can catch it."""
+    mapping = {b"ant": b"ant", b"bee": b"bee", b"cat": b"cat"}
+    raw = lzma.decompress(frontcode.encode(mapping))
+    _, _, pos = frontcode.read_header(raw)
+    starts = [start for start, _, _ in frontcode.iter_records(raw, pos)]
+    with pytest.raises(ValueError, match="truncated or corrupt"):
+        frontcode.decode_stream(raw[: starts[-1]])
