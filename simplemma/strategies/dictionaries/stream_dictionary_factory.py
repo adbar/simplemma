@@ -7,14 +7,12 @@ decodes only its few records. Trades RAM for lookup speed; see README.
 """
 
 from bisect import bisect_right
-from itertools import islice
 from collections.abc import Iterator, Mapping
 
 from . import frontcode
 from .dictionary_factory import (
     CachingDictionaryFactory,
     DecodedStrMapping,
-    SUPPORTED_LANGUAGES,
     _read_decompressed,
 )
 
@@ -37,7 +35,7 @@ class StreamMap(DecodedStrMapping):
         firsts: list[bytes] = []
         blocks: list[tuple[int, bytes, bytes]] = []
         prev_key, prev_value = b"", b""
-        n = 0
+        index = -1
         for index, (record_start, stored_key, stored_value) in enumerate(
             frontcode.iter_records(self._data, self._pos)
         ):
@@ -45,9 +43,8 @@ class StreamMap(DecodedStrMapping):
                 firsts.append(stored_key)
                 blocks.append((record_start, prev_key, prev_value))
             prev_key, prev_value = stored_key, stored_value
-            n += 1
         # catches a stream ending on a boundary with the wrong record count
-        if n != self._count:
+        if index + 1 != self._count:
             raise ValueError(frontcode._CORRUPT_STREAM_MSG)
         self._firsts = firsts
         self._blocks = blocks
@@ -61,9 +58,10 @@ class StreamMap(DecodedStrMapping):
         if block < 0:
             return None
 
-        offset, prev_key, prev_value = self._blocks[block]
-        records = frontcode.iter_records(self._data, offset, prev_key, prev_value)
-        for _, stored_key, stored_value in islice(records, _BLOCK_SIZE):
+        # sorted keys bound the scan: the next block's first key exceeds target
+        for _, stored_key, stored_value in frontcode.iter_records(
+            self._data, *self._blocks[block]
+        ):
             if stored_key == target:
                 value = stored_value[::-1] if self._rev else stored_value
                 return value.decode()
@@ -86,6 +84,4 @@ class StreamDictionaryFactory(CachingDictionaryFactory):
     __slots__ = ()
 
     def _get_dictionary_uncached(self, lang: str) -> Mapping[str, str]:
-        if lang not in SUPPORTED_LANGUAGES:
-            raise ValueError(f"Unsupported language: {lang}")
         return StreamMap(lang)

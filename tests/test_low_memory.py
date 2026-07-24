@@ -37,7 +37,6 @@ def test_low_memory_actually_switches_backend() -> None:
         _legacy_lemmatizer_for(False, True)._lemmatization_strategy,
         _legacy_lemmatizer_for(True, True)._lemmatization_strategy,
     ):
-        # identity: all low_memory entry points share the one stream backend
         assert _factory_of(strategy) is LOW_MEMORY_DICTIONARY_FACTORY  # type: ignore[arg-type]
 
 

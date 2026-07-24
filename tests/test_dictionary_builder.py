@@ -26,6 +26,7 @@ def _make_shipped(tmp_path, monkeypatch, text: str) -> None:
         "zz", listpath=str(tmp_path), filepath=str(tmp_path / "zz.plzma")
     )
     monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
+    monkeypatch.setattr(dictionary_factory, "SUPPORTED_LANGUAGES", frozenset({"zz"}))
 
 
 def _layers(
@@ -690,6 +691,7 @@ def test_build_from_shipped_scrubs_placeholder(tmp_path, monkeypatch) -> None:
     raw = {b"hithau": b"prpers", b"dogs": b"dog"}
     (tmp_path / "zz.plzma").write_bytes(frontcode.encode(raw))
     monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
+    monkeypatch.setattr(dictionary_factory, "SUPPORTED_LANGUAGES", frozenset({"zz"}))
     _layers(tmp_path, monkeypatch)  # no fill, no override
     out = tmp_path / "out.plzma"
     dictionary_builder._build_dictionary("zz", filepath=str(out), base="shipped")

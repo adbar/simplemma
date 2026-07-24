@@ -161,7 +161,7 @@ class Lemmatizer:
 # Legacy pre-1.0 functions.
 
 
-# Cached per (greedy, low_memory) to keep each Lemmatizer's token cache alive.
+# Cached to keep each Lemmatizer's token cache alive.
 @lru_cache(maxsize=None)
 def _legacy_lemmatizer_for(greedy: bool, low_memory: bool) -> Lemmatizer:
     return Lemmatizer(

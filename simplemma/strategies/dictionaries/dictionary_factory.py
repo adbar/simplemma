@@ -30,15 +30,15 @@ from . import frontcode
 _T = TypeVar("_T")
 
 DATA_FOLDER = Path(__file__).parent / "data"
-# frozenset: O(1) membership, checked on every get_dictionary call.
+# frozenset: O(1) membership checks.
 SUPPORTED_LANGUAGES = frozenset(f.stem for f in DATA_FOLDER.glob("*.plzma"))
 
 
 def _read_decompressed(langcode: str) -> bytes:
     """Read and lzma-decompress the shipped `data/{langcode}.plzma`."""
-    # Guard against path traversal; not all callers check SUPPORTED_LANGUAGES.
-    if not langcode or Path(langcode).name != langcode:
-        raise ValueError(f"Invalid language code: {langcode!r}")
+    # single validation point; also excludes path traversal
+    if langcode not in SUPPORTED_LANGUAGES:
+        raise ValueError(f"Unsupported language: {langcode}")
     with lzma.open(DATA_FOLDER / f"{langcode}.plzma", "rb") as filehandle:
         return filehandle.read()
 
@@ -164,8 +164,6 @@ class DefaultDictionaryFactory(CachingDictionaryFactory):
     __slots__ = ()
 
     def _get_dictionary_uncached(self, lang: str) -> Mapping[str, str]:
-        if lang not in SUPPORTED_LANGUAGES:
-            raise ValueError(f"Unsupported language: {lang}")
         return MappingStrToByteString(_load_dictionary_from_disk(lang))
 
 

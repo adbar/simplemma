@@ -26,6 +26,7 @@ def _streammap_from_bytes(
     """Write a synthetic `.plzma` into a temp DATA_FOLDER and build its StreamMap."""
     (tmp_path / "tst.plzma").write_bytes(blob)
     monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
+    monkeypatch.setattr(dictionary_factory, "SUPPORTED_LANGUAGES", frozenset({"tst"}))
     return StreamMap("tst")
 
 
@@ -35,9 +36,9 @@ def test_exceptions() -> None:
         dictionary_factory.get_dictionary("abc")
 
 
-@pytest.mark.parametrize("lang", ["../secrets", "/etc/passwd", "sub/de", ""])
-def test_streammap_rejects_path_traversal(lang: str) -> None:
-    with pytest.raises(ValueError, match="Invalid language code"):
+@pytest.mark.parametrize("lang", ["../secrets", "/etc/passwd", "sub/de", "", "xyz"])
+def test_streammap_rejects_bad_language_codes(lang: str) -> None:
+    with pytest.raises(ValueError, match="Unsupported language"):
         StreamMap(lang)
 
 
