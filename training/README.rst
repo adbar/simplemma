@@ -151,6 +151,21 @@ Building the dictionaries
     from training.dictionary_builder import _build_dictionary
     _build_dictionary("xx", in_place=True)
 
+- **Rebuilding an already-shipped, hand-curated language: use ``--base
+  shipped``, not ``fresh``.** A shipped dict can accumulate curation
+  (overrides, key aliases, value normalization, fill) beyond what the base
+  word list alone reproduces, so ``fresh`` can *silently diverge* from what's
+  actually shipped — measured on ``nn``, where a bare ``--base fresh``
+  rebuild differed from the shipped dict in ~12,600 entries (4,239 changed
+  values plus ~8,300 extra/missing keys) even before any fill/alias work.
+  ``--base shipped`` is idempotent by construction: rebuilding it from
+  itself, or from an untouched copy of itself with a config-only change
+  layered on top (e.g. a new ``BUILD_NORMALIZATION``
+  entry), reproduces the exact same bytes when nothing new is added. Only use
+  ``fresh`` to rebuild a language that has never accumulated shipped-only
+  curation (a genuinely new language, or one you're deliberately re-deriving
+  from scratch after reviewing what would be lost).
+
 
 Example using ``kaikki.org``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -171,6 +186,38 @@ This prefers explicit inflection relations (``form_of``/``alt_of``) and falls ba
 4. Check the output by exploring the data by hand to spot inconsistencies; ``dictionary_builder.py`` itself filters out lines that are too short or otherwise malformed once you run it.
 
 
+Example using Wikidata as the PRIMARY source
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``wikidata_lexemes.py`` is normally an *OOV-fill* source layered onto an
+already-shipped dictionary (see "The dictionary data pipeline" below). For a
+language Wiktionary covers poorly but Wikidata covers well (``ml`` Malayalam
+is the first: ~11k Kaikki words vs 67k WD lexemes / 754k forms), it doubles
+as the *base* word list instead — same extractor, different destination:
+
+1. Add the language's Wikidata QID to ``LANGUAGE_QIDS`` in
+   ``wikidata_lexemes.py``.
+2. Extract straight into ``training/lists/<code>.txt`` (NOT
+   ``training/fill/``) — the output format (``lemma\tform``) is identical
+   either way:
+
+.. code-block:: shell
+
+    python3 -m training.wikidata_lexemes ml training/data/wikidata/latest-lexemes.json.gz training/lists/ml.txt
+
+3. Build with ``--base fresh`` as usual (no shipped dict exists yet, so
+   there's nothing to diverge from): ``_build_dictionary("ml", in_place=True)``.
+4. ``training/lists/<code>.txt`` is git-ignored like every other list file,
+   so it must be regenerated from the dump to rebuild the dictionary later —
+   there is no committed copy of the extracted word list, only the shipped
+   ``.plzma``.
+
+The Wikidata lexeme dump itself
+(``dumps.wikimedia.org/wikidatawiki/entities/latest-lexemes.json.gz``, ~600MB
+compressed) is git-ignored too; download it once and reuse it across
+sessions, the same way the UD treebank archive is handled above.
+
+
 The dictionary data pipeline
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -187,7 +234,10 @@ inputs live under ``training/data/``):
 - ``wikidata_lexemes.py <lang> <dump> <out.tsv>`` — extract extra
   ``(lemma, form)`` pairs from a Wikidata lexeme dump as an OOV *fill* layered
   onto (never overriding) the shipped dictionary; ``--prune`` drops pairs the
-  shipped dict + rules/affix chain already reproduces.
+  shipped dict + rules/affix chain already reproduces. Can also serve as the
+  PRIMARY base word list for a language Wiktionary covers poorly (write to
+  ``training/lists/<code>.txt`` instead of ``training/fill/``) — see "Example
+  using Wikidata as the PRIMARY source" above.
 - ``build_override.py <lang> <train.conllu> <out.tsv>`` — mine a closed-class
   override lexicon (pronouns, determiners, adpositions, …) from a UD train
   split, the one place Wiktionary is systematically thin. Deterministic given a

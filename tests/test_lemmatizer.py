@@ -126,6 +126,66 @@ def test_readme() -> None:
         ).lemmatize("スパゲッティ", lang="pt")
 
 
+def test_nn_fill_full_pipeline() -> None:
+    """The WD fill added standalone "ane" (a real nn verb), which makes
+    AffixDecompositionStrategy alone mis-split "underleverandørane" (see
+    test_strategies.py's affix_decomposition cases) -- but dictionary_lookup
+    runs first in the full pipeline and hits the fill-added whole-word entry,
+    so the user-facing lemmatize() result is unaffected."""
+    assert lemmatize("underleverandørane", lang="nn") == "underleverandør"
+
+
+def test_hbs_closed_class_override() -> None:
+    """The mined hbs override fixes two shipped-dict defects: a Latin
+    closed-class word must not lemmatize to its Cyrillic spelling (was
+    na->на), and a high-frequency homograph must resolve to its real lemma
+    (je is 3sg of biti, not the pronoun ju)."""
+    assert lemmatize("na", lang="hbs") == "na"  # was "на" (cross-script bug)
+    assert lemmatize("je", lang="hbs") == "biti"  # was "ju" (homograph clash)
+    # pitch-fold alias: the dict's marked key Afganìstān gains a plain twin
+    assert lemmatize("Afganistan", lang="hbs") == "Afganistan"
+    # script-consistency: a Latin key's Cyrillic value is transliterated
+    assert lemmatize("Milorad", lang="hbs") == "Milorad"  # was "Милорад"
+    # ś/ź (Montenegrin letters) survive the pitch fold's keep= guard
+    assert lemmatize("dośetka", lang="hbs") == "dośetka"
+    assert lemmatize("źenica", lang="hbs") == "źenica"
+    assert lemmatize("doseci", lang="hbs") == "doseci"  # no longer -> dosetka
+
+
+def test_stress_mark_fold_aliases() -> None:
+    """Same BUILD_NORMALIZATION mechanism, four more languages: a dictionary-
+    only stress/pitch/length-marked key (Wiktionary headword convention,
+    never typed in real text) gains a plain-spelled alias twin. bg/uk
+    examples are Cyrillic-scripted (Latin-scripted marked keys are academic
+    romanization noise, dropped by _drop_junk_keys instead -- see
+    test_foreign_script_key_drop below)."""
+    assert lemmatize("Авакуме", lang="bg") == "Авакум"  # was unreachable
+    assert lemmatize("Єзуча", lang="uk") == "Єзуч"
+    assert lemmatize("Abadauskai", lang="lt") == "Abadauskas"
+    assert lemmatize("Afganistanom", lang="sl") == "Afganistan"
+    assert lemmatize("Abobrigae", lang="la") == "Abobriga"
+
+
+def test_foreign_script_key_drop() -> None:
+    """Wiktionary academic-transliteration/IPA rows that leaked in as if
+    they were real word forms are unreachable (identity fallback), not
+    resolved to the wrong-script lemma: ar IPA transcriptions, grc Beta-code
+    romanization, bg/uk BGN/PCGN-style transliteration, hi Perso-Arabic
+    (Urdu-script) leaks. ms is asymmetric: a Jawi query correctly resolves
+    to its Rumi citation lemma (kept), but a Rumi query must never resolve
+    to a Jawi lemma (dropped)."""
+    assert lemmatize("rádost", lang="bg") == "rádost"  # was "радост"
+    assert lemmatize("zanos", lang="uk") == "zanos"  # was "занос"
+    assert lemmatize("hubrisin", lang="grc") == "hubrisin"  # was "ὑβρίς"
+    assert lemmatize("uð.ðu.ki.ruː", lang="ar") == "uð.ðu.ki.ruː"  # was "اذكروا"
+    assert lemmatize("سفید", lang="hi") == "سفید"  # was "सफ़ेद"
+    assert lemmatize("جون", lang="ms") == "Jun"  # Jawi->Rumi: still correct
+    assert lemmatize("pintu", lang="ms") == "pintu"  # Rumi->Jawi: was "ڤينتو"
+    assert lemmatize("Abadauskai", lang="lt") == "Abadauskas"
+    assert lemmatize("Afganistanom", lang="sl") == "Afganistan"
+    assert lemmatize("Abobrigae", lang="la") == "Abobriga"
+
+
 def test_apostrophe_variants() -> None:
     """All three apostrophe glyphs fold to the same lemma, including the
     modifier-letter U+02BC common in Ukrainian text (dict keys use U+0027)."""
@@ -153,354 +213,83 @@ def test_exceptions() -> None:
         assert Lemmatizer().lemmatize("", lang="en") is None
 
 
-def test_subwords() -> None:
-    """Test recognition and conversion of subword units."""
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "OBI", lang="de"
-        )
-        == lemmatize("OBI", lang="de", greedy=True)
-        == "OBI"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=False)).lemmatize(
-            "mRNA-Impfstoffe", lang="de"
-        )
-        == lemmatize("mRNA-Impfstoffe", lang="de", greedy=False)
-        == "mRNA-Impfstoff"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "mRNA-impfstoffe", lang="de"
-        )
-        == lemmatize("mRNA-impfstoffe", lang="de", greedy=True)
-        == "mRNA-Impfstoff"
-    )
-    # greedy subword
-    myword = "Impftermine"
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=False)).lemmatize(
-            myword, lang="de"
-        )
-        == lemmatize(myword, lang="de", greedy=False)
-        == "Impftermine"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            myword, lang="de"
-        )
-        == lemmatize(myword, lang="de", greedy=True)
-        == "Impftermin"
-    )
-    myword = "Impfbeginn"
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=False)).lemmatize(
-            myword, lang="de"
-        )
-        == lemmatize(myword, lang="de", greedy=False)
-        == "Impfbeginn"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            myword, lang="de"
-        )
-        == lemmatize(myword, lang="de", greedy=True)
-        == "Impfbeginn"
-    )
-    myword = "Hoffnungsmaschinen"
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=False)).lemmatize(
-            myword, lang="de"
-        )
-        == lemmatize(myword, lang="de", greedy=False)
-        == "Hoffnungsmaschinen"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            myword, lang="de"
-        )
-        == lemmatize(myword, lang="de", greedy=True)
-        == "Hoffnungsmaschine"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "börsennotierter", lang="de"
-        )
-        == lemmatize("börsennotierter", lang="de", greedy=True)
-        == "börsennotiert"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "journalistischer", lang="de"
-        )
-        == lemmatize("journalistischer", lang="de", greedy=True)
-        == "journalistisch"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Delegiertenstimmen", lang="de"
-        )
-        == lemmatize("Delegiertenstimmen", lang="de", greedy=True)
-        == "Delegiertenstimme"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Koalitionskreisen", lang="de"
-        )
-        == lemmatize("Koalitionskreisen", lang="de", greedy=True)
-        == "Koalitionskreis"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Infektionsfälle", lang="de"
-        )
-        == lemmatize("Infektionsfälle", lang="de", greedy=True)
-        == "Infektionsfall"
-    )
-    assert (
-        lemmatize("Corona-Einsatzstabes", lang="de", greedy=True)
-        == "Corona-Einsatzstab"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Clearinghäusern", lang="de"
-        )
-        == lemmatize("Clearinghäusern", lang="de", greedy=True)
-        == "Clearinghaus"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Mittelstreckenjets", lang="de"
-        )
-        == lemmatize("Mittelstreckenjets", lang="de", greedy=True)
-        == "Mittelstreckenjet"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Länderministerien", lang="de"
-        )
-        == lemmatize("Länderministerien", lang="de", greedy=True)
-        == "Länderministerium"
-    )
-    assert (
-        lemmatize("Gesundheitsschutzkontrollen", lang="de", greedy=True)
-        == "Gesundheitsschutzkontrolle"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Nachkriegsjuristen", lang="de"
-        )
-        == lemmatize("Nachkriegsjuristen", lang="de", greedy=True)
-        == "Nachkriegsjurist"
-    )
-    assert (
-        lemmatize("insulinproduzierende", lang="de", greedy=True)
-        == "insulinproduzierend"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Urlaubsreisenden", lang="de"
-        )
-        == lemmatize("Urlaubsreisenden", lang="de", greedy=True)
-        == "Urlaubsreisende"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Grünenvorsitzende", lang="de"
-        )
-        == lemmatize("Grünenvorsitzende", lang="de", greedy=True)
-        == "Grünenvorsitzende"
-    )
-    assert (
-        lemmatize("Qualifikationsrunde", lang="de", greedy=True)
-        == "Qualifikationsrunde"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "krisensichere", lang="de"
-        )
-        == lemmatize("krisensichere", lang="de", greedy=True)
-        == "krisensicher"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "ironischerweise", lang="de"
-        )
-        == lemmatize("ironischerweise", lang="de", greedy=True)
-        == "ironischerweise"
-    )
-    assert (
-        lemmatize("Landespressedienstes", lang="de", greedy=True)
-        == "Landespressedienst"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Lehrerverbänden", lang="de"
-        )
-        == lemmatize("Lehrerverbänden", lang="de", greedy=True)
-        == "Lehrerverband"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Terminvergaberunden", lang="de"
-        )
-        == lemmatize("Terminvergaberunden", lang="de", greedy=True)
-        == "Terminvergaberunde"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Gen-Sequenzierungen", lang="de"
-        )
-        == lemmatize("Gen-Sequenzierungen", lang="de", greedy=True)
-        == "Gen-Sequenzierung"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "wiederverwendbaren", lang="de"
-        )
-        == lemmatize("wiederverwendbaren", lang="de", greedy=True)
-        == "wiederverwendbar"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Spitzenposten", lang="de"
-        )
-        == lemmatize("Spitzenposten", lang="de", greedy=True)
-        == "Spitzenposten"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "I-Pace", lang="de"
-        )
-        == lemmatize("I-Pace", lang="de", greedy=True)
-        == "I-Pace"
-    )
-    assert (
-        lemmatize("PCR-Bestätigungstests", lang="de", greedy=True)
-        == "PCR-Bestätigungstest"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "obamaartigere", lang="de"
-        )
-        == lemmatize("obamaartigere", lang="de", greedy=True)
-        == "obamaartig"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "durchgestyltes", lang="de"
-        )
-        == lemmatize("durchgestyltes", lang="de", greedy=True)
-        == "durchstylen"  # de fill adds the infinitive; greedy reaches it
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "durchgeknallte", lang="de"
-        )
-        == lemmatize("durchgeknallte", lang="de", greedy=True)
-        == "durchgeknallt"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "herunterfährt", lang="de"
-        )
-        == lemmatize("herunterfährt", lang="de", greedy=True)
-        == "herunterfahren"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Atomdeals", lang="de"
-        )
-        == lemmatize("Atomdeals", lang="de", greedy=True)
-        == "Atomdeal"
-    )
-    assert (
-        lemmatize("Anspruchsberechtigten", lang="de", greedy=True)
-        == "Anspruchsberechtigte"
-    )
-    assert (
-        lemmatize("Bürgerschaftsabgeordneter", lang="de", greedy=True)
-        == "Bürgerschaftsabgeordnete"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Lichtbild-Ausweis", lang="de"
-        )
-        == lemmatize("Lichtbild-Ausweis", lang="de", greedy=True)
-        == "Lichtbildausweis"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Kapuzenpullis", lang="de"
-        )
-        == lemmatize("Kapuzenpullis", lang="de", greedy=True)
-        == "Kapuzenpulli"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Pharmagrößen", lang="de"
-        )
-        == lemmatize("Pharmagrößen", lang="de", greedy=True)
-        == "Pharmagröße"
-    )
+# (lang, word, greedy, expected) -- subword/compound handling through the
+# full pipeline; the API-parity contract (class vs module-level function)
+# is covered once in test_class_and_function_api_agree, not per case.
+_SUBWORD_CASES = [
+    ("de", "OBI", True, "OBI"),
+    ("de", "mRNA-Impfstoffe", False, "mRNA-Impfstoff"),
+    ("de", "mRNA-impfstoffe", True, "mRNA-Impfstoff"),
+    ("de", "Impftermine", False, "Impftermine"),
+    ("de", "Impftermine", True, "Impftermin"),
+    ("de", "Impfbeginn", False, "Impfbeginn"),
+    ("de", "Impfbeginn", True, "Impfbeginn"),
+    ("de", "Hoffnungsmaschinen", False, "Hoffnungsmaschinen"),
+    ("de", "Hoffnungsmaschinen", True, "Hoffnungsmaschine"),
+    ("de", "börsennotierter", True, "börsennotiert"),
+    ("de", "journalistischer", True, "journalistisch"),
+    ("de", "Delegiertenstimmen", True, "Delegiertenstimme"),
+    ("de", "Koalitionskreisen", True, "Koalitionskreis"),
+    ("de", "Infektionsfälle", True, "Infektionsfall"),
+    ("de", "Corona-Einsatzstabes", True, "Corona-Einsatzstab"),
+    ("de", "Clearinghäusern", True, "Clearinghaus"),
+    ("de", "Mittelstreckenjets", True, "Mittelstreckenjet"),
+    ("de", "Länderministerien", True, "Länderministerium"),
+    ("de", "Gesundheitsschutzkontrollen", True, "Gesundheitsschutzkontrolle"),
+    ("de", "Nachkriegsjuristen", True, "Nachkriegsjurist"),
+    ("de", "insulinproduzierende", True, "insulinproduzierend"),
+    ("de", "Urlaubsreisenden", True, "Urlaubsreisende"),
+    ("de", "Grünenvorsitzende", True, "Grünenvorsitzende"),
+    ("de", "Qualifikationsrunde", True, "Qualifikationsrunde"),
+    ("de", "krisensichere", True, "krisensicher"),
+    ("de", "ironischerweise", True, "ironischerweise"),
+    ("de", "Landespressedienstes", True, "Landespressedienst"),
+    ("de", "Lehrerverbänden", True, "Lehrerverband"),
+    ("de", "Terminvergaberunden", True, "Terminvergaberunde"),
+    ("de", "Gen-Sequenzierungen", True, "Gen-Sequenzierung"),
+    ("de", "wiederverwendbaren", True, "wiederverwendbar"),
+    ("de", "Spitzenposten", True, "Spitzenposten"),
+    ("de", "I-Pace", True, "I-Pace"),
+    ("de", "PCR-Bestätigungstests", True, "PCR-Bestätigungstest"),
+    ("de", "obamaartigere", True, "obamaartig"),
+    ("de", "durchgestyltes", True, "durchstylen"),
+    ("de", "durchgeknallte", True, "durchgeknallt"),
+    ("de", "herunterfährt", True, "herunterfahren"),
+    ("de", "Atomdeals", True, "Atomdeal"),
+    ("de", "Anspruchsberechtigten", True, "Anspruchsberechtigte"),
+    ("de", "Bürgerschaftsabgeordneter", True, "Bürgerschaftsabgeordnete"),
+    ("de", "Lichtbild-Ausweis", True, "Lichtbildausweis"),
+    ("de", "Kapuzenpullis", True, "Kapuzenpulli"),
+    ("de", "Pharmagrößen", True, "Pharmagröße"),
+    ("de", "Funktionärsebene", True, "Funktionärsebene"),
+    ("de", "strafbewehrte", True, "strafbewehrt"),
+    ("de", "fälschungssicheren", True, "fälschungssicher"),
+    ("de", "Spargelstangen", True, "Spargelstange"),
+    ("de", "Bandmitgliedern", True, "Bandmitglied"),
+    ("de", "lemmatisiertes", False, "lemmatisiert"),
+    ("de", "zerlemmatisiertes", False, "zerlemmatisiert"),
+    ("ru", "фиксированные", False, "фиксированный"),
+    ("ru", "зафиксированные", False, "зафиксированный"),
+]
 
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Funktionärsebene", lang="de"
-        )
-        == lemmatize("Funktionärsebene", lang="de", greedy=True)
-        == "Funktionärsebene"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "strafbewehrte", lang="de"
-        )
-        == lemmatize("strafbewehrte", lang="de", greedy=True)
-        == "strafbewehrt"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "fälschungssicheren", lang="de"
-        )
-        == lemmatize("fälschungssicheren", lang="de", greedy=True)
-        == "fälschungssicher"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Spargelstangen", lang="de"
-        )
-        == lemmatize("Spargelstangen", lang="de", greedy=True)
-        == "Spargelstange"
-    )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "Bandmitgliedern", lang="de"
-        )
-        == lemmatize("Bandmitgliedern", lang="de", greedy=True)
-        == "Bandmitglied"
-    )
 
-    # prefixes
-    assert (
-        Lemmatizer().lemmatize("lemmatisiertes", lang="de")
-        == lemmatize("lemmatisiertes", lang="de")
-        == "lemmatisiert"
-    )
-    assert (
-        Lemmatizer().lemmatize("zerlemmatisiertes", lang="de")
-        == lemmatize("zerlemmatisiertes", lang="de")
-        == "zerlemmatisiert"
-    )
-    assert (
-        Lemmatizer().lemmatize("фиксированные", lang="ru")
-        == lemmatize("фиксированные", lang="ru")
-        == "фиксированный"
-    )
-    assert (
-        Lemmatizer().lemmatize("зафиксированные", lang="ru")
-        == lemmatize("зафиксированные", lang="ru")
-        == "зафиксированный"
-    )
+@pytest.mark.parametrize("lang, word, greedy, expected", _SUBWORD_CASES)
+def test_subwords(lang: str, word: str, greedy: bool, expected: str) -> None:
+    """Recognition and conversion of subword units."""
+    assert lemmatize(word, lang=lang, greedy=greedy) == expected
+
+
+def test_class_and_function_api_agree() -> None:
+    """Lemmatizer-class and module-level APIs are the same code path; the
+    contract is asserted once here instead of on every _SUBWORD_CASES row."""
+    for lang, word, greedy, _ in (
+        _SUBWORD_CASES[0],
+        _SUBWORD_CASES[1],
+        _SUBWORD_CASES[-1],
+    ):
+        assert Lemmatizer(
+            lemmatization_strategy=DefaultStrategy(greedy=greedy)
+        ).lemmatize(word, lang=lang) == lemmatize(word, lang=lang, greedy=greedy)
 
 
 def test_numeric_tokens() -> None:
@@ -534,46 +323,21 @@ def test_is_known() -> None:
     assert is_known("espejos", lang=("de", "es"))
 
 
-def test_get_lemmas_in_text() -> None:
-    # text lemmatization
-    text = "Nous déciderons une fois arrivées. Voilà."
-    assert (
-        list(
-            Lemmatizer(
-                lemmatization_strategy=DefaultStrategy(greedy=False)
-            ).get_lemmas_in_text(text, lang="fr")
-        )
-        == text_lemmatizer(text, lang="fr", greedy=False)
-        == [
-            "nous",
-            "décider",
-            "un",
-            "fois",
-            "arrivée",
-            ".",
-            "voilà",
-            ".",
-        ]
-    )
-    text = "Nous déciderons une fois arrivées. Voilà."
-    assert (
-        list(
-            Lemmatizer(
-                lemmatization_strategy=DefaultStrategy(greedy=False)
-            ).get_lemmas_in_text(text, lang="fr")
-        )
-        == list(lemma_iterator(text, lang="fr", greedy=False))
-        == text_lemmatizer(text, lang="fr", greedy=False)
-    )
-    text = "Pepa e Iván son una pareja sentimental, ambos dedicados al doblaje de películas."
-    assert (
-        list(
-            Lemmatizer(
-                lemmatization_strategy=DefaultStrategy(greedy=False)
-            ).get_lemmas_in_text(text, lang="es")
-        )
-        == text_lemmatizer(text, lang="es", greedy=False)
-        == [
+# (lang, greedy, text, expected lemmas) -- full-text lemmatization through
+# the tokenizer + pipeline; API parity (get_lemmas_in_text / lemma_iterator /
+# text_lemmatizer) is covered once in test_text_api_parity, not per case.
+_TEXT_CASES = [
+    (
+        "fr",
+        False,
+        "Nous déciderons une fois arrivées. Voilà.",
+        ["nous", "décider", "un", "fois", "arrivée", ".", "voilà", "."],
+    ),
+    (
+        "es",
+        False,
+        "Pepa e Iván son una pareja sentimental, ambos dedicados al doblaje de películas.",
+        [
             "pepa",
             "e",
             "Iván",
@@ -589,16 +353,13 @@ def test_get_lemmas_in_text() -> None:
             "de",
             "película",
             ".",
-        ]
-    )
-    assert (
-        list(
-            Lemmatizer(
-                lemmatization_strategy=DefaultStrategy(greedy=True)
-            ).get_lemmas_in_text(text, lang="es")
-        )
-        == text_lemmatizer(text, lang="es", greedy=True)
-        == [
+        ],
+    ),
+    (
+        "es",
+        True,
+        "Pepa e Iván son una pareja sentimental, ambos dedicados al doblaje de películas.",
+        [
             "pepa",
             "e",
             "Iván",
@@ -614,9 +375,39 @@ def test_get_lemmas_in_text() -> None:
             "de",
             "película",
             ".",
-        ]
+        ],
+    ),
+    (
+        "eo",
+        False,
+        "Mi vidas la pomon.",
+        ["mi", "vidi", "la", "pomo", "."],
+    ),
+]
+
+
+@pytest.mark.parametrize("lang, greedy, text, expected", _TEXT_CASES)
+def test_get_lemmas_in_text(
+    lang: str, greedy: bool, text: str, expected: list[str]
+) -> None:
+    assert text_lemmatizer(text, lang=lang, greedy=greedy) == expected
+
+
+def test_text_api_parity() -> None:
+    """The three text-level APIs are the same code path; asserted once here
+    instead of on every _TEXT_CASES row."""
+    lang, greedy, text, expected = _TEXT_CASES[0]
+    lem = Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=greedy))
+    assert (
+        list(lem.get_lemmas_in_text(text, lang=lang))
+        == list(lemma_iterator(text, lang=lang, greedy=greedy))
+        == text_lemmatizer(text, lang=lang, greedy=greedy)
+        == expected
     )
-    # apostrophe-joined tokens reach the clitic/boundary strategies
+
+
+def test_text_lemmatizer_apostrophe_boundaries() -> None:
+    """Apostrophe-joined tokens reach the clitic/boundary strategies."""
     assert text_lemmatizer("L'homme n'est qu'un roseau.", lang="fr") == [
         "homme",
         "être",
@@ -632,23 +423,6 @@ def test_get_lemmas_in_text() -> None:
     ]
     assert "здоров'я" in text_lemmatizer("Це для здоров’я людини.", lang="uk")
     assert "do" in text_lemmatizer("They don't sing.", lang="en")
-    # test for Esperanto
-    text = "Mi vidas la pomon."
-    assert (
-        list(
-            Lemmatizer(
-                lemmatization_strategy=DefaultStrategy(greedy=False)
-            ).get_lemmas_in_text(text, lang="eo")
-        )
-        == text_lemmatizer(text, lang="eo", greedy=False)
-        == [
-            "mi",
-            "vidi",
-            "la",
-            "pomo",
-            ".",
-        ]
-    )
 
 
 # (lang, text, expected first lemma): sentence-initial casing policy per

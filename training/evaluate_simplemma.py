@@ -18,6 +18,7 @@ from conllu import parse_incr
 
 from simplemma import Lemmatizer
 from simplemma.strategies.default import DefaultStrategy
+from simplemma.utils import canonicalize_token
 from training.ud_conllu import dataset_to_lang, iter_word_tokens_in_sentences
 
 log = logging.getLogger(__name__)
@@ -59,13 +60,19 @@ def evaluate_dataset(
     focus = Tally()
     errors: list[tuple[str, str, str, str]] = []
 
-    for token_form, token in iter_word_tokens_in_sentences(sentences):
+    for token_form, token in iter_word_tokens_in_sentences(sentences, language):
+        # gold lemma already canonicalized in place by the iterator (no-op
+        # outside _CANON_TABLES): e.g. PADT's vocalized gold compared in the
+        # dict's unvocalized key space.
         lemma = token["lemma"]
         candidate = lemmatizer.lemmatize(token_form, lang=language)
         greedy_candidate = greedy_lemmatizer.lemmatize(token_form, lang=language)
         greedy_ok = greedy_candidate == lemma
         nongreedy_ok = candidate == lemma
-        baseline_ok = token["form"] == lemma
+        # form is only MWT-stripped by the iterator, not canonicalized like
+        # the gold lemma -- canonicalize here so the identity baseline is
+        # compared in the same key space (grc/he/ar).
+        baseline_ok = canonicalize_token(token["form"], language) == lemma
 
         overall.add(greedy_ok, nongreedy_ok, baseline_ok)
         if token["upos"] in ("ADJ", "NOUN"):

@@ -44,6 +44,14 @@ def test_roundtrip_literal_value_fallback() -> None:
     assert frontcode.decode(frontcode.encode(mapping)) == mapping
 
 
+def test_roundtrip_long_shared_prefix() -> None:
+    """Two keys sharing a >=128-byte prefix force the multi-byte varint path
+    for `shared` (real dicts never trigger this; decode_stream's fast path
+    for single-byte varints has a separate fallback branch to cover)."""
+    mapping = {b"a" * 200 + b"aa": b"x", b"a" * 200 + b"bb": b"y"}
+    assert frontcode.decode(frontcode.encode(mapping)) == mapping
+
+
 def test_roundtrip_trim_zero_self_identity() -> None:
     """trim=0 must not corrupt the value (see the `token[:-0]` gotcha)."""
     mapping = {b"run": b"run", b"running": b"runningly"}
@@ -65,6 +73,14 @@ def test_decode_stream_rejects_truncated_trailing_suffix() -> None:
     raw = lzma.decompress(frontcode.encode({b"dog": b"dog", b"zz": b"zzabc"}))
     with pytest.raises(ValueError, match="truncated or corrupt"):
         frontcode.decode_stream(raw[:-1])
+
+
+def test_decode_stream_rejects_truncated_key_suffix() -> None:
+    """Truncation inside a key-suffix (as opposed to a value-suffix) must also
+    raise, not just return a shortened key."""
+    raw = lzma.decompress(frontcode.encode({b"dog": b"dog", b"zzzzzz": b"zzzzzz"}))
+    with pytest.raises(ValueError, match="truncated or corrupt"):
+        frontcode.decode_stream(raw[:-6])
 
 
 def test_decode_stream_rejects_trailing_garbage() -> None:

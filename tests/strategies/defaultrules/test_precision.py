@@ -20,6 +20,7 @@ from simplemma.strategies.defaultrules import RULE_FUNCTIONS
 from simplemma.strategies.dictionaries.dictionary_factory import (
     DefaultDictionaryFactory,
 )
+from training.dictionary_builder import BUILD_NORMALIZATION
 from training.rulebuilder import _ACCENT_FOLD_LANGS, output_is_lemma, pattern_alts
 
 RULE_LANGS = sorted(
@@ -77,6 +78,17 @@ def test_rule_quality(lang: str) -> None:
     """Single full-dictionary pass: aggregate precision (per-language floor) and
     idempotence for one language's rules."""
     d = FACTORY.get_dictionary(lang)
+    # BUILD_NORMALIZATION alias keys are entries rules never serve at runtime
+    # (dict-lookup precedes rules) whose values keep the ORIGIN spelling
+    # (ru е-key -> ё-value), so they'd systematically mismatch any rule
+    # output -- drop them from the proxy corpus, like fill (see docstring).
+    alias_born: dict[str, str] = {}
+    norm = BUILD_NORMALIZATION.get(lang)
+    if norm is not None and norm.key_alias is not None:
+        for k in d:
+            a = k.translate(norm.key_alias)
+            if a != k:
+                alias_born[a] = d[k]
     fn = RULE_FUNCTIONS[lang]
     mod = _rules_module(lang)
     rules = mod.DEFAULT_RULES if mod is not None else None
@@ -118,6 +130,8 @@ def test_rule_quality(lang: str) -> None:
     escaped: list[str] = []
     hits: list[int] = []
     for f, gold in d.items():
+        if alias_born.get(f) == gold:
+            continue
         if rules is not None:
             hits = [
                 suffix_rule[sfx]

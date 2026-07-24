@@ -22,10 +22,14 @@ log = logging.getLogger(__name__)
 CLOSED_CLASS_POS = frozenset({"PRON", "DET", "ADP", "CCONJ", "SCONJ", "AUX", "PART"})
 
 
-def collect_candidates(train_path: Path) -> dict[str, Counter[str]]:
-    """form -> Counter(lemma -> occurrence count), closed-class tokens only."""
+def collect_candidates(train_path: Path, lang: str) -> dict[str, Counter[str]]:
+    """form -> Counter(lemma -> occurrence count), closed-class tokens only.
+    Lemmas arrive canonicalized for `lang` (via iter_word_tokens), so the
+    mined override is already in the shipped dict's key space -- no per-lang
+    canon step to forget (the ar override's dead-key bug came from doing it by
+    hand)."""
     candidates: defaultdict[str, Counter[str]] = defaultdict(Counter)
-    for form, token in iter_word_tokens(train_path):
+    for form, token in iter_word_tokens(train_path, lang):
         if token["upos"] in CLOSED_CLASS_POS:
             candidates[form][token["lemma"]] += 1
     return dict(candidates)
@@ -74,7 +78,7 @@ def main() -> None:
     parser.add_argument("--min-agreement", type=float, default=0.90)
     args = parser.parse_args()
 
-    candidates = collect_candidates(args.train_conllu)
+    candidates = collect_candidates(args.train_conllu, args.lang)
     overrides, stats = resolve_overrides(candidates, args.min_count, args.min_agreement)
     log.info(f"{args.lang}: {stats}")
 

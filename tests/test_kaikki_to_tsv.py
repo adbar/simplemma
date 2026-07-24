@@ -117,11 +117,52 @@ def test_extract_pairs_skips_placeholder_form():
     entry = {
         "word": "gratis",
         "forms": [
-            {"form": "-", "tags": ["definite", "error-unrecognized-form"]},
-            {"form": "gratis", "tags": ["error-unrecognized-form"]},
+            {"form": "-", "tags": ["definite", "some-other-tag"]},
+            {"form": "gratis"},
         ],
     }
     assert list(extract_pairs(entry)) == [("gratis", "gratis")]
+
+
+def test_extract_pairs_skips_error_unrecognized_form_for_tagalog():
+    """kaikki tags unparsed inflection-template cells (root, bare affix, trigger
+    labels) as 'error-unrecognized-form' on Tagalog verb pages -- never a
+    verified inflection there. Scoped to tl: see the next test."""
+    entry = {
+        "lang_code": "tl",
+        "word": "akuin",
+        "forms": [
+            {"form": "ako", "tags": ["error-unrecognized-form"]},
+            {"form": "-in", "tags": ["error-unrecognized-form"]},
+            {"form": "actor", "tags": ["error-unrecognized-form"]},
+            {"form": "inako", "tags": ["completive"]},
+        ],
+    }
+    assert list(extract_pairs(entry)) == [("akuin", "inako")]
+
+
+def test_extract_pairs_keeps_error_unrecognized_form_for_other_langs():
+    """The tag is NOT a reliable junk signal outside Tagalog -- a 27-lang audit
+    found it co-occurring with real inflections (e.g. Welsh mutation, Irish
+    prothesis, Galician participles), so it must not be dropped globally."""
+    entry = {
+        "lang_code": "cy",
+        "word": "brown",
+        "forms": [{"form": "mrown", "tags": ["error-unrecognized-form"]}],
+    }
+    assert list(extract_pairs(entry)) == [("brown", "mrown")]
+
+
+def test_extract_pairs_skips_baybayin_forms():
+    """A 'Baybayin' row is a script-variant display of the headword, not a form."""
+    entry = {
+        "word": "akuin",
+        "forms": [
+            {"form": "ᜀᜃᜓᜁᜈ᜔", "tags": ["Baybayin"]},
+            {"form": "inako", "tags": ["completive"]},
+        ],
+    }
+    assert list(extract_pairs(entry)) == [("akuin", "inako")]
 
 
 def test_extract_pairs_strips_stress_marks_from_forms():
@@ -133,6 +174,37 @@ def test_extract_pairs_strips_stress_marks_from_forms():
 def test_extract_pairs_strips_stress_marks_from_relations():
     entry = {"word": "у́кази", "form_of": [{"word": "у́каз"}]}
     assert list(extract_pairs(entry)) == [("указ", "укази")]
+
+
+def test_extract_pairs_folds_grc_length_marks_keeping_accents():
+    """grc (lang_code in the allowlist): pedagogical vowel-length marks are
+    dropped from forms, but accents/breathings survive."""
+    entry = {
+        "lang_code": "grc",
+        "word": "σκύλος",  # lemma: normal orthography (acute), no length mark
+        "forms": [{"form": "σκῠλους"}],  # breve (U+1FE0) length mark on υ
+    }
+    assert list(extract_pairs(entry)) == [
+        ("σκύλος", "σκυλους")
+    ]  # breve gone, acute kept
+
+
+def test_extract_pairs_does_not_fold_length_marks_for_other_langs():
+    """Latvian macron is orthographic -- length folding must NOT touch non-allowlisted
+    langs, or garā -> gara would corrupt real words."""
+    entry = {"lang_code": "lv", "word": "garš", "forms": [{"form": "garā"}]}
+    assert list(extract_pairs(entry)) == [("garš", "garā")]  # macron preserved
+
+
+def test_extract_pairs_keeps_polytonic_greek_accents_from_nfd_input():
+    """NFD (decomposed) polytonic Greek must keep its accents: the stress-strip
+    targets only Cyrillic combining marks, not Greek/Latin precomposed accents."""
+    import unicodedata
+
+    word = unicodedata.normalize("NFD", "ἄνθρωπος")  # decomposed accents
+    form = unicodedata.normalize("NFD", "ἀνθρώπους")
+    entry = {"word": word, "forms": [{"form": form}]}
+    assert list(extract_pairs(entry)) == [("ἄνθρωπος", "ἀνθρώπους")]  # NFC, intact
 
 
 def test_extract_pairs_skips_romanization_forms():

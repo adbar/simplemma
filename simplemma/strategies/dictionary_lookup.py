@@ -3,7 +3,7 @@ This module defines the `DictionaryLookupStrategy` class, which is a concrete im
 It provides lemmatization using dictionary lookup.
 """
 
-from ..utils import apostrophe_variants, has_apostrophe
+from ..utils import apostrophe_variants, canonicalize_token, has_apostrophe
 from .dictionaries.dictionary_factory import (
     DEFAULT_DICTIONARY_FACTORY,
     DictionaryFactory,
@@ -24,7 +24,7 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
 
         Args:
             dictionary_factory (DictionaryFactory): The dictionary factory used to obtain language dictionaries.
-                Defaults to the shared [`DEFAULT_DICTIONARY_FACTORY`][simplemma.strategies.dictionaries.dictionary_factory.DEFAULT_DICTIONARY_FACTORY].
+                Defaults to the shared `DEFAULT_DICTIONARY_FACTORY`.
         """
         self._dictionary_factory = dictionary_factory
 
@@ -44,6 +44,9 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
 
         """
         dictionary = self._dictionary_factory.get_dictionary(lang)
+        # no-op for unregistered langs: matches the canonicalization
+        # dictionary_builder applies to keys at build time.
+        token = canonicalize_token(token, lang)
         # Fast path: apostrophe-free tokens skip the variant machinery (hottest
         # lookup). Reverse case extends coverage; token[:1] is empty-safe.
         if (result := dictionary.get(token)) is not None:
@@ -66,6 +69,7 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
         """Case-sensitive lookup (apostrophe variants only, no reverse-case
         fallback): a curated whole-token entry beats any heuristic decomposition."""
         dictionary = self._dictionary_factory.get_dictionary(lang)
+        token = canonicalize_token(token, lang)
         for variant in apostrophe_variants(token):
             if (result := dictionary.get(variant)) is not None:
                 return result
@@ -73,4 +77,5 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
 
     def is_dictionary_member(self, token: str, lang: str) -> bool:
         """Whether `token` is a literal dictionary key (no case/apostrophe fallback)."""
+        token = canonicalize_token(token, lang)
         return self._dictionary_factory.get_dictionary(lang).get(token) is not None

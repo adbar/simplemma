@@ -112,6 +112,16 @@ _TOKENIZATION_CASES = [
     ),
     # Armenian full stop is a token of its own
     ("Նա ապրում է Երևանում։", ["Նա", "ապրում", "է", "Երևանում", "։"]),
+    # Hebrew: niqqud/cantillation marks stay inside the word (pointed text
+    # must not shatter into single letters)
+    ("וְהַבַּיִת הַגָּדוֹל", ["וְהַבַּיִת", "הַגָּדוֹל"]),
+    # Hebrew: maqaf joins a compound like an ASCII hyphen (stays one token);
+    # standalone/leading maqaf still becomes its own punctuation token
+    ("הוא לומד בבית־ספר גדול.", ["הוא", "לומד", "בבית־ספר", "גדול", "."]),
+    ("א ־ ב", ["א", "־", "ב"]),
+    # Malayalam: vowel signs/virama stay inside the word (alphasyllabic text
+    # must not shatter at every vowel sign)
+    ("മലയാളം കേരളത്തിലെ ഭാഷ.", ["മലയാളം", "കേരളത്തിലെ", "ഭാഷ", "."]),
     # problem here: WDR5-„Morgenecho“
     ("WDR5-„Morgenecho“", ["WDR5-", "„", "Morgenecho", "“"]),
     # word-internal apostrophes stay; quotes and edge apostrophes split

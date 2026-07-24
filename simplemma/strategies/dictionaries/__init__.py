@@ -17,8 +17,10 @@ def make_low_memory_factory() -> DictionaryFactory:
     return StreamDictionaryFactory()
 
 
-# Shared across low_memory call sites so each doesn't reload every dict.
-_shared_low_memory_factory = lru_cache(maxsize=None)(make_low_memory_factory)
+@lru_cache(maxsize=None)
+def _shared_low_memory_factory() -> DictionaryFactory:
+    """Shared across low_memory call sites so each doesn't reload every dict."""
+    return make_low_memory_factory()
 
 
 __all__ = [

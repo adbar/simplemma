@@ -79,6 +79,7 @@ def test_read_dict_filtering(tmp_path) -> None:
         "en",
         "dog\tdogs\n"
         "foo,bar\tbaz\n"  # comma in lemma -> dropped
+        "new york\tnyc\n"  # space in lemma -> dropped (not a single token)
         "good\t-bad\n"  # leading-hyphen FORM -> dropped (per-field punct check)
         "a\tverylongword\n"
         "verylonglemma\tx\n"
@@ -128,6 +129,302 @@ def test_read_dict_lemma_headword_never_reduces(tmp_path) -> None:
     assert result["lansare"] == "lansat"  # 'lansare' only ever a form -> reduces
 
 
+def test_read_dict_soft_identity_for_grc(tmp_path) -> None:
+    """grc is in IDENTITY_SOFT_LANGS: a word that's BOTH a lemma headword and a
+    well-attested form of another lemma keeps the attested mapping (participle
+    ἀκούσας is both its own headword and a form of ἀκούω) -- unlike the
+    universal force-identity behavior (see test_read_dict_lemma_headword_never_reduces)."""
+    result = _read(tmp_path, "grc", "ἀκούω\tἀκούσας\n" * 5 + "ἀκούσας\tἀκούσας\n")
+    assert result["ἀκούσας"] == "ἀκούω"  # attested mapping wins, not forced to self
+
+
+def test_read_dict_soft_identity_for_ar_is_scoped_to_al_prefixed(tmp_path) -> None:
+    """ar's IDENTITY_SOFT_LANGS entry is a PREDICATE, not a blanket: only
+    definite-article-prefixed headwords (الكتاب) soften, so an attested
+    كتاب mapping wins -- while a non-ال headword still force-identities
+    even when noisily mapped elsewhere (a blanket ar predicate gate-FAILED,
+    token -0.36pp)."""
+    al_headword = "كتاب\tالكتاب\n" * 5 + "الكتاب\tالكتاب\n"  # attested candidate
+    non_al_headword = "قلم\tبيت\n" * 5 + "بيت\tبيوت\n"  # بيت noisily mapped
+    result = _read(tmp_path, "ar", al_headword + non_al_headword)
+    assert result["الكتاب"] == "كتاب"  # softened: attested mapping wins
+    assert result["بيت"] == "بيت"  # non-ال headword: force-identity holds
+
+
+def test_read_dict_rejects_maqaf_edged_fields(tmp_path) -> None:
+    """Hebrew maqaf (U+05BE) is Wiktionary's hyphen for bound-morpheme
+    headwords: a line with an edge-maqaf field must be dropped like its
+    ASCII-hyphen twin, or frequent fused forms ship garbage values (בו -> ב־)."""
+    result = _read(
+        tmp_path,
+        "he",
+        "ב־\tבו\n"  # maqaf-edged LEMMA -> line dropped
+        "כלב\tכלבים\n",
+    )
+    assert "בו" not in result  # not mapped to the ב־ fragment
+    assert result["כלבים"] == "כלב"
+
+
+def test_read_dict_canonicalizes_grc_accents(tmp_path) -> None:
+    """grc keys/values are canonicalized grave->acute at the same choke point
+    as NFC, so a grave-accented wordlist line ships under its acute key --
+    matching what canonicalize_token applies to runtime lookups."""
+    result = _read(tmp_path, "grc", "ἐγώ\tἐγὼ\n")
+    assert result == {"ἐγώ": "ἐγώ"}  # grave form folded to the acute key
+
+
+def test_add_key_aliases_ar_hamza() -> None:
+    """ar: a hamza-seat/alef-maqsura key gets a folded-key ALIAS pointing at
+    the same (correctly spelled) value -- unlike canonicalize_token, the
+    value is never touched, so output stays correctly spelled."""
+    table = dictionary_builder.BUILD_NORMALIZATION["ar"].key_alias
+    assert table is not None
+    result = dictionary_builder._add_key_aliases({"أحمد": "أحمد", "بيت": "بيت"}, table)
+    assert result["احمد"] == "أحمد"  # alias key -> the properly-spelled value
+    assert result["أحمد"] == "أحمد"  # original key untouched
+    assert "بيت" in result and "بىت" not in result  # no hamza/maqsura: no alias added
+
+
+def test_add_key_aliases_never_overwrites_an_existing_exact_key() -> None:
+    """A folded key that's ALSO a real, independently-attested entry keeps
+    its own value -- the alias must never shadow it."""
+    table = dictionary_builder.BUILD_NORMALIZATION["ar"].key_alias
+    assert table is not None
+    result = dictionary_builder._add_key_aliases(
+        {"أمن": "أمن", "امن": "امن_different_word"}, table
+    )
+    assert result["امن"] == "امن_different_word"  # exact entry wins over the alias
+
+
+def test_add_key_aliases_ru_yo() -> None:
+    """ru: a ё-spelled key gains an е-spelled twin (real text writes е for ё),
+    value untouched; an existing е-spelled entry always wins (все/всё are
+    distinct lemmas and must never merge)."""
+    table = dictionary_builder.BUILD_NORMALIZATION["ru"].key_alias
+    assert table is not None
+    result = dictionary_builder._add_key_aliases(
+        {"ребёнка": "ребёнок", "всё": "всё", "все": "весь"}, table
+    )
+    assert result["ребенка"] == "ребёнок"  # alias key -> the ё-spelled value
+    assert result["все"] == "весь"  # real е-entry wins over всё's alias
+
+
+def test_add_key_aliases_hbs_pitch_marks() -> None:
+    """hbs: a pitch/length-marked key gains a plain-spelled twin (real text
+    never types the marks); an existing plain entry always wins. The raw
+    function defaults to ADD (both keys survive) -- drop_original is a
+    separate, explicit opt-in (see test_add_key_aliases_drop_original)."""
+    table = dictionary_builder.BUILD_NORMALIZATION["hbs"].key_alias
+    assert table is not None
+    result = dictionary_builder._add_key_aliases(
+        {"Hr̀vātskā": "Hrvatska", "vȉde": "vidjeti", "vide": "videti"}, table
+    )
+    assert result["Hrvatska"] == "Hrvatska"  # alias from the marked key
+    assert result["vide"] == "videti"  # real plain entry wins over vȉde's alias
+    assert "Hr̀vātskā" in result  # ADD (default): marked original survives too
+
+
+def test_add_key_aliases_drop_original() -> None:
+    """drop_original=True REPLACES the marked key with its plain form instead
+    of keeping both -- the shipped hbs/fa/bg/uk/lt/sl/la behavior. A real
+    plain entry still always wins (never overwritten), and the marked
+    original is gone either way."""
+    table = dictionary_builder.BUILD_NORMALIZATION["hbs"].key_alias
+    assert table is not None
+    result = dictionary_builder._add_key_aliases(
+        {"Hr̀vātskā": "Hrvatska", "vȉde": "vidjeti", "vide": "videti"},
+        table,
+        drop_original=True,
+    )
+    assert result == {"Hrvatska": "Hrvatska", "vide": "videti"}
+    assert "Hr̀vātskā" not in result
+    assert "vȉde" not in result
+
+
+def test_hbs_pitch_fold_keeps_montenegrin_letters() -> None:
+    """ś/ź (real Montenegrin letters) must survive the pitch fold's keep=,
+    like ć -- else dośetka/źenica get corrupted."""
+    table = dictionary_builder.BUILD_NORMALIZATION["hbs"].key_alias
+    assert table is not None
+    for ch in "śŚźŹ":
+        assert ch.translate(table) == ch  # untouched, like ć/Ć
+    result = dictionary_builder._apply_build_normalization(
+        {"dośetka": "dośetka", "źenica": "źenica"}, "hbs"
+    )
+    assert result == {"dośetka": "dośetka", "źenica": "źenica"}
+
+
+def test_apply_build_normalization_hbs_drops_marked_originals() -> None:
+    """End-to-end: BUILD_NORMALIZATION["hbs"].drop_folded_keys is wired
+    through _apply_build_normalization, not just the raw function default."""
+    result = dictionary_builder._apply_build_normalization(
+        {"Hr̀vātskā": "Hrvatska"}, "hbs"
+    )
+    assert result == {"Hrvatska": "Hrvatska"}
+
+
+def test_apply_build_normalization_ru_keeps_original() -> None:
+    """ru's ё is genuinely typed in real text -- ru must NOT drop the
+    original, unlike hbs/fa/bg/uk/lt/sl/la."""
+    result = dictionary_builder._apply_build_normalization({"ребёнка": "ребёнок"}, "ru")
+    assert result == {"ребёнка": "ребёнок", "ребенка": "ребёнок"}
+
+
+def test_fix_value_scripts_hbs() -> None:
+    """A Latin key never keeps a Cyrillic value (deterministic Cyr->Lat
+    transliteration); Cyrillic and mixed-script keys stay untouched, and a
+    value with non-Serbian Cyrillic is left whole, not half-transliterated."""
+    table = dictionary_builder.BUILD_NORMALIZATION["hbs"].value_script_fix
+    assert table is not None
+    result = dictionary_builder._fix_value_scripts(
+        {
+            "Milorad": "Милорад",  # fixed
+            "jun": "јун",  # fixed
+            "Милорад": "Милорад",  # Cyrillic key: untouched
+            "atoмска": "атомски",  # mixed-script key: untouched
+            "boršč": "боршчёвый",  # ё is not Serbian: left unchanged
+        },
+        table,
+    )
+    assert result["Milorad"] == "Milorad"
+    assert result["jun"] == "jun"
+    assert result["Милорад"] == "Милорад"
+    assert result["atoмска"] == "атомски"
+    assert result["boršč"] == "боршчёвый"
+
+
+def test_add_key_aliases_never_plants_an_empty_key() -> None:
+    """A mark-only key (kept by _scrub's identity exemption) folds to "" under
+    fa's deletion table -- the empty alias must be skipped, not added."""
+    table = dictionary_builder.BUILD_NORMALIZATION["fa"].key_alias
+    assert table is not None
+    result = dictionary_builder._add_key_aliases({"ـ": "ـ"}, table)
+    assert result == {"ـ": "ـ"}  # no "" key
+
+
+def test_apply_build_normalization_noop_for_unregistered_langs() -> None:
+    d = {"أحمد": "أحمد"}
+    assert dictionary_builder._apply_build_normalization(d, "zz") == d
+
+
+def test_drop_junk_keys_uk_paradigm_codes() -> None:
+    """uk: Wiktionary conjugation-table paradigm-class codes and footnote
+    leaks are dropped -- no real Ukrainian word starts with a digit."""
+    result = dictionary_builder._drop_junk_keys(
+        {"10a": "вибороти", "¹Rare.": "літ", "мати": "мати"}, "uk"
+    )
+    assert result == {"мати": "мати"}
+
+
+def test_drop_junk_keys_noop_for_other_langs() -> None:
+    """A digit-leading key is a REAL word in many languages (da, de, en, ga,
+    hu, sv all ship one) -- the filter must never apply outside its
+    verified-junk-only language."""
+    d = {"10a": "10a", "1000ú": "1000ú"}
+    assert dictionary_builder._drop_junk_keys(d, "ga") == d
+
+
+def test_drop_junk_keys_tl_baybayin() -> None:
+    """tl: Baybayin-script keys (alt_of leaks) are dropped key-side --
+    including the handful whose VALUES are also Baybayin, which a foreign-
+    script (value-checking) test would miss. Latin entries untouched."""
+    result = dictionary_builder._drop_junk_keys(
+        {"ᜀᜀᜃᜓᜀ": "akuin", "ᜇ": "ᜇ", "akuin": "akuin"}, "tl"
+    )
+    assert result == {"akuin": "akuin"}
+
+
+def test_drop_junk_keys_he_latin_transliterations() -> None:
+    """he: a Latin key resolving to a Hebrew value is transliteration noise;
+    Hebrew keys (and non-alphabetic keys) are untouched."""
+    result = dictionary_builder._drop_junk_keys(
+        {"Slitherin": "סלית׳רין", "בית": "בית", "3": "3"}, "he"
+    )
+    assert result == {"בית": "בית", "3": "3"}
+
+
+def test_is_foreign_script_key_ipa_and_romanization_rows() -> None:
+    """ar IPA transcription and grc Beta-code romanization: the key is
+    entirely outside the allowed script, the value is inside it -- drop."""
+    assert dictionary_builder._is_foreign_script_key(
+        "uð.ðu.ki.ruː", "اذكروا", frozenset({"ARABIC"})
+    )
+    assert dictionary_builder._is_foreign_script_key(
+        "hubrisin", "ὑβρίς", frozenset({"GREEK", "CYPRIOT", "LINEAR"})
+    )
+
+
+def test_is_foreign_script_key_protects_alternate_attestations() -> None:
+    """grc Cypriot-syllabary attestations are a real (if rare) alternate
+    script for early Greek, not Wiktionary citation noise -- kept allowed,
+    so they're never flagged."""
+    assert not dictionary_builder._is_foreign_script_key(
+        "𐠞𐠪𐠐𐠄𐠩", "βασιλεύς", frozenset({"GREEK", "CYPRIOT", "LINEAR"})
+    )
+
+
+def test_is_foreign_script_key_ms_asymmetric_direction() -> None:
+    """ms is genuinely biscriptal: a Jawi key resolving to its standard Rumi
+    citation lemma is CORRECT and must never be flagged, but a Rumi key
+    resolving to a Jawi value is the defect -- only that direction drops."""
+    assert not dictionary_builder._is_foreign_script_key(
+        "جون", "Jun", frozenset({"ARABIC"})
+    )
+    assert dictionary_builder._is_foreign_script_key(
+        "pintu", "ڤينتو", frozenset({"ARABIC"})
+    )
+
+
+def test_is_foreign_script_key_never_flags_mixed_script() -> None:
+    """A key carrying ANY allowed-script letter (mixed script, e.g. hbs's
+    Latin+Cyrillic 'atoмска') is never flagged -- only entirely
+    foreign-scripted keys are."""
+    assert not dictionary_builder._is_foreign_script_key(
+        "atoмска", "атомски", frozenset({"CYRILLIC"})
+    )
+
+
+def test_is_foreign_script_key_ignores_non_alphabetic():  # digits/punct
+    """A purely non-alphabetic key (digits, punctuation) has no script class
+    at all -- it's Phase B's (_drop_junk_keys pattern) concern, not this
+    predicate's; it must never be flagged here."""
+    assert not dictionary_builder._is_foreign_script_key(
+        "123", "число", frozenset({"CYRILLIC"})
+    )
+
+
+def test_drop_junk_keys_ar_ipa_rows() -> None:
+    result = dictionary_builder._drop_junk_keys(
+        {"uð.ðu.ki.ruː": "اذكروا", "كتاب": "كتاب"}, "ar"
+    )
+    assert result == {"كتاب": "كتاب"}
+
+
+def test_drop_junk_keys_hi_urdu_script_leak() -> None:
+    """hi: Wiktionary's shared Hindi/Urdu extraction leaks Perso-Arabic-
+    script entries; Urdu isn't a supported language and real Hindi text is
+    always Devanagari."""
+    result = dictionary_builder._drop_junk_keys({"سفید": "सफ़ेद", "सफ़ेद": "सफ़ेद"}, "hi")
+    assert result == {"सफ़ेद": "सफ़ेद"}
+
+
+def test_drop_junk_keys_ms_keeps_jawi_to_rumi_direction() -> None:
+    result = dictionary_builder._drop_junk_keys({"جون": "Jun", "pintu": "ڤينتو"}, "ms")
+    assert result == {"جون": "Jun"}
+
+
+def test_build_dictionary_ships_ar_hamza_alias(tmp_path) -> None:
+    """End-to-end: a wordlist entry with a hamza-seat form ships both its own
+    key and the folded-key alias in the built .plzma."""
+    listpath = str(tmp_path)
+    (tmp_path / "ar.txt").write_text("أحمد\tأحمد\n", encoding="utf-8")
+    outfile = str(tmp_path / "ar.plzma")
+    dictionary_builder._build_dictionary("ar", listpath, outfile)
+    built = frontcode.decode(Path(outfile).read_bytes())
+    assert built["أحمد".encode()] == "أحمد".encode()  # original key
+    assert built["احمد".encode()] == "أحمد".encode()  # folded-key alias
+
+
 def test_read_dict_keeps_long_and_single_char_entries(tmp_path) -> None:
     """No length cap (VOC_LIMIT/MAXLENGTH gone) and no per-language min-lemma
     exemption (SAFE_LIMIT collapsed): long forms and 1-char lemmas are kept."""
@@ -172,6 +469,33 @@ def test_apply_layers_rejects_empty_fields(tmp_path, monkeypatch) -> None:
     _layers(tmp_path, monkeypatch, fill="good\tgoods\nlemma\t\n")
     with pytest.raises(ValueError, match="empty field"):
         dictionary_builder._apply_layers({}, "zz")
+
+
+def test_apply_layers_canonicalizes_a_grc_override(tmp_path, monkeypatch) -> None:
+    """An override line with a grave-accented (non-canonical) form/lemma
+    ships under its acute key -- the same fold _collect_candidates applies
+    to the base wordlist, so a reviewed layer file can't ship a dead key
+    (the exact bug build_override.py's mining side hit once by folding only
+    the lemma column by hand)."""
+    overrides_dir = tmp_path / "overrides"
+    overrides_dir.mkdir()
+    (overrides_dir / "grc.tsv").write_text("ἐγώ\tἐγὼ\n", encoding="utf-8")
+    monkeypatch.setattr(dictionary_builder, "OVERRIDES_DIR", overrides_dir)
+    monkeypatch.setattr(dictionary_builder, "FILL_DIR", tmp_path / "no_fill")
+    merged = dictionary_builder._apply_layers({}, "grc")
+    assert merged == {"ἐγώ": "ἐγώ"}  # grave form folded to the acute key
+
+
+def test_apply_layers_rejects_a_canon_collision(tmp_path, monkeypatch) -> None:
+    """Two override lines that fold to the same canonical form but disagree
+    on the lemma must fail the build loud, not silently pick one."""
+    overrides_dir = tmp_path / "overrides"
+    overrides_dir.mkdir()
+    (overrides_dir / "grc.tsv").write_text("ἐγώ\tἐγὼ\nἄλλος\tἐγώ\n", encoding="utf-8")
+    monkeypatch.setattr(dictionary_builder, "OVERRIDES_DIR", overrides_dir)
+    monkeypatch.setattr(dictionary_builder, "FILL_DIR", tmp_path / "no_fill")
+    with pytest.raises(ValueError, match="fold to the same canonical form"):
+        dictionary_builder._apply_layers({}, "grc")
 
 
 def test_apply_layers_precedence(tmp_path, monkeypatch) -> None:

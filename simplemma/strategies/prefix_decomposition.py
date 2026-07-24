@@ -5,7 +5,8 @@ It provides lemmatization by performing subword decomposition using pre-defined 
 
 import re
 
-from .defaultprefixes import DEFAULT_KNOWN_PREFIXES
+from ..utils import canonicalize_token
+from .defaultprefixes import DEFAULT_KNOWN_PREFIXES, DROP_PREFIX_LANGS
 from .dictionary_lookup import DictionaryLookupStrategy
 from .lemmatization_strategy import LemmatizationStrategy
 
@@ -43,7 +44,8 @@ class PrefixDecompositionStrategy(LemmatizationStrategy):
         This method performs lemmatization by performing subword decomposition using pre-defined prefixes.
         It checks if the language has known prefixes defined.
         If a known prefix is found at the start of the token, it extracts the prefix and performs dictionary lookup on the remaining subword.
-        If a lemma is found for the subword, it returns the concatenation of the prefix and the lowercase subword.
+        If a lemma is found for the subword, it returns the prefix plus the lowercase subword -- except for
+        `DROP_PREFIX_LANGS`, where the prefix is a separate particle and the subword's lemma alone is returned.
         If no known prefix is found or no lemma is found for the subword, None is returned.
 
         Args:
@@ -57,6 +59,10 @@ class PrefixDecompositionStrategy(LemmatizationStrategy):
         if lang not in self._known_prefixes:
             return None
 
+        # Fold BEFORE matching (no-op for unregistered langs): ar tashkeel
+        # sits between a fused prefix's letters (بِالْكِتَابِ), so a
+        # multi-char prefix can never match the raw token.
+        token = canonicalize_token(token, lang)
         prefix_match = self._known_prefixes[lang].match(token)
         if not prefix_match or prefix_match[1] == token:
             return None
@@ -64,5 +70,12 @@ class PrefixDecompositionStrategy(LemmatizationStrategy):
         prefix = prefix_match[1]
 
         subword = self._dictionary_lookup.get_lemma(token[len(prefix) :], lang)
+        if not subword:
+            return None
 
-        return prefix + subword.lower() if subword else None
+        # DROP_PREFIX_LANGS: the prefix is its own particle, so the stem's
+        # lemma alone is the answer -- see the module comment above.
+        if lang in DROP_PREFIX_LANGS:
+            return subword
+
+        return prefix + subword.lower()

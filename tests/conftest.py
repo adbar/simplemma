@@ -1,9 +1,22 @@
 """Shared test scaffolding (pytest auto-discovers this)."""
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 from simplemma import BaseTokenSampler
+from simplemma.strategies import DictionaryFactory
+
+
+class FixedMapping(DictionaryFactory):
+    """Serves the same fixed str->str mapping for every language. Test-only
+    stub -- distinct from training.eval_harness.FixedDictionaryFactory, which
+    encodes to bytes to match the production reader."""
+
+    def __init__(self, mapping: Mapping[str, str]) -> None:
+        self._mapping = mapping
+
+    def get_dictionary(self, lang: str) -> Mapping[str, str]:
+        return self._mapping
 
 
 def conllu(sentences: Iterable[Iterable[tuple[Any, ...]]]) -> str:

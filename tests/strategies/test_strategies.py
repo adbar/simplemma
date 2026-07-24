@@ -1,5 +1,3 @@
-from collections.abc import Mapping
-
 import pytest
 
 from simplemma.strategies import (
@@ -7,13 +5,15 @@ from simplemma.strategies import (
     ApostropheBoundaryStrategy,
     CliticDecompositionStrategy,
     DefaultStrategy,
-    DictionaryFactory,
     DictionaryLookupStrategy,
     GreedyDictionaryLookupStrategy,
     HyphenRemovalStrategy,
+    MorphemeDecompositionStrategy,
     PrefixDecompositionStrategy,
 )
 from simplemma.strategies.greedy_dictionary_lookup import greedy_min_length
+from simplemma.strategies.morpheme_decomposition import _Morphemes
+from tests.conftest import FixedMapping
 
 
 def test_search() -> None:
@@ -61,6 +61,9 @@ def test_search() -> None:
         )
         == "getestet"
     )
+    # canonicalize_token must apply here too, not just in DictionaryLookupStrategy,
+    # so a vocalized token resolves even when this strategy runs standalone.
+    assert GreedyDictionaryLookupStrategy().get_lemma("آذربايجانَ", "ar") == "أذربيجان"
 
     assert PrefixDecompositionStrategy().get_lemma("auf", "de") is None
 
@@ -76,7 +79,11 @@ def test_search() -> None:
         ("da", False, "drabsdagen", "drabsdag"),
         ("da", False, "menighedsrådsvalget", "menighedsrådsvalg"),
         ("nn", False, "pastasalaten", "pastasalat"),
-        ("nn", False, "underleverandørane", "underleverandør"),
+        # WD fill added standalone "ane" (a real nn verb), which wins this
+        # word's affix-only split; the full pipeline still resolves it
+        # correctly via dictionary_lookup (locked by
+        # test_lemmatizer.py::test_nn_fill_full_pipeline).
+        ("nn", False, "underleverandørane", "underleverandørane"),
         # es re-admitted on UD v2.18 (old es_gsd PROPN-convention artifact fixed)
         ("es", False, "microrregiones", "microrregión"),
         ("es", False, "estanquillas", "estanquilla"),
@@ -112,6 +119,25 @@ def test_affix_decomposition_guards() -> None:
     assert affix._suffix_decomposition("-changanya", "sw", 4) is not None
     assert affix.get_lemma("a" * 101, "fi") is None
     assert affix.get_lemma("a" * 100000, "fi") is None
+
+
+def test_clitic_decomposition_skips_diacritic_fold_for_canon_languages() -> None:
+    """strip_diacritics is a blind NFD combining-mark strip built for Romance
+    stress accents; for ar (a _CANON_TABLES language) it also decomposes
+    hamza letters, which can land on a real but UNRELATED dictionary entry.
+    A _CANON_TABLES language must skip that retry, not fire it."""
+
+    # Only the hamza-decomposed form is a (deliberately unrelated) dict
+    # entry; the correctly-spelled stem itself is absent.
+    clitic = CliticDecompositionStrategy(
+        dictionary_lookup=DictionaryLookupStrategy(
+            dictionary_factory=FixedMapping({"مومن": "أيمن"})
+        )
+    )
+    # "مؤمنه" ("مؤمن" + the "ه" enclitic) must NOT resolve to "أيمن" via the
+    # fold -- it must fail cleanly (None) since the correctly-spelled stem
+    # isn't a real dictionary entry here.
+    assert clitic.get_lemma("مؤمنه", "ar") is None
 
 
 def test_clitic_decomposition() -> None:
@@ -205,6 +231,22 @@ def test_clitic_decomposition_proclitic_guards() -> None:
     assert clitic.get_lemma("aujourd'hui", "fr") is None
 
 
+def test_clitic_decomposition_ar_enclitic_pronouns() -> None:
+    """Arabic possessive/object pronoun suffixes strip to the bare noun/verb
+    lemma, same drop-not-reattach shape as Romance enclitics. ك/ي are
+    deliberately NOT in CLITIC_LANGS["ar"] -- measured net-negative (collide
+    with native root-final letters/nisba endings), so "كتابك" must not strip."""
+    clitic = CliticDecompositionStrategy()
+    assert clitic.get_lemma("كتابه", "ar") == "كتاب"
+    assert clitic.get_lemma("كتابها", "ar") == "كتاب"
+    assert clitic.get_lemma("كتابهم", "ar") == "كتاب"
+    assert clitic.get_lemma("كتابك", "ar") is None  # ك excluded: no strip attempted
+    # MIN_STEM_LEN=4 (the shared default, no ar override needed): a 3-letter
+    # stem is rejected, matching every other enclitic language's floor.
+    assert clitic.get_lemma("بيته", "ar") is None  # "بيت" is under the stem floor
+    assert clitic.get_lemma("كِتَابُهُ", "ar") == "كتاب"  # vocalized: folded first
+
+
 def test_apostrophe_boundary() -> None:
     """Turkish marks a fixed proper-noun/suffix boundary with an
     apostrophe; the head is lemmatized via the full pipeline."""
@@ -244,14 +286,145 @@ def test_dictionary_lookup_apostrophe_variant() -> None:
     assert lookup.get_lemma("Vaa'assa", "fi") == "vaaka"
 
 
+def test_dictionary_lookup_grc_accent_canon() -> None:
+    """grc: a positional-grave query resolves against an acute-keyed dict
+    (the form dictionary_builder ships); other languages are untouched."""
+
+    # grc acute key; lv macron key
+    mapping = {"δέ": "δέ", "garā": "gara"}
+    lookup = DictionaryLookupStrategy(dictionary_factory=FixedMapping(mapping))
+    assert lookup.get_lemma("δὲ", "grc") == "δέ"  # grave query -> acute key
+    assert lookup.get_lemma("garā", "lv") == "gara"  # unrelated: no fold applied
+    assert lookup.is_dictionary_member("δὲ", "grc")
+    assert lookup.exact_lemma("δὲ", "grc") == "δέ"
+
+
+def test_dictionary_lookup_he_niqqud_canon() -> None:
+    """he: a pointed query resolves against an unpointed-keyed dict (the form
+    dictionary_builder ships); other languages are untouched."""
+
+    mapping = {"בית": "בית"}  # unpointed key
+    lookup = DictionaryLookupStrategy(dictionary_factory=FixedMapping(mapping))
+    assert lookup.get_lemma("בַּיִת", "he") == "בית"  # pointed query -> unpointed key
+    assert lookup.get_lemma("בַּיִת", "ar") is None  # unrelated: no fold applied
+
+
+def test_prefix_decomposition_drops_particle_for_drop_prefix_langs() -> None:
+    """he (DROP_PREFIX_LANGS): the matched prefix is its own grammatical
+    particle, not part of the stem's lemma, so only the stem's lemma is
+    returned -- unlike de/ru/uk, where the prefix stays attached (see
+    test_prefixes_basic.py)."""
+    import re
+
+    strategy = PrefixDecompositionStrategy(
+        known_prefixes={"he": re.compile("^(ב)")},
+        dictionary_lookup=DictionaryLookupStrategy(
+            dictionary_factory=FixedMapping({"בית": "בית"})
+        ),
+    )
+    assert strategy.get_lemma("בבית", "he") == "בית"  # prefix dropped, not "בבית"
+
+
+def test_morphemes_sorts_affixes_longest_first_regardless_of_input_order() -> None:
+    """_Morphemes.__post_init__ sorts every field so a config literal never
+    has to be pre-sorted -- a shorter prefix listed BEFORE a longer one it's
+    a prefix of must not shadow the longer, correct match."""
+    m = _Morphemes(prefixes=("a", "aba"), suffixes=("n", "wan"))
+    assert m.prefixes == ("aba", "a")
+    assert m.suffixes == ("wan", "n")
+
+
+def test_morpheme_decomposition_tagalog_prefixes_and_ability_forms() -> None:
+    """Actor/ability-focus prefixes are discarded entirely (unlike
+    PrefixDecompositionStrategy, which keeps a derivational prefix)."""
+    morpheme = MorphemeDecompositionStrategy()
+    assert morpheme.get_lemma("nagbasa", "tl") == "basa"  # mag-/nag- actor focus
+    assert morpheme.get_lemma("magkakatrabaho", "tl") == "trabaho"  # distributive
+    assert morpheme.get_lemma("maulit", "tl") == "ulit"  # ma- stative
+
+
+def test_morpheme_decomposition_tagalog_infix() -> None:
+    """-um-/-in- infixes attach after the root's onset consonant."""
+    morpheme = MorphemeDecompositionStrategy()
+    assert morpheme.get_lemma("tumakbo", "tl") == "takbo"  # -um- infix
+    assert morpheme.get_lemma("binasa", "tl") == "basa"  # -in- infix
+    assert morpheme.get_lemma("umalis", "tl") == "alis"  # -um- as a plain
+    # prefix when the root is vowel-initial (no onset consonant to infix after)
+
+
+def test_morpheme_decomposition_tagalog_reduplication() -> None:
+    """Aspect reduplication of the root's first syllable. (A further
+    vowel-alternation stage -- gusto+han -> gustuhan, folding u->o back --
+    was measured at <=0.3pp on one treebank with no verdict change and
+    removed: not worth a config dimension.)"""
+    morpheme = MorphemeDecompositionStrategy()
+    assert morpheme.get_lemma("maiiwasan", "tl") == "iwas"  # ma-i-REDUP(i)-was-an
+
+
+def test_morpheme_decomposition_capitalized_token() -> None:
+    """A sentence-initial capitalized verb still resolves -- affix matching
+    works on the lowercased form, and the dictionary lemma is lowercase."""
+    morpheme = MorphemeDecompositionStrategy()
+    assert morpheme.get_lemma("Nagbasa", "tl") == "basa"
+    assert morpheme.get_lemma("Tumakbo", "tl") == "takbo"
+
+
+def test_morpheme_decomposition_prefers_deepest_decomposition() -> None:
+    """A shallower residue that happens to ALSO be a real (unrelated) dict
+    entry must not win over the correctly fully-decomposed root -- measured
+    regression: "maiiwasan" hit "iiwas" (a real but wrong entry) before
+    reaching "iwas" when candidates were tried shallowest-first."""
+    morpheme = MorphemeDecompositionStrategy()
+    assert morpheme.get_lemma("maiiwasan", "tl") == "iwas"
+
+
+def test_morpheme_decomposition_guards() -> None:
+    """Unconfigured languages and unresolvable residues return None."""
+    morpheme = MorphemeDecompositionStrategy()
+    assert morpheme.get_lemma("maiiwasan", "en") is None  # not a configured lang
+    assert morpheme.get_lemma("zzzznagzzzzz", "tl") is None  # no dict hit at all
+
+
+def test_morpheme_decomposition_infix_and_reduplication_respect_min_stem_len() -> None:
+    """An infix/reduplication strip that would leave a residue under
+    MIN_STEM_LEN must not fire, even if that short residue is coincidentally
+    a real dictionary entry -- same floor the prefix/suffix strippers apply."""
+
+    morpheme = MorphemeDecompositionStrategy(
+        dictionary_lookup=DictionaryLookupStrategy(
+            dictionary_factory=FixedMapping({"to": "to", "ab": "ab"})
+        )
+    )
+    # "tumo" -um-> stripped would leave "to" (2 chars, under the floor)
+    assert morpheme.get_lemma("tumo", "tl") is None
+    # "aab" reduplication-folded would leave "ab" (2 chars, under the floor)
+    assert morpheme.get_lemma("aab", "tl") is None
+
+
+def test_morpheme_decomposition_indonesian_prefix_and_suffix() -> None:
+    """Indonesian verbal affixes are compositional (prefix + suffix together);
+    a single-strip mechanism (PrefixDecompositionStrategy) can't reach these."""
+    morpheme = MorphemeDecompositionStrategy()
+    assert morpheme.get_lemma("ditingkatkan", "id") == "tingkat"  # di- + -kan
+    assert morpheme.get_lemma("berdasarkan", "id") == "dasar"  # ber- + -kan
+    assert morpheme.get_lemma("menceritakan", "id") == "cerita"  # men- + -kan
+
+
+def test_morpheme_decomposition_indonesian_conservative_config() -> None:
+    """Short/ambiguous prefixes (bare me/ke/se/pe, without their
+    consonant-initial variants) were measured to overfire and are
+    deliberately excluded -- only the longer, unambiguous forms ship."""
+    morpheme = MorphemeDecompositionStrategy()
+    # "melihat" = me- (no epenthetic consonant) + "lihat" (a real dict root) --
+    # would resolve if bare "me" were configured, but it isn't.
+    assert morpheme.get_lemma("melihat", "id") is None
+
+
 def test_dictionary_lookup_apostrophe_variant_recased() -> None:
     """A key stored capitalized under a different apostrophe glyph is found via
     the variant + reverse-case fallback (curly, lowercased input -> straight,
     capitalized key)."""
 
-    class F(DictionaryFactory):
-        def get_dictionary(self, lang: str) -> Mapping[str, str]:
-            return {"L'eau": "eau"}  # straight apostrophe, capitalized
-
-    lookup = DictionaryLookupStrategy(dictionary_factory=F())
+    mapping = {"L'eau": "eau"}  # straight apostrophe, capitalized
+    lookup = DictionaryLookupStrategy(dictionary_factory=FixedMapping(mapping))
     assert lookup.get_lemma("l’eau", "xx") == "eau"  # curly, lowercase

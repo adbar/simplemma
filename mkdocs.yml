@@ -60,6 +60,7 @@ nav:
       - Rules Strategy: reference/strategies/rules.md
       - Prefix Decomposition Strategy: reference/strategies/prefix_decomposition.md
       - Affix Decomposition Strategy: reference/strategies/affix_decomposition.md
+      - Morpheme Decomposition Strategy: reference/strategies/morpheme_decomposition.md
       - Default Strategy: reference/strategies/default.md
       - Fallback Strategies:
         - Lemmatization Fallback Strategy: reference/strategies/fallback/lemmatization_fallback_strategy.md

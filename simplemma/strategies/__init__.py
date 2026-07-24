@@ -19,6 +19,7 @@ from .fallback.to_lowercase import ToLowercaseFallbackStrategy
 from .greedy_dictionary_lookup import GreedyDictionaryLookupStrategy
 from .hyphen_removal import HyphenRemovalStrategy
 from .lemmatization_strategy import LemmatizationStrategy
+from .morpheme_decomposition import MorphemeDecompositionStrategy
 from .prefix_decomposition import PrefixDecompositionStrategy
 from .rules import RulesStrategy
 
@@ -40,6 +41,7 @@ __all__ = [
     "GreedyDictionaryLookupStrategy",
     "HyphenRemovalStrategy",
     "LemmatizationStrategy",
+    "MorphemeDecompositionStrategy",
     "PrefixDecompositionStrategy",
     "RulesStrategy",
 ]
