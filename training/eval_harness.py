@@ -130,16 +130,16 @@ def mechanism_disabled(mechanism: str, lang: str) -> Iterator[None]:
         )
     saved = target.pop(lang)
     if mechanism == "canon":
-        # CANON_LANGS is re-imported (not owned) by clitic_decomposition, hence
-        # the attr-defined ignores; patch that module's own binding, not utils'.
-        canon_langs_saved = clitic_decomposition.CANON_LANGS  # type: ignore[attr-defined]
-        clitic_decomposition.CANON_LANGS = canon_langs_saved - {lang}  # type: ignore[attr-defined]
+        # CANON_LANGS is a snapshot of _CANON_TABLES re-imported (not owned) by
+        # clitic_decomposition -- re-derive that module's own binding after
+        # mutating the source table (and again after restoring it below).
+        clitic_decomposition.CANON_LANGS = frozenset(simplemma_utils._CANON_TABLES)  # type: ignore[attr-defined]
     try:
         yield
     finally:
         target[lang] = saved
         if mechanism == "canon":
-            clitic_decomposition.CANON_LANGS = canon_langs_saved  # type: ignore[attr-defined]
+            clitic_decomposition.CANON_LANGS = frozenset(simplemma_utils._CANON_TABLES)  # type: ignore[attr-defined]
 
 
 def accuracy(

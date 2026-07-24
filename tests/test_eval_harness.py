@@ -258,7 +258,8 @@ def test_mechanism_disabled_canon_also_narrows_clitic_snapshot():
     assert "ar" in before
     with mechanism_disabled("canon", "ar"):
         assert "ar" not in clitic_decomposition.CANON_LANGS
-    assert clitic_decomposition.CANON_LANGS is before
+    # equality, not identity: the harness re-derives the snapshot on restore
+    assert clitic_decomposition.CANON_LANGS == before
 
 
 def test_mechanism_disabled_raises_on_noop_disable():
