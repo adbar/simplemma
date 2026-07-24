@@ -1,7 +1,10 @@
 """Tests for Simplemma's language detection utilities."""
 
+import pytest
+
 from simplemma import LanguageDetector, in_target_language, langdetect
 from simplemma.strategies import DefaultStrategy
+from simplemma.utils import normalize_token
 
 from .conftest import CustomTokenSampler
 
@@ -9,6 +12,60 @@ from .conftest import CustomTokenSampler
 def test_langdetect_no_samplers() -> None:
     # no samplers means no results, not an UnboundLocalError
     assert langdetect("Dies ist ein Test.", lang=("de", "en"), token_samplers=[]) == []
+
+
+_LANGS = ("de", "en", "cs", "sk")
+_TEXTS = (
+    "The quick brown fox jumps over the lazy dog.",
+    "Der schnelle braune Fuchs springt ueber den Hund.",
+    "Exoplaneta extrasolarni planeta obihajici kolem hvezdy.",
+    "aa bb cc dd ee",
+)
+
+
+def _reference_each(detector: LanguageDetector, text: str) -> dict[str, float]:
+    # tokens-outer reference: the pre-refactor algorithm the langs-outer scan replaces
+    tokens = [
+        normalize_token(token) for token in detector._token_sampler.sample_text(text)
+    ]
+    total = len(tokens)
+    if total == 0:
+        return {"unk": 1}
+    known = dict.fromkeys(detector._lang, 0)
+    unknown = 0
+    for token in tokens:
+        found = False
+        for lang_code in detector._lang:
+            if detector._lemmatization_strategy.get_lemma(token, lang_code) is not None:
+                known[lang_code] += 1
+                found = True
+        if not found:
+            unknown += 1
+    results = {lang_code: count / total for lang_code, count in known.items()}
+    results["unk"] = unknown / total
+    return results
+
+
+def test_langs_outer_matches_tokens_outer() -> None:
+    # the languages-outer refactor must be bit-identical to the tokens-outer scan
+    detector = LanguageDetector(lang=_LANGS)
+    for text in (*_TEXTS, ""):
+        assert detector.proportion_in_each_language(text) == _reference_each(
+            detector, text
+        )
+
+
+def test_target_agrees_with_each_language() -> None:
+    # the two un-shared loops must agree: target == non-unknown share
+    detector = LanguageDetector(lang=_LANGS)
+    for text in (
+        *_TEXTS,
+        "the quick zzzzzq",
+    ):  # 2/3 recognized: catches exact-float divergence
+        each = detector.proportion_in_each_language(text)
+        assert detector.proportion_in_target_languages(text) == pytest.approx(
+            1 - each["unk"]
+        )
 
 
 def test_proportion_in_each_language() -> None:
@@ -155,16 +212,18 @@ def test_main_language():
 def test_main_language_unknown() -> None:
     """When no language wins across any sampler, "unk" is returned."""
     detector = LanguageDetector(lang=("de", "en"))
+    original_sampler = detector._token_sampler
     # no recognizable tokens: proportion_in_each_language yields {"unk": 1}
     # for every sampler, so no language ever wins
     assert detector.main_language("aa bb cc") == "unk"
-    # the token sampler is restored to its original after the fallback
-    assert detector._token_sampler is detector._orig_token_sampler
+    # main_language passes samplers as arguments, never mutating the instance
+    assert detector._token_sampler is original_sampler
 
 
 def test_main_language_tie() -> None:
     """A genuine tie between two supported languages also yields "unk"."""
     detector = LanguageDetector(lang=("de", "en"))
+    original_sampler = detector._token_sampler
     # "test" is a valid lemma in both German and English, so de and en stay
     # tied at 1.0 across both the default and the relaxed sampler: there is
     # never a single winner, so the fallback returns "unk"
@@ -174,4 +233,4 @@ def test_main_language_tie() -> None:
         "unk": 0.0,
     }
     assert detector.main_language("Test test") == "unk"
-    assert detector._token_sampler is detector._orig_token_sampler
+    assert detector._token_sampler is original_sampler
