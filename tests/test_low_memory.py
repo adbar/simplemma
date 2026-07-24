@@ -7,23 +7,22 @@ from simplemma import (
     lemmatize,
     text_lemmatizer,
 )
-from simplemma.language_detector import _default_strategy_for
-from simplemma.lemmatizer import _legacy_dictionary_lookup_for, _legacy_lemmatizer_for
+from simplemma.lemmatizer import _legacy_lemmatizer_for
 from simplemma.strategies import (
     DEFAULT_DICTIONARY_FACTORY,
+    LOW_MEMORY_DICTIONARY_FACTORY,
     DefaultStrategy,
     DictionaryFactory,
     StreamDictionaryFactory,
 )
-from simplemma.strategies.dictionaries import make_low_memory_factory
 
 
 def _factory_of(strategy: DefaultStrategy) -> DictionaryFactory:
     return strategy._dictionary_lookup._dictionary_factory
 
 
-def test_make_low_memory_factory_is_stream_backend() -> None:
-    assert isinstance(make_low_memory_factory(), StreamDictionaryFactory)
+def test_low_memory_factory_is_stream_backend() -> None:
+    assert isinstance(LOW_MEMORY_DICTIONARY_FACTORY, StreamDictionaryFactory)
 
 
 def test_default_strategy_low_memory_conflicts_with_explicit_factory() -> None:
@@ -36,25 +35,10 @@ def test_low_memory_actually_switches_backend() -> None:
     for strategy in (
         DefaultStrategy(low_memory=True),
         _legacy_lemmatizer_for(False, True)._lemmatization_strategy,
-        _default_strategy_for(False, low_memory=True),
+        _legacy_lemmatizer_for(True, True)._lemmatization_strategy,
     ):
-        factory = _factory_of(strategy)  # type: ignore[arg-type]
-        assert factory is not DEFAULT_DICTIONARY_FACTORY
-        assert isinstance(factory, StreamDictionaryFactory)
-    assert _legacy_dictionary_lookup_for(True)._dictionary_factory is not (
-        DEFAULT_DICTIONARY_FACTORY
-    )
-
-
-def test_low_memory_backend_is_shared_across_entry_points() -> None:
-    factories = [
-        _factory_of(DefaultStrategy(low_memory=True)),
-        _factory_of(_legacy_lemmatizer_for(False, True)._lemmatization_strategy),  # type: ignore[arg-type]
-        _factory_of(_legacy_lemmatizer_for(True, True)._lemmatization_strategy),  # type: ignore[arg-type]
-        _factory_of(_default_strategy_for(False, low_memory=True)),
-        _legacy_dictionary_lookup_for(True)._dictionary_factory,
-    ]
-    assert len({id(factory) for factory in factories}) == 1
+        # identity: all low_memory entry points share the one stream backend
+        assert _factory_of(strategy) is LOW_MEMORY_DICTIONARY_FACTORY  # type: ignore[arg-type]
 
 
 def test_default_strategy_low_memory_matches_default() -> None:
@@ -96,12 +80,8 @@ def test_langdetect_low_memory_matches_default() -> None:
     )
 
 
-def test_legacy_singletons_are_cached_per_key() -> None:
+def test_legacy_lemmatizers_are_cached_per_key() -> None:
     assert _legacy_lemmatizer_for(False, True) is _legacy_lemmatizer_for(False, True)
     assert _legacy_lemmatizer_for(False, True) is not _legacy_lemmatizer_for(
         False, False
-    )
-    assert _legacy_dictionary_lookup_for(True) is _legacy_dictionary_lookup_for(True)
-    assert _default_strategy_for(False, low_memory=True) is _default_strategy_for(
-        False, low_memory=True
     )

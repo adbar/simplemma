@@ -7,7 +7,6 @@ Provides classes for text language detection using lemmatization and token sampl
 - [langdetect()][simplemma.language_detector.langdetect]: A legacy function that wraps the LanguageDetector's [proportion_in_each_language()][simplemma.language_detector.LanguageDetector.proportion_in_each_language] method.
 """
 
-from functools import lru_cache
 from operator import itemgetter
 
 from .strategies import DefaultStrategy, LemmatizationStrategy
@@ -17,9 +16,6 @@ from .token_sampler import (
     TokenSampler,
 )
 from .utils import normalize_token, validate_lang_input
-
-# Cached per (greedy, low_memory) to avoid rebuilding the backend.
-_default_strategy_for = lru_cache(maxsize=None)(DefaultStrategy)
 
 
 def in_target_language(
@@ -45,7 +41,7 @@ def in_target_language(
         float: The proportion of text in the target language(s).
     """
     return LanguageDetector(
-        lang, token_sampler, _default_strategy_for(greedy, low_memory=low_memory)
+        lang, token_sampler, DefaultStrategy(greedy, low_memory=low_memory)
     ).proportion_in_target_languages(text)
 
 
@@ -78,7 +74,7 @@ def langdetect(
     list_results: list[tuple[str, float]] = []
     for token_sampler in token_samplers:
         results = LanguageDetector(
-            lang, token_sampler, _default_strategy_for(greedy, low_memory=low_memory)
+            lang, token_sampler, DefaultStrategy(greedy, low_memory=low_memory)
         ).proportion_in_each_language(text)
 
         # post-processing

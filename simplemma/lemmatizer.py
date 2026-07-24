@@ -22,7 +22,7 @@ from .strategies import (
     LemmatizationStrategy,
     ToLowercaseFallbackStrategy,
 )
-from .strategies.dictionaries import _shared_low_memory_factory
+from .strategies.dictionaries import LOW_MEMORY_DICTIONARY_FACTORY
 from .tokenizer import RegexTokenizer, Tokenizer
 from .utils import normalize_token, validate_lang_input
 
@@ -158,22 +158,15 @@ class Lemmatizer:
             yield surface if keep else self._cached_lemmatize(surface, lang)
 
 
-# Legacy pre-1.0 functions, cached per (greedy, low_memory).
+# Legacy pre-1.0 functions.
 
 
+# Cached per (greedy, low_memory) to keep each Lemmatizer's token cache alive.
 @lru_cache(maxsize=None)
 def _legacy_lemmatizer_for(greedy: bool, low_memory: bool) -> Lemmatizer:
     return Lemmatizer(
         lemmatization_strategy=DefaultStrategy(greedy=greedy, low_memory=low_memory)
     )
-
-
-@lru_cache(maxsize=None)
-def _legacy_dictionary_lookup_for(low_memory: bool) -> DictionaryLookupStrategy:
-    dictionary_factory = (
-        _shared_low_memory_factory() if low_memory else DEFAULT_DICTIONARY_FACTORY
-    )
-    return DictionaryLookupStrategy(dictionary_factory)
 
 
 def is_known(token: str, lang: str | tuple[str, ...], low_memory: bool = False) -> bool:
@@ -192,7 +185,9 @@ def is_known(token: str, lang: str | tuple[str, ...], low_memory: bool = False) 
     token = normalize_token(token)
     lang = validate_lang_input(lang)
 
-    dictionary_lookup = _legacy_dictionary_lookup_for(low_memory)
+    dictionary_lookup = DictionaryLookupStrategy(
+        LOW_MEMORY_DICTIONARY_FACTORY if low_memory else DEFAULT_DICTIONARY_FACTORY
+    )
     return any(
         dictionary_lookup.get_lemma(token, lang_code) is not None for lang_code in lang
     )

@@ -10,7 +10,6 @@ partial/resumable reads.
 """
 
 import lzma
-from typing import IO
 from collections.abc import Iterator
 
 MAGIC = b"SMFC1"
@@ -202,9 +201,3 @@ def decode_stream(data: bytes) -> dict[bytes, bytes]:
 def decode(blob: bytes) -> dict[bytes, bytes]:
     """Decompress and decode a full blob (inverse of `encode`)."""
     return decode_stream(lzma.decompress(blob))
-
-
-def load(filehandle: IO[bytes]) -> dict[bytes, bytes]:
-    """Read a `dict[bytes, bytes]` off an open decompressing `.plzma` handle.
-    Raises ValueError on a non-front-coded payload (e.g. pre-2.0 pickle)."""
-    return decode_stream(filehandle.read())

@@ -6,7 +6,7 @@ It provides lemmatization using a combination of different strategies such as di
 from .affix_decomposition import AffixDecompositionStrategy
 from .apostrophe_boundary import ApostropheBoundaryStrategy
 from .clitic_decomposition import CliticDecompositionStrategy
-from .dictionaries import _shared_low_memory_factory
+from .dictionaries import LOW_MEMORY_DICTIONARY_FACTORY
 from .dictionaries.dictionary_factory import (
     DEFAULT_DICTIONARY_FACTORY,
     DictionaryFactory,
@@ -51,7 +51,7 @@ class DefaultStrategy(LemmatizationStrategy):
             greedy (bool): Whether to use a greedy approach for dictionary lookup. Defaults to `False`.
             dictionary_factory (DictionaryFactory | None): A factory for creating dictionaries.
                 Defaults to the shared `DEFAULT_DICTIONARY_FACTORY`, or to
-                `make_low_memory_factory()` if `low_memory` is set.
+                `LOW_MEMORY_DICTIONARY_FACTORY` if `low_memory` is set.
             low_memory (bool): Use the memory-frugal dictionary backend. Not allowed
                 together with `dictionary_factory`. Defaults to `False`.
 
@@ -61,7 +61,7 @@ class DefaultStrategy(LemmatizationStrategy):
         """
         if dictionary_factory is None:
             dictionary_factory = (
-                _shared_low_memory_factory()
+                LOW_MEMORY_DICTIONARY_FACTORY
                 if low_memory
                 else DEFAULT_DICTIONARY_FACTORY
             )
