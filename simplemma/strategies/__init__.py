@@ -6,8 +6,10 @@ from .clitic_decomposition import CliticDecompositionStrategy
 from .default import DefaultStrategy
 from .dictionaries import (
     DEFAULT_DICTIONARY_FACTORY,
+    LOW_MEMORY_DICTIONARY_FACTORY,
     DefaultDictionaryFactory,
     DictionaryFactory,
+    StreamDictionaryFactory,
     TrieDictionaryFactory,
 )
 from .dictionary_lookup import DictionaryLookupStrategy
@@ -27,8 +29,10 @@ __all__ = [
     "CliticDecompositionStrategy",
     "DefaultStrategy",
     "DEFAULT_DICTIONARY_FACTORY",
+    "LOW_MEMORY_DICTIONARY_FACTORY",
     "DefaultDictionaryFactory",
     "DictionaryFactory",
+    "StreamDictionaryFactory",
     "TrieDictionaryFactory",
     "DictionaryLookupStrategy",
     "LemmatizationFallbackStrategy",

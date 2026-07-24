@@ -259,53 +259,85 @@ For more information see the
 ### Reducing memory usage
 
 Simplemma provides an alternative solution for situations where low
-memory usage and fast initialization time are more important than
-lemmatization and language detection performance. This solution uses a
-`DictionaryFactory` that employs a trie as its underlying data structure,
-rather than a Python dict.
+memory usage is more important than lemmatization and language
+detection performance. The quickest way to opt in is the `low_memory`
+flag, available on `lemmatize`, `text_lemmatizer`, `lemma_iterator`,
+`is_known`, `langdetect` and `in_target_language`:
 
-The `TrieDictionaryFactory` reduces memory usage by an average of
-20x and initialization time by 100x, but this comes at the cost of
-potentially reducing performance by 50% or more, depending on the
-specific usage.
-
-To use the `TrieDictionaryFactory` you have to install Simplemma with
-the `marisa-trie` extra dependency (available from version 1.1.0):
-
-```bash
-pip install simplemma[marisa-trie]
+``` python
+>>> from simplemma import lemmatize
+>>> lemmatize('doughnuts', lang='en', low_memory=True)
+'doughnut'
 ```
 
-Then create a strategy using the `TrieDictionaryFactory` and use it for
-`Lemmatizer` and `LanguageDetector` instances, exactly as shown above:
+This selects the stdlib-only `StreamDictionaryFactory` (see below): the
+most memory-frugal backend, reading the dictionary stream directly with
+no full-dict build spike and no on-disk cache. `TrieDictionaryFactory`
+reaches a lower *steady-state* footprint but spikes and writes to disk on
+first use, so it is not auto-selected — request it explicitly (see below)
+when its RAM/speed trade-off suits you. For explicit control over which
+backend is used — including with `Lemmatizer` and `LanguageDetector`
+instances — build a strategy directly, as described in the rest of this
+section. `DefaultStrategy` also accepts the same `low_memory` flag, but
+not together with an explicit `dictionary_factory`:
 
 ``` python
 >>> from simplemma import Lemmatizer
 >>> from simplemma.strategies import DefaultStrategy
->>> from simplemma.strategies.dictionaries import TrieDictionaryFactory
 
->>> strategy = DefaultStrategy(dictionary_factory=TrieDictionaryFactory())
+>>> strategy = DefaultStrategy(low_memory=True)
 >>> Lemmatizer(lemmatization_strategy=strategy).lemmatize('doughnuts', lang='en')
 'doughnut'
 ```
 
-While memory usage and initialization time when using the
-`TrieDictionaryFactory` are significantly lower compared to the
-`DefaultDictionaryFactory`, that's only true if the trie dictionaries
-are available on disk. That's not the case when using the
-`TrieDictionaryFactory` for the first time, as Simplemma only ships
-the dictionaries as Python dicts. The trie dictionaries have to be
-generated once from the Python dicts. That happens on-the-fly when
-using the `TrieDictionaryFactory` for the first time for a language and
-will take a few seconds and use as much memory as loading the Python
-dicts for the language requires. For further invocations the trie
-dictionaries get cached on disk.
+The three backends trade memory against speed as follows (measured on
+German, ~1.1M dictionary entries; exact figures vary by language and
+hardware):
 
-If the machine that will run Simplemma doesn't have enough memory to
-generate the trie dictionaries, they can also be generated on another
-computer with the same CPU architecture and copied over to the cache
-directory.
+| Backend | Peak RAM | Load time | Uncached lookup² | Cached lookup³ | Extra dependency |
+| --- | --- | --- | --- | --- | --- |
+| `DefaultDictionaryFactory` | ~175 MB | ~0.6 s | fastest (baseline) | fastest (baseline) | none |
+| `TrieDictionaryFactory` | ~30 MB | ~1 ms (warm)¹ | ~2.5× slower | ~1.2× slower | `marisa-trie` |
+| `StreamDictionaryFactory` | ~50 MB | ~0.6 s | ~18× slower | ~6× slower | none |
 
+Choosing between them: pick `DefaultDictionaryFactory` when throughput
+matters most and memory is not a constraint; `TrieDictionaryFactory` for
+the best RAM/speed trade-off if installing `marisa-trie` is an option;
+`StreamDictionaryFactory` for the same low RAM with no extra dependency,
+at a bigger speed cost. The RAM saving compounds with every additional
+language kept loaded at once, since `DefaultDictionaryFactory` holds each
+language's full dict in memory for as long as it stays cached — though
+German is near the largest shipped dictionary and includes a fixed
+Python baseline, so smaller languages add less than the table's absolute
+numbers suggest.
+
+¹ Warm-load time only; see below for the (one-time, per language) cost
+of building the trie.
+² Per single lookup, bypassing any cache.
+³ End-to-end through `Lemmatizer`'s result cache, measured over the German
+UD-HDT treebank (3.5M tokens, 200k unique). The gap shrinks toward parity
+on smaller texts whose vocabulary fits the cache, and widens toward the
+uncached figure on large, low-repetition corpora.
+
+To force a specific backend instead of relying on `low_memory=True`, pass
+it explicitly — `DefaultStrategy(dictionary_factory=TrieDictionaryFactory())`
+or `DefaultStrategy(dictionary_factory=StreamDictionaryFactory())`, both
+importable from `simplemma.strategies.dictionaries`.
+
+`TrieDictionaryFactory` needs the `marisa-trie` extra dependency
+(`pip install simplemma[marisa-trie]`, available from version 1.1.0). The
+first use of a language builds its trie from the shipped dictionary —
+taking a few seconds and briefly using as much memory as the
+`DefaultDictionaryFactory` would — then caches it on disk for later
+invocations. If the machine running Simplemma doesn't have enough memory
+to build the trie, it can also be built on another machine with the same
+CPU architecture and the cache directory copied over.
+
+`StreamDictionaryFactory` needs no extra dependency: it reads the shipped
+dictionary files directly instead of loading them into a Python dict, at
+the cost of much slower lookups (see the table above). There's no
+on-disk cache to warm up, so throughput is consistent from the first
+call.
 
 <!-- include:intro:end -->
 ## Supported languages

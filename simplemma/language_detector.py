@@ -23,6 +23,7 @@ def in_target_language(
     lang: str | tuple[str, ...],
     greedy: bool = False,
     token_sampler: TokenSampler = MostCommonTokenSampler(),
+    low_memory: bool = False,
 ) -> float:
     """
     Calculate the proportion of text in the target language(s).
@@ -33,12 +34,14 @@ def in_target_language(
         greedy (bool, optional): Whether to use greedy lemmatization. Defaults to `False`.
         token_sampler (TokenSampler, optional): The token sampling strategy to use.
             Defaults to `MostCommonTokenSampler()`.
+        low_memory (bool, optional): Use the memory-frugal dictionary backend.
+            Defaults to `False`.
 
     Returns:
         float: The proportion of text in the target language(s).
     """
     return LanguageDetector(
-        lang, token_sampler, DefaultStrategy(greedy)
+        lang, token_sampler, DefaultStrategy(greedy, low_memory=low_memory)
     ).proportion_in_target_languages(text)
 
 
@@ -47,6 +50,7 @@ def langdetect(
     lang: str | tuple[str, ...],
     greedy: bool = False,
     token_samplers: list[TokenSampler] | None = None,
+    low_memory: bool = False,
 ) -> list[tuple[str, float]]:
     """
     Detect the language(s) of the given text and their proportions.
@@ -57,6 +61,8 @@ def langdetect(
         greedy (bool, optional): Whether to use greedy lemmatization. Defaults to `False`.
         token_samplers (list[TokenSampler], optional): The list of token sampling strategies
             to use. Defaults to `[MostCommonTokenSampler(), RelaxedMostCommonTokenSampler()]`.
+        low_memory (bool, optional): Use the memory-frugal dictionary backend.
+            Defaults to `False`.
 
     Returns:
         list[tuple[str, float]]: A list of tuples containing the detected language(s)
@@ -68,7 +74,7 @@ def langdetect(
     list_results: list[tuple[str, float]] = []
     for token_sampler in token_samplers:
         results = LanguageDetector(
-            lang, token_sampler, DefaultStrategy(greedy)
+            lang, token_sampler, DefaultStrategy(greedy, low_memory=low_memory)
         ).proportion_in_each_language(text)
 
         # post-processing

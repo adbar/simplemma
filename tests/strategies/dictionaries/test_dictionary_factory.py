@@ -1,4 +1,3 @@
-import io
 import lzma
 
 import pytest
@@ -10,12 +9,11 @@ from simplemma.strategies.dictionaries.dictionary_factory import (
 )
 
 
-def test_load_rejects_non_frontcoded_payload() -> None:
-    # Pre-2.0 pickled .plzma is no longer readable: load must reject it, not mis-parse it.
+def test_decode_rejects_non_frontcoded_payload() -> None:
+    # Pre-2.0 pickled .plzma is no longer readable: reject it, don't mis-parse it.
     blob = lzma.compress(b"\x80\x05 legacy pickle bytes, no SMFC1 magic")
-    with lzma.open(io.BytesIO(blob), "rb") as fh:
-        with pytest.raises(ValueError, match="front-coded"):
-            frontcode.load(fh)
+    with pytest.raises(ValueError, match="front-coded"):
+        frontcode.decode(blob)
 
 
 def test_mapping_str_to_bytestring() -> None:
