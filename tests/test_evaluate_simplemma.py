@@ -7,6 +7,8 @@ from simplemma.strategies.dictionaries import DefaultDictionaryFactory
 from training import evaluate_simplemma
 from training.evaluate_simplemma import evaluate_dataset
 
+from .conftest import FixedMapping
+
 # base-form tokens (form == lemma): tests the counting logic, not accuracy
 CONLLU = (
     "1\trun\trun\tVERB\t_\t_\t0\troot\t_\t_\n"
@@ -62,6 +64,22 @@ def test_evaluate_dataset_errors_and_skip(lemmatizers):
     assert overall.baseline == 0
     assert len(errors) == 1
     assert errors[0][0] == "qwxztest"
+
+
+def test_evaluate_dataset_canonicalizes_ar_gold_lemma():
+    """PADT gold lemmas are vocalized; the dict is built from unvocalized
+    forms, so the gold lemma must be canonicalized before comparison or
+    every ar content lemma mismatches."""
+
+    mapping = {"كتاب": "كتاب"}  # unvocalized key/value
+    lemmatizer = Lemmatizer(
+        lemmatization_strategy=DefaultStrategy(dictionary_factory=FixedMapping(mapping))
+    )
+    conllu = "1\tكتاب\tكِتَاب\tNOUN\t_\t_\t0\troot\t_\t_\n\n"  # vocalized gold
+    overall, _, errors = evaluate_dataset(parse(conllu), lemmatizer, lemmatizer, "ar")
+    assert overall.total == 1
+    assert overall.nongreedy == 1  # matches only because gold was canonicalized
+    assert not errors
 
 
 def test_main_writes_results(tmp_path):

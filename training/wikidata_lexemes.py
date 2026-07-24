@@ -1,8 +1,8 @@
 """Extract (lemma, form) pairs for one language from a Wikidata lexeme dump
 (`latest-lexemes.json.gz`, dumps.wikimedia.org/wikidatawiki/entities/), for
-use as an OOV-fill source layered onto (never overriding) a shipped
-dictionary. Coverage is lexicon-dependent -- fill only, never override a
-collision.
+use either as an OOV-fill source layered onto (never overriding) a shipped
+dictionary, or as the PRIMARY base wordlist for a language Wiktionary covers
+poorly (ml). Coverage is lexicon-dependent.
 
 Dump format: a JSON array serialized one object per line (not true JSONL,
 but each line parses once leading/trailing punctuation is stripped).
@@ -53,6 +53,15 @@ LANGUAGE_QIDS = {
     "pl": "Q809",
     "fi": "Q1412",
     "tr": "Q256",
+    # WD-as-PRIMARY source (3rd-largest lexeme count; Wiktionary ml is ~11k
+    # words): feeds training/lists/ml.txt, not fill/.
+    "ml": "Q36236",
+    # FILL candidates for shipped-but-weak languages (census 2026-07-17):
+    # feed training/fill/<lang>.tsv, gated by assess_wikidata_fill.py.
+    "nn": "Q25164",
+    "id": "Q9240",
+    "se": "Q33947",
+    "fa": "Q9168",
 }
 
 

@@ -48,15 +48,20 @@ MIN_STEM_CHARS = 2
 
 # Languages whose reference data carries a PEDAGOGICAL diacritic that normal
 # running text omits, so an exact output==gold test spuriously fails and
-# folding is warranted. Evidence (2026-07), each verified 0% in UD lemmas
-# (real text) but present in the dictionary: uk vowel-stress acute (Євро́па,
-# UD form схо́дили), la macron (abacinātūrum), sl tonal inverted-breve/dot
-# (dẹ̑lati). Everything else is scored EXACT -- fi ä/ö (18% of UD lemmas),
-# cs/sk long-vowel acute (30%/21%) and es/pt lexical acute are STANDARD
-# orthographic letters, so folding them would hide genuine wrong-letter
-# outputs (aavikoittää != aavikoittaa, bachnuť != bachnúť) -- the optimism
-# this set removes. (mk's only U+0301 is inside the letters Ѓ/Ќ, never folded.)
-_ACCENT_FOLD_LANGS = frozenset({"uk", "la", "sl"})
+# folding is warranted. sl tonal inverted-breve/dot (dẹ̑lati) is verified 0%
+# in UD lemmas but present in the dict, AND survives the build-side fold
+# (BUILD_NORMALIZATION["sl"] leaves ~34.6k keys with combining marks outside
+# its pitch set), so rules still fire on marked keys -> fold still needed.
+# uk (vowel-stress acute) and la (macron) USED to be here too, but
+# BUILD_NORMALIZATION now folds+drops their marked keys at build time
+# (drop_folded_keys), so exact-match already clears their precision floors
+# (uk 99.85%>=99.0, la 95.62%>=95.5) -- the fold became a no-op (+0.01pp)
+# and was removed. Everything else is scored EXACT -- fi ä/ö (18% of UD
+# lemmas), cs/sk long-vowel acute (30%/21%) and es/pt lexical acute are
+# STANDARD orthographic letters, so folding them would hide genuine
+# wrong-letter outputs (aavikoittää != aavikoittaa, bachnuť != bachnúť) --
+# the optimism this set removes. (mk's only U+0301 is inside Ѓ/Ќ, never folded.)
+_ACCENT_FOLD_LANGS = frozenset({"sl"})
 
 
 def output_is_lemma(out: str, gold: str, *, fold_accents: bool = False) -> bool:

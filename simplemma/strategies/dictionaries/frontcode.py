@@ -105,7 +105,12 @@ def decode_stream(data: bytes) -> dict[bytes, bytes]:
     """Decode already-decompressed front-coded bytes.
 
     Assumes a well-formed `encode` stream; truncation or trailing garbage raises
-    ValueError (trailing length check) or IndexError (truncated varint/trim)."""
+    ValueError (trailing length check) or IndexError (truncated varint/trim).
+
+    Hot path: this loop runs once per entry (1.1M for de) at import time, so
+    the almost-always-single-byte varints are read inline (one index + one
+    compare) and only rare multi-byte ones fall back to _read_varint --
+    measured 1.5-1.6x on every shipped dict, byte-identical output."""
     if not is_frontcoded(data):
         raise ValueError("not a front-coded stream")
     pos = len(MAGIC)
@@ -117,29 +122,41 @@ def decode_stream(data: bytes) -> dict[bytes, bytes]:
     prev_key = b""
     prev_value = b""
     for _ in range(count):
-        shared, pos = _read_varint(data, pos)
-        suflen, pos = _read_varint(data, pos)
-        suffix = data[pos : pos + suflen]
-        pos += suflen
-        stored_key = prev_key[:shared] + suffix
+        byte = data[pos]
+        if byte < 0x80:
+            shared, pos = byte, pos + 1
+        else:
+            shared, pos = _read_varint(data, pos)
+        byte = data[pos]
+        if byte < 0x80:
+            suflen, pos = byte, pos + 1
+        else:
+            suflen, pos = _read_varint(data, pos)
+        end = pos + suflen
+        stored_key = prev_key[:shared] + data[pos:end]
+        pos = end
 
         trim = data[pos]
         pos += 1
         if trim == _SAME_AS_PREV:
             stored_value = prev_value
-        elif trim == _LITERAL_VALUE:
-            vlen, pos = _read_varint(data, pos)
-            stored_value = data[pos : pos + vlen]
-            pos += vlen
         else:
-            vlen, pos = _read_varint(data, pos)
-            value_suffix = data[pos : pos + vlen]
-            pos += vlen
-            stored_value = stored_key[: len(stored_key) - trim] + value_suffix
+            byte = data[pos]
+            if byte < 0x80:
+                vlen, pos = byte, pos + 1
+            else:
+                vlen, pos = _read_varint(data, pos)
+            end = pos + vlen
+            if trim == _LITERAL_VALUE:
+                stored_value = data[pos:end]
+            else:
+                stored_value = stored_key[: len(stored_key) - trim] + data[pos:end]
+            pos = end
 
-        key = stored_key[::-1] if reverse_key else stored_key
-        value = stored_value[::-1] if reverse_key else stored_value
-        result[key] = value
+        if reverse_key:
+            result[stored_key[::-1]] = stored_value[::-1]
+        else:
+            result[stored_key] = stored_value
 
         prev_key = stored_key
         prev_value = stored_value

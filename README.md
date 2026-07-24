@@ -329,56 +329,60 @@ morphology rather than a data error.
 
 | Code | Language | Forms (10³) | Lemm. (10³) | Acc. | Comments |
 | ---- | -------- | ----------- | ------------| ---- | -------- |
+| `ar` | Arabic | 297 | 49 | 0.77 | on UD AR-PADT; real-world (unsegmented) input scores ≈0.74, see note below |
 | `ast` | Asturian | 154 | 36 |  |  |
-| `bg` | Bulgarian | 215 | 18 | 0.84 | on UD BG-BTB |
+| `bg` | Bulgarian | 139 | 18 | 0.85 | on UD BG-BTB |
 | `ca` | Catalan | 640 | 63 | 0.89 | on UD CA-AnCora |
-| `cs` | Czech | 356 | 45 | 0.91 | on UD CS-FicTree |
+| `cs` | Czech | 355 | 44 | 0.91 | on UD CS-FicTree |
 | `cy` | Welsh | 402 | 21 | 0.91 | on UD CY-CCG |
 | `da` | Danish | 778 | 115 | 0.93 | on UD DA-DDT, alternative: [lemmy](https://github.com/sorenlind/lemmy) |
-| `de` | German | 1,116 | 334 | 0.95 | on UD DE-GSD, see also [German-NLP list](https://github.com/adbar/German-NLP#Lemmatization) |
+| `de` | German | 1,115 | 334 | 0.95 | on UD DE-GSD, see also [German-NLP list](https://github.com/adbar/German-NLP#Lemmatization) |
 | `el` | Greek | 248 | 27 | 0.91 | on UD EL-GDT |
-| `en` | English | 182 | 78 | 0.95 | on UD EN-LinES, alternative: [LemmInflect](https://github.com/bjascob/LemmInflect) |
+| `en` | English | 181 | 77 | 0.95 | on UD EN-LinES, alternative: [LemmInflect](https://github.com/bjascob/LemmInflect) |
 | `enm` | Middle English | 43 | 6 |  |  |
 | `eo` | Esperanto | 191 | 18 | 0.95 | on UD EO-PraGo |
-| `es` | Spanish | 824 | 88 | 0.91 | on UD ES-AnCora |
+| `es` | Spanish | 823 | 88 | 0.91 | on UD ES-AnCora |
 | `et` | Estonian | 2,662 | 92 | 0.84 | on UD ET-EWT, low coverage |
-| `fa` | Persian | 13 | 4 | 0.87 | on UD FA-Seraji, experimental |
-| `fi` | Finnish | 3,549 | 125 | 0.86 | on UD FI-FTB, see [this benchmark](https://github.com/aajanki/finnish-pos-accuracy) |
+| `fa` | Persian | 17 | 4 | 0.89 | on UD FA-Seraji |
+| `fi` | Finnish | 3,547 | 125 | 0.86 | on UD FI-FTB, see [this benchmark](https://github.com/aajanki/finnish-pos-accuracy) |
 | `fr` | French | 248 | 37 | 0.93 | on UD FR-Sequoia |
 | `ga` | Irish | 444 | 48 | 0.89 | on UD GA-IDT |
 | `gd` | Gaelic | 72 | 15 | 0.84 | on UD GD-ARCOSG |
 | `gl` | Galician | 426 | 43 | 0.88 | on UD GL-CTG |
+| `grc` | Ancient Greek | 849 | 22 | 0.76 | on UD GRC-PROIEL (best available; no general-register grc treebank exists) |
 | `gv` | Manx | 77 | 14 | 0.84 | on UD GV-Cadhan |
-| `hbs` | Serbo-Croatian | 674 | 52 |  | Croatian and Serbian lists to be added later |
-| `hi` | Hindi | 58 | 11 | 0.93 | on UD HI-HDTB, experimental |
+| `hbs` | Serbo-Croatian | 610 | 49 | 0.87 | on UD HR-SET + SR-SET (token-weighted); Croatian and Serbian lists to be added later |
+| `he` | Hebrew | 104 | 10 | 0.88 | on UD HE-HTB; real-world (unsegmented) input scores ≈0.77, see note below |
+| `hi` | Hindi | 53 | 11 | 0.93 | on UD HI-HDTB |
 | `hu` | Hungarian | 492 | 36 | 0.85 | on UD HU-Szeged |
 | `hy` | Armenian | 467 | 17 | 0.88 | on UD HY-BSUT |
 | `id` | Indonesian | 21 | 4 | 0.93 | on UD ID-CSUI |
 | `is` | Icelandic | 208 | 17 | 0.78 | on UD IS-GC |
 | `it` | Italian | 357 | 28 | 0.93 | on UD IT-ISDT |
 | `ka` | Georgian | 448 | 16 | 0.82 | on UD KA-GLC |
-| `la` | Latin | 1,223 | 64 | 0.85 | on UD LA-PROIEL |
+| `la` | Latin | 1,144 | 63 | 0.85 | on UD LA-PROIEL |
 | `lb` | Luxembourgish | 306 | 79 |  | only a <1k-token UD treebank available |
-| `lt` | Lithuanian | 415 | 29 | 0.82 | on UD LT-ALKSNIS |
+| `lt` | Lithuanian | 365 | 28 | 0.84 | on UD LT-ALKSNIS |
 | `lv` | Latvian | 177 | 14 | 0.78 | on UD LV-LVTB |
 | `mk` | Macedonian | 551 | 39 | 0.73 | on UD MK-MTB |
-| `ms` | Malay | 18 | 4 |  |  |
-| `nb` | Norwegian (Bokmål) | 618 | 134 | 0.81 | on UD NO-Bokmaal |
+| `ml` | Malayalam | 746 | 64 | 0.69 | on UD ML-UFAL (small treebank), experimental |
+| `ms` | Malay | 17 | 4 |  |  |
+| `nb` | Norwegian (Bokmål) | 633 | 138 | 0.81 | on UD NO-Bokmaal |
 | `nl` | Dutch | 369 | 125 | 0.92 | on UD NL-Alpino, excl. underscore-joined compound lemmas |
-| `nn` | Norwegian (Nynorsk) | 68 | 18 | 0.76 | on UD NO-Nynorsk |
-| `pl` | Polish | 3,671 | 264 | 0.93 | on UD PL-LFG |
+| `nn` | Norwegian (Nynorsk) | 137 | 36 | 0.76 | on UD NO-Nynorsk |
+| `pl` | Polish | 3,670 | 264 | 0.93 | on UD PL-LFG |
 | `pt` | Portuguese | 926 | 95 | 0.92 | on UD PT-GSD |
 | `ro` | Romanian | 342 | 36 | 0.92 | on UD RO-RRT |
-| `ru` | Russian | 1,318 | 128 | 0.89 | on UD RU-SynTagRus, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
+| `ru` | Russian | 1,357 | 128 | 0.89 | on UD RU-SynTagRus, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
 | `se` | Northern Sámi | 115 | 7 | 0.95 | on UD SME-Giella |
-| `sk` | Slovak | 907 | 73 | 0.93 | on UD SK-SNK |
-| `sl` | Slovene | 165 | 30 | 0.92 | on UD SL-SSJ |
+| `sk` | Slovak | 908 | 73 | 0.93 | on UD SK-SNK |
+| `sl` | Slovene | 147 | 30 | 0.92 | on UD SL-SSJ |
 | `sq` | Albanian | 96 | 10 | 0.72 | on UD SQ-STAF |
 | `sv` | Swedish | 871 | 114 | 0.91 | on UD SV-Talbanken, alternative: [lemmy](https://github.com/sorenlind/lemmy) |
-| `sw` | Swahili | 4,870 | 4 |  | experimental |
-| `tl` | Tagalog | 39 | 8 | 0.67 | on UD TL-Ugnayan, experimental |
+| `sw` | Swahili | 4,869 | 4 |  | experimental |
+| `tl` | Tagalog | 71 | 18 | 0.84 | on UD TL-TRG |
 | `tr` | Turkish | 1,236 | 40 | 0.91 | on UD TR-KeNet |
-| `uk` | Ukrainian | 616 | 37 | 0.90 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
+| `uk` | Ukrainian | 502 | 35 | 0.90 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
 
 
 Languages marked as having low coverage may be better suited to
@@ -400,8 +404,11 @@ historical and other narrow-domain treebanks are excluded). The Dutch
 (`nl`) figure excludes gold lemmas that are underscore-joined compounds
 (e.g. `klooster_orde`), a UD-Alpino annotation convention that
 simplemma's single-token output cannot match; without that exclusion it
-is ≈0.88. See the `training/` folder of the code repository for more
-information.
+is ≈0.88. Hebrew (`he`) and Arabic (`ar`) proclitics/articles fuse onto
+their host word in real (unsegmented) text but are scored as pre-split
+sub-tokens by the standard UD protocol above; on whole, unsegmented input
+their accuracy is ≈0.77 and ≈0.74 respectively. See the `training/` folder
+of the code repository for more information.
 
 This library is particularly relevant as regards the lemmatization of
 less frequent words. Its performance in this case is only incidentally

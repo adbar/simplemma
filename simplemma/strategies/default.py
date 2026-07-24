@@ -14,6 +14,7 @@ from .dictionary_lookup import DictionaryLookupStrategy
 from .greedy_dictionary_lookup import GreedyDictionaryLookupStrategy
 from .hyphen_removal import HyphenRemovalStrategy
 from .lemmatization_strategy import LemmatizationStrategy
+from .morpheme_decomposition import MorphemeDecompositionStrategy
 from .prefix_decomposition import PrefixDecompositionStrategy
 from .rules import RulesStrategy
 
@@ -33,6 +34,7 @@ class DefaultStrategy(LemmatizationStrategy):
         "_apostrophe_search",
         "_greedy_dictionary_lookup",
         "_affix_search",
+        "_morpheme_search",
     ]
 
     def __init__(
@@ -46,7 +48,7 @@ class DefaultStrategy(LemmatizationStrategy):
         Args:
             greedy (bool): Whether to use a greedy approach for dictionary lookup. Defaults to `False`.
             dictionary_factory (DictionaryFactory): A factory for creating dictionaries.
-                Defaults to the shared [`DEFAULT_DICTIONARY_FACTORY`][simplemma.strategies.dictionaries.dictionary_factory.DEFAULT_DICTIONARY_FACTORY].
+                Defaults to the shared `DEFAULT_DICTIONARY_FACTORY`.
 
         """
         self._dictionary_lookup = DictionaryLookupStrategy(dictionary_factory)
@@ -63,6 +65,7 @@ class DefaultStrategy(LemmatizationStrategy):
         )
         greedy_dictionary_lookup = GreedyDictionaryLookupStrategy(dictionary_factory)
         self._affix_search = AffixDecompositionStrategy(greedy, self._dictionary_lookup)
+        self._morpheme_search = MorphemeDecompositionStrategy(self._dictionary_lookup)
 
         self._greedy_dictionary_lookup = greedy_dictionary_lookup if greedy else None
 
@@ -104,6 +107,7 @@ class DefaultStrategy(LemmatizationStrategy):
             or self._rules_search.get_lemma(token, lang)
             or self._prefix_search.get_lemma(token, lang)
             or self._affix_search.get_lemma(token, lang)
+            or self._morpheme_search.get_lemma(token, lang)
         )
 
     def is_dictionary_member(self, token: str, lang: str) -> bool:

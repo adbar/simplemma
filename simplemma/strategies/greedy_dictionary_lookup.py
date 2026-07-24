@@ -3,7 +3,7 @@ This module defines the `GreedyDictionaryLookupStrategy` class, which is a concr
 It provides lemmatization using a greedy dictionary lookup strategy.
 """
 
-from ..utils import levenshtein_dist
+from ..utils import canonicalize_token, levenshtein_dist
 from .dictionaries.dictionary_factory import (
     DEFAULT_DICTIONARY_FACTORY,
     DictionaryFactory,
@@ -38,7 +38,7 @@ class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
 
         Args:
             dictionary_factory (DictionaryFactory): The dictionary factory used to obtain language dictionaries.
-                Defaults to the shared [`DEFAULT_DICTIONARY_FACTORY`][simplemma.strategies.dictionaries.dictionary_factory.DEFAULT_DICTIONARY_FACTORY].
+                Defaults to the shared `DEFAULT_DICTIONARY_FACTORY`.
             steps (int): The maximum number of lemmatization steps to perform. Defaults to `1`.
             distance (int): The maximum allowed Levenshtein distance between candidate lemmas. Defaults to `5`.
 
@@ -63,6 +63,10 @@ class GreedyDictionaryLookupStrategy(LemmatizationStrategy):
             str: The lemma for the token.
 
         """
+        # no-op for unregistered langs: matches DictionaryLookupStrategy's
+        # canonicalization, so a vocalized/accented token still resolves
+        # when this strategy is used standalone or reordered ahead of it.
+        token = canonicalize_token(token, lang)
         if len(token) <= greedy_min_length(lang):
             return token
 

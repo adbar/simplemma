@@ -90,7 +90,7 @@ def gate(
 
     results = []
     for test_path in treebanks:
-        gold_tokens = load_gold_tokens(test_path)
+        gold_tokens = load_gold_tokens(test_path, lang)
         gold_type_pairs = gold_types(gold_tokens)  # strategy-independent; build once
         baseline_token, n_tokens = accuracy(baseline_strategy, lang, gold_tokens)
         candidate_token, _ = accuracy(candidate_strategy, lang, gold_tokens)
