@@ -77,6 +77,11 @@ def test_ellipsis_and_closers() -> None:
     assert split_sentences("Er zögerte . . . Dann kam er doch.", "de") == [
         "Er zögerte . . . Dann kam er doch."
     ]
+    # "..." as its own token: the word before the junction is the dot run
+    # itself, empty once terminators are stripped off -- not a boundary
+    assert split_sentences("Er zögerte ... dann kam er doch.", "de") == [
+        "Er zögerte ... dann kam er doch."
+    ]
     assert split_sentences('Sie rief: "Komm!") Danach Stille.', "de") == [
         'Sie rief: "Komm!")',
         "Danach Stille.",
