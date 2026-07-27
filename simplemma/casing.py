@@ -45,6 +45,11 @@ def is_sentence_boundary(token: str) -> bool:
     return token[:1] in PUNCTUATION and not token[-1:].isalnum()
 
 
+def _after_initial(prev: str, token: str) -> bool:
+    """Terminator following a single-letter token: 'J. Schmidt', no boundary."""
+    return token[:1] == "." and len(prev) == 1 and prev.isalpha()
+
+
 def is_keepable_allcaps(token: str) -> bool:
     """ALL-CAPS token worth keeping verbatim as a likely acronym."""
     return (
@@ -90,26 +95,26 @@ class SentenceCasing:
         return token
 
     def _streaming(self, tokens: Iterator[str]) -> Iterator[tuple[str, bool]]:
-        # Legacy semantics on purpose (do NOT widen to the buffered rule): any
-        # first token consumes the initial slot, only a whole-token terminator
-        # resets it. Widening is UD-measured harmful -- en_gum +11/-5 (fails
-        # sign test), fr_gsd 7/10 net-negative: post-'...'/quote tokens are
-        # proper-noun-dominated.
         initial = True
+        prev = ""
+        punctuation = PUNCTUATION
         for token in tokens:
             yield (self.initial_surface(token) if initial else token, False)
-            initial = token in PUNCTUATION
+            initial = token in punctuation and not _after_initial(prev, token)
+            prev = token
 
     def _buffered(self, tokens: Iterator[str]) -> Iterator[tuple[str, bool]]:
         sentence: list[str] = []
         at_start = True
+        prev = ""
         for token in tokens:
             sentence.append(token)
-            boundary = is_sentence_boundary(token)
+            boundary = is_sentence_boundary(token) and not _after_initial(prev, token)
             if boundary or len(sentence) >= SENTENCE_BUFFER_CAP:
                 yield from self._emit(sentence, at_start)
                 sentence = []
                 at_start = boundary  # a capped flush leaves us mid-sentence
+            prev = token
         if sentence:
             yield from self._emit(sentence, at_start)
 

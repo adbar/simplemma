@@ -1,8 +1,12 @@
+import pickle
+import re
+import tracemalloc
 import unicodedata
 
 import pytest
 
 from simplemma import RegexTokenizer, simple_tokenizer
+from simplemma.tokenizer import _BLOCK, _PUNCT, _TRAILING_PUNCT, TOKREGEX, _fast_split
 
 _TOKENIZATION_CASES = [
     # tokenization and chaining
@@ -130,6 +134,30 @@ _TOKENIZATION_CASES = [
     ("l'11 de setembre", ["l", "'", "11", "de", "setembre"]),
     # tr suffix on a numeric form: the apostrophe joins (digit BEFORE it)
     ("2020'de", ["2020'de"]),
+    # ca interpunct is word-internal (ela geminada); edge interpunct splits
+    ("els col·legis nous", ["els", "col·legis", "nous"]),
+    ("mig · mig", ["mig", "·", "mig"]),
+    # he geresh/gershayim join inside acronyms/loanwords; quote-like edges split
+    ("ש״ח", ["ש״ח"]),
+    # ASCII-quote spelling of the same acronyms (what real text types)
+    ('שילם ש"ח היום', ["שילם", 'ש"ח', "היום"]),
+    ('he said "yes"', ["he", "said", '"', "yes", '"']),
+    ("צ׳יפס", ["צ׳יפס"]),
+    # at a token edge they are punctuation, like the ASCII quote
+    ("״שלום״", ["״", "שלום", "״"]),
+    # hy intonation marks are word-internal (՞ on the stressed vowel);
+    # a word-final or bare mark is punctuation
+    ("Մի՞թե այդպիսի", ["Մի՞թե", "այդպիսի"]),
+    ("ասա՛ նրան", ["ասա", "՛", "նրան"]),
+    # standalone currency is a token; trailing currency stays glued (pt R$)
+    ("Es kostet 5 €.", ["Es", "kostet", "5", "€", "."]),
+    ("R$ 659 e US$ 200", ["R$", "659", "e", "US$", "200"]),
+    # punctuation-only currency: emitted, never glued (these were dropped)
+    ("Ціна 100 ₴ сьогодні", ["Ціна", "100", "₴", "сьогодні"]),
+    ("שילם 50 ₪", ["שילם", "50", "₪"]),
+    ("стоит 500₽", ["стоит", "500", "₽"]),
+    # symbols outside the word/punctuation sets are not emitted
+    ("👍 super", ["super"]),
     (
         "he said 'hello' about Türkiye’nin dogs' owners",
         [
@@ -154,7 +182,75 @@ def test_tokenizer(text: str, expected: list[str]) -> None:
 
 
 def test_simple_tokenizer_wraps_regex_tokenizer() -> None:
-    """`simple_tokenizer` is the default RegexTokenizer; the equivalence only
-    needs proving once, the table above runs through the wrapper."""
     text = "Sent1. Sent2\r\nSent3"
     assert list(RegexTokenizer().split_text(text)) == simple_tokenizer(text)
+
+
+def test_fast_path_matches_raw_regex() -> None:
+    text = (
+        'Dr. Meier zahlt 3,50 € für "das" Buch – l\'homme, ש"ח und\n'
+        "https://x.org/a?b=1  fertig.\tEnde"  # \n \t and a double space
+    )
+    assert simple_tokenizer(text) == [m[0] for m in TOKREGEX.finditer(text)]
+
+    custom = RegexTokenizer(re.compile(r"[a-z]+"))
+    assert list(custom.split_text("ab cd.ef")) == ["ab", "cd", "ef"]
+    assert not custom._fast
+    assert pickle.loads(pickle.dumps(RegexTokenizer()))._fast
+    # same pattern, different flags: a different tokenizer
+    assert not RegexTokenizer(re.compile(TOKREGEX.pattern, re.IGNORECASE))._fast
+
+
+def test_trailing_punct_set_is_exactly_the_separable_punctuation() -> None:
+    prefixes = (
+        "wort",
+        "Wort",
+        "St",
+        "Dr",
+        "a",
+        "l",
+        "L",
+        "col",
+        "Türkiye",
+        "שלום",
+        "בית",
+        "Մի",
+        "ասա",
+        "کتاب",
+        "الكتاب",
+        "λόγος",
+        "русский",
+        "वह",
+        "乔治",
+        "ქართული",
+        "한국어",
+    )
+    for char in _PUNCT:
+        splits_cleanly = all(
+            [m[0] for m in TOKREGEX.finditer(prefix + char)] == [prefix, char]
+            for prefix in prefixes
+        )
+        assert splits_cleanly == (char in _TRAILING_PUNCT), char
+    # the glued ones are the word-body chars and the trailing currency
+    assert set(_PUNCT) - _TRAILING_PUNCT == set("*_־-€$￥£")
+
+
+def test_fast_path_streams_without_materializing_the_text() -> None:
+    text = ("Ein Satz mit Wörtern, Zahlen 3,50 € und Dr. Meier. " * 40_000)[:2_000_000]
+
+    tracemalloc.start()
+    try:
+        tokens = _fast_split(text)
+        next(tokens)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert peak < len(text)
+
+    block = _BLOCK
+    for length in (block - 2, block - 1, block, block + 1, block + 2):
+        chunk = text[:length]
+        assert simple_tokenizer(chunk) == [m[0] for m in TOKREGEX.finditer(chunk)]
+    # a token straddling the boundary stays whole
+    straddle = "a" * (block - 3) + " übergreifendes Wort"
+    assert simple_tokenizer(straddle) == [m[0] for m in TOKREGEX.finditer(straddle)]

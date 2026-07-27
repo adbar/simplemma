@@ -64,6 +64,22 @@ def apostrophe_variants(token: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys((token, straight, *folded)))
 
 
+# hy intonation marks (Մի՞թե); NOT a canon table -- some dict keys carry the
+# mark contrastively (ազատի՛ -> ազատել vs ազատի -> ազատ)
+_ARMENIAN_MARKS = "՛՜՞"
+_ARMENIAN_MARKS_TABLE = str.maketrans("", "", _ARMENIAN_MARKS)
+
+
+def has_armenian_marks(text: str) -> bool:
+    """True if the text carries any hy intonation mark (՛ ՜ ՞)."""
+    return "՛" in text or "՜" in text or "՞" in text
+
+
+def strip_armenian_marks(text: str) -> str:
+    """Remove the hy intonation marks (՛ ՜ ՞)."""
+    return text.translate(_ARMENIAN_MARKS_TABLE)
+
+
 # Per-language dictionary-matching canonicalization, applied to BOTH
 # dictionary keys (dictionary_builder, at build time) and lookup tokens
 # (DictionaryLookupStrategy, at runtime) -- the single hook that keeps the two

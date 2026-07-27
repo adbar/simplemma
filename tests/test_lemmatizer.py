@@ -186,6 +186,15 @@ def test_foreign_script_key_drop() -> None:
     assert lemmatize("Abobrigae", lang="la") == "Abobriga"
 
 
+def test_armenian_intonation_marks() -> None:
+    """Marked token looked up first, then the mark-stripped form."""
+    assert lemmatize("Մի՞թե", lang="hy") == "միթե"  # strip fallback
+    assert lemmatize("Կարո՞ղ", lang="hy") == "կարող"
+    assert lemmatize("ազատի՛", lang="hy") == "ազատել"  # marked key wins
+    assert lemmatize("ազատի", lang="hy") == "ազատ"
+    assert lemmatize("՞", lang="hy") == "՞"  # all-marks token: safe recursion
+
+
 def test_apostrophe_variants() -> None:
     """All three apostrophe glyphs fold to the same lemma, including the
     modifier-letter U+02BC common in Ukrainian text (dict keys use U+0027)."""
@@ -568,3 +577,7 @@ def test_long_token_does_not_hang() -> None:
     assert lemmatize("a" * 50000, lang="fi") == "a" * 50000  # was minutes, now instant
     assert lemmatize("a" * 101, lang="fi") == "a" * 101
     assert lemmatize("masks", lang="en") == "mask"
+
+
+def test_he_acronyms_survive_tokenization() -> None:
+    assert text_lemmatizer('שילם ש"ח היום.', lang="he")[1] == 'ש"ח'

@@ -3,7 +3,13 @@ This module defines the `DictionaryLookupStrategy` class, which is a concrete im
 It provides lemmatization using dictionary lookup.
 """
 
-from ..utils import apostrophe_variants, canonicalize_token, has_apostrophe
+from ..utils import (
+    apostrophe_variants,
+    canonicalize_token,
+    has_apostrophe,
+    has_armenian_marks,
+    strip_armenian_marks,
+)
 from .dictionaries.dictionary_factory import (
     DEFAULT_DICTIONARY_FACTORY,
     DictionaryFactory,
@@ -54,6 +60,9 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
         cased = token.lower() if token[:1].isupper() else token.capitalize()
         if (result := dictionary.get(cased)) is not None:
             return result
+        # hy: fall back to the mark-stripped form
+        if lang == "hy" and has_armenian_marks(token):
+            return self.get_lemma(strip_armenian_marks(token), lang)
         if not has_apostrophe(token):
             return None
         # Remaining variants (typed token was variant[0], probed above).

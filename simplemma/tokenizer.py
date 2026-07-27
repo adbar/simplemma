@@ -15,6 +15,32 @@ from operator import itemgetter
 
 from typing import Protocol
 
+from .utils import _ARMENIAN_MARKS
+
+# currency that glues to a number or word (ONE set for all four regex classes)
+_CURRENCY = "€$￥£"
+
+# currency that is punctuation only, never glued
+_CURRENCY_PUNCT = "¢¥₩֏₪₹₽₴₺₾"
+
+# non-word chars the word body absorbs, so they can never end a token
+_WORD_BODY_EXTRAS = "*_־-"
+
+_PUNCT = (
+    ",;:.?!¿¡…։՝।॥،؛؟()[]–{}—―/‒"
+    "“„”‚‘’‛′″'`\"«»‹›"
+    "<>=+−×÷•·%&№#°׳״‐"
+    + _ARMENIAN_MARKS
+    + _CURRENCY
+    + _CURRENCY_PUNCT
+    + _WORD_BODY_EXTRAS
+)
+
+# derived, not listed: test_tokenizer brute-forces this against TOKREGEX
+_TRAILING_PUNCT = (
+    frozenset(_PUNCT) - frozenset(_CURRENCY) - frozenset(_WORD_BODY_EXTRAS)
+)
+
 # Combining marks \w excludes (category M): Latin/Greek/Cyrillic, Arabic,
 # Devanagari, Hebrew (points/accents; excludes the 4 non-mark codepoints in
 # the U+0591-05C7 span: maqaf/paseq/sof-pasuq/nun-hafukha are punctuation),
@@ -30,18 +56,46 @@ _MARKS = (
 
 TOKREGEX = re.compile(
     r"(?:"
-    r"(?:[€$￥£+-]?[0-9][0-9.,:%/-]*|St\.)(?:[\w_€-]|['’](?=[^\W\d_]))+|"
+    rf"(?:[{_CURRENCY}+-]?[0-9][0-9.,:%/-]*|St\.)(?:[\w_€-]|['’](?=[^\W\d_]))+|"
     r"https?://[^ ]+|"
-    # In-word joiners (never at a token edge): letter-flanked apostrophes
-    # (l'homme, 2020'de; digit after excludes ca "l'1"), marks, ZWNJ (fa).
-    # Hebrew maqaf joins like an ASCII hyphen (בית־ספר stays one token) --
-    # same equivalence dictionary_builder.py already treats it with for keys.
-    rf"[€$￥£@#§]?\w(?:[\w{_MARKS}*_־-]|['’](?=[^\W\d_])|\u200c(?=\w))*|"
+    # In-word joiners: apostrophes (l'homme), he geresh/gershayim + ASCII
+    # quote (both flanks Hebrew), hy intonation marks, ca ela geminada
+    # (l-flanked; U+00B7 elsewhere separates), marks, ZWNJ (fa).
+    rf"[{_CURRENCY}@#§]?\w(?:[\w{_MARKS}{_WORD_BODY_EXTRAS}]|['’׳״{_ARMENIAN_MARKS}](?=[^\W\d_])|·(?<=[lL]·)(?=[lL])|\"(?<=[\u05d0-\u05ea]\")(?=[\u05d0-\u05ea])|\u200c(?=\w))*[{_CURRENCY}]?|"
     # one punctuation char, or a run of the SAME char ('...', '--', '!!')
-    r"([,;:\.?!¿¡…։՝।॥،؛؟()\[\]–{}—―/‒_“„”‚‘’‛′″'`\"«»‹›<>=+−×÷•·%&№*#°‐־-])\1*"
+    rf"([{re.escape(_PUNCT)}])\1*"
     r")"
 )
-"""The regular expresion used by default by [RegexTokenizer][simplemma.tokenizer.RegexTokenizer]."""
+"""The regular expresion used by default by [RegexTokenizer][simplemma.tokenizer.RegexTokenizer].
+
+Characters outside the word and punctuation sets -- emoji, arrows and other
+symbols -- match no branch and are not emitted as tokens.
+"""
+
+
+_BLOCK = 65536  # process a block of text at a time: bounded memory
+
+
+def _fast_split(text: str) -> Iterator[str]:
+    # pure-alpha chunks, and words with one trailing punct char, skip the regex
+    finditer = TOKREGEX.finditer
+    start = 0
+    length = len(text)
+    while start < length:
+        end = text.find(" ", start + _BLOCK)
+        if end == -1:
+            end = length
+        for chunk in text[start:end].split(" "):
+            if chunk.isalpha():
+                yield chunk
+            elif chunk:
+                if chunk[-1] in _TRAILING_PUNCT and chunk[:-1].isalpha():
+                    yield chunk[:-1]
+                    yield chunk[-1]
+                else:
+                    for match in finditer(chunk):
+                        yield match[0]
+        start = end + 1
 
 
 class Tokenizer(Protocol):
@@ -73,10 +127,15 @@ class RegexTokenizer(Tokenizer):
     This tokenizer splits the input text using the specified regex pattern.
     """
 
-    __slots__ = ["_splitting_regex"]
+    __slots__ = ["_fast", "_splitting_regex"]
 
     def __init__(self, splitting_regex: re.Pattern[str] = TOKREGEX) -> None:
         self._splitting_regex = splitting_regex
+        # by pattern, not identity: unpickling breaks `is TOKREGEX`
+        self._fast = (
+            splitting_regex.pattern == TOKREGEX.pattern
+            and splitting_regex.flags == TOKREGEX.flags
+        )
 
     def split_text(self, text: str) -> Iterator[str]:
         """
@@ -89,6 +148,8 @@ class RegexTokenizer(Tokenizer):
             Iterator[str]: An iterator yielding the individual tokens.
 
         """
+        if self._fast:
+            return _fast_split(text)
         # map+itemgetter measures ~5% faster than a genexpr here
         return map(itemgetter(0), self._splitting_regex.finditer(text))
 
