@@ -128,9 +128,12 @@ The tokenizer is script-aware: in-word joiners stay inside their word
 (`l'homme`, `2020'de`, `col·legis`, `ש"ח`, `בית־ספר`, `Մի՞թե`), as do the
 combining marks of Hebrew, Arabic, Devanagari and Malayalam. Punctuation
 becomes its own token, but a run of the same character stays whole (`...`,
-`--`), and numbers keep their separators and currency symbol (`3,50 €`,
-`R$ 659`). Characters outside the word and punctuation sets — emoji,
-arrows and similar symbols — are not emitted as tokens.
+`--`), and numbers keep their internal separators (`3,50`, `4:1`, `3/5`). A
+currency sign priced against a number is a token of its own on either side,
+even where the text glues it (`€3.50` and `50€` both split, following UD gold);
+a sign attached to a word stays part of it (`R$`, `US$`). Characters outside
+the word and punctuation sets — emoji, arrows and similar symbols — are not
+emitted as tokens.
 
 Measured against Universal Dependencies gold, token-level F1 is 0.97 to
 0.998 for most languages (median 0.99), lower for French, Catalan and

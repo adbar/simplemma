@@ -77,10 +77,22 @@ def test_ellipsis_and_closers() -> None:
     assert split_sentences("Er zögerte . . . Dann kam er doch.", "de") == [
         "Er zögerte . . . Dann kam er doch."
     ]
-    # "..." as its own token: the word before the junction is the dot run
-    # itself, empty once terminators are stripped off -- not a boundary
+    # a spaced "..." ends a sentence, like "…" and like the unspaced form
+    assert split_sentences("Er zögerte ... Dann kam er doch.", "de") == [
+        "Er zögerte ...",
+        "Dann kam er doch.",
+    ]
+    assert split_sentences("Er zögerte … Dann kam er doch.", "de") == [
+        "Er zögerte …",
+        "Dann kam er doch.",
+    ]
+    # ... but a lowercase continuation still suppresses it
     assert split_sentences("Er zögerte ... dann kam er doch.", "de") == [
         "Er zögerte ... dann kam er doch."
+    ]
+    # a bracketed run is an elision marker inside the sentence, not an end
+    assert split_sentences("Er sagte (...) Dann ging er.", "de") == [
+        "Er sagte (...) Dann ging er."
     ]
     assert split_sentences('Sie rief: "Komm!") Danach Stille.', "de") == [
         'Sie rief: "Komm!")',
@@ -169,18 +181,10 @@ def test_greek_question_mark() -> None:
     assert split_sentences("ήρθες; ναι ήρθα;", "el") == ["ήρθες;", "ναι ήρθα;"]
     # U+037E, the legacy spelling of the same mark (NFC folds it to ';'), in
     # both paths: as a terminator and under the bare-question exception
-    assert split_sentences(
-        "\u0389\u03c1\u03b8\u03b5\u03c2\u037e \u039d\u03b1\u03b9.", "el"
-    ) == [
-        "\u0389\u03c1\u03b8\u03b5\u03c2\u037e",
-        "\u039d\u03b1\u03b9.",
-    ]
-    assert split_sentences(
-        "\u03ae\u03c1\u03b8\u03b5\u03c2\u037e \u03bd\u03b1\u03b9 \u03ae\u03c1\u03b8\u03b1\u037e",
-        "el",
-    ) == [
-        "\u03ae\u03c1\u03b8\u03b5\u03c2\u037e",
-        "\u03bd\u03b1\u03b9 \u03ae\u03c1\u03b8\u03b1\u037e",
+    assert split_sentences("Ήρθες\u037e Ναι.", "el") == ["Ήρθες\u037e", "Ναι."]
+    assert split_sentences("ήρθες\u037e ναι ήρθα\u037e", "el") == [
+        "ήρθες\u037e",
+        "ναι ήρθα\u037e",
     ]
 
 
@@ -223,18 +227,22 @@ def test_language_tuple_selects_the_profile() -> None:
 
 
 def test_new_language_profiles() -> None:
-    # cs/nl/pl/pt lists gated 2026-07-25 (cs formal registers +0.05 F1)
-    assert split_sentences(
-        "Zkouška je např. velmi dobrá. Nový odstavec začíná.", "cs"
-    ) == [
-        "Zkouška je např. velmi dobrá.",
-        "Nový odstavec začíná.",
-    ]
-    assert split_sentences("De heer dr. Jansen kwam aan. Daarna begon het.", "nl") == [
-        "De heer dr. Jansen kwam aan.",
-        "Daarna begon het.",
-    ]
-    assert split_sentences("Chegou o Sr. Silva de manhã. Depois saiu.", "pt") == [
-        "Chegou o Sr. Silva de manhã.",
-        "Depois saiu.",
-    ]
+    # cs/nl/pt lists gated 2026-07-25 (cs formal registers +0.05 F1)
+    for text, lang, expected in (
+        (
+            "Zkouška je např. velmi dobrá. Nový odstavec začíná.",
+            "cs",
+            ["Zkouška je např. velmi dobrá.", "Nový odstavec začíná."],
+        ),
+        (
+            "De heer dr. Jansen kwam aan. Daarna begon het.",
+            "nl",
+            ["De heer dr. Jansen kwam aan.", "Daarna begon het."],
+        ),
+        (
+            "Chegou o Sr. Silva de manhã. Depois saiu.",
+            "pt",
+            ["Chegou o Sr. Silva de manhã.", "Depois saiu."],
+        ),
+    ):
+        assert split_sentences(text, lang) == expected, lang

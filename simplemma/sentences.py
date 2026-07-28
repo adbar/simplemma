@@ -7,6 +7,8 @@ from .utils import normalize_token, validate_lang_input
 
 # el: ';' is the question mark, U+037E its legacy spelling
 _TERMINATORS = {None: ".!?…։؟।॥", "el": ".!?…;\u037e"}
+# a lowercase word may still open a sentence after these (el question mark too)
+_STRONG_TERMINATORS = "?!;\u037e"
 _CLOSERS = "\"'”’»)]"
 _EDGE = "(["  # stripped for the abbreviation lookup only; not quotes
 _EMPTY: frozenset[str] = frozenset()
@@ -70,8 +72,64 @@ _JUNCTIONS = {
     for lang, terms in _TERMINATORS.items()
 }
 
-# longer than any suppressible core: rules every clause out
-_WINDOW = 1 + max(2, max(len(entry) for lang in _ABBREVS.values() for entry in lang))
+# longer than any suppressible core, so no rule can apply past it
+_WINDOW = 1 + max(len(entry) for entries in _ABBREVS.values() for entry in entries)
+
+
+def _dot_verdict(
+    text: str,
+    start: int,
+    pos: int,
+    terminators: str,
+    abbrevs: frozenset[str],
+) -> bool | None:
+    """True suppresses the boundary (the default), False opens it, None rules
+    the junction out entirely."""
+    if pos <= start or text[pos - 1].isspace():
+        return True
+    if pos - _WINDOW >= start and text[pos - _WINDOW : pos].isalpha():
+        return False
+    i = pos - 1
+    while i >= start and not text[i].isspace():
+        i -= 1
+    i += 1
+    raw = text[i:pos]
+    word = raw.strip(_EDGE)
+    core = normalize_token(word.lower()).rstrip(terminators)
+    if not core:
+        # a bare run of one terminator ends a sentence ('...'), but a mixed run
+        # does not, and a bracketed one is an in-sentence elision ('(...)')
+        return not (word and word == raw == text[pos] * len(word))
+    if len(core) == 1 and core.isalpha():
+        if word[:1].isupper():
+            return None  # initial before a starter is a name
+        return not (i > 1 and text[i - 2].isdigit())  # digit-unit, e.g. '3 m.'
+    if core.isdigit() and len(core) <= 2:
+        return True  # ordinal
+    return core in abbrevs
+
+
+def _starter_follows(text: str, after: int, starters: frozenset[str]) -> bool:
+    """Does a known sentence starter follow, overriding a suppressed '.'?"""
+    if not starters:
+        return False
+    nxt_word = _WORD.match(text, after, after + 30)
+    return (
+        nxt_word is not None and normalize_token(nxt_word.group().lower()) in starters
+    )
+
+
+def _profile(
+    code: str,
+) -> tuple[str, "re.Pattern[str]", frozenset[str], frozenset[str]]:
+    """Terminators, junction pattern, abbreviations and starters for `code`."""
+    key = code if code in _TERMINATORS else None
+    return (
+        _TERMINATORS[key],
+        _JUNCTIONS[key],
+        _ABBREVS.get(code, _EMPTY),
+        _STARTERS.get(code, _EMPTY),
+    )
 
 
 def _split_block(
@@ -86,39 +144,13 @@ def _split_block(
         pos, after = match.span()
         term = text[pos]
         if term == ".":
-            # the word before the terminator decides; suppressed by default
-            suppress = True
-            if pos > start and not text[pos - 1].isspace():
-                if pos - _WINDOW >= start and text[pos - _WINDOW : pos].isalpha():
-                    suppress = False
-                else:
-                    i = pos - 1
-                    while i >= start and not text[i].isspace():
-                        i -= 1
-                    i += 1
-                    word = text[i:pos].strip(_EDGE)
-                    core = normalize_token(word.lower()).rstrip(terminators)
-                    if not core:
-                        pass
-                    elif len(core) == 1 and core.isalpha():
-                        if word[:1].isupper():
-                            continue  # initial before a starter is a name
-                        suppress = not (i > 1 and text[i - 2].isdigit())
-                    elif core.isdigit() and len(core) <= 2:
-                        pass  # ordinal
-                    else:
-                        suppress = core in abbrevs
-            if suppress:
-                if not starters:
-                    continue
-                nxt_word = _WORD.match(text, after, after + 30)
-                if (
-                    nxt_word is None
-                    or normalize_token(nxt_word.group().lower()) not in starters
-                ):
-                    continue
+            verdict = _dot_verdict(text, start, pos, terminators, abbrevs)
+            if verdict is None:
+                continue
+            if verdict and not _starter_follows(text, after, starters):
+                continue
         if text[after : after + 1].islower() and not (
-            term in "?!;\u037e" and text[pos + 1].isspace()
+            term in _STRONG_TERMINATORS and text[pos + 1].isspace()
         ):
             continue
         yield text[start:after].strip()
@@ -150,11 +182,7 @@ def split_sentences(text: str, lang: str | tuple[str, ...] | None = None) -> lis
         list[str]: The sentences, in order, without surrounding whitespace.
     """
     code = validate_lang_input(lang)[0] if lang is not None else ""
-    key = code if code in _TERMINATORS else None
-    terminators = _TERMINATORS[key]
-    junction = _JUNCTIONS[key]
-    abbrevs = _ABBREVS.get(code, _EMPTY)
-    starters = _STARTERS.get(code, _EMPTY)
+    terminators, junction, abbrevs, starters = _profile(code)
     return [
         sentence
         for block in _blocks(text)
