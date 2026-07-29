@@ -9,32 +9,23 @@
 <!-- include:intro:start -->
 ## Purpose
 
-[Lemmatization](https://en.wikipedia.org/wiki/Lemmatisation) is the
-process of grouping together the inflected forms of a word so they can
-be analysed as a single item, identified by the word's lemma, or
-dictionary form. Unlike stemming, lemmatization outputs word units that
-are still valid linguistic forms.
+[Lemmatization](https://en.wikipedia.org/wiki/Lemmatisation) groups the
+inflected forms of a word so they can be analysed as a single item,
+identified by the word's lemma, or dictionary form. Unlike stemming, it
+outputs word units that are still valid linguistic forms. In modern NLP
+the task is usually handled indirectly, inside a whole processing
+pipeline, although it can be crucial on its own for information
+retrieval.
 
-In modern natural language processing (NLP), this task is often
-indirectly tackled by more complex systems encompassing a whole
-processing pipeline. However, it appears that there is no
-straightforward way to address lemmatization in Python although this
-task can be crucial in fields such as information retrieval and NLP.
+*Simplemma* provides a simple and multilingual approach to looking for
+base forms. It needs no morphosyntactic information and processes a raw
+series of tokens, or a text through its built-in tokenizer. It is not as
+powerful as full-fledged solutions, but it is generic, easy to install
+and fast, and its small footprint suits contexts where speed and
+simplicity matter: low-resource settings, teaching, or a baseline for
+lemmatization and morphological analysis.
 
-*Simplemma* provides a simple and multilingual approach to look for base
-forms or lemmata. It may not be as powerful as full-fledged solutions
-but it is generic, easy to install and straightforward to use. In
-particular, it does not need morphosyntactic information and can process
-a raw series of tokens or even a text with its built-in tokenizer. By
-design it should be reasonably fast and work in a large majority of
-cases, without being perfect.
-
-With its comparatively small footprint it is especially useful when
-speed and simplicity matter, in low-resource contexts, for educational
-purposes, or as a baseline system for lemmatization and morphological
-analysis.
-
-Currently, 50 languages are partly or fully supported (see the list of supported languages).
+Currently, 54 languages are partly or fully supported (see the list below).
 
 
 ## Installation
@@ -133,6 +124,22 @@ A simple tokenization function is provided for convenience:
 <generator object ...>
 ```
 
+The tokenizer is script-aware: in-word joiners stay inside their word
+(`l'homme`, `2020'de`, `col·legis`, `ש"ח`, `בית־ספר`, `Մի՞թե`), as do the
+combining marks of Hebrew, Arabic, Devanagari and Malayalam. Punctuation
+becomes its own token, but a run of the same character stays whole (`...`,
+`--`), and numbers keep their internal separators (`3,50`, `4:1`, `3/5`). A
+currency sign priced against a number is a token of its own on either side,
+even where the text glues it (`€3.50` and `50€` both split, following UD gold);
+a sign attached to a word stays part of it (`R$`, `US$`). Characters outside
+the word and punctuation sets — emoji, arrows and similar symbols — are not
+emitted as tokens.
+
+Measured against Universal Dependencies gold, token-level F1 is 0.97 to
+0.998 for most languages (median 0.99), lower for French, Catalan and
+Italian (0.93 to 0.96), where UD splits elided articles (`l'homme` →
+`l'` + `homme`) and simplemma keeps them whole.
+
 The functions `text_lemmatizer()` and `lemma_iterator()` chain
 tokenization and lemmatization. They accept the same `greedy` argument
 as `lemmatize()`:
@@ -149,6 +156,34 @@ as `lemmatize()`:
 ```
 
 
+### Sentence splitting
+
+`split_sentences()` segments raw text into sentences, using rules plus
+per-language abbreviation data where it measurably pays (currently `cs`,
+`de`, `en`, `fr`, `nl`, `pl`, `pt`); other codes use the generic rules,
+which stay close in quality. `lang='el'` additionally treats `;` as a
+question mark, and a blank line always starts a new sentence. On Universal
+Dependencies data the splitter matches or beats NLTK's punkt on 6 of 7
+evaluated languages, at a fraction of its runtime and with no dependency.
+
+``` python
+>>> from simplemma import split_sentences
+>>> split_sentences('Das Tor fiel in der 95. Minute. Das Spiel war aus.', lang='de')
+['Das Tor fiel in der 95. Minute.', 'Das Spiel war aus.']
+```
+
+The sentences are slices of the input with surrounding whitespace removed:
+nothing is normalized or rewritten. `lang` also accepts a tuple, like the
+other entry points, and pre-tokenized or OCR-style text whose punctuation
+is spaced out (`Le prix est bas .`) still splits correctly.
+
+On the held-out PUD corpora — the same 1000 professionally translated
+sentences per language — sentence-boundary F1 is 0.98 to 0.998. Register
+matters far more than language: text without reliable terminal punctuation,
+social media in particular, is much harder, since a rule-based splitter
+cannot recover a boundary that was never marked.
+
+
 ### Caveats
 
 ``` python
@@ -162,21 +197,18 @@ as `lemmatize()`:
 ```
 
 As the focus lies on overall coverage, some short frequent words
-(typically: pronouns and conjunctions) may need post-processing, this
-generally concerns a few dozens of tokens per language.
+(typically pronouns and conjunctions) may need post-processing — generally
+a few dozen tokens per language.
 
-The current absence of morphosyntactic information is an advantage in
-terms of simplicity. However, it is also an impassable frontier regarding
-lemmatization accuracy, for example when it comes to disambiguating
-between past participles and adjectives derived from verbs in Germanic
-and Romance languages. In most cases, `simplemma` often does not change
-such input words.
+Working without morphosyntactic information keeps things simple but sets a
+hard ceiling on accuracy, for instance when disambiguating past participles
+from verb-derived adjectives in Germanic and Romance languages; `simplemma`
+usually leaves such words unchanged.
 
-The greedy algorithm seldom produces invalid forms. It is designed to
-work best in the low-frequency range, notably for compound words and
-neologisms. Aggressive decomposition is only useful as a general
-approach in the case of morphologically-rich languages, where it can
-also act as a linguistically motivated stemmer.
+The greedy algorithm seldom produces invalid forms. It works best in the
+low-frequency range, notably for compound words and neologisms. Aggressive
+decomposition is only useful as a general approach for morphologically-rich
+languages, where it can act as a linguistically motivated stemmer.
 
 Bug reports over the [issues
 page](https://github.com/adbar/simplemma/issues) are welcome.
@@ -184,17 +216,12 @@ page](https://github.com/adbar/simplemma/issues) are welcome.
 
 ### Language detection
 
-Language detection works by providing a text and a tuple `lang` consisting
-of a series of languages of interest. Each score is a proportion between 0
-and 1. The proportions are computed independently per language, so a token
-recognized in several languages counts towards each of them and the scores
-need not sum to 1.
-
-The `langdetect()` function returns a list of language codes along
-with their corresponding scores, appending "unk" for the proportion of
-unknown or out-of-vocabulary tokens. The proportion of tokens that belong
-to the target language(s) can also be obtained directly with the
-`in_target_language()` function, which returns a single ratio.
+Language detection takes a text and a tuple `lang` of languages of
+interest. `langdetect()` returns each language code with its score, plus
+"unk" for the proportion of unknown tokens; `in_target_language()` returns
+the single ratio of tokens belonging to the target language(s). Scores are
+proportions between 0 and 1, computed independently per language, so a
+token recognized in several counts towards each and they need not sum to 1.
 
 ``` python
 # import necessary functions
@@ -215,21 +242,17 @@ a lesser accuracy.
 
 ### Advanced usage via classes
 
-The functions described above are suitable for simple usage, but you
-can have more control by instantiating Simplemma classes and calling
-their methods instead. Lemmatization is handled by the `Lemmatizer`
-class, while language detection is handled by the `LanguageDetector`
-class. These in turn rely on different lemmatization strategies, which
-are implementations of the `LemmatizationStrategy` protocol. The
-`DefaultStrategy` implementation uses a combination of different
-strategies, one of which is `DictionaryLookupStrategy`. It looks up
-tokens in a dictionary created by a `DictionaryFactory`.
+The functions above cover simple usage; instantiating the classes gives
+more control. `Lemmatizer` handles lemmatization and `LanguageDetector`
+language detection, both through an implementation of the
+`LemmatizationStrategy` protocol. `DefaultStrategy` combines several such
+strategies, among them `DictionaryLookupStrategy`, which looks tokens up in
+a dictionary built by a `DictionaryFactory`.
 
-For example, it is possible to conserve RAM by limiting the number of
-cached language dictionaries (default: 8) by creating a custom
-`DefaultDictionaryFactory` with a specific `cache_max_size` setting,
-creating a `DefaultStrategy` using that factory, and then creating a
-`Lemmatizer` and/or a `LanguageDetector` using that strategy:
+For example, to conserve RAM by limiting how many language dictionaries
+stay cached (default: 8), pass a `cache_max_size` to
+`DefaultDictionaryFactory`, wrap it in a `DefaultStrategy`, and hand that
+to a `Lemmatizer` and/or `LanguageDetector`:
 
 ``` python
 # import necessary classes
@@ -258,11 +281,10 @@ For more information see the
 
 ### Reducing memory usage
 
-Simplemma provides an alternative solution for situations where low
-memory usage is more important than lemmatization and language
-detection performance. The quickest way to opt in is the `low_memory`
-flag, available on `lemmatize`, `text_lemmatizer`, `lemma_iterator`,
-`is_known`, `langdetect` and `in_target_language`:
+Where low memory usage matters more than lemmatization and detection
+speed, the quickest way in is the `low_memory` flag, available on
+`lemmatize`, `text_lemmatizer`, `lemma_iterator`, `is_known`, `langdetect`
+and `in_target_language`:
 
 ``` python
 >>> from simplemma import lemmatize
@@ -270,16 +292,13 @@ flag, available on `lemmatize`, `text_lemmatizer`, `lemma_iterator`,
 'doughnut'
 ```
 
-This selects the stdlib-only `StreamDictionaryFactory` (see below): the
-most memory-frugal backend, reading the dictionary stream directly with
-no full-dict build spike and no on-disk cache. `TrieDictionaryFactory`
-reaches a lower *steady-state* footprint but spikes and writes to disk on
-first use, so it is not auto-selected — request it explicitly (see below)
-when its RAM/speed trade-off suits you. For explicit control over which
-backend is used — including with `Lemmatizer` and `LanguageDetector`
-instances — build a strategy directly, as described in the rest of this
-section. `DefaultStrategy` also accepts the same `low_memory` flag, but
-not together with an explicit `dictionary_factory`:
+This selects the stdlib-only `StreamDictionaryFactory`: the most
+memory-frugal backend, reading the dictionary stream directly with no
+full-dict build spike and no on-disk cache. `TrieDictionaryFactory` reaches
+a lower *steady-state* footprint but spikes and writes to disk on first
+use, so it is never auto-selected — request it explicitly (see below).
+`DefaultStrategy` accepts the same flag, though not together with an
+explicit `dictionary_factory`:
 
 ``` python
 >>> from simplemma import Lemmatizer
@@ -290,9 +309,8 @@ not together with an explicit `dictionary_factory`:
 'doughnut'
 ```
 
-The three backends trade memory against speed as follows (measured on
-German, ~1.1M dictionary entries; exact figures vary by language and
-hardware):
+The three backends trade memory against speed as follows (German, ~1.1M
+dictionary entries; figures vary by language and hardware):
 
 | Backend | Peak RAM | Load time | Uncached lookup² | Cached lookup³ | Extra dependency |
 | --- | --- | --- | --- | --- | --- |
@@ -300,44 +318,32 @@ hardware):
 | `TrieDictionaryFactory` | ~30 MB | ~1 ms (warm)¹ | ~2.5× slower | ~1.2× slower | `marisa-trie` |
 | `StreamDictionaryFactory` | ~50 MB | ~0.6 s | ~18× slower | ~6× slower | none |
 
-Choosing between them: pick `DefaultDictionaryFactory` when throughput
-matters most and memory is not a constraint; `TrieDictionaryFactory` for
-the best RAM/speed trade-off if installing `marisa-trie` is an option;
-`StreamDictionaryFactory` for the same low RAM with no extra dependency,
-at a bigger speed cost. The RAM saving compounds with every additional
-language kept loaded at once, since `DefaultDictionaryFactory` holds each
-language's full dict in memory for as long as it stays cached — though
-German is near the largest shipped dictionary and includes a fixed
-Python baseline, so smaller languages add less than the table's absolute
-numbers suggest.
-
-¹ Warm-load time only; see below for the (one-time, per language) cost
-of building the trie.
+¹ Warm load. The first use of a language builds its trie from the shipped
+dictionary, taking a few seconds and briefly needing as much memory as
+`DefaultDictionaryFactory` would, then caches it on disk. On a machine
+without enough memory to build it, build it elsewhere on the same CPU
+architecture and copy the cache directory over.
 ² Per single lookup, bypassing any cache.
-³ End-to-end through `Lemmatizer`'s result cache, measured over the German
-UD-HDT treebank (3.5M tokens, 200k unique). The gap shrinks toward parity
-on smaller texts whose vocabulary fits the cache, and widens toward the
-uncached figure on large, low-repetition corpora.
+³ End-to-end through `Lemmatizer`'s result cache, over the German UD-HDT
+treebank (3.5M tokens, 200k unique). The gap shrinks toward parity on
+texts whose vocabulary fits the cache, and toward the uncached figure on
+large, low-repetition corpora.
 
-To force a specific backend instead of relying on `low_memory=True`, pass
-it explicitly — `DefaultStrategy(dictionary_factory=TrieDictionaryFactory())`
+Pick `DefaultDictionaryFactory` when throughput matters and memory does
+not; `TrieDictionaryFactory` for the best RAM/speed trade-off, if the
+`marisa-trie` extra can be installed (`pip install simplemma[marisa-trie]`,
+from version 1.1.0); `StreamDictionaryFactory` for the same low RAM with no
+extra dependency and no cache to warm up, at a bigger speed cost. The RAM
+saving compounds with every additional language kept loaded, since
+`DefaultDictionaryFactory` holds each cached language's full dict in
+memory — though German is near the largest shipped dictionary and the
+figures include a fixed Python baseline, so smaller languages add less than
+the absolute numbers suggest.
+
+To force a backend instead of relying on `low_memory=True`, pass it
+explicitly: `DefaultStrategy(dictionary_factory=TrieDictionaryFactory())`
 or `DefaultStrategy(dictionary_factory=StreamDictionaryFactory())`, both
 importable from `simplemma.strategies.dictionaries`.
-
-`TrieDictionaryFactory` needs the `marisa-trie` extra dependency
-(`pip install simplemma[marisa-trie]`, available from version 1.1.0). The
-first use of a language builds its trie from the shipped dictionary —
-taking a few seconds and briefly using as much memory as the
-`DefaultDictionaryFactory` would — then caches it on disk for later
-invocations. If the machine running Simplemma doesn't have enough memory
-to build the trie, it can also be built on another machine with the same
-CPU architecture and the cache directory copied over.
-
-`StreamDictionaryFactory` needs no extra dependency: it reads the shipped
-dictionary files directly instead of loading them into a Python dict, at
-the cost of much slower lookups (see the table above). There's no
-on-disk cache to warm up, so throughput is consistent from the first
-call.
 
 <!-- include:intro:end -->
 ## Supported languages
@@ -417,36 +423,28 @@ morphology rather than a data error.
 | `uk` | Ukrainian | 502 | 35 | 0.90 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
 
 
-Languages marked as having low coverage may be better suited to
-language-specific libraries, but Simplemma can still provide limited
-functionality. Where possible, open-source Python alternatives are
-referenced.
+Languages marked as low-coverage may be better served by
+language-specific libraries, which are referenced where an open-source
+Python alternative exists; Simplemma still provides limited functionality.
+*Experimental* means the language is untested, or that its data or
+lemmatization may have issues.
 
-*Experimental* mentions indicate that the language remains untested or
-that there could be issues with the underlying data or lemmatization
-process.
+The scores measure how accurately tokens are mapped to their lemma on
+[Universal Dependencies](https://universaldependencies.org/) treebanks,
+over single word tokens (including some contractions but not merged
+prepositions). Each figure is the accuracy on that language's
+best-performing general-purpose treebank; parallel, spoken, learner,
+historical and other narrow-domain treebanks are excluded. Two
+annotation-driven exceptions: the Dutch figure excludes underscore-joined
+compound lemmas (e.g. `klooster_orde`), an Alpino convention that
+single-token output cannot match — ≈0.88 without that exclusion; Hebrew and
+Arabic proclitics fuse onto their host word in real text but are scored as
+pre-split sub-tokens by the protocol above, so on whole, unsegmented input
+those accuracies are ≈0.77 and ≈0.74. See the `training/` folder for more.
 
-The scores are calculated on [Universal
-Dependencies](https://universaldependencies.org/) treebanks on single
-word tokens (including some contractions but not merged prepositions),
-they describe to what extent simplemma can accurately map tokens to
-their lemma form. For each language the figure is the accuracy on its
-best-performing general-purpose treebank (parallel, spoken, learner,
-historical and other narrow-domain treebanks are excluded). The Dutch
-(`nl`) figure excludes gold lemmas that are underscore-joined compounds
-(e.g. `klooster_orde`), a UD-Alpino annotation convention that
-simplemma's single-token output cannot match; without that exclusion it
-is ≈0.88. Hebrew (`he`) and Arabic (`ar`) proclitics/articles fuse onto
-their host word in real (unsegmented) text but are scored as pre-split
-sub-tokens by the standard UD protocol above; on whole, unsegmented input
-their accuracy is ≈0.77 and ≈0.74 respectively. See the `training/` folder
-of the code repository for more information.
-
-This library is particularly relevant as regards the lemmatization of
-less frequent words. Its performance in this case is only incidentally
-captured by the benchmark above. In some languages, a fixed number of
-words such as pronouns can be further mapped by hand to enhance
-performance.
+The benchmark only incidentally captures what this library is most useful
+for, the lemmatization of less frequent words. In some languages a fixed
+set of words such as pronouns can be mapped by hand to improve results.
 
 
 <!-- include:languages:end -->
@@ -456,6 +454,7 @@ The following orders of magnitude are provided for reference only and
 were measured on an old laptop to establish a lower bound:
 
 -   Tokenization: > 1 million tokens/sec
+-   Sentence splitting: > 100 MB of text per second
 -   Lemmatization: > 250,000 words/sec
 
 Using the most recent Python version (i.e. with `pyenv`) can make the

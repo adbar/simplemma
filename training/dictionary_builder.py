@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from simplemma.strategies.defaultrules import RULE_FUNCTIONS
+from simplemma.tokenizer import simple_tokenizer
 from simplemma.strategies.dictionaries import dictionary_factory, frontcode
 from simplemma.strategies.dictionaries.dictionary_factory import (
     SUPPORTED_LANGUAGES,
@@ -30,6 +31,8 @@ from simplemma.strategies.dictionaries.dictionary_factory import (
 )
 from simplemma.utils import (
     _ARABIC_MARKS,  # private, but this is the reviewed ar/fa tashkeel table
+    _FOLDED_APOSTROPHES,  # private: utils owns the apostrophe glyph set
+    _STRAIGHT_APOSTROPHE,
     canonicalize_token,
     levenshtein_dist,
     normalize_token,
@@ -484,6 +487,15 @@ _LT_PITCH_FOLD = _mark_fold_table(
 # of as a runtime canon fold since real Latin text never marks length).
 _LA_LENGTH_FOLD = _mark_fold_table(frozenset({0x0304, 0x0306}))
 
+# grc/el elision: strip so the tokenizer's bare stem aliases to the value.
+# Not ca/fr/it, where the elided form is a single letter (apostrophe_boundary
+# handles those instead).
+_ELISION_GLYPHS = (_STRAIGHT_APOSTROPHE, *_FOLDED_APOSTROPHES, "᾽")
+_ELISION_FOLD = str.maketrans("", "", "".join(_ELISION_GLYPHS))
+
+# he geresh/gershayim -> the ASCII quotes real text and UD gold use
+_HE_QUOTE_FOLD = str.maketrans("״׳", "\"'")
+
 # Serbian Cyrillic -> Latin is 1:1 per letter (the reverse is not: lj/nj/dž
 # digraphs are ambiguous), so this direction is deterministically safe.
 _HBS_CYR_LETTERS = "абвгдђежзијклљмнњопрстћуфхцчџш"
@@ -578,6 +590,11 @@ BUILD_NORMALIZATION: dict[str, BuildNormalization] = {
     "la": BuildNormalization(
         key_alias=_LA_LENGTH_FOLD, value_fold=_LA_LENGTH_FOLD, drop_folded_keys=True
     ),
+    # elided headwords (Δί', ἀλλ'): the tokenizer yields the bare stem
+    "grc": BuildNormalization(key_alias=_ELISION_FOLD),
+    "el": BuildNormalization(key_alias=_ELISION_FOLD),
+    # he acronyms are spelled with geresh/gershayim or ASCII quotes; fold both
+    "he": BuildNormalization(key_alias=_HE_QUOTE_FOLD, value_fold=_HE_QUOTE_FOLD),
 }
 
 
@@ -677,6 +694,20 @@ def _base_source(base: str, langcode: str, listpath: str) -> dict[str, str]:
     return source
 
 
+def _report_tokenizer_reachability(mydict: Mapping[str, str], langcode: str) -> None:
+    """Warn about keys the tokenizer never yields as one token (reported,
+    not dropped: they still serve lemmatize()/is_known())."""
+    unreachable = [k for k in mydict if simple_tokenizer(k) != [k]]
+    if unreachable:
+        LOGGER.info(
+            "%s: %d of %d keys unreachable via the tokenizer (e.g. %s)",
+            langcode,
+            len(unreachable),
+            len(mydict),
+            ", ".join(sorted(unreachable)[:5]),
+        )
+
+
 def _build_dictionary(
     langcode: str = "en",
     listpath: str = "lists",
@@ -701,6 +732,7 @@ def _build_dictionary(
             directory = Path(__file__).parent / "output"
             directory.mkdir(parents=True, exist_ok=True)
         filepath = str(directory / f"{langcode}.plzma")
+    _report_tokenizer_reachability(mydict, langcode)
     # str->bytes only at the edge: frontcode is the runtime (bytes) boundary.
     encoded = {k.encode(): v.encode() for k, v in mydict.items()}
     reverse_key = langcode in FRONTCODE_REVERSE_KEY_LANGS

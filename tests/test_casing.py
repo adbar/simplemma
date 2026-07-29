@@ -113,3 +113,23 @@ def test_buffer_cap_keeps_streaming() -> None:
     casing = SentenceCasing("de", _member_of(set()))
     assert next(casing.apply(endless())) == ("Wort", False)
     assert consumed <= SENTENCE_BUFFER_CAP
+
+
+def test_boundary_guard_suppresses_initials() -> None:
+    """'J. Schmidt' is not a boundary; '1. Deze' is."""
+
+    casing = SentenceCasing("nl", None)  # ungated: initial tokens lower
+    surfaces = [s for s, _ in casing.apply(iter(["J", ".", "Schmidt", "kwam"]))]
+    assert surfaces == ["j", ".", "Schmidt", "kwam"]
+    surfaces = [s for s, _ in casing.apply(iter(["1", ".", "Deze", "zin"]))]
+    assert surfaces == ["1", ".", "deze", "zin"]
+
+
+def test_boundary_guard_buffered_path() -> None:
+    """The buffered (acronym-language) path applies the same guard."""
+
+    casing = SentenceCasing("lv", _member_of(set()))
+    surfaces = [s for s, _ in casing.apply(iter(["Warte", "...", "Und"]))]
+    assert surfaces == ["warte", "...", "und"]
+    surfaces = [s for s, _ in casing.apply(iter(["H", ".", "L", ".", "Meier"]))]
+    assert surfaces == ["h", ".", "L", ".", "Meier"]

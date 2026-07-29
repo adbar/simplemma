@@ -22,7 +22,7 @@ def test_discover_test_treebanks_matches_language_prefix(tmp_path):
         "", encoding="utf-8"
     )  # different lang
 
-    found = eval_gate.discover_test_treebanks("ro", ud_splits=tmp_path)
+    found = eval_gate.discover_treebanks("ro", ud_splits=tmp_path)
     assert [p.name for p in found] == [
         "ro_rrt-ud-test.conllu",
         "ro_simonero-ud-test.conllu",
@@ -30,7 +30,7 @@ def test_discover_test_treebanks_matches_language_prefix(tmp_path):
 
 
 def test_discover_test_treebanks_none_found(tmp_path):
-    assert eval_gate.discover_test_treebanks("xx", ud_splits=tmp_path) == []
+    assert eval_gate.discover_treebanks("xx", ud_splits=tmp_path) == []
 
 
 def test_discover_test_treebanks_handles_lang_prefix_overrides(tmp_path):
@@ -41,18 +41,18 @@ def test_discover_test_treebanks_handles_lang_prefix_overrides(tmp_path):
     (tmp_path / "no_nynorsk-ud-test.conllu").write_text("", encoding="utf-8")
     (tmp_path / "sme_giella-ud-test.conllu").write_text("", encoding="utf-8")
 
-    assert [
-        p.name for p in eval_gate.discover_test_treebanks("nb", ud_splits=tmp_path)
-    ] == ["no_bokmaal-ud-test.conllu"]
-    assert [
-        p.name for p in eval_gate.discover_test_treebanks("nn", ud_splits=tmp_path)
-    ] == ["no_nynorsk-ud-test.conllu"]
-    assert [
-        p.name for p in eval_gate.discover_test_treebanks("se", ud_splits=tmp_path)
-    ] == ["sme_giella-ud-test.conllu"]
+    assert [p.name for p in eval_gate.discover_treebanks("nb", ud_splits=tmp_path)] == [
+        "no_bokmaal-ud-test.conllu"
+    ]
+    assert [p.name for p in eval_gate.discover_treebanks("nn", ud_splits=tmp_path)] == [
+        "no_nynorsk-ud-test.conllu"
+    ]
+    assert [p.name for p in eval_gate.discover_treebanks("se", ud_splits=tmp_path)] == [
+        "sme_giella-ud-test.conllu"
+    ]
     # and the raw prefixes ("no", "sme") must NOT themselves match
-    assert eval_gate.discover_test_treebanks("no", ud_splits=tmp_path) == []
-    assert eval_gate.discover_test_treebanks("sme", ud_splits=tmp_path) == []
+    assert eval_gate.discover_treebanks("no", ud_splits=tmp_path) == []
+    assert eval_gate.discover_treebanks("sme", ud_splits=tmp_path) == []
 
 
 def test_gate_raises_when_no_treebank_found(tmp_path):

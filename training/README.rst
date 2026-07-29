@@ -115,6 +115,26 @@ capitalization) is unaffected. de/en/nl stay fully bespoke; ru keeps its
 one-line ё-normalization fast path ahead of the guarded call.
 
 
+Regenerating the sentence-starter data
+--------------------------------------
+
+``simplemma/sentences.py`` holds two per-language tables: ``_ABBREVS`` (an
+abbreviation before a ``.`` suppresses the boundary) and ``_STARTERS`` (a
+known opener re-opens a suppressed one).
+
+``python -m training.sentencebuilder <lang>`` mines starter candidates on the
+``*-ud-train`` splits and prints a paste-able literal only if they beat the
+shipped list on the held-out ``*-ud-test`` splits; otherwise it says ``keep
+the shipped list`` (fr, nl and pl today). ``--check`` scores the shipped list
+alone — run it before and after any splitter change, because each entry's
+verdict depends on the rules around it.
+
+Abbreviations are not mined: held out they gain at most +0.0025 F1 (nothing at
+all for en), against up to +0.09 for starters. A mined list runs to thousands of entries because it
+memorizes UD's sentence-initial vocabulary, so weigh one against the text you
+actually expect before pasting it in.
+
+
 Building lemmatization dictionaries
 -----------------------------------
 

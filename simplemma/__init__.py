@@ -5,6 +5,7 @@ This package provides simple and lightweight tools for language detection and le
 Modules:
     language_detector: Module for language detection functionality.
     lemmatizer: Module for lemmatization functionality.
+    sentences: Module for sentence splitting functionality.
     tokenizer: Module for tokenization functionality.
     token_sampler: Module for token sampling functionality.
 
@@ -13,6 +14,7 @@ Modules:
 from .__metadata__ import __title__, __author__, __license__, __version__
 from .language_detector import LanguageDetector, in_target_language, langdetect
 from .lemmatizer import Lemmatizer, is_known, lemma_iterator, lemmatize, text_lemmatizer
+from .sentences import split_sentences
 from .token_sampler import (
     BaseTokenSampler,
     MostCommonTokenSampler,
@@ -34,6 +36,7 @@ __all__ = [
     "lemma_iterator",
     "lemmatize",
     "text_lemmatizer",
+    "split_sentences",
     "BaseTokenSampler",
     "MostCommonTokenSampler",
     "RelaxedMostCommonTokenSampler",

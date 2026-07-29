@@ -57,17 +57,17 @@ class TreebankResult:
         return self.token_delta >= -epsilon and self.type_delta >= -epsilon
 
 
-def _file_lang(path: Path) -> str:
-    return dataset_to_lang(path.name.removesuffix("-ud-test.conllu"))
-
-
-def discover_test_treebanks(lang: str, ud_splits: Path | None = None) -> list[Path]:
-    """Every *-ud-test.conllu file whose dataset belongs to `lang` (dataset
+def discover_treebanks(
+    lang: str, split: str = "test", ud_splits: Path | None = None
+) -> list[Path]:
+    """Every *-ud-<split>.conllu file whose dataset belongs to `lang` (dataset
     name is `{code}_{treebank}`) -- multiple matches make the gate
     cross-treebank automatically."""
-    ud_splits = ud_splits or UD_SPLITS
+    suffix = f"-ud-{split}.conllu"
     return sorted(
-        p for p in ud_splits.glob("*-ud-test.conllu") if _file_lang(p) == lang
+        path
+        for path in (ud_splits or UD_SPLITS).glob(f"*{suffix}")
+        if dataset_to_lang(path.name.removesuffix(suffix)) == lang
     )
 
 
@@ -80,7 +80,7 @@ def gate(
     """Run token+type accuracy for baseline and candidate on every available
     test treebank for `lang`. Raises if none are found (a gate that silently
     checks nothing must not be mistaken for a gate that passed)."""
-    treebanks = discover_test_treebanks(lang, ud_splits)
+    treebanks = discover_treebanks(lang, ud_splits=ud_splits)
     if not treebanks:
         raise ValueError(f"no UD test treebank found for language {lang!r}")
 
