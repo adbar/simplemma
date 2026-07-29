@@ -65,7 +65,9 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
             stripped = strip_armenian_marks(token)
             if (result := dictionary.get(stripped)) is not None:
                 return result
-            cased = stripped.lower() if stripped[:1].isupper() else stripped.capitalize()
+            cased = (
+                stripped.lower() if stripped[:1].isupper() else stripped.capitalize()
+            )
             return dictionary.get(cased)
         if not has_apostrophe(token):
             return None
