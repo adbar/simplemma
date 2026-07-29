@@ -97,10 +97,9 @@ class SentenceCasing:
     def _streaming(self, tokens: Iterator[str]) -> Iterator[tuple[str, bool]]:
         initial = True
         prev = ""
-        punctuation = PUNCTUATION
         for token in tokens:
             yield (self.initial_surface(token) if initial else token, False)
-            initial = token in punctuation and not _after_initial(prev, token)
+            initial = token in PUNCTUATION and not _after_initial(prev, token)
             prev = token
 
     def _buffered(self, tokens: Iterator[str]) -> Iterator[tuple[str, bool]]:

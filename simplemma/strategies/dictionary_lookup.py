@@ -62,7 +62,11 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
             return result
         # hy: fall back to the mark-stripped form
         if lang == "hy" and has_armenian_marks(token):
-            return self.get_lemma(strip_armenian_marks(token), lang)
+            stripped = strip_armenian_marks(token)
+            if (result := dictionary.get(stripped)) is not None:
+                return result
+            cased = stripped.lower() if stripped[:1].isupper() else stripped.capitalize()
+            return dictionary.get(cased)
         if not has_apostrophe(token):
             return None
         # Remaining variants (typed token was variant[0], probed above).
