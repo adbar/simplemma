@@ -5,6 +5,8 @@ History
 2.0.0
 -----
 
+- New languages: Arabic (``ar``), Ancient Greek (``grc``), Hebrew (``he``)
+  and Malayalam (``ml``) (#180)
 - All dictionaries rebuilt from fresh sources, adding Wikidata lexemes and
   reviewed closed-class overrides: accuracy improves markedly for more than
   20 languages (e.g. Welsh 0.59 → 0.91, Armenian 0.63 → 0.88,
@@ -60,9 +62,18 @@ History
 - More targeted affix handling, validated per language on UD treebanks: new
   clitic-decomposition and apostrophe strategies, simplified greedy affix
   search, updated prefix handling (#176)
+- New ``MorphemeDecompositionStrategy``, used by default: strips stacked
+  prefixes, infixes and reduplication (Tagalog, Indonesian) (#180)
 - Improved tokenization (apostrophes, hyphens) and new sentence-initial
   casing handling in ``get_lemmas_in_text``, with a new ``casing`` module
   (#177)
+- New ``split_sentences()`` function and ``sentences`` module: sentence
+  splitting by punctuation and per-language abbreviations (#182)
+- Faster tokenizer, now handling currency signs, more in-word joiners
+  (Hebrew, Armenian, Catalan) and symbols such as emoji (#182)
+- Armenian lookups fall back to the form without intonation marks (#182)
+- Language detector fixes: ``main_language`` no longer mutates the token
+  sampler, no more mutable default arguments (#172)
 - Lower memory footprint: all strategies share one process-wide default
   dictionary factory, so the dictionaries are cached once per process
 - New ``low_memory`` flag on ``lemmatize``, ``text_lemmatizer``,
