@@ -188,7 +188,8 @@ def test_foreign_script_key_drop() -> None:
 
 def test_armenian_intonation_marks() -> None:
     """Marked token looked up first, then the mark-stripped form."""
-    assert lemmatize("Մի՞թե", lang="hy") == "միթե"  # strip fallback
+    assert lemmatize("Մի՞թե", lang="hy") == "միթե"  # strip fallback, cased match
+    assert lemmatize("կարո՞ղ", lang="hy") == "կարող"  # strip fallback, exact match
     assert lemmatize("Կարո՞ղ", lang="hy") == "կարող"
     assert lemmatize("ազատի՛", lang="hy") == "ազատել"  # marked key wins
     assert lemmatize("ազատի", lang="hy") == "ազատ"
