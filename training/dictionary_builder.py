@@ -863,7 +863,7 @@ def _build_dictionary(
     # str->bytes only at the edge: frontcode is the runtime (bytes) boundary.
     encoded = {k.encode(): v.encode() for k, v in mydict.items()}
     reverse_key = langcode in FRONTCODE_REVERSE_KEY_LANGS
-    Path(filepath).write_bytes(frontcode.encode(encoded, reverse_key=reverse_key))
+    Path(filepath).write_bytes(frontcode._encode(encoded, reverse_key=reverse_key))
     LOGGER.debug("%s %s", langcode, len(mydict))
 
 

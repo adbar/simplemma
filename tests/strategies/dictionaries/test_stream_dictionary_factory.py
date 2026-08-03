@@ -120,7 +120,7 @@ def test_synthetic_block_boundaries(
         f"word{i:06d}".encode(): f"lemma{i:06d}".encode() for i in range(count)
     }
     stream = _streammap_from_bytes(
-        frontcode.encode(reference, reverse), tmp_path, monkeypatch
+        frontcode._encode(reference, reverse), tmp_path, monkeypatch
     )
 
     decoded = {k.decode(): v.decode() for k, v in reference.items()}
@@ -138,9 +138,9 @@ def test_truncated_stream_raises(tmp_path, monkeypatch: pytest.MonkeyPatch) -> N
         f"word{i:04d}".encode(): f"lemma{i:04d}".encode()
         for i in range(2 * _BLOCK_SIZE)
     }
-    raw = lzma.decompress(frontcode.encode(reference))
-    _, _, pos = frontcode.read_header(raw)
-    starts = [start for start, _, _ in frontcode.iter_records(raw, pos)]
+    raw = lzma.decompress(frontcode._encode(reference))
+    _, _, pos = frontcode._read_header(raw)
+    starts = [start for start, _, _ in frontcode._iter_records(raw, pos)]
     truncated = raw[: starts[_BLOCK_SIZE]]
 
     with pytest.raises(ValueError, match="truncated or corrupt"):
@@ -149,7 +149,7 @@ def test_truncated_stream_raises(tmp_path, monkeypatch: pytest.MonkeyPatch) -> N
 
 def test_trailing_garbage_raises(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
     reference = {b"word0000": b"lemma0000", b"word0001": b"lemma0001"}
-    raw = lzma.decompress(frontcode.encode(reference))
+    raw = lzma.decompress(frontcode._encode(reference))
     extra_record = bytes([0, 4]) + b"zzzz" + bytes([254])
     padded = raw + extra_record
 
@@ -161,7 +161,7 @@ def test_synthetic_literal_value(tmp_path, monkeypatch: pytest.MonkeyPatch) -> N
     # forces the rare _LITERAL_VALUE branch (no shipped key is this long)
     key = "a" * 300
     reference = {key.encode(): b"lemma"}
-    stream = _streammap_from_bytes(frontcode.encode(reference), tmp_path, monkeypatch)
+    stream = _streammap_from_bytes(frontcode._encode(reference), tmp_path, monkeypatch)
 
     assert len(stream) == 1
     assert list(stream) == [key]

@@ -1,3 +1,8 @@
+"""`DictionaryFactory` storing each language in a MARISA trie: lowest
+steady-state memory (~30 MB for de vs ~175 MB), but needs the `marisa-trie`
+extra and a one-off build per language, cached on disk.
+"""
+
 import logging
 from pathlib import Path
 from collections.abc import Iterator, Mapping
