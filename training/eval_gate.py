@@ -110,6 +110,22 @@ def gate(
     return results
 
 
+def report_results(
+    results: list[TreebankResult], epsilon: float = DEFAULT_EPSILON
+) -> bool:
+    """Log one PASS/FAIL line per treebank; True when every treebank passed."""
+    for result in results:
+        status = "PASS" if result.passed(epsilon) else "FAIL"
+        log.info(
+            f"[{status}] {result.treebank}: "
+            f"token {result.baseline_token:.4f}->{result.candidate_token:.4f} "
+            f"({result.token_delta:+.4f}, n={result.n_tokens}), "
+            f"type {result.baseline_type:.4f}->{result.candidate_type:.4f} "
+            f"({result.type_delta:+.4f}, n={result.n_types})"
+        )
+    return all(result.passed(epsilon) for result in results)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("lang")
@@ -122,17 +138,7 @@ def main() -> None:
     candidate = read_pairs(args.candidate_tsv)
     results = gate(args.lang, baseline, candidate)
 
-    for result in results:
-        status = "PASS" if result.passed(args.epsilon) else "FAIL"
-        log.info(
-            f"[{status}] {result.treebank}: "
-            f"token {result.baseline_token:.4f}->{result.candidate_token:.4f} "
-            f"({result.token_delta:+.4f}, n={result.n_tokens}), "
-            f"type {result.baseline_type:.4f}->{result.candidate_type:.4f} "
-            f"({result.type_delta:+.4f}, n={result.n_types})"
-        )
-
-    if not all(result.passed(args.epsilon) for result in results):
+    if not report_results(results, args.epsilon):
         print(f"ERROR: eval gate FAILED for {args.lang}", file=sys.stderr)
         sys.exit(1)
 

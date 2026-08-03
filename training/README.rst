@@ -6,17 +6,21 @@ The scores are calculated on `Universal Dependencies <https://universaldependenc
 1. Install the evaluation dependencies, Python >= 3.10 required (``pip install ".[dev]"``)
 2. Run ``python3 -m training.download_eval_data``, which resolves the pinned
    UD release (``UD_HANDLE`` in the script) via the LINDAT/CLARIAH-CZ REST
-   API, downloads and checksums the treebanks archive, and for every
-   supported language:
-  1. Concatenates the train, dev and test data into a single file (e.g. ``da_ddt.conllu``) at the expected location (``training/data/UD/``)
-  2. ALSO copies the individual train/dev/test files unmerged to ``training/data/UD/splits/`` (for per-split evaluation that needs the dev/test boundary preserved)
+   API, downloads and checksums the treebanks archive, and copies every
+   supported language's train/dev/test files to ``training/data/UD/splits/``
+   -- the one on-disk representation all evaluators read (whole-treebank
+   scoring chains the splits per dataset; per-split evaluation keeps the
+   dev/test boundary).
    To move to a newer UD release, update ``UD_VERSION``/``UD_HANDLE`` at the
    top of the script (find the new release's handle at
    `Universal Dependencies <https://universaldependencies.org/#download>`_,
    "released through LINDAT/CLARIAH-CZ") and delete ``training/data/UD/``
    before re-running. Re-check the evaluation afterwards, since annotation
    conventions can change between releases.
-3. Run the script, e.g. from the home directory ``python3 training/evaluate_simplemma.py``
+3. Run the script, e.g. from the home directory ``python3 training/evaluate_simplemma.py``.
+   Scoring uses each dataset's held-out dev+test splits only — train splits
+   feed the override mining (``training/build_override.py``) and are never
+   scored.
 4. Results are stored at ``training/data/results/results_summary.csv``. Also, errors are written in a CSV file for each dataset under the ``data/results``folder.
 
 
@@ -200,7 +204,7 @@ Since a source has to comprise enough words without sacrificing quality, the `ka
 
     python3 training/kaikki_to_tsv.py kaikki.org-dictionary-Lithuanian.jsonl training/lists/lt.txt
 
-This prefers explicit inflection relations (``form_of``/``alt_of``) and falls back to an entry's own ``forms`` table, while dropping known-noisy rows (structural placeholders, romanization/transliteration entries, stress marks, cross-reference tables that list unrelated words rather than inflections).
+This prefers explicit inflection relations (``form_of``/``alt_of``) and falls back to an entry's own ``forms`` table, while dropping known-noisy rows (structural placeholders, romanization/transliteration entries, stress marks, cross-reference tables that list unrelated words rather than inflections). A single parenthesized optional letter group (Ancient Greek movable nu ``ἦ(ν)``) expands to both spellings, and an entry left with no pairs yields its own identity pair, so uninflected headwords (grc ``μέν``) still enter the dictionary.
 
 3. Don't deduplicate the output: ``dictionary_builder.py`` counts repeated ``lemma\tword`` lines as evidence and uses that count to resolve conflicting lemmas for the same word form, so duplicates should be left as-is.
 4. Check the output by exploring the data by hand to spot inconsistencies; ``dictionary_builder.py`` itself filters out lines that are too short or otherwise malformed once you run it.
@@ -258,10 +262,15 @@ inputs live under ``training/data/``):
   PRIMARY base word list for a language Wiktionary covers poorly (write to
   ``training/lists/<code>.txt`` instead of ``training/fill/``) — see "Example
   using Wikidata as the PRIMARY source" above.
-- ``build_override.py <lang> <train.conllu> <out.tsv>`` — mine a closed-class
-  override lexicon (pronouns, determiners, adpositions, …) from a UD train
-  split, the one place Wiktionary is systematically thin. Deterministic given a
-  pinned UD version (``download_eval_data.py`` fixes UD 2.18, md5-verified).
+- ``build_override.py <lang> [--in-place]`` — mine an override lexicon from
+  ALL of the language's UD train splits (closed-class at ≥3/90%, open-class at
+  ≥5/95%, plus a per-treebank majority veto against convention splits), keep
+  only entries the shipped pipeline gets wrong, and gate the merged candidate
+  with ``eval_gate`` on every test treebank. Output goes to
+  ``training/output/`` unless ``--in-place`` updates the reviewed file on a
+  passing gate; shipping still requires a dictionary rebuild. Deterministic
+  given a pinned UD version (``download_eval_data.py`` fixes UD 2.18,
+  md5-verified).
 
   The committed ``training/overrides/<code>.tsv`` files are **reviewed
   source-of-truth, not a build output**: edit them directly, do not expect a

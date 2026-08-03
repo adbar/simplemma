@@ -1,6 +1,7 @@
 """README-facing evaluation: score the full user-facing `Lemmatizer` over the
-UD test treebanks, emitting published accuracy numbers, greedy/baseline/
-ADJ+NOUN breakdowns, and per-dataset error CSVs.
+held-out (dev+test) splits of the UD treebanks, emitting published accuracy
+numbers, greedy/baseline/ADJ+NOUN breakdowns, and per-dataset error CSVs.
+Train splits are never scored: they feed the override mining.
 
 Distinct from `eval_harness`, which scores a bare strategy as a
 dictionary-quality gate -- different protocol, not a duplicate.
@@ -9,7 +10,8 @@ dictionary-quality gate -- different protocol, not a duplicate.
 import csv
 import logging
 import time
-from collections.abc import Iterable
+from collections import defaultdict
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -24,7 +26,7 @@ from training.ud_conllu import dataset_to_lang, iter_word_tokens_in_sentences
 log = logging.getLogger(__name__)
 
 DATA_FOLDER = Path(__file__).parent / "data"
-CLEAN_DATA_FOLDER = DATA_FOLDER / "UD"
+SPLITS_FOLDER = DATA_FOLDER / "UD" / "splits"
 RESULTS_FOLDER = DATA_FOLDER / "results"
 
 
@@ -83,22 +85,30 @@ def evaluate_dataset(
     return overall, focus, errors
 
 
+def _iter_sentences(paths: list[Path]) -> Iterator[Any]:
+    """Chain the parsed sentences of several conllu files, streaming."""
+    for path in paths:
+        with open(path, encoding="utf-8") as filehandle:
+            yield from parse_incr(filehandle)
+
+
 def main(
-    clean_data_folder: Path = CLEAN_DATA_FOLDER,
+    splits_folder: Path = SPLITS_FOLDER,
     results_folder: Path = RESULTS_FOLDER,
 ) -> None:
-    if not clean_data_folder.exists():
+    if not splits_folder.exists():
         raise Exception(
             "It doesn't seem like data was downloaded and precessed for evaluation."
         )
 
-    # glob, not iterdir: the folder also holds UD_VERSION and splits/.
-    # dataset_to_lang, not split('_')[0]: UD prefixes aren't always the ISO
-    # code (no_nynorsk -> nn, sme_giella -> se).
-    data_files = [
-        (dataset_to_lang(data_file.stem), data_file.name)
-        for data_file in clean_data_folder.glob("*.conllu")
-    ]
+    # held-out scoring: dev+test chained in sorted filename order; train is
+    # EXCLUDED (it feeds the override mining, so scoring it is in-sample).
+    # dataset_to_lang: UD prefixes aren't always the ISO code (no_nynorsk -> nn).
+    datasets: defaultdict[str, list[Path]] = defaultdict(list)
+    for path in sorted(splits_folder.glob("*-ud-*.conllu")):
+        if path.name.endswith("-ud-train.conllu"):
+            continue
+        datasets[path.name.split("-ud-", 1)[0]].append(path)
 
     if results_folder.exists():
         for result_file in results_folder.iterdir():
@@ -130,18 +140,20 @@ def main(
             lemmatization_strategy=DefaultStrategy(greedy=True)
         )
 
-        for language, filename in data_files:
+        for dataset_name, paths in datasets.items():
             start = time.time()
-            log.info(f"Evaluating dataset: {filename}")
-            with open(clean_data_folder / filename, encoding="utf-8") as data_file:
-                overall, focus, errors = evaluate_dataset(
-                    parse_incr(data_file), lemmatizer, greedy_lemmatizer, language
-                )
+            log.info(f"Evaluating dataset: {dataset_name}")
+            overall, focus, errors = evaluate_dataset(
+                _iter_sentences(paths),
+                lemmatizer,
+                greedy_lemmatizer,
+                dataset_to_lang(dataset_name),
+            )
 
             if overall.total > 0:
                 csv_results_file_writer.writerow(
                     (
-                        filename.replace(".conllu", ""),
+                        dataset_name,
                         time.time() - start,
                         overall.total,
                         *overall.ratios(),  # greedy, non-greedy, baseline
@@ -150,7 +162,7 @@ def main(
                 )
 
             with open(
-                results_folder / filename.replace("conllu", "csv"),
+                results_folder / f"{dataset_name}.csv",
                 "w",
                 newline="",
                 encoding="utf-8",

@@ -10,10 +10,13 @@ Output format: lemma, tab, word form, newline.
 import argparse
 import json
 import logging
+import re
 import unicodedata
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
+
+from training.clean_wordlist import write_pairs
 
 log = logging.getLogger(__name__)
 
@@ -83,9 +86,25 @@ def _normalize(text: str, fold: bool) -> str:
     return _fold_length_marks(text) if fold else text
 
 
+# A form with one parenthesized optional letter group (grc movable nu "ἦ(ν)")
+# is unreachable as a literal key: expand to both spellings. Multi-group or
+# alternative shapes are annotation leakage and stay untouched.
+_OPTIONAL_GROUP = re.compile(r"^([^()]*)\(([^()/]{1,3})\)([^()]*)$")
+
+
+def _expand_optional_group(form: str) -> list[str]:
+    match = _OPTIONAL_GROUP.match(form)
+    if match is None:
+        return [form]
+    head, opt, tail = match.groups()
+    return [head + tail, head + opt + tail]
+
+
 def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
     """Yield (lemma, word_form) pairs, preferring form_of/alt_of over forms.
-    May repeat a pair across senses of the same entry -- extract_pairs dedups."""
+    May repeat a pair across senses of the same entry -- extract_pairs dedups.
+    An entry left with no pairs yields its own identity pair: uninflected
+    headwords (grc μέν) would otherwise never enter the dictionary."""
     word = entry.get("word")
     if not word:
         return
@@ -107,6 +126,7 @@ def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
     if found_relation:
         return
 
+    yielded_form = False
     for form in entry.get("forms", ()):
         word_form = form.get("form")
         tags = form.get("tags", ())
@@ -118,7 +138,11 @@ def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
             or (word_form != word and _CROSS_REFERENCE_TAGS.intersection(tags))
         ):
             continue
-        yield (norm_word, _normalize(word_form, fold))
+        for variant in _expand_optional_group(word_form):
+            yield (norm_word, _normalize(variant, fold))
+        yielded_form = True
+    if not yielded_form:
+        yield (norm_word, norm_word)
 
 
 def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
@@ -132,15 +156,9 @@ def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
 
 def main(input_path: Path, output_path: Path) -> None:
     log.info(f"Extracting pairs from {input_path}")
-    pair_count = 0
-    with (
-        open(input_path, encoding="utf-8") as infh,
-        open(output_path, "w", encoding="utf-8") as outfh,
-    ):
-        for line in infh:
-            for lemma, word_form in extract_pairs(json.loads(line)):
-                outfh.write(f"{lemma}\t{word_form}\n")
-                pair_count += 1
+    with open(input_path, encoding="utf-8") as infh:
+        pairs = (pair for line in infh for pair in extract_pairs(json.loads(line)))
+        pair_count = write_pairs(pairs, output_path)
     log.info(f"Wrote {pair_count} pairs to {output_path}")
 
 

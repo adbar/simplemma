@@ -1,7 +1,7 @@
 """
-Fetch the UD treebank archive from LINDAT/CLARIAH-CZ for `evaluate_simplemma.py`
-(concatenated files) and for per-split evaluation (the unmerged train/dev/test
-copies under splits/).
+Fetch the UD treebank archive from LINDAT/CLARIAH-CZ and copy each supported
+language's train/dev/test files to splits/ -- the one on-disk representation
+every evaluator (evaluate_simplemma, eval_gate, miners) reads.
 
 LINDAT runs DSpace 7: old bitstream URLs silently redirect to an HTML page,
 so the REST API is used (handle -> item UUID -> ORIGINAL bundle -> bitstream).
@@ -94,7 +94,7 @@ def get_dirs(folder: Path) -> list[str]:
 
 def get_relevant_language_data_folders(
     data_folder: Path,
-) -> Iterable[tuple[str, str, Path]]:
+) -> Iterable[tuple[str, Path]]:
     for lang_folder in get_dirs(data_folder):
         lang_data_folder = data_folder / lang_folder
         conllu_files = list(lang_data_folder.glob("*.conllu"))
@@ -102,11 +102,9 @@ def get_relevant_language_data_folders(
             continue
         matches_files = re.search(r"^(.+)-ud", conllu_files[0].name)
         if matches_files is not None:
-            dataset_name = matches_files.groups()[0]
-            lang = dataset_to_lang(dataset_name)
-
+            lang = dataset_to_lang(matches_files.groups()[0])
             if lang in SUPPORTED_LANGUAGES:
-                yield (lang, dataset_name, lang_data_folder)
+                yield (lang, lang_data_folder)
 
 
 def _safe_extract(tar: tarfile.TarFile, dest: Path) -> None:
@@ -149,16 +147,10 @@ def main(keep_download: bool = False) -> None:
     uncompressed_data_folder = next(DATA_FOLDER.glob("ud-treebanks-*"))
 
     log.info("Filtering files...")
-    for lang, dataset_name, dataset_folder in get_relevant_language_data_folders(
+    for lang, dataset_folder in get_relevant_language_data_folders(
         uncompressed_data_folder
     ):
         log.info(f"{lang} - {dataset_folder}")
-        lang_clean_data_file = CLEAN_DATA_FOLDER / f"{dataset_name}.conllu"
-        with open(lang_clean_data_file, "wb") as outfile:
-            for file in sorted(dataset_folder.glob("*.conllu")):
-                with open(file, "rb") as infile:
-                    for line in infile:
-                        outfile.write(line)
         for file in sorted(dataset_folder.glob("*.conllu")):
             (SPLITS_FOLDER / file.name).write_bytes(file.read_bytes())
 

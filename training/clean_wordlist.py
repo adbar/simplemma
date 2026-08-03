@@ -16,6 +16,7 @@ import json
 import sys
 import unicodedata
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -109,6 +110,16 @@ def read_pairs(path: Path) -> dict[str, str]:
                 )
             mapping[form] = lemma
     return mapping
+
+
+def write_pairs(pairs: Iterable[tuple[str, str]], path: Path) -> int:
+    """Write ``lemma<TAB>form`` lines to `path`, returning the pair count."""
+    count = 0
+    with open(path, "w", encoding="utf-8") as filehandle:
+        for lemma, form in pairs:
+            filehandle.write(f"{lemma}\t{form}\n")
+            count += 1
+    return count
 
 
 @dataclass

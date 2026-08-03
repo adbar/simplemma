@@ -50,17 +50,17 @@ def test_readme() -> None:
     # greediness
     assert (
         Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=False)).lemmatize(
-            "angekündigten", lang="de"
+            "ausgezeichneten", lang="de"
         )
-        == lemmatize("angekündigten", lang="de", greedy=False)
-        == "angekündigt"
+        == lemmatize("ausgezeichneten", lang="de", greedy=False)
+        == "ausgezeichnet"
     )
     assert (
         Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=True)).lemmatize(
-            "angekündigten", lang="de"
+            "ausgezeichneten", lang="de"
         )
-        == lemmatize("angekündigten", lang="de", greedy=True)
-        == "ankündigen"
+        == lemmatize("ausgezeichneten", lang="de", greedy=True)
+        == "auszeichnen"
     )
     # chaining
     assert [lemmatize(t, lang=("de", "en")) for t in mytokens] == [

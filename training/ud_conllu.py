@@ -36,15 +36,31 @@ CONTENT_POS = frozenset({"NOUN", "VERB", "ADJ", "PROPN", "ADV", "NUM"})
 def _strip_mwt_artifact(value: str) -> str:
     """Strip the leading/trailing underscore some treebanks (he_htb) use to
     mark the elided side of an MWT sub-token split (e.g. 'יכולת_', '_של_').
-    A no-op for the CoNLL-U null value '_' itself, and for any value that
-    never carries the artifact -- every other treebank is unaffected."""
-    return value if value == "_" else value.strip("_")
+    A value stripping to nothing (the null '_', et_ewt's underscore-run
+    PUNCT token) is returned unchanged -- never emit an empty form/lemma."""
+    return value.strip("_") or value
+
+
+# fi/et/hu gold lemmas mark compound boundaries (yli#opisto, sisse_tulek,
+# el+mond) -- no plain-text lemma can contain the marker, so it is stripped
+# from gold (measured: 36.8% of all fi errors, 42.3% of et). Per-language:
+# '_' is a real convention in e.g. nl Alpino lemmas, handled by exclusion.
+_GOLD_COMPOUND_SEPARATORS = {
+    "fi": str.maketrans("", "", "#"),
+    "et": str.maketrans("", "", "_"),
+    "hu": str.maketrans("", "", "+"),
+}
 
 
 def canon_lemma(lemma: str, lang: str) -> str:
-    """The gold-lemma transform every reader shares: strip the MWT artifact,
-    then canonicalize for `lang` (a no-op outside _CANON_TABLES), so gold is
-    compared/mined in the shipped dict's own key space."""
+    """The gold-lemma transform every reader shares: strip the MWT artifact
+    and the language's compound-boundary markers, then canonicalize for
+    `lang` (a no-op outside _CANON_TABLES), so gold is compared/mined in the
+    shipped dict's own key space."""
+    table = _GOLD_COMPOUND_SEPARATORS.get(lang)
+    if table is not None:
+        # `or`: an underscore-run PUNCT lemma must not strip to nothing
+        lemma = lemma.translate(table) or lemma
     return canonicalize_token(_strip_mwt_artifact(lemma), lang)
 
 

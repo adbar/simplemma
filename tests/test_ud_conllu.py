@@ -1,6 +1,10 @@
 from conllu import parse
 
-from training.ud_conllu import dataset_to_lang, iter_word_tokens_in_sentences
+from training.ud_conllu import (
+    canon_lemma,
+    dataset_to_lang,
+    iter_word_tokens_in_sentences,
+)
 
 # id 3.1 = an empty node (enhanced deps) carrying a REAL lemma; id 1-2 = an MWT
 # span (lemma "_"). Only the four real word tokens must be yielded.
@@ -71,6 +75,21 @@ def test_iter_word_tokens_null_marker_unaffected_by_strip():
     must not be touched -- this is what the lemma=='_' skip check depends on."""
     forms = [f for f, _ in iter_word_tokens_in_sentences(parse(CONLLU), "en")]
     assert forms == ["do", "not", "know", "it"]  # unchanged: no artifact present
+
+
+def test_iter_word_tokens_underscore_run_form_survives():
+    """A real underscore-run PUNCT token (et_ewt '________') must not strip
+    to an empty form -- an empty string crashes the Lemmatizer input check."""
+    conllu = "1\t____\t____\tPUNCT\t_\t_\t0\tpunct\t_\t_\n\n"
+    (form, token), *_ = iter_word_tokens_in_sentences(parse(conllu), "et")
+    assert form == "____" and token["lemma"] == "____"
+
+
+def test_canon_lemma_strips_compound_separators():
+    assert canon_lemma("yli#opisto", "fi") == "yliopisto"
+    assert canon_lemma("sisse_tulek", "et") == "sissetulek"
+    assert canon_lemma("el+mond", "hu") == "elmond"
+    assert canon_lemma("klooster_orde", "nl") == "klooster_orde"  # nl untouched
 
 
 def test_dataset_to_lang_overrides_and_default():

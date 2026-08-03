@@ -1,8 +1,8 @@
 """Build a language's runtime lemmatization dictionary (a form->lemma map).
 
 Pipeline: _base_source -> _apply_layers (fill, override) -> _scrub ->
-_drop_junk_keys -> _apply_build_normalization -> frontcode. Plain str dicts
-throughout; bytes only at the two edges.
+_drop_junk_keys -> _apply_build_normalization -> _ensure_value_selfmaps ->
+frontcode. Plain str dicts throughout; bytes only at the two edges.
 
 Base modes (--base): fresh (rebuild from wordlist, duplicate lines = evidence),
 shipped (installed .plzma verbatim), merged (fresh + shipped layered on top,
@@ -135,16 +135,26 @@ def _collect_candidates(
     return candidates, lemmas
 
 
-# Headwords whose identity must NOT override an attested form-of mapping,
-# as a per-language WORD predicate: grc everywhere (ἀκούσας is both its own
-# headword and a form of ἀκούω); ar only for article-prefixed headwords
-# (gold strips الكتاب-style articles ~92% of the time; a blanket ar
-# predicate gate-FAILED at token -0.36pp). Force-identity stays the default
-# -- gate-proven net-positive elsewhere (et/sk/lt +1-2pp, bg/uk +6pp, nl +17pp).
-IDENTITY_SOFT_LANGS: dict[str, Callable[[str], bool]] = {
-    "grc": lambda word: True,
-    "ar": lambda word: word.startswith("ال") and len(word) > 4,
-}
+# Languages where a headword's identity must NOT override an attested
+# form-of mapping: grc (ἀκούσας is both its own headword and a form of
+# ἀκούω; removing this measured -3.8/-7.8pp token, 2026-08 -- the universal
+# self-only-lemma softening below does NOT subsume it). Force-identity stays
+# the default -- gate-proven net-positive elsewhere (et/sk/lt +1-2pp, bg/uk
+# +6pp, nl +17pp). A per-word ar predicate (article-prefixed headwords) was
+# DELETED 2026-08: measured +0.000pp token AND type on PADT (40 entries)
+# once self-only lemmas became soft anyway.
+IDENTITY_SOFT_LANGS = frozenset({"grc"})
+
+
+# Break an attestation TIE by paradigm size (distinct forms attested for the
+# lemma) before Levenshtein distance: distance alone lets a rare lexeme win an
+# ultra-frequent form (grc ἦν -> ἠμί instead of εἰμί). Per-language, gated on
+# every UD test split (2026-08: grc +1.2/+1.4pp .. et +0.04; gl/lt FAILED,
+# ar/uk noise, and the prior LOSES elsewhere (sl -0.7, da -0.6) -- never make
+# it the default).
+PARADIGM_PRIOR_LANGS: frozenset[str] = frozenset(
+    {"cy", "el", "et", "grc", "hy", "nl", "sk", "sv"}
+)
 
 
 def _resolve_candidates(
@@ -152,8 +162,13 @@ def _resolve_candidates(
     lemmas: set[str],
     langcode: str,
 ) -> dict[str, str]:
-    """Second pass: pick one lemma per form (most attestations, then distance)."""
+    """Second pass: pick one lemma per form (most attestations, then paradigm
+    size for PARADIGM_PRIOR_LANGS, then distance)."""
     diagnose = LOGGER.isEnabledFor(logging.DEBUG)
+    paradigm_size: Counter[str] = Counter()
+    if langcode in PARADIGM_PRIOR_LANGS:
+        for counts in candidates.values():
+            paradigm_size.update(counts.keys())
     mydict: dict[str, str] = {}
     for word_form, counts in candidates.items():
         options = dict(counts)
@@ -166,6 +181,7 @@ def _resolve_candidates(
             options.items(),
             key=lambda item: (
                 -item[1],
+                -paradigm_size[item[0]],
                 levenshtein_dist(word_form, item[0]),
                 item[0],
             ),
@@ -178,16 +194,22 @@ def _resolve_candidates(
                 sorted(options.items()),
             )
         mydict[word_form] = best
-    # A dictionary headword is its own lemma: force identity so a noisy
-    # wordlist line can't reduce it into another paradigm -- unless the
-    # language's IDENTITY_SOFT_LANGS predicate matches the word, in which
-    # case only an unresolved word gets the identity.
-    soft = IDENTITY_SOFT_LANGS.get(langcode)
+    # A headword is its own lemma: force identity so a noisy wordlist line
+    # can't reduce it into another paradigm. Soft (setdefault only):
+    # IDENTITY_SOFT_LANGS entirely, plus lemmas attested ONLY by their own
+    # identity line (forcing those measured -1.3..-2.2 / lv -1.8..-2.6pp).
+    soft = langcode in IDENTITY_SOFT_LANGS
+    strong = {
+        lemma
+        for form, counts in candidates.items()
+        for lemma in counts
+        if lemma != form
+    }
     for word in lemmas:
-        if soft is not None and soft(word):
-            mydict.setdefault(word, word)
-        else:
+        if word in strong and not soft:
             mydict[word] = word
+        else:
+            mydict.setdefault(word, word)
     return mydict
 
 
@@ -230,9 +252,12 @@ def _layer_entries(path: Path, langcode: str) -> dict[str, str]:
     return entries
 
 
-def _apply_layers(base: dict[str, str], langcode: str) -> dict[str, str]:
+def _apply_layers(
+    base: dict[str, str], langcode: str, overrides_dir: Path | None = None
+) -> dict[str, str]:
     """Merge the optional per-language source layers into the base dict.
-    Precedence: overrides > base > fill; fill never displaces a base entry."""
+    Precedence: overrides > base > fill; fill never displaces a base entry.
+    `overrides_dir` overrides OVERRIDES_DIR (candidate gating, tests)."""
     merged = dict(base)
     fill_path = FILL_DIR / f"{langcode}.tsv"
     if fill_path.exists():
@@ -247,7 +272,7 @@ def _apply_layers(base: dict[str, str], langcode: str) -> dict[str, str]:
         for form, lemma in _clean_base(_layer_entries(fill_path, langcode)).items():
             merged.setdefault(form, lemma)
         LOGGER.info("%s: fill layer applied -> %s entries", langcode, len(merged))
-    override_path = OVERRIDES_DIR / f"{langcode}.tsv"
+    override_path = (overrides_dir or OVERRIDES_DIR) / f"{langcode}.tsv"
     if override_path.exists():
         merged.update(_layer_entries(override_path, langcode))
         LOGGER.info("%s: override layer applied -> %s entries", langcode, len(merged))
@@ -346,6 +371,12 @@ def _script_classes(word: str) -> frozenset[str]:
     return frozenset(out)
 
 
+def _is_foreign_script_value(key: str, value: str, allowed: frozenset[str]) -> bool:
+    """_is_foreign_script_key with the arguments swapped: an English gloss
+    leaked in as if it were the lemma (grc κάλαμος -> "plants")."""
+    return _is_foreign_script_key(value, key, allowed)
+
+
 def _is_foreign_script_key(key: str, value: str, allowed: frozenset[str]) -> bool:
     """True when `key` uses NO script in `allowed` while `value` uses one --
     the shape of a Wiktionary academic-transliteration or IPA row that leaked
@@ -375,9 +406,13 @@ _JUNK_ENTRY_PREDICATES: dict[str, Callable[[str, str], bool]] = {
     # superscript digit is this junk, zero are real Ukrainian words.
     # PLUS: BGN/PCGN-style scientific transliteration rows ("zanos" ->
     # "занос") -- Ukrainian running text is always Cyrillic.
+    # PLUS: Latin-homoglyph-poisoned keys ("cказився" with Latin c): 15,870
+    # shipped entries, none with two consecutive Latin letters, so no
+    # legitimate Latin-segment word (IT-фахівець shape) is touched.
     "uk": lambda k, v: (
         bool(re.match(r"^[\d¹²³]", k))
         or _is_foreign_script_key(k, v, frozenset({"CYRILLIC"}))
+        or {"LATIN", "CYRILLIC"} <= _script_classes(k)
     ),
     # ar: IPA phonetic-transcription rows leaked in as word forms (syllable-
     # dot-separated, IPA symbols ʔ/ʕ/ˤ/θ) -- 98,864 shipped entries, ALL this
@@ -386,8 +421,11 @@ _JUNK_ENTRY_PREDICATES: dict[str, Callable[[str, str], bool]] = {
     # grc: Beta-code/scientific romanization rows ("hubrisin" -> "ὑβρίς").
     # CYPRIOT and LINEAR (B) are kept allowed -- genuine rare alternate-
     # script attestations for early Greek, not Wiktionary citation noise.
-    "grc": lambda k, v: _is_foreign_script_key(
-        k, v, frozenset({"GREEK", "CYPRIOT", "LINEAR"})
+    # The value direction catches English glosses shipped as lemmas
+    # (κάλαμος -> "plants", πόσος -> "quantity").
+    "grc": lambda k, v: (
+        _is_foreign_script_key(k, v, frozenset({"GREEK", "CYPRIOT", "LINEAR"}))
+        or _is_foreign_script_value(k, v, frozenset({"GREEK", "CYPRIOT", "LINEAR"}))
     ),
     # bg: BGN/PCGN-style scientific transliteration rows ("rádost" ->
     # "радост") -- Bulgarian running text is always Cyrillic.
@@ -648,6 +686,26 @@ def _add_key_aliases(
     return out
 
 
+def _ensure_value_selfmaps(mydict: dict[str, str]) -> dict[str, str]:
+    """Add an identity self-map for every value that isn't itself a key --
+    a lemma must lemmatize to itself, not fall through to the OOV fallbacks
+    (et shipped 24,468 such values). Runs LAST (after value normalization);
+    existing keys are never overwritten."""
+    out = dict(mydict)
+    added = 0
+    for value in mydict.values():
+        if (
+            value not in out
+            and _reachable_key(value)
+            and any(ch.isalpha() for ch in value)
+        ):
+            out[value] = value
+            added += 1
+    if added:
+        LOGGER.info("value selfmaps: added %d identity entries", added)
+    return out
+
+
 def _apply_build_normalization(mydict: dict[str, str], langcode: str) -> dict[str, str]:
     """Apply BUILD_NORMALIZATION[langcode] in the one order that's safe:
     value_fold (rewrite values in place) -> value_script_fix (script-
@@ -686,9 +744,10 @@ def _base_source(base: str, langcode: str, listpath: str) -> dict[str, str]:
                mappings win shared keys (the fresh wordlist only ADDS keys)."""
     if base == "shipped":
         return _clean_base(_shipped_str_dict(langcode))
-    # an absolute listpath (as tests pass) discards the training-dir prefix
-    # per pathlib join semantics.
-    source = _read_dict(Path(__file__).parent / listpath / f"{langcode}.txt", langcode)
+    listdir = Path(listpath)
+    if not listdir.is_absolute():
+        listdir = Path(__file__).parent / listdir
+    source = _read_dict(listdir / f"{langcode}.txt", langcode)
     if base == "merged":
         source.update(_clean_base(_shipped_str_dict(langcode)))
     return source
@@ -708,6 +767,25 @@ def _report_tokenizer_reachability(mydict: Mapping[str, str], langcode: str) -> 
         )
 
 
+def _compose_dictionary(
+    langcode: str,
+    listpath: str = "lists",
+    base: str = "fresh",
+    overrides_dir: Path | None = None,
+) -> dict[str, str]:
+    """The full build pipeline (see module docstring) as one in-memory step --
+    the single place the stage chain lives, for _build_dictionary and for
+    gating tools that need a candidate build without writing a file."""
+    if base not in BASE_MODES:
+        raise ValueError(f"unknown base mode {base!r}, expected one of {BASE_MODES}")
+    mydict = _base_source(base, langcode, listpath)
+    mydict = _apply_layers(mydict, langcode, overrides_dir)
+    mydict = _scrub(mydict)
+    mydict = _drop_junk_keys(mydict, langcode)
+    mydict = _apply_build_normalization(mydict, langcode)
+    return _ensure_value_selfmaps(mydict)
+
+
 def _build_dictionary(
     langcode: str = "en",
     listpath: str = "lists",
@@ -715,14 +793,7 @@ def _build_dictionary(
     in_place: bool = False,
     base: str = "fresh",
 ) -> None:
-    if base not in BASE_MODES:
-        raise ValueError(f"unknown base mode {base!r}, expected one of {BASE_MODES}")
-    # pipeline (see module docstring), each step over the previous one's output
-    mydict = _base_source(base, langcode, listpath)
-    mydict = _apply_layers(mydict, langcode)
-    mydict = _scrub(mydict)
-    mydict = _drop_junk_keys(mydict, langcode)
-    mydict = _apply_build_normalization(mydict, langcode)
+    mydict = _compose_dictionary(langcode, listpath, base)
     if filepath is None:
         # in_place overwrites the shipped data the runtime loads (read at call
         # time so a test's DATA_FOLDER monkeypatch is honored); else training/output/

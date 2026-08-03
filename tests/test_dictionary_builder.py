@@ -121,6 +121,38 @@ def test_read_dict_attestation_count_beats_distance(tmp_path) -> None:
     assert result["running"] == "run"
 
 
+def test_ensure_value_selfmaps() -> None:
+    """Every value gains an identity self-map unless it's already a key,
+    unreachable as a token, or letterless; existing keys are never touched."""
+    from training.dictionary_builder import _ensure_value_selfmaps
+
+    result = _ensure_value_selfmaps(
+        {
+            "dogs": "dog",  # missing lemma -> self-map added
+            "cats": "cat",
+            "cat": "kitten",  # 'cat' already a key -> its mapping stands
+            "als": "Als Sund",  # space: unreachable, no self-map
+            "x1": "123",  # letterless value, no self-map
+        }
+    )
+    assert result["dog"] == "dog"
+    assert result["kitten"] == "kitten"  # value of an existing key still covered
+    assert result["cat"] == "kitten"  # not overwritten
+    assert "Als Sund" not in result
+    assert "123" not in result
+
+
+def test_read_dict_paradigm_prior_breaks_ties(tmp_path) -> None:
+    """For PARADIGM_PRIOR_LANGS, an attestation tie goes to the lemma with the
+    larger attested paradigm, not the closer edit distance (grc ἦν: εἰμί and
+    ἠμί tie 2-2 in the source; distance alone picks the rare ἠμί)."""
+    lines = "εἰμί\tἦν\n" * 2 + "ἠμί\tἦν\n" * 2 + "εἰμί\tἐστί\nεἰμί\tἦσαν\n"
+    assert _read(tmp_path, "grc", lines)["ἦν"] == "εἰμί"
+    # same shape in an unregistered language keeps the distance tie-break
+    lines = "abcd\tab\n" * 2 + "abx\tab\n" * 2 + "abcd\tabcde\nabcd\tabcdf\n"
+    assert _read(tmp_path, "en", lines)["ab"] == "abx"
+
+
 def test_read_dict_lemma_headword_never_reduces(tmp_path) -> None:
     """A word attested as a lemma is forced to itself even if also mapped as a form
     elsewhere; a word only ever a form still reduces. Language-independent
@@ -139,17 +171,18 @@ def test_read_dict_soft_identity_for_grc(tmp_path) -> None:
     assert result["ἀκούσας"] == "ἀκούω"  # attested mapping wins, not forced to self
 
 
-def test_read_dict_soft_identity_for_ar_is_scoped_to_al_prefixed(tmp_path) -> None:
-    """ar's IDENTITY_SOFT_LANGS entry is a PREDICATE, not a blanket: only
-    definite-article-prefixed headwords (الكتاب) soften, so an attested
-    كتاب mapping wins -- while a non-ال headword still force-identities
-    even when noisily mapped elsewhere (a blanket ar predicate gate-FAILED,
-    token -0.36pp)."""
-    al_headword = "كتاب\tالكتاب\n" * 5 + "الكتاب\tالكتاب\n"  # attested candidate
-    non_al_headword = "قلم\tبيت\n" * 5 + "بيت\tبيوت\n"  # بيت noisily mapped
+def test_read_dict_self_only_lemma_is_soft(tmp_path) -> None:
+    """A lemma attested ONLY by its own identity line softens universally: an
+    attested mapping wins over it, while a paradigm-heading lemma still
+    force-identities even when noisily mapped elsewhere. This universal rule
+    replaced ar's IDENTITY_SOFT_LANGS predicate (deleted 2026-08 at measured
+    +0.000pp): الكتاب below is self-only, so the attested كتاب mapping wins
+    exactly as the predicate used to arrange."""
+    al_headword = "كتاب\tالكتاب\n" * 5 + "الكتاب\tالكتاب\n"  # self-only lemma
+    non_al_headword = "قلم\tبيت\n" * 5 + "بيت\tبيوت\n"  # بيت heads a paradigm
     result = _read(tmp_path, "ar", al_headword + non_al_headword)
-    assert result["الكتاب"] == "كتاب"  # softened: attested mapping wins
-    assert result["بيت"] == "بيت"  # non-ال headword: force-identity holds
+    assert result["الكتاب"] == "كتاب"  # soft: attested mapping wins
+    assert result["بيت"] == "بيت"  # paradigm-heading: force-identity holds
 
 
 def test_read_dict_rejects_maqaf_edged_fields(tmp_path) -> None:
@@ -315,6 +348,31 @@ def test_drop_junk_keys_uk_paradigm_codes() -> None:
         {"10a": "вибороти", "¹Rare.": "літ", "мати": "мати"}, "uk"
     )
     assert result == {"мати": "мати"}
+
+
+def test_drop_junk_keys_uk_latin_homoglyphs() -> None:
+    """uk: a key mixing Latin and Cyrillic letters is a homoglyph-poisoned
+    row ('cказився' with Latin c -- 15,870 shipped entries, none with a
+    legitimate multi-letter Latin segment)."""
+    result = dictionary_builder._drop_junk_keys(
+        {
+            "cказився": "сказитися",
+            "ремонтно-механічнe": "ремонтно-механічний",
+            "мати": "мати",
+        },
+        "uk",
+    )
+    assert result == {"мати": "мати"}
+
+
+def test_drop_junk_keys_grc_gloss_values() -> None:
+    """grc: a Greek key resolving to a Latin-script value is an English gloss
+    shipped as a lemma (κάλαμος -> plants); Beta-code keys stay dropped and
+    Greek->Greek entries stay."""
+    result = dictionary_builder._drop_junk_keys(
+        {"κάλαμος": "plants", "hubrisin": "ὑβρίς", "ἦν": "εἰμί"}, "grc"
+    )
+    assert result == {"ἦν": "εἰμί"}
 
 
 def test_drop_junk_keys_noop_for_other_langs() -> None:
@@ -695,4 +753,5 @@ def test_build_from_shipped_scrubs_placeholder(tmp_path, monkeypatch) -> None:
     _layers(tmp_path, monkeypatch)  # no fill, no override
     out = tmp_path / "out.plzma"
     dictionary_builder._build_dictionary("zz", filepath=str(out), base="shipped")
-    assert frontcode.decode(out.read_bytes()) == {b"dogs": b"dog"}
+    # b"dog": b"dog" is _ensure_value_selfmaps covering the surviving value
+    assert frontcode.decode(out.read_bytes()) == {b"dogs": b"dog", b"dog": b"dog"}

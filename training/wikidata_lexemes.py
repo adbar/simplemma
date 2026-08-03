@@ -22,7 +22,7 @@ from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
-from training.clean_wordlist import check_field
+from training.clean_wordlist import check_field, write_pairs
 
 # private, but these are sibling build modules
 from training.dictionary_builder import _shipped_str_dict
@@ -47,6 +47,7 @@ LANGUAGE_QIDS = {
     "nl": "Q7411",
     # mid-tier by lexeme count; below ~1k lexemes yields ~0 fill pairs
     "fr": "Q150",
+    "hu": "Q9067",
     "sk": "Q9058",
     "uk": "Q8798",
     "pt": "Q5146",
@@ -193,15 +194,6 @@ def stem_anchored_prune(
     return kept, stats
 
 
-def write_tsv(pairs: Iterable[tuple[str, str]], output_path: Path) -> int:
-    count = 0
-    with open(output_path, "w", encoding="utf-8") as filehandle:
-        for lemma, form in pairs:
-            filehandle.write(f"{lemma}\t{form}\n")
-            count += 1
-    return count
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("lang", choices=sorted(LANGUAGE_QIDS))
@@ -240,7 +232,7 @@ def main() -> None:
     kept_pairs, junk_stats = drop_junk_pairs(kept_pairs)
     log.info(f"Junk filter: {junk_stats}")
 
-    count = write_tsv(kept_pairs, args.output)
+    count = write_pairs(kept_pairs, args.output)
     log.info(f"Wrote {count} pairs to {args.output}")
 
 
