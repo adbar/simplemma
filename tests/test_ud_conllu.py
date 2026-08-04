@@ -113,6 +113,15 @@ def test_canon_lemma_keeps_marker_per_occurrence_on_inflected_forms():
     assert canon_lemma("#yli#opisto", "yliopistot", "fi") == "yliopisto"
 
 
+def test_canon_lemma_trailing_edge_marker_follows_the_form():
+    """A trailing marker run survives only when the form also ends with the
+    marker; otherwise it strips with the internal ones (mirror of the
+    '#oscarit' leading-edge rule)."""
+    assert canon_lemma("Oscar#", "oscarit#", "fi") == "Oscar#"
+    assert canon_lemma("Oscar#", "oscarit", "fi") == "Oscar"
+    assert canon_lemma("yli#opisto#", "yliopistot", "fi") == "yliopisto"
+
+
 def test_canon_lemma_never_strips_a_lemma_to_nothing():
     """An all-marker lemma whose form differs would strip to '' and score every
     prediction wrong. Unreachable in UD 2.18, guarded anyway."""

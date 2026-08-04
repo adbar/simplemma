@@ -23,11 +23,12 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from simplemma.utils import canonicalize_token
-from training.clean_wordlist import write_pairs
+from simplemma.utils import canonicalize_token, normalize_token
+from training.clean_wordlist import pair_violation, write_pairs
 from training.dictionary_builder import (
     OVERRIDES_DIR,
-    _compose_dictionary,
+    _compose_base,
+    _compose_from_base,
     _layer_entries,
 )
 from training.eval_gate import (
@@ -76,7 +77,9 @@ def collect_candidates(
 def resolve_overrides(per_treebank: list[Counts], pos: Counts) -> dict[str, str]:
     """One form -> its majority lemma over the pooled treebanks, kept only
     when the pooled evidence clears the POS-class bar and no sufficiently-
-    attesting treebank disagrees."""
+    attesting treebank disagrees. Ties never depend on insertion order:
+    majority by (count, lemma), a POS tie takes the stricter open-class
+    bar, a veto needs a lemma strictly beating the pooled winner."""
     pooled: defaultdict[str, Counter[str]] = defaultdict(Counter)
     for treebank_counts in per_treebank:
         for form, lemma_counts in treebank_counts.items():
@@ -84,8 +87,11 @@ def resolve_overrides(per_treebank: list[Counts], pos: Counts) -> dict[str, str]
     overrides = {}
     for form, counts in pooled.items():
         total = sum(counts.values())
-        lemma, top = counts.most_common(1)[0]
-        closed = pos[form].most_common(1)[0][0] in CLOSED_CLASS_POS
+        top, lemma = max((n, lem) for lem, n in counts.items())
+        top_pos = max(pos[form].values())
+        closed = all(
+            upos in CLOSED_CLASS_POS for upos, n in pos[form].items() if n == top_pos
+        )
         min_count, min_agreement = (
             (CLOSED_MIN_COUNT, CLOSED_MIN_AGREEMENT)
             if closed
@@ -95,7 +101,7 @@ def resolve_overrides(per_treebank: list[Counts], pos: Counts) -> dict[str, str]
             continue
         if any(
             sum(tb[form].values()) >= TREEBANK_MIN_COUNT
-            and tb[form].most_common(1)[0][0] != lemma
+            and tb[form][lemma] < max(tb[form].values())
             for tb in per_treebank
             if form in tb
         ):
@@ -107,20 +113,21 @@ def resolve_overrides(per_treebank: list[Counts], pos: Counts) -> dict[str, str]
 def merge_with_existing(
     candidates: dict[str, str], lang: str, overrides_dir: Path | None = None
 ) -> tuple[dict[str, str], int]:
-    """Existing reviewed entries win their forms; candidates are folded into
-    the runtime key space before comparison. Returns (merged, n_added).
-    `overrides_dir` defaults to OVERRIDES_DIR at call time (monkeypatchable).
-    grc/he/ar candidates can fold to one canonical key: the first lemma wins,
-    with a WARNING (_layer_entries raises on this in a hand-edited file)."""
+    """Existing reviewed entries win their forms; candidates are folded to
+    the runtime key space (canon + NFC, matching read_pairs) and skipped on
+    any pair_violation or spaced field, so a written candidate file can
+    never fail the read side. Returns (merged, n_added). grc/he/ar
+    candidates can fold to one canonical key: first lemma wins, with a
+    WARNING (_layer_entries raises on this in a hand-edited file)."""
     path = (overrides_dir or OVERRIDES_DIR) / f"{lang}.tsv"
     existing = _layer_entries(path, lang) if path.exists() else {}
     added = 0
     merged = dict(existing)
     for form, lemma in candidates.items():
-        cform = canonicalize_token(form, lang)
-        if " " in cform or not cform:
+        cform = normalize_token(canonicalize_token(form, lang))
+        clemma = normalize_token(canonicalize_token(lemma, lang))
+        if " " in cform or " " in clemma or pair_violation(clemma, cform):
             continue
-        clemma = canonicalize_token(lemma, lang)
         if cform in merged:
             if cform not in existing and merged[cform] != clemma:
                 log.warning(
@@ -155,8 +162,10 @@ def main() -> None:
     candidates = resolve_overrides(*collect_candidates(train_paths, lang))
 
     # Redundancy is reported, never filtered: the committed file stays a pure
-    # function of UD + review. Same composed baseline as the gate below.
-    baseline = _compose_dictionary(lang)
+    # function of UD + review. Same composed baseline as the gate below; the
+    # base is composed once, then layered with each override set.
+    base = _compose_base(lang)
+    baseline = _compose_from_base(base, lang)
     baseline_strategy = build_strategy(baseline)
     redundant = sum(
         1
@@ -176,8 +185,11 @@ def main() -> None:
         log.info(f"nothing to gate; candidate written to {out_path}")
         return
 
-    candidate = _compose_dictionary(lang, overrides_dir=OUTPUT_DIR)
-    if not report_results(gate(lang, baseline, candidate), args.epsilon):
+    candidate = _compose_from_base(base, lang, overrides_dir=OUTPUT_DIR)
+    if not report_results(
+        gate(lang, baseline, candidate, baseline_strategy=baseline_strategy),
+        args.epsilon,
+    ):
         sys.exit(f"gate FAILED for {lang}; candidate left in {out_path} for review")
     if args.in_place:
         shutil.copy(out_path, OVERRIDES_DIR / f"{lang}.tsv")

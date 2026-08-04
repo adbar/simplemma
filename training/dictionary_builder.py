@@ -108,8 +108,10 @@ def _collect_candidates(
             # NFC + per-language canon here: runtime lookups apply both, so
             # keys must match (canonicalize_token is a no-op outside its
             # registered languages, see _CANON_TABLES in simplemma.utils).
+            # NFC AGAIN after canon: the translate can strand a stacked
+            # combining mark (la 'Boō̈tēs': ō->o leaves an NFC-invalid key).
             columns = [
-                canonicalize_token(normalize_token(c), langcode)
+                normalize_token(canonicalize_token(normalize_token(c), langcode))
                 for c in line.strip().split("\t")
             ]
             if len(columns) != 2 or not columns[0]:
@@ -212,26 +214,38 @@ def _read_dict(path: Path, langcode: str) -> dict[str, str]:
     return mydict
 
 
-def _layer_entries(path: Path, langcode: str) -> dict[str, str]:
+def _layer_entries(
+    path: Path, langcode: str, *, skip_level: int = logging.INFO
+) -> dict[str, str]:
     """A curated lemma<TAB>form layer file as a form->lemma mapping,
     canonicalized like the base wordlist (_collect_candidates) so a
     reviewed file can't ship an unreachable dead key.
 
     read_pairs enforces key hygiene and fails loud on corruption. Skipping a
-    multi-word form (e.g. Wikidata 'top hat') is policy, not corruption --
-    the tokenizer never yields it as a single token, so it's unreachable."""
+    spaced field is policy, not corruption: a multi-word form (e.g. Wikidata
+    'top hat') is unreachable -- the tokenizer never yields it as a single
+    token -- and a multi-word lemma (UD 'c.q.' -> 'casu quo') must not ship
+    as lemmatizer output."""
     pairs = read_pairs(path)
-    spaceless = {form: lemma for form, lemma in pairs.items() if " " not in form}
+    spaceless = {
+        form: lemma
+        for form, lemma in pairs.items()
+        if " " not in form and " " not in lemma
+    }
     if len(spaceless) < len(pairs):
-        LOGGER.info(
-            "%s: skipped %d unreachable spaced forms",
+        # skip_level: routine in machine fill (DEBUG), a finding in overrides (INFO)
+        LOGGER.log(
+            skip_level,
+            "%s: skipped %d entries with a spaced form or lemma",
             path.name,
             len(pairs) - len(spaceless),
         )
     entries: dict[str, str] = {}
     for form, lemma in spaceless.items():
-        cform = canonicalize_token(form, langcode)
-        clemma = canonicalize_token(lemma, langcode)
+        # NFC after canon (see _collect_candidates): a stranded combining
+        # mark would die in _scrub.
+        cform = normalize_token(canonicalize_token(form, langcode))
+        clemma = normalize_token(canonicalize_token(lemma, langcode))
         if cform in entries and entries[cform] != clemma:
             raise ValueError(
                 f"{path}: two entries fold to the same canonical form "
@@ -260,7 +274,8 @@ def _apply_layers(
             )
         # fill is machine-extracted, so unlike overrides it gets the base's
         # aggressive key hygiene (e.g. suffix lexemes like "-al" are unreachable).
-        for form, lemma in _clean_base(_layer_entries(fill_path, langcode)).items():
+        fill_entries = _layer_entries(fill_path, langcode, skip_level=logging.DEBUG)
+        for form, lemma in _clean_base(fill_entries).items():
             merged.setdefault(form, lemma)
         LOGGER.info("%s: fill layer applied -> %s entries", langcode, len(merged))
     override_path = (overrides_dir or OVERRIDES_DIR) / f"{langcode}.tsv"
@@ -330,7 +345,14 @@ def _scrub(mydict: dict[str, str]) -> dict[str, str]:
             dropped_key += 1
             continue
         nv, _ = canonicalize(v)
-        if not nv or check_field(nv) or nv in _PLACEHOLDER_VALUES or _junk_entry(k, nv):
+        # " " in nv: a multi-word lemma must never ship as lemmatizer output
+        if (
+            not nv
+            or " " in nv
+            or check_field(nv)
+            or nv in _PLACEHOLDER_VALUES
+            or _junk_entry(k, nv)
+        ):
             dropped_val += 1
             continue
         fixed_val += nv != v
@@ -365,27 +387,24 @@ def _script_classes(word: str) -> frozenset[str]:
     return frozenset(s for s in map(_char_script, word) if s is not None)
 
 
-def _is_foreign_script_value(key: str, value: str, allowed: frozenset[str]) -> bool:
-    """_is_foreign_script_key with the arguments swapped: an English gloss
-    leaked in as if it were the lemma (grc κάλαμος -> "plants")."""
-    return _is_foreign_script_key(value, key, allowed)
-
-
-def _is_wholly_foreign_entry(key: str, value: str, allowed: frozenset[str]) -> bool:
-    """True when both sides are scripted yet NEITHER uses a script in
-    `allowed` -- the planted-selfmap shape (grc "plants" -> "plants") that
-    both directional checks are blind to."""
-    ks, vs = _script_classes(key), _script_classes(value)
-    return bool(ks) and bool(vs) and not ((ks | vs) & allowed)
-
-
-def _is_foreign_script_key(key: str, value: str, allowed: frozenset[str]) -> bool:
-    """True when `key` uses NO script in `allowed` while `value` uses one --
-    a transliteration/IPA row leaked in as a word form (grc Beta-code
-    "hubrisin" -> "ὑβρίς"). A mixed-script key is never flagged; for
-    biscriptal ms, allowed={"ARABIC"} flags only Latin key -> Jawi value."""
-    ks, vs = _script_classes(key), _script_classes(value)
+def _foreign_script_key(
+    ks: frozenset[str], vs: frozenset[str], allowed: frozenset[str]
+) -> bool:
+    """Key uses NO script in `allowed` while the value uses one -- a
+    transliteration/IPA row leaked in as a word form (grc Beta-code
+    "hubrisin" -> "ὑβρίς"). Mixed-script keys never flag; swap the arguments
+    for the value direction (gloss-as-lemma, grc κάλαμος -> "plants").
+    `ks`/`vs` are _script_classes, computed once in _drop_junk_keys."""
     return bool(ks) and bool(vs) and not (ks & allowed) and bool(vs & allowed)
+
+
+def _foreign_script_entry(
+    ks: frozenset[str], vs: frozenset[str], allowed: frozenset[str]
+) -> bool:
+    """Broader: both sides scripted, key has no script in `allowed` --
+    the union of _foreign_script_key with the wholly-foreign shape
+    (planted selfmaps like grc "plants" -> "plants")."""
+    return bool(ks) and bool(vs) and not (ks & allowed)
 
 
 # Script sets the predicates test against, hoisted to module level: a
@@ -397,72 +416,77 @@ _DEVANAGARI_SCRIPTS = frozenset({"DEVANAGARI"})
 _HEBREW_SCRIPTS = frozenset({"HEBREW"})
 _LATIN_PLUS_CYRILLIC = frozenset({"LATIN", "CYRILLIC"})
 
-# Per-language (key, value) -> drop predicates. Each entry is a verified,
-# language-specific defect -- there is no universal "foreign script" or
-# "digit-leading" rule (a digit-leading token is a real word in many
-# languages: da "0-1-nederlaget", de "1-Cent-Münze", en "1000000", ga
-# "1000ú", hu "10-es", sv "10-krona", all verified present in their shipped
-# dicts; a Latin-script key is legitimate in most languages too).
-_JUNK_ENTRY_PREDICATES: dict[str, Callable[[str, str], bool]] = {
+# Per-language (key, key_scripts, value_scripts) -> drop predicates. Each
+# entry is a verified, language-specific defect -- there is no universal
+# "foreign script" or "digit-leading" rule (a digit-leading token is a real
+# word in many languages: da "0-1-nederlaget", de "1-Cent-Münze", en
+# "1000000", ga "1000ú", hu "10-es", sv "10-krona", all verified present in
+# their shipped dicts; a Latin-script key is legitimate in most languages
+# too).
+_JUNK_ENTRY_PREDICATES: dict[
+    str, Callable[[str, frozenset[str], frozenset[str]], bool]
+] = {
     # uk: digit-leading paradigm-class codes ("10a") -- all verified junk;
-    # BGN transliteration rows ("zanos" -> "занос"); every Latin+Cyrillic
-    # mixed key (homoglyph poisoning, 15,828 fill entries -- broader than the
-    # evidence, IT-фахівець would drop too); wholly-foreign romanized
-    # identity rows ("vony", 11 shipped).
-    "uk": lambda k, v: (
+    # BGN transliteration rows ("zanos" -> "занос") and wholly-foreign
+    # romanized identity rows ("vony", 11 shipped), both via the broad
+    # entry check; every Latin+Cyrillic mixed key (homoglyph poisoning,
+    # 15,828 fill entries -- broader than the evidence, IT-фахівець would
+    # drop too).
+    "uk": lambda k, ks, vs: (
         bool(re.match(r"^[\d¹²³]", k))
-        or _is_foreign_script_key(k, v, _CYRILLIC_SCRIPTS)
-        or _LATIN_PLUS_CYRILLIC <= _script_classes(k)
-        or _is_wholly_foreign_entry(k, v, _CYRILLIC_SCRIPTS)
+        or _foreign_script_entry(ks, vs, _CYRILLIC_SCRIPTS)
+        or _LATIN_PLUS_CYRILLIC <= ks
     ),
     # ar: IPA transcription rows (98,864 shipped entries) + wholly-foreign
     # English junk and Judeo-Arabic spellings (95, polluted langdetect vs he).
-    "ar": lambda k, v: (
-        _is_foreign_script_key(k, v, _ARABIC_SCRIPTS)
-        or _is_wholly_foreign_entry(k, v, _ARABIC_SCRIPTS)
-    ),
-    # grc: Beta-code romanization keys (CYPRIOT/LINEAR stay allowed, genuine
-    # early-Greek attestations); the value direction catches English glosses
-    # (κάλαμος -> "plants"); wholly-foreign catches the selfmaps they seed.
-    "grc": lambda k, v: (
-        _is_foreign_script_key(k, v, _GREEK_SCRIPTS)
-        or _is_foreign_script_value(k, v, _GREEK_SCRIPTS)
-        or _is_wholly_foreign_entry(k, v, _GREEK_SCRIPTS)
+    "ar": lambda k, ks, vs: _foreign_script_entry(ks, vs, _ARABIC_SCRIPTS),
+    # grc: Beta-code romanization keys and the selfmaps they seed
+    # (CYPRIOT/LINEAR stay allowed, genuine early-Greek attestations); the
+    # swapped-argument direction catches English glosses (κάλαμος -> "plants").
+    "grc": lambda k, ks, vs: (
+        _foreign_script_entry(ks, vs, _GREEK_SCRIPTS)
+        or _foreign_script_key(vs, ks, _GREEK_SCRIPTS)
     ),
     # fa: romanized rows ("and" -> بودن), template artifacts, English junk
     # -- 4,938 shipped entries (9.4%, 2026-08).
-    "fa": lambda k, v: (
-        _is_foreign_script_key(k, v, _ARABIC_SCRIPTS)
-        or _is_wholly_foreign_entry(k, v, _ARABIC_SCRIPTS)
-    ),
-    # bg: BGN transliteration rows ("rádost" -> "радост"). Wholly-foreign
-    # NOT added: only hits are US/DM abbreviations, legitimate in bg text.
-    "bg": lambda k, v: _is_foreign_script_key(k, v, _CYRILLIC_SCRIPTS),
+    "fa": lambda k, ks, vs: _foreign_script_entry(ks, vs, _ARABIC_SCRIPTS),
+    # bg: BGN transliteration rows ("rádost" -> "радост"). The broad entry
+    # check NOT used: its extra hits are US/DM abbreviations, legitimate in
+    # bg text.
+    "bg": lambda k, ks, vs: _foreign_script_key(ks, vs, _CYRILLIC_SCRIPTS),
     # hi: Urdu-script rows from the shared Hindi/Urdu extraction -- real
     # Hindi text is Devanagari. PLUS wholly-foreign ("sweets").
-    "hi": lambda k, v: (
-        _is_foreign_script_key(k, v, _DEVANAGARI_SCRIPTS)
-        or _is_wholly_foreign_entry(k, v, _DEVANAGARI_SCRIPTS)
-    ),
+    "hi": lambda k, ks, vs: _foreign_script_entry(ks, vs, _DEVANAGARI_SCRIPTS),
     # ms: biscriptal, Jawi keys KEPT (3,301 shipped); a Latin key must never
     # resolve to a Jawi value (446 did).
-    "ms": lambda k, v: _is_foreign_script_key(k, v, _ARABIC_SCRIPTS),
+    "ms": lambda k, ks, vs: _foreign_script_key(ks, vs, _ARABIC_SCRIPTS),
     # tl: Baybayin keys via alt_of, no modern running-text use (3,909
     # shipped). Key-side check: 5 entries carry Baybayin VALUES too.
-    "tl": lambda k, v: "TAGALOG" in _script_classes(k),
-    # he: Latin keys -> Hebrew values (transliterations). Wholly-foreign NOT
-    # added: only Phoenician attestations, kept like grc's ancient scripts.
-    "he": lambda k, v: _is_foreign_script_key(k, v, _HEBREW_SCRIPTS),
+    "tl": lambda k, ks, vs: "TAGALOG" in ks,
+    # he: Latin keys -> Hebrew values (transliterations). The broad entry
+    # check NOT used: its extra hits are Phoenician attestations, kept like
+    # grc's ancient scripts.
+    "he": lambda k, ks, vs: _foreign_script_key(ks, vs, _HEBREW_SCRIPTS),
 }
 
 
 def _drop_junk_keys(mydict: dict[str, str], langcode: str) -> dict[str, str]:
     """Drop entries matching langcode's _JUNK_ENTRY_PREDICATES entry; a
-    no-op for any other language."""
+    no-op for any other language. Each side's script set is computed once
+    here and handed to the predicate."""
     predicate = _JUNK_ENTRY_PREDICATES.get(langcode)
     if predicate is None:
         return mydict
-    return {k: v for k, v in mydict.items() if not predicate(k, v)}
+    out = {
+        k: v
+        for k, v in mydict.items()
+        if not predicate(k, _script_classes(k), _script_classes(v))
+    }
+    if len(out) < len(mydict):
+        LOGGER.info(
+            "%s: junk filter dropped %d entries", langcode, len(mydict) - len(out)
+        )
+    return out
 
 
 # fa tashkeel/tatweel deletion (was 23.8% of keys) + Arabic-script ي/ك ->
@@ -641,8 +665,9 @@ def _fold_values(
     mydict: dict[str, str], table: Mapping[int, int | str | None]
 ) -> dict[str, str]:
     """Rewrite each entry's VALUE per `table`. Keys are untouched, so this can
-    never create a collision -- unlike a symmetric fold or a key alias."""
-    return {k: v.translate(table) for k, v in mydict.items()}
+    never create a collision -- unlike a symmetric fold or a key alias.
+    NFC after translate: folding a stacked diacritic strands its mark."""
+    return {k: normalize_token(v.translate(table)) for k, v in mydict.items()}
 
 
 _CYRILLIC = re.compile(r"[Ѐ-ӿ]")
@@ -677,7 +702,9 @@ def _add_key_aliases(
     has verified the unfolded spelling is never queried."""
     out = dict(mydict)
     for key, value in mydict.items():
-        alias = key.translate(table)
+        # NFC after translate: this runs post-_scrub, so a stranded combining
+        # mark (la 'Boō̈tēs': ō->o + diaeresis) would ship NFC-invalid.
+        alias = normalize_token(key.translate(table))
         # a mark-only key folds to "" (survives _scrub via the identity
         # exemption in _junk_entry) -- never plant an empty key
         if alias and alias != key:
@@ -748,6 +775,58 @@ def _report_tokenizer_reachability(mydict: Mapping[str, str], langcode: str) -> 
         )
 
 
+def _compose_base(langcode: str, listpath: str | None = None) -> dict[str, str]:
+    """Pre-layer half of the pipeline: the cleaned base wordlist or installed
+    dict. Split out so build_override composes it once, layers it twice."""
+    shipped = langcode in dictionary_factory.SUPPORTED_LANGUAGES
+    if listpath is None:
+        if not shipped:
+            raise ValueError(
+                f"no shipped dictionary for {langcode!r}: pass a wordlist "
+                "directory (listpath) to ingest a new language"
+            )
+        return _clean_base(_shipped_str_dict(langcode))
+    listdir = Path(listpath)
+    if not listdir.is_absolute():
+        listdir = Path(__file__).parent / listdir
+    mydict = _read_dict(listdir / f"{langcode}.txt", langcode)
+    if shipped:
+        mydict.update(_clean_base(_shipped_str_dict(langcode)))
+    return mydict
+
+
+def _compose_from_base(
+    base: dict[str, str], langcode: str, overrides_dir: Path | None = None
+) -> dict[str, str]:
+    """The post-base half of the pipeline: layers, scrub, normalization,
+    selfmaps, junk filter."""
+    mydict = _apply_layers(base, langcode, overrides_dir)
+    mydict = _scrub(mydict)
+    mydict = _apply_build_normalization(mydict, langcode)
+    mydict = _ensure_value_selfmaps(mydict)
+    # LAST, after selfmaps: planted identity keys for junk values must be
+    # filtered too (needs identity-aware predicates, _foreign_script_entry).
+    kept = _drop_junk_keys(mydict, langcode)
+    if len(kept) < len(mydict):
+        override_path = (overrides_dir or OVERRIDES_DIR) / f"{langcode}.tsv"
+        if override_path.exists():
+            # Reviewed overrides outrank the junk predicates (bg "II" ->
+            # "втори" is deliberate); frontcode sorts, so re-adding is stable.
+            dropped = mydict.keys() - kept.keys()
+            casualties = _layer_entries(override_path, langcode).keys() & dropped
+            for key in casualties:
+                kept[key] = mydict[key]
+            if casualties:
+                LOGGER.info(
+                    "%s: restored %d reviewed override entries the junk "
+                    "filter had dropped: %s",
+                    langcode,
+                    len(casualties),
+                    sorted(casualties)[:5],
+                )
+    return kept
+
+
 def _compose_dictionary(
     langcode: str,
     listpath: str | None = None,
@@ -759,28 +838,9 @@ def _compose_dictionary(
     `listpath` (a directory holding <langcode>.txt): wordlist ingestion,
     installed mappings still winning shared keys. SUPPORTED_LANGUAGES is
     read from the factory at call time so a test's monkeypatch is honored."""
-    shipped = langcode in dictionary_factory.SUPPORTED_LANGUAGES
-    if listpath is None:
-        if not shipped:
-            raise ValueError(
-                f"no shipped dictionary for {langcode!r}: pass a wordlist "
-                "directory (listpath) to ingest a new language"
-            )
-        mydict = _clean_base(_shipped_str_dict(langcode))
-    else:
-        listdir = Path(listpath)
-        if not listdir.is_absolute():
-            listdir = Path(__file__).parent / listdir
-        mydict = _read_dict(listdir / f"{langcode}.txt", langcode)
-        if shipped:
-            mydict.update(_clean_base(_shipped_str_dict(langcode)))
-    mydict = _apply_layers(mydict, langcode, overrides_dir)
-    mydict = _scrub(mydict)
-    mydict = _apply_build_normalization(mydict, langcode)
-    mydict = _ensure_value_selfmaps(mydict)
-    # LAST, after selfmaps: planted identity keys for junk values must be
-    # filtered too (needs identity-aware predicates, _is_wholly_foreign_entry).
-    return _drop_junk_keys(mydict, langcode)
+    return _compose_from_base(
+        _compose_base(langcode, listpath), langcode, overrides_dir
+    )
 
 
 def _build_dictionary(

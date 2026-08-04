@@ -434,13 +434,21 @@ def test_drop_junk_keys_he_latin_transliterations() -> None:
     assert result == {"בית": "בית", "3": "3"}
 
 
+def _foreign_script_key(key: str, value: str, allowed: frozenset) -> bool:
+    """String-level adapter: the real predicate takes precomputed script sets
+    (_drop_junk_keys computes them once per entry)."""
+    return dictionary_builder._foreign_script_key(
+        dictionary_builder._script_classes(key),
+        dictionary_builder._script_classes(value),
+        allowed,
+    )
+
+
 def test_is_foreign_script_key_ipa_and_romanization_rows() -> None:
     """ar IPA transcription and grc Beta-code romanization: the key is
     entirely outside the allowed script, the value is inside it -- drop."""
-    assert dictionary_builder._is_foreign_script_key(
-        "uð.ðu.ki.ruː", "اذكروا", frozenset({"ARABIC"})
-    )
-    assert dictionary_builder._is_foreign_script_key(
+    assert _foreign_script_key("uð.ðu.ki.ruː", "اذكروا", frozenset({"ARABIC"}))
+    assert _foreign_script_key(
         "hubrisin", "ὑβρίς", frozenset({"GREEK", "CYPRIOT", "LINEAR"})
     )
 
@@ -449,7 +457,7 @@ def test_is_foreign_script_key_protects_alternate_attestations() -> None:
     """grc Cypriot-syllabary attestations are a real (if rare) alternate
     script for early Greek, not Wiktionary citation noise -- kept allowed,
     so they're never flagged."""
-    assert not dictionary_builder._is_foreign_script_key(
+    assert not _foreign_script_key(
         "𐠞𐠪𐠐𐠄𐠩", "βασιλεύς", frozenset({"GREEK", "CYPRIOT", "LINEAR"})
     )
 
@@ -458,30 +466,22 @@ def test_is_foreign_script_key_ms_asymmetric_direction() -> None:
     """ms is genuinely biscriptal: a Jawi key resolving to its standard Rumi
     citation lemma is CORRECT and must never be flagged, but a Rumi key
     resolving to a Jawi value is the defect -- only that direction drops."""
-    assert not dictionary_builder._is_foreign_script_key(
-        "جون", "Jun", frozenset({"ARABIC"})
-    )
-    assert dictionary_builder._is_foreign_script_key(
-        "pintu", "ڤينتو", frozenset({"ARABIC"})
-    )
+    assert not _foreign_script_key("جون", "Jun", frozenset({"ARABIC"}))
+    assert _foreign_script_key("pintu", "ڤينتو", frozenset({"ARABIC"}))
 
 
 def test_is_foreign_script_key_never_flags_mixed_script() -> None:
     """A key carrying ANY allowed-script letter (mixed script, e.g. hbs's
     Latin+Cyrillic 'atoмска') is never flagged -- only entirely
     foreign-scripted keys are."""
-    assert not dictionary_builder._is_foreign_script_key(
-        "atoмска", "атомски", frozenset({"CYRILLIC"})
-    )
+    assert not _foreign_script_key("atoмска", "атомски", frozenset({"CYRILLIC"}))
 
 
 def test_is_foreign_script_key_ignores_non_alphabetic():  # digits/punct
     """A purely non-alphabetic key (digits, punctuation) has no script class
     at all -- it's Phase B's (_drop_junk_keys pattern) concern, not this
     predicate's; it must never be flagged here."""
-    assert not dictionary_builder._is_foreign_script_key(
-        "123", "число", frozenset({"CYRILLIC"})
-    )
+    assert not _foreign_script_key("123", "число", frozenset({"CYRILLIC"}))
 
 
 def test_drop_junk_keys_ar_ipa_rows() -> None:
@@ -560,7 +560,7 @@ def test_apply_layers_rejects_junk_entries(tmp_path, monkeypatch) -> None:
 def test_apply_layers_rejects_empty_fields(tmp_path, monkeypatch) -> None:
     """An empty lemma/form in a curated layer fails the build rather than shipping a '' key."""
     _layers(tmp_path, monkeypatch, fill="good\tgoods\nlemma\t\n")
-    with pytest.raises(ValueError, match="empty field"):
+    with pytest.raises(ValueError, match="empty"):
         dictionary_builder._apply_layers({}, "zz")
 
 
@@ -620,6 +620,7 @@ def test_scrub_drops_unreachable_keys_and_fixes_junk_values() -> None:
         "hithau": "prpers",  # template placeholder value -> dropped
         "Andre" + "\u0306" + "as": "andreas",  # decomposed key -> dropped
         "don\u2019t": "do",  # curly-quote key: reachable (runtime is NFC-only) -> kept
+        "Alssund": "Als Sund",  # spaced value: multi-word output never ships
     }
     out = dictionary_builder._scrub(d)
     assert out == {"dogs": "dog", "as": "a", "don\u2019t": "do"}
@@ -632,13 +633,39 @@ def test_curly_quote_override_form_survives(tmp_path, monkeypatch) -> None:
     assert out == {"don\u2019t": "do"}
 
 
+def test_key_alias_renormalizes_stacked_diacritics() -> None:
+    """The la macron fold on a stacked diacritic strands a combining mark;
+    the alias must re-NFC or it ships NFC-invalid and _clean_base kills it
+    next rebuild (shipped la 'Boō̈tēs' regression)."""
+    out = dictionary_builder._apply_build_normalization({"Boō̈tēs": "Bootes"}, "la")
+    assert "Boötes" in out  # precomposed ö, _valid_key-clean
+    assert all(dictionary_builder._valid_key(k) for k in out)
+
+
+def test_compose_restores_override_entries_from_junk_filter(
+    tmp_path, monkeypatch, caplog
+) -> None:
+    """Reviewed override entries outrank the junk predicates: bg 'II' ->
+    'втори' is deliberate, while the same shape from a machine source
+    (BGN transliteration) still drops."""
+    overrides = tmp_path / "overrides"
+    overrides.mkdir()
+    (overrides / "bg.tsv").write_text("втори\tII\n", encoding="utf-8")
+    base = {"радост": "радост", "rádost": "радост"}  # machine translit row
+    with caplog.at_level(logging.INFO, logger=dictionary_builder.LOGGER.name):
+        out = dictionary_builder._compose_from_base(base, "bg", overrides_dir=overrides)
+    assert out["II"] == "втори"  # restored
+    assert "rádost" not in out  # machine junk still dropped
+    assert "restored 1 reviewed override entries" in caplog.text
+
+
 def test_clean_base_drops_junk_keys_keeps_values() -> None:
     d = {
         "dogs": "dog",  # clean: kept
         "-la": "\u00e9l",  # leading-hyphen key (affix fragment) -> dropped
         "astro-": "astro-",  # trailing-hyphen key -> dropped
         "a_b": "ab",  # underscore key -> dropped
-        "Alssund": "Als Sund",  # spaced VALUE is legit -> kept
+        "Alssund": "Als Sund",  # spaced VALUE passes here; _scrub drops it post-layer
     }
     out = dictionary_builder._clean_base(d)
     assert out == {"dogs": "dog", "Alssund": "Als Sund"}

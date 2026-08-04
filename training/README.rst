@@ -183,7 +183,7 @@ Adding languages
 
 - The Simplemma approach currently works best on languages written from left to right, results will be impacted otherwise (e.g. Urdu).
 - The target language has to be prone to lemmatization by allowing for the reduction of at least two word forms to a single dictionary entry (e.g. Korean does not fit the current scope).
-- The new language (two- or three-letter ISO code) needs a word list at ``training/lists/<code>.txt`` (tab-separated, see "Input data" above) and has to be added to the dictionary data using the ``dictionary_builder`` script, it should then be available in ``SUPPORTED_LANGUAGES``.
+- The new language (two- or three-letter ISO code) needs a word list at ``training/lists/<code>.txt`` (tab-separated, see "Input data" above) and is ingested via a direct ``_build_dictionary("<code>", listpath="lists", in_place=True)`` call (NOT the ``dictionary_builder`` CLI, which only rebuilds already-shipped languages — see "Building the dictionaries" below); it should then be available in ``SUPPORTED_LANGUAGES``.
 
 
 Building the dictionaries
@@ -299,6 +299,11 @@ inputs live under ``training/data/``):
   then-current bases (5,096 rows dropped, verified byte-identical at the
   time; git history holds the fuller sets) and 17 of the 47 files never were.
   File length therefore reflects mining era, not curation quality.
+- ``verify_idempotence.py [lang ...]`` — byte-idempotence lint: every shipped
+  dictionary must recompose byte-identically from its own data (zero expected
+  drift; any difference means a pipeline change silently rewrites shipped
+  data). Run it by hand after pipeline or data changes (~15 min for all
+  languages, seconds per language).
 - ``eval_gate.py <lang> <baseline.tsv> <candidate.tsv>`` — release gate:
   refuse a candidate that regresses token- OR type-level accuracy on any UD
   treebank for the language (cross-treebank is automatic), each at its

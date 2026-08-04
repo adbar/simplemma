@@ -1,5 +1,6 @@
 import logging
 import sys
+from collections import Counter
 
 from simplemma.strategies.dictionaries import dictionary_factory
 from training import build_override as bo
@@ -72,8 +73,6 @@ def test_collect_candidates_skips_multiword_tokens(tmp_path):
 
 
 def _resolve(counts, pos=None):
-    from collections import Counter
-
     counts = {f: Counter(c) for f, c in counts.items()}
     if pos is None:
         pos = {f: Counter({"PRON": 1}) for f in counts}
@@ -94,8 +93,6 @@ def test_resolve_overrides_drops_low_agreement():
 
 
 def test_resolve_overrides_open_class_needs_more_evidence():
-    from collections import Counter
-
     pooled = {"corre": {"correr": 4}}  # enough for closed (>=3), not open (>=5)
     pos = {"corre": Counter({"VERB": 1})}
     assert _resolve(pooled, pos=pos) == {}
@@ -106,8 +103,6 @@ def test_resolve_overrides_open_class_needs_more_evidence():
 def test_resolve_overrides_per_treebank_veto():
     """A treebank attesting the form >=3 times with a DIFFERENT majority
     vetoes the pooled winner (the la 'esse' / fr 'se'->soi convention split)."""
-    from collections import Counter
-
     agreeing = {"esse": Counter({"esse": 30})}
     dissenting = {"esse": Counter({"sum": 3})}  # pooled: 91% agreement
     assert (
@@ -121,7 +116,7 @@ def test_resolve_overrides_per_treebank_veto():
     ) == {"esse": "esse"}
 
 
-def test_main_end_to_end_ships_on_pass(tmp_path, monkeypatch):
+def test_main_end_to_end_ships_on_pass(tmp_path, monkeypatch, caplog):
     """main(): mine train splits -> merge with existing -> gate vs the
     composed baseline -> --in-place promotes the reviewed file."""
     # shipped zz dict knows corre->correr; corres is the minable delta
@@ -147,8 +142,11 @@ def test_main_end_to_end_ships_on_pass(tmp_path, monkeypatch):
     monkeypatch.setattr(dictionary_builder, "OVERRIDES_DIR", overrides)
     monkeypatch.setattr(sys, "argv", ["build_override", "zz", "--in-place"])
 
-    bo.main()  # a gate FAIL or missing treebank would sys.exit
+    with caplog.at_level(logging.INFO, logger=bo.log.name):
+        bo.main()  # a gate FAIL or missing treebank would sys.exit
 
+    # the mined 'corres' is the delta, so the baseline reproduces 0/1
+    assert "0/1 mined forms already reproduced" in caplog.text
     expected = "correr\tcorres\n"
     assert (tmp_path / "output" / "zz.tsv").read_text(encoding="utf-8") == expected
     assert (overrides / "zz.tsv").read_text(encoding="utf-8") == expected
@@ -161,6 +159,44 @@ def test_merge_with_existing_keeps_reviewed_entries(tmp_path):
     )
     assert merged == {"es": "ser", "la": "la"}  # existing wins; spaced skipped
     assert added == 1
+
+
+def test_merge_with_existing_skips_unshippable_pairs(tmp_path):
+    """Everything merge writes must survive read_pairs + _layer_entries:
+    spaced lemmas (UD 'c.q.' -> 'casu quo' shipped multi-word output),
+    Cf-carrying forms (crashed the gate's re-read), and empty lemmas."""
+    candidates = {
+        "c.q.": "casu quo",  # spaced lemma
+        "basic\xadally": "basically",  # soft hyphen: Cf, read_pairs rejects
+        "x": "",  # empty lemma
+        "la": "la",
+    }
+    merged, added = bo.merge_with_existing(candidates, "nl", tmp_path)
+    assert merged == {"la": "la"}
+    assert added == 1
+
+
+def test_merge_with_existing_folds_nfc(tmp_path):
+    """An NFD-encoded candidate lands on the NFC key read_pairs reloads,
+    so it can't collide with itself in the gate step."""
+    nfd, nfc = "cafe\u0301", "caf\u00e9"
+    merged, _ = bo.merge_with_existing({nfd: nfd}, "fr", tmp_path)
+    assert merged == {nfc: nfc}
+
+
+def test_resolve_overrides_ties_are_insertion_order_independent():
+    # POS tie AUX/VERB: stricter open-class bar applies whichever came first
+    for pos_counts in ({"AUX": 3, "VERB": 3}, {"VERB": 3, "AUX": 3}):
+        pooled = {"es": Counter({"ser": 4})}
+        pos = {"es": Counter(pos_counts)}
+        assert bo.resolve_overrides([pooled], pos) == {}  # open bar needs >=5
+    # an evenly split treebank is ambivalent, not dissenting: no veto
+    agreeing = {"esse": Counter({"esse": 30})}
+    for split_counts in ({"esse": 3, "sum": 3}, {"sum": 3, "esse": 3}):
+        split_tb = {"esse": Counter(split_counts)}
+        assert bo.resolve_overrides(
+            [agreeing, split_tb], {"esse": Counter({"AUX": 1})}
+        ) == {"esse": "esse"}
 
 
 def test_merge_with_existing_warns_on_candidate_collision(tmp_path, caplog):

@@ -206,7 +206,7 @@ def test_read_pairs_raises_on_malformed_row(tmp_path) -> None:
 def test_read_pairs_raises_on_empty_field(tmp_path) -> None:
     path = tmp_path / "empty_field.tsv"
     path.write_text("el\tel\nlemma\t\n", encoding="utf-8")
-    with pytest.raises(ValueError, match="empty field"):
+    with pytest.raises(ValueError, match="empty"):
         clean_wordlist.read_pairs(path)
 
 

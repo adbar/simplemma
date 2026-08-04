@@ -18,6 +18,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from simplemma.strategies import DefaultStrategy
 from training.clean_wordlist import read_pairs
 from training.eval_harness import (
     accuracy,
@@ -76,6 +77,7 @@ def gate(
     baseline: dict[str, str],
     candidate: dict[str, str],
     ud_splits: Path | None = None,
+    baseline_strategy: DefaultStrategy | None = None,
 ) -> list[TreebankResult]:
     """Token+type accuracy for baseline and candidate on every treebank for
     `lang`, each at its most-held-out split -- resolved per TREEBANK, so
@@ -100,8 +102,10 @@ def gate(
     if not treebanks:
         raise ValueError(f"no UD treebank of any split found for language {lang!r}")
 
-    # build each strategy once (encoding is the costly part), reuse
-    baseline_strategy = build_strategy(baseline)
+    # build each strategy once (encoding is the costly part), reuse; a caller
+    # that already built the baseline strategy passes it in instead
+    if baseline_strategy is None:
+        baseline_strategy = build_strategy(baseline)
     candidate_strategy = build_strategy(candidate)
 
     results = []

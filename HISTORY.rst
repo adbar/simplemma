@@ -28,11 +28,26 @@ History
 - The correction lists shed 5,096 entries (9%) that the dictionaries already
   reproduced, verified to leave every built dictionary byte-identical: the
   reviewed files are that much shorter to review, with no accuracy change
+- Latin dictionary enlarged by 142,000 entries from a merged fresh
+  extraction (+0.3 to +1.5 accuracy points on five of the six UD treebanks,
+  e.g. PROIEL type accuracy 0.727 → 0.742); the sixth, CIRCSE, dips 0.2
+  points from its lowercase-proper-noun lemma convention, adopted knowingly
+- Indonesian correction list adopted after pruning its treebank-convention
+  conflicts (360 case-folding rows dropped): +1.3 points on GSD and +0.5 on
+  PUD; CSUI dips 0.2 points on exact match from its case-preserving lemma
+  convention while improving 0.7 points case-folded, adopted knowingly
 - Dictionary consistency pass across all languages: missing identity
   self-maps and casing/fold lookup aliases restored (+715 entries over 9
   languages) and residual foreign-script junk keys removed (fa/uk/ar/hi/grc,
   including 9% of the Persian dictionary);
-  every shipped dictionary now rebuilds byte-identically from its own data
+  every shipped dictionary now rebuilds byte-identically from its own data;
+  legacy junk values purged from the shipped bases (169 German entries
+  mapping real words to the literal placeholder ``unknown`` — unmasking 88
+  correct lemmas the placeholders had shadowed — 10 vandalized Russian
+  entries, and the remaining multi-word lemmas across eight languages:
+  a lemmatizer must never return more than one word), each removal gated
+  against every treebank; reviewed correction entries now outrank the
+  per-language junk filters
 - Compound-boundary markers in Finnish/Estonian/Hungarian gold lemmas
   (``yli#opisto``), which no plain-text lemma can contain, are stripped
   before comparison — except where the marker also occurs in the surface
