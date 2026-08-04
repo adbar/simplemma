@@ -192,28 +192,14 @@ Building the dictionaries
 ``training/dictionary_builder.py`` reads a language's word list and writes the compressed, front-coded ``.plzma`` dictionary the runtime loads (see ``frontcode.py``, which replaced the pickled format in 2.0.0). Two things to know before running it:
 
 - Without ``--in-place``, output goes to ``training/output/`` (gitignored) rather than the real package data, so a run never clobbers a shipped dictionary by accident. Pass ``--in-place`` to write into the installed package and actually update what ships.
-- ``--base`` selects the base the override/fill layers compose over: ``fresh`` (default) rebuilds from the word list, ``shipped`` reuses the installed ``.plzma`` verbatim, and ``merged`` (policy B) rebuilds a fresh base but keeps the curated shipped mappings on shared keys, so the fresh extraction only *adds* new keys and existing mappings change only via a reviewed override. ``shipped`` and ``merged`` read the currently installed dict, so run them once from a clean checkout before ``--in-place`` overwrites it.
-- Its ``__main__`` CLI (``python3 -m training.dictionary_builder --in-place``) only *rebuilds* languages already in ``SUPPORTED_LANGUAGES``, since that set is derived from the ``.plzma`` files already on disk. To add a genuinely *new* language, call ``_build_dictionary`` directly instead, e.g.:
+- The base of a routine rebuild is the installed dictionary itself — the shipped ``.plzma`` is the pinned artifact, decoded and recomposed through the layers and stages, so a rebuild is idempotent when nothing changed. There is no way to accidentally rebuild a curated language from a thin word list.
+- Passing a word-list directory (``listpath``, direct ``_build_dictionary`` call) *ingests* new data instead: the resolved list becomes the base, and for an already-shipped language the installed mappings win every shared key (policy B) — a re-extraction can only *add* keys; an existing mapping changes only via a reviewed override.
+- Its ``__main__`` CLI (``python3 -m training.dictionary_builder --in-place``) only *rebuilds* languages already in ``SUPPORTED_LANGUAGES``, since that set is derived from the ``.plzma`` files already on disk. To add a genuinely *new* language (or ingest a fresh extraction), call ``_build_dictionary`` directly instead, e.g.:
 
 .. code-block:: python
 
     from training.dictionary_builder import _build_dictionary
-    _build_dictionary("xx", in_place=True)
-
-- **Rebuilding an already-shipped, hand-curated language: use ``--base
-  shipped``, not ``fresh``.** A shipped dict can accumulate curation
-  (overrides, key aliases, value normalization, fill) beyond what the base
-  word list alone reproduces, so ``fresh`` can *silently diverge* from what's
-  actually shipped — measured on ``nn``, where a bare ``--base fresh``
-  rebuild differed from the shipped dict in ~12,600 entries (4,239 changed
-  values plus ~8,300 extra/missing keys) even before any fill/alias work.
-  ``--base shipped`` is idempotent by construction: rebuilding it from
-  itself, or from an untouched copy of itself with a config-only change
-  layered on top (e.g. a new ``BUILD_NORMALIZATION``
-  entry), reproduces the exact same bytes when nothing new is added. Only use
-  ``fresh`` to rebuild a language that has never accumulated shipped-only
-  curation (a genuinely new language, or one you're deliberately re-deriving
-  from scratch after reviewing what would be lost).
+    _build_dictionary("xx", listpath="lists", in_place=True)
 
 
 Example using ``kaikki.org``
@@ -254,8 +240,8 @@ as the *base* word list instead — same extractor, different destination:
 
     python3 -m training.wikidata_lexemes ml training/data/wikidata/latest-lexemes.json.gz training/lists/ml.txt
 
-3. Build with ``--base fresh`` as usual (no shipped dict exists yet, so
-   there's nothing to diverge from): ``_build_dictionary("ml", in_place=True)``.
+3. Build from the list (no shipped dict exists yet, so nothing layers on
+   top): ``_build_dictionary("ml", listpath="lists", in_place=True)``.
 4. ``training/lists/<code>.txt`` is git-ignored like every other list file,
    so it must be regenerated from the dump to rebuild the dictionary later —
    there is no committed copy of the extracted word list, only the shipped
@@ -289,23 +275,18 @@ inputs live under ``training/data/``):
   using Wikidata as the PRIMARY source" above.
 - ``build_override.py <lang> [--in-place]`` — mine an override lexicon from
   ALL of the language's UD train splits (closed-class at ≥3/90%, open-class at
-  ≥5/95%, plus a per-treebank majority veto against convention splits), keep
-  only entries the shipped pipeline gets wrong, and gate the merged candidate
-  with ``eval_gate`` on every train treebank. Output goes to
-  ``training/output/`` unless ``--in-place`` updates the reviewed file on a
-  passing gate; shipping still requires a dictionary rebuild. Deterministic
-  given a pinned UD version (``download_eval_data.py`` fixes UD 2.18,
-  md5-verified).
+  ≥5/95%, plus a per-treebank majority veto against convention splits), and
+  gate the merged candidate with ``eval_gate`` on every train treebank.
+  Output goes to ``training/output/`` unless ``--in-place`` updates the
+  reviewed file on a passing gate; shipping still requires a dictionary
+  rebuild. Deterministic given a pinned UD version (``download_eval_data.py``
+  fixes UD 2.18, md5-verified).
 
   The committed ``training/overrides/<code>.tsv`` files are **reviewed
-  source-of-truth, not a build output**: edit them directly, do not expect a
-  re-run to reproduce them. Two reasons a fresh mine differs: (1) the shipped
-  files were mined across *all* of a language's train treebanks (this CLI takes
-  one), and (2) they were then trimmed to drop entries that merely duplicated
-  the shipped base at trim time — so a re-mine yields the fuller, untrimmed set.
-  That trim makes each remaining line a real correction/addition, at the cost of
-  coupling the file to that base: to refresh after a UD bump, re-mine the full
-  set, re-review, and re-trim rather than regenerating in place.
+  source-of-truth**: a pure function of the UD data plus review, never of the
+  current dictionary. Entries the pipeline already reproduces are kept — they
+  are harmless (the override layer wins with the same mapping) — and only
+  counted in the run's log, so a re-mine after a UD bump merges cleanly.
 
   ``--in-place`` rewrites that reviewed file through the same loader the build
   uses, which is *lossy by policy*: a multi-word form is dropped (unreachable —
@@ -314,25 +295,17 @@ inputs live under ``training/data/``):
   round trip today, but a hand-added spaced entry would be lost permanently.
   Prefer the default ``training/output/`` run and diff it by hand.
 
-  A second trim removed 5,096 rows (26 of the 47 files) that a ``fresh`` base
-  already reproduced — verified to leave every built dictionary byte-identical
-  under both ``fresh`` and ``shipped``. It carries the same coupling as the
-  delta trim above: those rows are redundant *against the base as it was*, so
-  refreshing the word lists or kaikki dumps can make a dropped row
-  load-bearing again.
-
-  17 files (including the longest, ``cs`` and ``ru``) are untrimmed
-  and expected to stay that way: the trim needs a ``fresh`` base, word lists
-  are deliberately not committed (see above), and the shipped ``.plzma``
-  cannot substitute — it already contains the layer, so every row looks
-  redundant against it and a trim on that basis would delete the lot. Judge
-  file length per language accordingly; a long file is not evidence of a
-  worse-curated language.
+  Historical note: the 2.0.0-era files were delta-trimmed against their
+  then-current bases (5,096 rows dropped, verified byte-identical at the
+  time; git history holds the fuller sets) and 17 of the 47 files never were.
+  File length therefore reflects mining era, not curation quality.
 - ``eval_gate.py <lang> <baseline.tsv> <candidate.tsv>`` — release gate:
   refuse a candidate that regresses token- OR type-level accuracy on any UD
-  train treebank for the language (cross-treebank is automatic) — train is the
-  only split that is not published. Falls back to dev, then test, with a
-  WARNING, for a language that has no train split.
+  treebank for the language (cross-treebank is automatic), each at its
+  most-held-out split — train, the only split that is not published, falling
+  back per TREEBANK to dev, then test, with a WARNING. Per-treebank
+  resolution keeps test-only parallel treebanks (``fi_pud``, ``ru_pud``, …)
+  in the gate next to their train-having siblings.
 
 ``ud_conllu.py`` holds the shared UD conventions (the dataset-name → language
 map and the gold-token iteration rule) these tools read with.

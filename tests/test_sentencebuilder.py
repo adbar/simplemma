@@ -127,6 +127,18 @@ def test_main_check_only_scores_the_shipped_list(tmp_path, monkeypatch, capsys):
     assert "mined" not in out
 
 
+def test_main_falls_back_to_test_without_dev(tmp_path, monkeypatch, capsys):
+    """se/gv ship train+test but no dev -- scoring must fall back to test
+    (with a warning) instead of aborting."""
+    _treebank(tmp_path / "de_x-ud-test.conllu", ["Ein Satz.", "Noch einer."])
+
+    _cli(tmp_path, monkeypatch, "de", "--check")
+
+    out = capsys.readouterr().out
+    assert out.startswith("WARNING: no dev treebank")
+    assert "test treebanks" in out
+
+
 def test_main_errors_without_a_test_treebank(tmp_path, monkeypatch):
     with pytest.raises(SystemExit) as excinfo:
         _cli(tmp_path, monkeypatch, "xx")

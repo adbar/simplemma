@@ -85,6 +85,21 @@ def test_gate_falls_back_to_a_reported_split_and_warns(tmp_path, caplog):
     assert "no UD train split" in caplog.text and "DEV" in caplog.text
 
 
+def test_gate_resolves_split_per_treebank(tmp_path, caplog):
+    """A test-only sibling (*_pud) keeps gate coverage next to a train-having
+    treebank -- per-language split resolution would silently drop it."""
+    (tmp_path / "en_x-ud-train.conllu").write_text(
+        _conllu([(1, "dogs", "dog")]), encoding="utf-8"
+    )
+    (tmp_path / "en_pud-ud-test.conllu").write_text(
+        _conllu([(1, "cats", "cat")]), encoding="utf-8"
+    )
+    with caplog.at_level(logging.WARNING, logger=eval_gate.log.name):
+        results = eval_gate.gate("en", {}, {"dogs": "dog"}, ud_splits=tmp_path)
+    assert [r.treebank for r in results] == ["en_pud-ud-test", "en_x-ud-train"]
+    assert "en_pud has no UD train split" in caplog.text and "TEST" in caplog.text
+
+
 def test_gate_falls_back_all_the_way_to_test(tmp_path, caplog):
     """A test-only treebank (tl) exercises the last fallback level."""
     (tmp_path / "en_x-ud-test.conllu").write_text(

@@ -28,9 +28,7 @@ _UNCONDITIONAL_DROP_TAGS = frozenset(
         "class",
         "romanization",
         "transliteration",
-        # Baybayin-script display variant of the headword (Tagalog), not an
-        # inflected form -- same rationale as romanization/transliteration.
-        # Verified inert (0 rows) on every other on-disk dump, so kept global.
+        # tl Baybayin display-variant rows; verified inert on every other dump.
         "Baybayin",
     }
 )
@@ -41,14 +39,10 @@ _UNCONDITIONAL_DROP_TAGS = frozenset(
 _CROSS_REFERENCE_TAGS = frozenset({"pronoun", "possessive", "auxiliary"})
 
 
-# error-unrecognized-form is kaikki's "couldn't parse this template cell"
-# marker. NOT a reliable junk signal in general: a 27-lang audit (2026-07-21)
-# found it co-occurring with real grammatical forms in hu/lt/cy/ga/gl/sq/ka/
-# lv/sv/da (e.g. Welsh mutation brown->mrown, Irish prothesis ab->t-ab) --
-# dropping it globally would delete real inflections there. On Tagalog verb
-# pages it marks template header cells (root, bare affix, trigger labels)
-# bleeding into the forms list, worth +1pp+ vs identity -- so dropped there
-# only. (Narrower "drop only when it's the sole tag" measured WORSE on tl.)
+# error-unrecognized-form is NOT a reliable junk signal: a 27-lang audit
+# found it on real forms (cy mutation, ga prothesis). On tl verb pages it
+# marks header-cell junk, worth +1pp+ -- dropped there only ("sole tag"
+# variant measured WORSE).
 _DROP_UNRECOGNIZED_FORM_LANGS = frozenset({"tl"})
 
 _PLACEHOLDER_FORM = "-"  # marks a form that doesn't exist for this word
@@ -127,21 +121,26 @@ def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
         return
 
     yielded_form = False
+    dropped_junk = False
     for form in entry.get("forms", ()):
         word_form = form.get("form")
         tags = form.get("tags", ())
-        if (
-            not word_form
-            or word_form == _PLACEHOLDER_FORM
-            or _UNCONDITIONAL_DROP_TAGS.intersection(tags)
-            or (drop_unrecognized and "error-unrecognized-form" in tags)
-            or (word_form != word and _CROSS_REFERENCE_TAGS.intersection(tags))
+        if not word_form or word_form == _PLACEHOLDER_FORM:
+            continue
+        if _UNCONDITIONAL_DROP_TAGS.intersection(tags) or (
+            drop_unrecognized and "error-unrecognized-form" in tags
         ):
+            dropped_junk = True
+            continue
+        if word_form != word and _CROSS_REFERENCE_TAGS.intersection(tags):
             continue
         for variant in _expand_optional_group(word_form):
             yield (norm_word, _normalize(variant, fold))
         yielded_form = True
-    if not yielded_form:
+    # Identity fallback for uninflected headwords (grc μέν) -- but never after
+    # a junk-tag drop, which must not resurrect as an identity key. The
+    # fallback also votes in resolution ties; the per-language gates cover it.
+    if not yielded_form and not dropped_junk:
         yield (norm_word, norm_word)
 
 

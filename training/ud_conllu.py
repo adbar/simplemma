@@ -53,19 +53,32 @@ def canon_lemma(lemma: str, form: str, lang: str) -> str:
     `lang` (a no-op outside _CANON_TABLES), so gold is compared/mined in the
     shipped dict's own key space.
 
-    A marker also present in `form` belongs to the token ('#luonto', '16+3'),
-    not to the annotation, so the strip is skipped there; a real compound
-    marker never survives into the form (yli#opisto -> yliopisto). `form` may
-    arrive already MWT-stripped -- the strip is idempotent."""
+    A marker also present in `form` belongs to the token, decided per
+    occurrence (see _strip_compound_markers): '#oscarit' keeps gold '#Oscar'.
+    `form` may arrive already MWT-stripped -- the strip is idempotent."""
     lemma = _strip_mwt_artifact(lemma)
     separator = _GOLD_COMPOUND_SEPARATORS.get(lang)
-    if separator and separator in lemma and lemma != _strip_mwt_artifact(form):
-        # `or lemma`: an all-marker lemma must not strip to nothing. Unreachable
-        # in UD 2.18 (every such lemma equals its form, so the gate above skips
-        # it) but that is a property of the data, not of the code -- without it
-        # a UD bump could turn gold into "" and score every prediction wrong.
-        lemma = lemma.replace(separator, "") or lemma
+    if separator and separator in lemma:
+        lemma = _strip_compound_markers(lemma, _strip_mwt_artifact(form), separator)
     return canonicalize_token(lemma, lang)
+
+
+def _strip_compound_markers(lemma: str, form: str, separator: str) -> str:
+    """Keep marker occurrences that are token content, strip the rest: an
+    all-marker lemma stays whole (never strip to ""); a marker word-internal
+    in the form means the lemma's markers are real ('MAX_FILE_SIZE', '16+3');
+    otherwise internal markers strip (yli#opisto) and an edge run survives
+    only when the form carries the marker at that edge ('#oscarit')."""
+    core = lemma.strip(separator)
+    if not core or separator in form.strip(separator):
+        return lemma
+    head = lemma[: len(lemma) - len(lemma.lstrip(separator))]
+    tail = lemma[len(lemma.rstrip(separator)) :]
+    if not form.startswith(separator):
+        head = ""
+    if not form.endswith(separator):
+        tail = ""
+    return head + core.replace(separator, "") + tail
 
 
 def iter_word_tokens_in_sentences(

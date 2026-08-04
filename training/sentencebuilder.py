@@ -1,20 +1,13 @@
 """Regenerate the sentence-starter lists that `simplemma.sentences` ships.
 
 At every '.'-junction the splitter suppresses, gold either puts a boundary
-there or it does not, so a candidate's verdict is just two counters -- no
-search over candidate lists. Mine those counts on the *-ud-train splits, then
-keep the mined list only if it beats the shipped one on the *-ud-dev splits,
-scored by sentence-boundary F1 over both registers (space-joined and
-newline-joined).
+or not, so a candidate's verdict is two counters. Mine on the *-ud-train
+splits, adopt only if it beats the shipped list on *-ud-dev (train would be
+circular; dev costs nothing published -- the reported metric is PUD F1). No
+dev treebank (se, gv) falls back to test, with a warning.
 
-Dev here, not train like eval_gate: starters are mined FROM train, so scoring
-them on train would be circular (a mined starter fixes the very boundaries it
-came from). Using dev costs nothing published -- the splitter's reported metric
-is PUD boundary F1, and dev's published lemma accuracy is not selected by a
-splitter decision.
-
-Abbreviations are deliberately not mined: held out they are worth +0.0002 to
-+0.0025 F1 (the curated lists are saturated), against up to +0.09 for starters.
+Abbreviations are deliberately not mined: worth +0.0002-0.0025 F1 held out,
+vs up to +0.09 for starters.
 
 Usage: uv run python -m training.sentencebuilder <lang> [--check]
 """
@@ -150,12 +143,25 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    dev = discover_treebanks(args.lang, "dev", ud_splits=UD_SPLITS)
-    if not dev:
-        parser.error(f"no *-ud-dev treebank for {args.lang!r} in {UD_SPLITS}")
-    held_out = [gold_sentences(path) for path in dev]  # parsed once, scored twice
+    held_out_split = "dev"
+    paths = discover_treebanks(args.lang, "dev", ud_splits=UD_SPLITS)
+    if not paths:
+        # se/gv ship train+test treebanks but no dev
+        held_out_split = "test"
+        paths = discover_treebanks(args.lang, "test", ud_splits=UD_SPLITS)
+        if paths:
+            print(
+                f"WARNING: no dev treebank for {args.lang!r}: scoring on TEST, "
+                "a reported split"
+            )
+    if not paths:
+        parser.error(f"no *-ud-dev or -test treebank for {args.lang!r} in {UD_SPLITS}")
+    held_out = [gold_sentences(path) for path in paths]  # parsed once, scored twice
     shipped = boundary_f1(args.lang, held_out)
-    print(f"shipped: {shipped:.5f} boundary F1 over {len(dev)} dev treebanks")
+    print(
+        f"shipped: {shipped:.5f} boundary F1 "
+        f"over {len(paths)} {held_out_split} treebanks"
+    )
     if args.check:
         return
 

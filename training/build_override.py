@@ -1,22 +1,19 @@
 """Mine a reviewed override lexicon (form -> lemma) for one language from its
 UD train splits, and gate it end-to-end before it can ship.
 
-Methodology (validated 2026-08: 7 closed-class languages, then the la
-open-class wave, README la 0.85 -> 0.90): pool every -ud-train split; keep a
-form's majority lemma when the pooled evidence is strong enough for its POS
-class AND every treebank that sees the form often enough agrees on the same
-lemma. The per-treebank rule removes cross-treebank convention splits (la
-"esse" ittb-vs-rest, fr "se" -> soi vs se) -- exactly the entries that would
-not transfer. Only forms the shipped pipeline currently gets wrong are kept,
-so the file stays a reviewable delta.
+Pool every -ud-train split; keep a form's majority lemma when the pooled
+evidence clears its POS-class bar AND every often-attesting treebank agrees
+(the per-treebank veto removes convention splits: la "esse", fr "se" -> soi).
+Every threshold-clearing form is kept -- the file is a pure function of the
+UD data plus review; already-reproduced entries are only counted in the log.
 
 Usage: uv run python -m training.build_override <lang> [--in-place]
 
 The merged candidate file (existing overrides + mined additions) is gated
 with eval_gate on every train treebank; output goes to training/output/
 unless --in-place updates training/overrides/<lang>.tsv. Shipping the effect
-still requires a dictionary rebuild (python -m training.dictionary_builder,
---base shipped or merged, --in-place).
+still requires a dictionary rebuild (python -m training.dictionary_builder
+--in-place).
 """
 
 import argparse
@@ -108,24 +105,33 @@ def resolve_overrides(per_treebank: list[Counts], pos: Counts) -> dict[str, str]
 
 
 def merge_with_existing(
-    candidates: dict[str, str], lang: str, overrides_dir: Path = OVERRIDES_DIR
+    candidates: dict[str, str], lang: str, overrides_dir: Path | None = None
 ) -> tuple[dict[str, str], int]:
     """Existing reviewed entries win their forms; candidates are folded into
     the runtime key space before comparison. Returns (merged, n_added).
-
-    Candidates are keyed by RAW form, so for grc/he/ar two forms can fold to one
-    canonical key and the first lemma wins silently (_layer_entries raises on
-    this in a hand-edited file). Measured zero collisions, so a loud check would
-    be dead code -- re-measure after a UD bump."""
-    path = overrides_dir / f"{lang}.tsv"
+    `overrides_dir` defaults to OVERRIDES_DIR at call time (monkeypatchable).
+    grc/he/ar candidates can fold to one canonical key: the first lemma wins,
+    with a WARNING (_layer_entries raises on this in a hand-edited file)."""
+    path = (overrides_dir or OVERRIDES_DIR) / f"{lang}.tsv"
     existing = _layer_entries(path, lang) if path.exists() else {}
     added = 0
     merged = dict(existing)
     for form, lemma in candidates.items():
         cform = canonicalize_token(form, lang)
-        if " " in cform or not cform or cform in merged:
+        if " " in cform or not cform:
             continue
-        merged[cform] = canonicalize_token(lemma, lang)
+        clemma = canonicalize_token(lemma, lang)
+        if cform in merged:
+            if cform not in existing and merged[cform] != clemma:
+                log.warning(
+                    "%s: candidates collide on canonical key %r: kept %r, dropped %r",
+                    lang,
+                    cform,
+                    merged[cform],
+                    clemma,
+                )
+            continue
+        merged[cform] = clemma
         added += 1
     return merged, added
 
@@ -148,17 +154,20 @@ def main() -> None:
         sys.exit(f"no -ud-train split found for {lang!r}")
     candidates = resolve_overrides(*collect_candidates(train_paths, lang))
 
-    # delta-only: an entry the baseline already reproduces is noise in a
-    # reviewed file. Same composed baseline as the gate, so they can't drift.
-    baseline = _compose_dictionary(lang, base="shipped")
+    # Redundancy is reported, never filtered: the committed file stays a pure
+    # function of UD + review. Same composed baseline as the gate below.
+    baseline = _compose_dictionary(lang)
     baseline_strategy = build_strategy(baseline)
-    candidates = {
-        form: lemma
+    redundant = sum(
+        1
         for form, lemma in candidates.items()
-        if (baseline_strategy.get_lemma(form, lang) or form) != lemma
-    }
+        if (baseline_strategy.get_lemma(form, lang) or form) == lemma
+    )
     merged, n_added = merge_with_existing(candidates, lang)
-    log.info(f"{lang}: {n_added} new entries over {len(merged) - n_added} existing")
+    log.info(
+        f"{lang}: {n_added} new entries over {len(merged) - n_added} existing; "
+        f"{redundant}/{len(candidates)} mined forms already reproduced by the baseline"
+    )
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     out_path = OUTPUT_DIR / f"{lang}.tsv"
@@ -167,7 +176,7 @@ def main() -> None:
         log.info(f"nothing to gate; candidate written to {out_path}")
         return
 
-    candidate = _compose_dictionary(lang, base="shipped", overrides_dir=OUTPUT_DIR)
+    candidate = _compose_dictionary(lang, overrides_dir=OUTPUT_DIR)
     if not report_results(gate(lang, baseline, candidate), args.epsilon):
         sys.exit(f"gate FAILED for {lang}; candidate left in {out_path} for review")
     if args.in_place:

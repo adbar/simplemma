@@ -22,13 +22,18 @@ History
   (development data would have rejected the whole Lithuanian layer over a
   0.6-point dip on a 1,086-token treebank that improves on both other splits).
   Training does overstate the size of a gain, by a mean 1.22×, so it is used
-  only for the accept/reject decision and never to report. A language with no
-  training split is gated on a reported split instead and logs a warning, so
-  its figure is optimistic.
-- The correction lists shed 4,633 entries (8%) that the dictionaries already
+  only for the accept/reject decision and never to report. A treebank with no
+  training split (e.g. the parallel PUD sets) is gated on a reported split
+  instead and logs a warning, so its figure is optimistic.
+- The correction lists shed 5,096 entries (9%) that the dictionaries already
   reproduced, verified to leave every built dictionary byte-identical: the
   reviewed files are that much shorter to review, with no accuracy change
-  Compound-boundary markers in Finnish/Estonian/Hungarian gold lemmas
+- Dictionary consistency pass across all languages: missing identity
+  self-maps and casing/fold lookup aliases restored (+715 entries over 9
+  languages) and residual foreign-script junk keys removed (fa/uk/ar/hi/grc,
+  including 9% of the Persian dictionary);
+  every shipped dictionary now rebuilds byte-identically from its own data
+- Compound-boundary markers in Finnish/Estonian/Hungarian gold lemmas
   (``yli#opisto``), which no plain-text lemma can contain, are stripped
   before comparison — except where the marker also occurs in the surface
   form (``#luonto``, ``MAX_FILE_SIZE``), which is part of the token

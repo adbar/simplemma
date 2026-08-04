@@ -1,3 +1,4 @@
+import logging
 import sys
 
 from simplemma.strategies.dictionaries import dictionary_factory
@@ -121,8 +122,8 @@ def test_resolve_overrides_per_treebank_veto():
 
 
 def test_main_end_to_end_ships_on_pass(tmp_path, monkeypatch):
-    """main(): mine train splits -> delta-filter vs the composed baseline ->
-    gate on the test split -> --in-place promotes the reviewed file."""
+    """main(): mine train splits -> merge with existing -> gate vs the
+    composed baseline -> --in-place promotes the reviewed file."""
     # shipped zz dict knows corre->correr; corres is the minable delta
     (tmp_path / "zz.txt").write_text("correr\tcorre\n", encoding="utf-8")
     dictionary_builder._build_dictionary(
@@ -160,3 +161,14 @@ def test_merge_with_existing_keeps_reviewed_entries(tmp_path):
     )
     assert merged == {"es": "ser", "la": "la"}  # existing wins; spaced skipped
     assert added == 1
+
+
+def test_merge_with_existing_warns_on_candidate_collision(tmp_path, caplog):
+    """Two mined forms folding to one canonical key with different lemmas:
+    first wins, but LOUDLY (_layer_entries raises on this in a reviewed file)."""
+    candidates = {"שָׁלוֹם": "לום", "שלום": "אחר"}  # both fold to שלום
+    with caplog.at_level(logging.WARNING, logger=bo.log.name):
+        merged, added = bo.merge_with_existing(candidates, "he", tmp_path)
+    assert merged == {"שלום": "לום"}
+    assert added == 1
+    assert "collide" in caplog.text

@@ -341,6 +341,15 @@ def test_extract_pairs_identity_for_uninflected_headword():
     assert list(extract_pairs({"word": "μέν"})) == [("μέν", "μέν")]
 
 
+def test_extract_pairs_no_identity_after_junk_form_drop():
+    """An entry whose whole forms table was never-real rows must NOT fall
+    back to identity -- that would resurrect what the drop tags block."""
+    entry = {"word": "plants", "forms": [{"form": "plánts", "tags": ["romanization"]}]}
+    assert list(extract_pairs(entry)) == []
+    entry = {"word": "x", "forms": [{"form": "y", "tags": ["table-tags"]}]}
+    assert list(extract_pairs(entry)) == []
+
+
 def test_extract_pairs_no_identity_when_relation_exists():
     entry = {"word": "Hunde", "senses": [{"form_of": [{"word": "Hund"}]}]}
     assert list(extract_pairs(entry)) == [("Hund", "Hunde")]

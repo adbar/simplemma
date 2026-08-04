@@ -94,15 +94,23 @@ def test_canon_lemma_strips_compound_separators():
 
 
 def test_canon_lemma_keeps_marker_present_in_the_form():
-    """A marker occurring in the surface form is part of the token, not a
-    compound annotation -- stripping it would turn a correct identity
-    prediction into an error (real UD rows: fi '#luonto', et 'MAX_FILE_SIZE',
-    hu '16+3')."""
+    """A marker in the surface form is token content, not annotation
+    (real UD rows: fi '#luonto', et 'MAX_FILE_SIZE', hu '16+3')."""
     assert canon_lemma("#luonto", "#luonto", "fi") == "#luonto"
     assert canon_lemma("MAX_FILE_SIZE", "MAX_FILE_SIZE", "et") == "MAX_FILE_SIZE"
     assert canon_lemma("16+3", "16+3", "hu") == "16+3"
     # the gate compares MWT-stripped, so a he-style artifact can't defeat it
     assert canon_lemma("20_000_", "_20_000", "et") == "20_000"
+
+
+def test_canon_lemma_keeps_marker_per_occurrence_on_inflected_forms():
+    """Per-occurrence, not whole-string equality: an inflected form keeps the
+    edge marker it carries ('#oscarit' / '#Oscar' -- equality testing
+    corrupted 45 fi/et gold rows), internal compound markers still go."""
+    assert canon_lemma("#Oscar", "#oscarit", "fi") == "#Oscar"
+    assert canon_lemma("#luonto#kuva", "#luontokuvan", "fi") == "#luontokuva"
+    # no marker in the form at all: the lemma's markers are annotation
+    assert canon_lemma("#yli#opisto", "yliopistot", "fi") == "yliopisto"
 
 
 def test_canon_lemma_never_strips_a_lemma_to_nothing():
