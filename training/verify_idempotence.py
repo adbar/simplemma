@@ -28,7 +28,7 @@ def drifted_languages(langs: list[str]) -> list[str]:
     for lang in langs:
         mydict = _compose_dictionary(lang)
         encoded = {k.encode(): v.encode() for k, v in mydict.items()}
-        recomposed = frontcode.encode(
+        recomposed = frontcode._encode(
             encoded, reverse_key=lang in FRONTCODE_REVERSE_KEY_LANGS
         )
         shipped = (Path(dictionary_factory.DATA_FOLDER) / f"{lang}.plzma").read_bytes()

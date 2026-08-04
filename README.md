@@ -11,7 +11,8 @@ Pure Python, no models to download, works offline.
 
 - **A 19 MB install** with no per-language downloads: 9 of the 54 languages have
   no Stanza lemmatizer and 34 no spaCy pipeline
-- **~1.9M tokens/s** (German) and **~3.4M** (English), milliseconds to first lemma
+- **~1.9M tokens/s** (German) and **~3.4M** (English) with tokenization
+  included, over 100 MB/s sentence splitting, milliseconds to first lemma
 - **Tunable RAM footprint**: ~175 MB, ~50 MB with `low_memory=True`, or ~30 MB per
   language with tries
 - **0.91 to 0.97 accuracy** for 34 languages, German at 0.97 and English at
@@ -58,13 +59,13 @@ Python 3.10 or later is required: the last version supporting 3.8 and 3.9
 is `simplemma==1.1.2`, and `simplemma==1.0.0` for 3.6 and 3.7.
 
 
-## Usage
-
 <!-- include:quickstart:end -->
 
-### Quick start
+## Usage
 
 <!-- include:usage:start -->
+### Quick start
+
 Pick a language and apply it to a single word, to a list of tokens, or to a
 whole text through the built-in tokenizer:
 
@@ -107,9 +108,8 @@ sequence:
 
 ### Greedier decomposition
 
-For certain languages a greedier decomposition is activated by default
-as it can be beneficial, mostly due to a certain capacity to address
-affixes in an unsupervised way. It can be triggered manually by setting
+For some languages a greedier decomposition is active by default because
+it helps to strip affixes. It can be triggered manually by setting
 the `greedy` parameter to `True`, which adds an iteration of the search
 algorithm and may come closer to stemming than to lemmatization.
 
@@ -135,15 +135,9 @@ A simple tokenization function is provided for convenience:
 <generator object ...>
 ```
 
-The tokenizer is script-aware: in-word joiners stay inside their word
-(`l'homme`, `בית־ספר`), as do the combining marks of Hebrew, Arabic,
-Devanagari and Malayalam. Punctuation becomes its own token, but a run of
-the same character stays whole (`...`, `--`), and numbers keep their
-internal separators (`3,50`, `4:1`, `3/5`). A currency sign priced against a
-number is a token of its own on either side, even where the text glues it
-(`€3.50` and `50€` both split, following UD gold). A sign attached to a word
-stays part of it (`R$`, `US$`). Characters outside the word and punctuation
-sets, such as emoji and arrows, are not emitted as tokens.
+The tokenizer is script-aware. In-word joiners and combining marks stay
+inside their word (`l'homme`, `בית־ספר`), punctuation becomes its own token,
+and numbers and currency amounts keep a sensible shape (`3,50`, `€3.50`).
 
 Measured against Universal Dependencies gold, token-level F1 is 0.97 to
 0.998 for most languages (median 0.99), lower for French, Catalan and
@@ -199,16 +193,11 @@ evaluated languages, with no added dependency.
 ['Das Tor fiel in der 95. Minute.', 'Das Spiel war aus.']
 ```
 
-The sentences are slices of the input with surrounding whitespace removed:
-nothing is normalized or rewritten. `lang` also accepts a tuple, like the
-other entry points, and pre-tokenized or OCR-style text whose punctuation
-is spaced out (`Le prix est bas .`) still splits correctly.
+The sentences are stripped slices of the input, and `lang` also accepts a
+tuple, like the other entry points.
 
-On the held-out PUD corpora (the same 1000 professionally translated
-sentences per language), sentence-boundary F1 is 0.98 to 0.998. Register
-matters far more than language: text without reliable terminal punctuation,
-social media in particular, is much harder, since a rule-based splitter
-cannot recover a boundary that was never marked.
+On the held-out PUD corpora, sentence-boundary F1 is 0.98 to 0.998. Text
+without reliable terminal punctuation, such as social media, is much harder.
 
 
 ### Caveats
@@ -275,12 +264,8 @@ for the `low_memory` flag and a comparison of the three dictionary backends.
 <!-- include:languages:start -->
 
 The following languages are available, identified by their [BCP 47
-language tag](https://en.wikipedia.org/wiki/IETF_language_tag), which
-typically corresponds to the [ISO 639-1 code](
-https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes).
-If no such code exists, a [ISO 639-3
-code](https://en.wikipedia.org/wiki/List_of_ISO_639-3_codes) is
-used instead.
+language tag](https://en.wikipedia.org/wiki/IETF_language_tag), usually
+the ISO 639-1 code.
 
 Available languages (2026-08-04):
 
@@ -370,16 +355,6 @@ for, the lemmatization of less frequent words.
 
 
 <!-- include:languages:end -->
-## Speed
-
-Measured on real text from Universal Dependencies treebanks. Figures vary
-with hardware, language and how repetitive the text is:
-
--   Lemmatization: 1.9M tokens/sec (German), 3.4M (English), tokenization included
--   Tokenization alone: > 1 million tokens/sec
--   Sentence splitting: > 100 MB of text per second
-
-
 ## Roadmap
 
 - [ ] Return all candidate lemmas for ambiguous words (#94, #132)

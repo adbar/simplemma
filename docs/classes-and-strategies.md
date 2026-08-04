@@ -5,8 +5,7 @@ description: "Build a custom Python lemmatizer with Simplemma's Lemmatizer and L
 
 # Classes and strategies
 
-The functions shown in the [README](https://github.com/adbar/simplemma#usage)
-cover simple usage. Instantiating the classes gives more control.
+The functions shown in [Usage](usage.md) cover simple usage. Instantiating the classes gives more control.
 `Lemmatizer` handles lemmatization and `LanguageDetector` language detection,
 both through an implementation of the `LemmatizationStrategy` protocol.
 `DefaultStrategy` combines several such strategies, among them

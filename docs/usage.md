@@ -11,6 +11,7 @@ Worked examples for every entry point, from a single word to a full text.
    include-markdown "../README.md"
    start="<!-- include:usage:start -->"
    end="<!-- include:usage:end -->"
+   heading-offset=-1
 %}
 
 To build your own lemmatizer out of these pieces, see

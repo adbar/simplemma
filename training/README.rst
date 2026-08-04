@@ -8,10 +8,10 @@ best-performing general-purpose treebank; parallel, spoken, learner,
 historical and other narrow-domain treebanks are excluded. Two
 annotation-driven exceptions apply. The Dutch figure excludes
 underscore-joined compound lemmas (e.g. ``klooster_orde``), an Alpino
-convention that single-token output cannot match — it is ≈0.88 without that
+convention that single-token output cannot match — it is ≈0.91 without that
 exclusion. Hebrew and Arabic proclitics fuse onto their host word in real
 text but are scored as pre-split sub-tokens by the protocol above, so on
-whole, unsegmented input those accuracies are ≈0.77 and ≈0.74.
+whole, unsegmented input those accuracies are ≈0.82 and ≈0.85.
 
 The scores can be reproduced by the following steps:
 

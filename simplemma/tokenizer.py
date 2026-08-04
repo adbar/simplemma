@@ -134,8 +134,17 @@ class Tokenizer(Protocol):
 
 class RegexTokenizer(Tokenizer):
     """
-    Tokenizer that uses regular expressions to split a text into tokens.
-    This tokenizer splits the input text using the specified regex pattern.
+    Tokenizer that splits a text into tokens using a regex pattern.
+
+    The default pattern is script-aware:
+
+    - in-word joiners and combining marks stay inside their word (`l'homme`)
+    - punctuation becomes its own token, but a run of the same character
+      stays whole (`...`)
+    - numbers keep their internal separators (`3,50`, `4:1`)
+    - a currency sign next to a number splits off (`€3.50`), one attached
+      to a word does not (`R$`)
+    - emoji and other symbols are not emitted as tokens
     """
 
     __slots__ = ["_fast", "_splitting_regex"]
@@ -173,6 +182,7 @@ def simple_tokenizer(text: str) -> list[str]:
     Simple regular expression tokenizer.
 
     This function takes a string as input and returns a list of tokens.
+    See `RegexTokenizer` for the tokenization rules.
 
     Args:
         text (str): The input text to tokenize.
