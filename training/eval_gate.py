@@ -1,6 +1,12 @@
 """Eval release gate: assert a candidate dictionary doesn't regress accuracy
-vs a baseline, on every available UD test treebank for the language, using
+vs a baseline, on every available UD *train* treebank for the language, using
 both token-level (frequency-weighted) and type-level (unweighted) accuracy.
+
+Split discipline: this gate is model selection, so it runs on train, the only
+split not published (dev+test are both reported). Train gets a delta's SIGN
+right but overstates its SIZE (~1.22x) -- never report from it, or rank
+candidates by it; training/README.rst holds the supporting sweep. `split` is
+required at every call site so none inherits one silently.
 
 Type-level matters because token-level alone can be fooled: a lever that
 looks ~free on running text can still gut rare/tail-word coverage, which
@@ -58,7 +64,7 @@ class TreebankResult:
 
 
 def discover_treebanks(
-    lang: str, split: str = "test", ud_splits: Path | None = None
+    lang: str, split: str, ud_splits: Path | None = None
 ) -> list[Path]:
     """Every *-ud-<split>.conllu file whose dataset belongs to `lang` (dataset
     name is `{code}_{treebank}`) -- multiple matches make the gate
@@ -78,19 +84,33 @@ def gate(
     ud_splits: Path | None = None,
 ) -> list[TreebankResult]:
     """Run token+type accuracy for baseline and candidate on every available
-    test treebank for `lang`. Raises if none are found (a gate that silently
-    checks nothing must not be mistaken for a gate that passed)."""
-    treebanks = discover_treebanks(lang, ud_splits=ud_splits)
-    if not treebanks:
-        raise ValueError(f"no UD test treebank found for language {lang!r}")
+    TRAIN treebank for `lang`. Raises if no treebank is found at all (a gate
+    that silently checks nothing must not be mistaken for a gate that passed).
+
+    No train split falls back to dev, then test, with a WARNING -- gating on a
+    published split beats not gating, but that language's figure is then
+    selected rather than held out."""
+    for split in ("train", "dev", "test"):
+        treebanks = discover_treebanks(lang, split, ud_splits=ud_splits)
+        if treebanks:
+            break
+    else:
+        raise ValueError(f"no UD treebank of any split found for language {lang!r}")
+    if split != "train":
+        log.warning(
+            "%s has no UD train split: gating on %s, which is a REPORTED "
+            "split -- its published accuracy is not held out",
+            lang,
+            split.upper(),
+        )
 
     # build each strategy once (encoding is the costly part), reuse
     baseline_strategy = build_strategy(baseline)
     candidate_strategy = build_strategy(candidate)
 
     results = []
-    for test_path in treebanks:
-        gold_tokens = load_gold_tokens(test_path, lang)
+    for path in treebanks:
+        gold_tokens = load_gold_tokens(path, lang)
         gold_type_pairs = gold_types(gold_tokens)  # strategy-independent; build once
         baseline_token, n_tokens = accuracy(baseline_strategy, lang, gold_tokens)
         candidate_token, _ = accuracy(candidate_strategy, lang, gold_tokens)
@@ -98,7 +118,7 @@ def gate(
         candidate_type, _ = accuracy(candidate_strategy, lang, gold_type_pairs)
         results.append(
             TreebankResult(
-                treebank=test_path.stem,
+                treebank=path.stem,
                 baseline_token=baseline_token,
                 candidate_token=candidate_token,
                 baseline_type=baseline_type,

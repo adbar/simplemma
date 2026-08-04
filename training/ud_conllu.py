@@ -42,26 +42,30 @@ def _strip_mwt_artifact(value: str) -> str:
 
 
 # fi/et/hu gold lemmas mark compound boundaries (yli#opisto, sisse_tulek,
-# el+mond) -- no plain-text lemma can contain the marker, so it is stripped
-# from gold (measured: 36.8% of all fi errors, 42.3% of et). Per-language:
-# '_' is a real convention in e.g. nl Alpino lemmas, handled by exclusion.
-_GOLD_COMPOUND_SEPARATORS = {
-    "fi": str.maketrans("", "", "#"),
-    "et": str.maketrans("", "", "_"),
-    "hu": str.maketrans("", "", "+"),
-}
+# el+mond); stripping them fixed 36.8% of fi errors, 42.3% of et. Per-language
+# because '_' is a real convention in e.g. nl Alpino lemmas.
+_GOLD_COMPOUND_SEPARATORS = {"fi": "#", "et": "_", "hu": "+"}
 
 
-def canon_lemma(lemma: str, lang: str) -> str:
+def canon_lemma(lemma: str, form: str, lang: str) -> str:
     """The gold-lemma transform every reader shares: strip the MWT artifact
     and the language's compound-boundary markers, then canonicalize for
     `lang` (a no-op outside _CANON_TABLES), so gold is compared/mined in the
-    shipped dict's own key space."""
-    table = _GOLD_COMPOUND_SEPARATORS.get(lang)
-    if table is not None:
-        # `or`: an underscore-run PUNCT lemma must not strip to nothing
-        lemma = lemma.translate(table) or lemma
-    return canonicalize_token(_strip_mwt_artifact(lemma), lang)
+    shipped dict's own key space.
+
+    A marker also present in `form` belongs to the token ('#luonto', '16+3'),
+    not to the annotation, so the strip is skipped there; a real compound
+    marker never survives into the form (yli#opisto -> yliopisto). `form` may
+    arrive already MWT-stripped -- the strip is idempotent."""
+    lemma = _strip_mwt_artifact(lemma)
+    separator = _GOLD_COMPOUND_SEPARATORS.get(lang)
+    if separator and separator in lemma and lemma != _strip_mwt_artifact(form):
+        # `or lemma`: an all-marker lemma must not strip to nothing. Unreachable
+        # in UD 2.18 (every such lemma equals its form, so the gate above skips
+        # it) but that is a property of the data, not of the code -- without it
+        # a UD bump could turn gold into "" and score every prediction wrong.
+        lemma = lemma.replace(separator, "") or lemma
+    return canonicalize_token(lemma, lang)
 
 
 def iter_word_tokens_in_sentences(
@@ -80,8 +84,8 @@ def iter_word_tokens_in_sentences(
             token_id = token["id"]
             if not isinstance(token_id, int) or token["lemma"] == "_":
                 continue
-            token["lemma"] = canon_lemma(token["lemma"], lang)
             token["form"] = _strip_mwt_artifact(token["form"])
+            token["lemma"] = canon_lemma(token["lemma"], token["form"], lang)
             form = token["form"].lower() if token_id == 1 else token["form"]
             yield form, token
 

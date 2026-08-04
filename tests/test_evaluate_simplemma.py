@@ -85,8 +85,8 @@ def test_evaluate_dataset_canonicalizes_ar_gold_lemma():
 
 
 def test_main_writes_results(tmp_path):
-    """A dataset is scored over its HELD-OUT splits chained (dev+test);
-    the train split must be excluded -- it feeds the override mining."""
+    """A dataset is scored over its held-out splits chained (dev+test); train
+    is excluded -- it feeds the override mining AND calibrates the gate."""
     splits = tmp_path / "splits"
     splits.mkdir()
     (splits / "en_test-ud-train.conllu").write_text(CONLLU, encoding="utf-8")

@@ -375,6 +375,17 @@ def test_drop_junk_keys_grc_gloss_values() -> None:
     assert result == {"ἦν": "εἰμί"}
 
 
+def test_selfmaps_are_planted_before_junk_keys_are_dropped() -> None:
+    """Stage order: _ensure_value_selfmaps runs BEFORE _drop_junk_keys, so an
+    identity key planted for a junk VALUE is still filtered out. Reversing the
+    two would reintroduce exactly the keys the predicate just removed."""
+    # value carries a Latin homoglyph and is not itself a key
+    planted = dictionary_builder._ensure_value_selfmaps({"мати": "cказився"})
+    assert planted["cказився"] == "cказився"  # selfmap planted
+    # the planted key is filtered; the clean-keyed original entry stays
+    assert dictionary_builder._drop_junk_keys(planted, "uk") == {"мати": "cказився"}
+
+
 def test_drop_junk_keys_noop_for_other_langs() -> None:
     """A digit-leading key is a REAL word in many languages (da, de, en, ga,
     hu, sv all ship one) -- the filter must never apply outside its

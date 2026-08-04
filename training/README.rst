@@ -8,9 +8,8 @@ The scores are calculated on `Universal Dependencies <https://universaldependenc
    UD release (``UD_HANDLE`` in the script) via the LINDAT/CLARIAH-CZ REST
    API, downloads and checksums the treebanks archive, and copies every
    supported language's train/dev/test files to ``training/data/UD/splits/``
-   -- the one on-disk representation all evaluators read (whole-treebank
-   scoring chains the splits per dataset; per-split evaluation keeps the
-   dev/test boundary).
+   -- the one on-disk representation all evaluators read, kept split so that
+   every tool has to name the split it wants (see step 3).
    To move to a newer UD release, update ``UD_VERSION``/``UD_HANDLE`` at the
    top of the script (find the new release's handle at
    `Universal Dependencies <https://universaldependencies.org/#download>`_,
@@ -18,8 +17,33 @@ The scores are calculated on `Universal Dependencies <https://universaldependenc
    before re-running. Re-check the evaluation afterwards, since annotation
    conventions can change between releases.
 3. Run the script, e.g. from the home directory ``python3 training/evaluate_simplemma.py``.
-   Scoring uses each dataset's held-out dev+test splits only — train splits
-   feed the override mining (``training/build_override.py``) and are never
+   Scoring uses each dataset's held-out ``dev``+``test`` splits. The splits
+   have strictly separate jobs and nothing may blur them:
+
+   - **train** — the only in-sample split, and it does two jobs: it is mined
+     for the reviewed override lexicons (``training/build_override.py``) and
+     the sentence-starter lists (``training/sentencebuilder.py``), AND it is
+     what ``eval_gate`` calibrates against. Every shipping decision is made
+     here. Never scored.
+   - **dev** + **test** — both reported. Neither is consulted by any
+     shipping decision, which is the only reason the numbers mean anything.
+
+   Gating on train rather than dev is measured, not assumed. Sweeping every
+   override layer: 40 languages gated on train, zero FAILs, and of the 38 that
+   also have a dev split 37 give the identical verdict. The one disagreement is
+   ``lt`` (train PASS, dev FAIL), and it runs in train's favour — the failing
+   ``lt_hse-ud-dev`` is 1,086 tokens losing 0.64pp (~7 tokens) while the same
+   treebank gains on train (+1.62pp) and on test (+0.19pp), so a dev gate would
+   have thrown away lt's entire 207-entry layer over small-sample noise.
+
+   Train does overstate the size of the gain, by a mean 1.22× (min 1.00×, max
+   2.02× across the 27 languages measurable off a fresh base). The gate needs
+   only the *sign* of the delta, which train gets right — but train must never
+   be used to report, or to rank candidates against each other by size of gain.
+
+   A language with no train split is gated on dev, else test; ``eval_gate``
+   logs a WARNING naming it, and its published figure is then selected rather
+   than held out. ``sw`` has no UD data at all, so it is neither gated nor
    scored.
 4. Results are stored at ``training/data/results/results_summary.csv``. Also, errors are written in a CSV file for each dataset under the ``data/results``folder.
 
@@ -128,7 +152,8 @@ known opener re-opens a suppressed one).
 
 ``python -m training.sentencebuilder <lang>`` mines starter candidates on the
 ``*-ud-train`` splits and prints a paste-able literal only if they beat the
-shipped list on the held-out ``*-ud-test`` splits; otherwise it says ``keep
+shipped list on the ``*-ud-dev`` splits (adopting on that comparison is
+model selection, so it must not read test); otherwise it says ``keep
 the shipped list`` (fr, nl and pl today). ``--check`` scores the shipped list
 alone — run it before and after any splitter change, because each entry's
 verdict depends on the rules around it.
@@ -266,7 +291,7 @@ inputs live under ``training/data/``):
   ALL of the language's UD train splits (closed-class at ≥3/90%, open-class at
   ≥5/95%, plus a per-treebank majority veto against convention splits), keep
   only entries the shipped pipeline gets wrong, and gate the merged candidate
-  with ``eval_gate`` on every test treebank. Output goes to
+  with ``eval_gate`` on every train treebank. Output goes to
   ``training/output/`` unless ``--in-place`` updates the reviewed file on a
   passing gate; shipping still requires a dictionary rebuild. Deterministic
   given a pinned UD version (``download_eval_data.py`` fixes UD 2.18,
@@ -281,9 +306,33 @@ inputs live under ``training/data/``):
   That trim makes each remaining line a real correction/addition, at the cost of
   coupling the file to that base: to refresh after a UD bump, re-mine the full
   set, re-review, and re-trim rather than regenerating in place.
+
+  ``--in-place`` rewrites that reviewed file through the same loader the build
+  uses, which is *lossy by policy*: a multi-word form is dropped (unreachable —
+  the tokenizer never yields it as one token) and a ``grc``/``he``/``ar`` entry
+  is rewritten into the canonical key space. Every committed row survives the
+  round trip today, but a hand-added spaced entry would be lost permanently.
+  Prefer the default ``training/output/`` run and diff it by hand.
+
+  A second trim removed 5,096 rows (26 of the 47 files) that a ``fresh`` base
+  already reproduced — verified to leave every built dictionary byte-identical
+  under both ``fresh`` and ``shipped``. It carries the same coupling as the
+  delta trim above: those rows are redundant *against the base as it was*, so
+  refreshing the word lists or kaikki dumps can make a dropped row
+  load-bearing again.
+
+  17 files (including the longest, ``cs`` and ``ru``) are untrimmed
+  and expected to stay that way: the trim needs a ``fresh`` base, word lists
+  are deliberately not committed (see above), and the shipped ``.plzma``
+  cannot substitute — it already contains the layer, so every row looks
+  redundant against it and a trim on that basis would delete the lot. Judge
+  file length per language accordingly; a long file is not evidence of a
+  worse-curated language.
 - ``eval_gate.py <lang> <baseline.tsv> <candidate.tsv>`` — release gate:
   refuse a candidate that regresses token- OR type-level accuracy on any UD
-  test treebank for the language (cross-treebank is automatic).
+  train treebank for the language (cross-treebank is automatic) — train is the
+  only split that is not published. Falls back to dev, then test, with a
+  WARNING, for a language that has no train split.
 
 ``ud_conllu.py`` holds the shared UD conventions (the dataset-name → language
 map and the gold-token iteration rule) these tools read with.

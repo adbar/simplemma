@@ -1,7 +1,10 @@
 """README-facing evaluation: score the full user-facing `Lemmatizer` over the
-held-out (dev+test) splits of the UD treebanks, emitting published accuracy
-numbers, greedy/baseline/ADJ+NOUN breakdowns, and per-dataset error CSVs.
-Train splits are never scored: they feed the override mining.
+held-out UD *dev+test* splits, emitting published accuracy numbers,
+greedy/baseline/ADJ+NOUN breakdowns, and per-dataset error CSVs.
+
+Split discipline: train both feeds the override mining AND calibrates the
+eval_gate, so it is the only split a shipping decision is ever made against.
+That leaves dev and test genuinely held out, and both are reported here.
 
 Distinct from `eval_harness`, which scores a bare strategy as a
 dictionary-quality gate -- different protocol, not a duplicate.
@@ -101,9 +104,9 @@ def main(
             "It doesn't seem like data was downloaded and precessed for evaluation."
         )
 
-    # held-out scoring: dev+test chained in sorted filename order; train is
-    # EXCLUDED (it feeds the override mining, so scoring it is in-sample).
-    # dataset_to_lang: UD prefixes aren't always the ISO code (no_nynorsk -> nn).
+    # dev+test chained per dataset in sorted filename order; train excluded
+    # (see the module docstring). dataset_to_lang: UD prefixes aren't always
+    # the ISO code (no_nynorsk -> nn).
     datasets: defaultdict[str, list[Path]] = defaultdict(list)
     for path in sorted(splits_folder.glob("*-ud-*.conllu")):
         if path.name.endswith("-ud-train.conllu"):

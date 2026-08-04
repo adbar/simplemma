@@ -1,7 +1,7 @@
 """Build a language's runtime lemmatization dictionary (a form->lemma map).
 
 Pipeline: _base_source -> _apply_layers (fill, override) -> _scrub ->
-_drop_junk_keys -> _apply_build_normalization -> _ensure_value_selfmaps ->
+_apply_build_normalization -> _ensure_value_selfmaps -> _drop_junk_keys ->
 frontcode. Plain str dicts throughout; bytes only at the two edges.
 
 Base modes (--base): fresh (rebuild from wordlist, duplicate lines = evidence),
@@ -406,9 +406,11 @@ _JUNK_ENTRY_PREDICATES: dict[str, Callable[[str, str], bool]] = {
     # superscript digit is this junk, zero are real Ukrainian words.
     # PLUS: BGN/PCGN-style scientific transliteration rows ("zanos" ->
     # "занос") -- Ukrainian running text is always Cyrillic.
-    # PLUS: Latin-homoglyph-poisoned keys ("cказився" with Latin c): 15,870
-    # shipped entries, none with two consecutive Latin letters, so no
-    # legitimate Latin-segment word (IT-фахівець shape) is touched.
+    # PLUS: EVERY Latin+Cyrillic mixed-script key -- today only homoglyph
+    # poisoning ("cказився" with Latin c), 15,828 fill entries, none with two
+    # consecutive Latin letters. Broader than that evidence: a legitimate
+    # Latin-segment word (IT-фахівець) would be dropped here silently, so
+    # narrow to a homoglyph test if one is ever wanted.
     "uk": lambda k, v: (
         bool(re.match(r"^[\d¹²³]", k))
         or _is_foreign_script_key(k, v, frozenset({"CYRILLIC"}))
@@ -689,8 +691,8 @@ def _add_key_aliases(
 def _ensure_value_selfmaps(mydict: dict[str, str]) -> dict[str, str]:
     """Add an identity self-map for every value that isn't itself a key --
     a lemma must lemmatize to itself, not fall through to the OOV fallbacks
-    (et shipped 24,468 such values). Runs LAST (after value normalization);
-    existing keys are never overwritten."""
+    (et shipped 24,468 such values). Runs after value normalization; existing
+    keys are never overwritten."""
     out = dict(mydict)
     added = 0
     for value in mydict.values():
@@ -781,9 +783,12 @@ def _compose_dictionary(
     mydict = _base_source(base, langcode, listpath)
     mydict = _apply_layers(mydict, langcode, overrides_dir)
     mydict = _scrub(mydict)
-    mydict = _drop_junk_keys(mydict, langcode)
     mydict = _apply_build_normalization(mydict, langcode)
-    return _ensure_value_selfmaps(mydict)
+    mydict = _ensure_value_selfmaps(mydict)
+    # LAST, after the selfmaps: an identity key planted for a junk value would
+    # otherwise re-enter a dictionary this stage had just cleaned (verified
+    # output-identical on every predicate language, so the move is free).
+    return _drop_junk_keys(mydict, langcode)
 
 
 def _build_dictionary(

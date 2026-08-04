@@ -10,14 +10,28 @@ History
   20 languages (e.g. Welsh 0.59 → 0.91, Armenian 0.63 → 0.88,
   Swedish 0.79 → 0.91, Russian 0.86 → 0.89)
 - Reviewed correction lists mined from UD training data for 43 languages,
-  each verified against every held-out test treebank before shipping:
-  further gains of 1–10 accuracy points per language (e.g. Arabic
-  0.81 → 0.91, Catalan 0.89 → 0.95, Russian 0.89 → 0.93)
-- Reported accuracies are now measured on held-out dev and test splits
-  only; training splits feed the correction lists and are never scored.
+  each required to regress no treebank before shipping: further gains of
+  1–10 accuracy points per language (e.g. Arabic 0.81 → 0.91, Catalan
+  0.89 → 0.95, Russian 0.89 → 0.93)
+- Evaluation is now strictly out-of-sample: training data does all the work —
+  it is mined for the correction lists and is also what every candidate is
+  gated against — so the reported dev and test accuracies are never consulted
+  by a shipping decision. Gating on training rather than development data is
+  measured, not assumed: across all 40 gateable languages the two agree on 37
+  of the 38 that can be compared, and the single exception favours training
+  (development data would have rejected the whole Lithuanian layer over a
+  0.6-point dip on a 1,086-token treebank that improves on both other splits).
+  Training does overstate the size of a gain, by a mean 1.22×, so it is used
+  only for the accept/reject decision and never to report. A language with no
+  training split is gated on a reported split instead and logs a warning, so
+  its figure is optimistic.
+- The correction lists shed 4,633 entries (8%) that the dictionaries already
+  reproduced, verified to leave every built dictionary byte-identical: the
+  reviewed files are that much shorter to review, with no accuracy change
   Compound-boundary markers in Finnish/Estonian/Hungarian gold lemmas
   (``yli#opisto``), which no plain-text lemma can contain, are stripped
-  before comparison
+  before comparison — except where the marker also occurs in the surface
+  form (``#luonto``, ``MAX_FILE_SIZE``), which is part of the token
 - Breaking: new front-coded dictionary format shrinks the shipped data from
   67 MB to 17 MB; pre-2.0 pickled ``.plzma`` files are no longer read
 - More accurate default rules covering more languages: near-100% precision

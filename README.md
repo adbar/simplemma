@@ -432,12 +432,13 @@ lemmatization may have issues.
 The scores measure how accurately tokens are mapped to their lemma on
 [Universal Dependencies](https://universaldependencies.org/) treebanks,
 over single word tokens (including some contractions but not merged
-prepositions). Each figure is the accuracy on the held-out dev and test
-splits of that language's best-performing general-purpose treebank;
-train splits are excluded from scoring because they are the source of
-the reviewed correction lists shipped with the dictionaries. Treebanks
-with no train split (marked in the comments) are scored whole — nothing
-was ever mined from them. Parallel, spoken, learner, historical and
+prepositions). Each figure is the accuracy on the held-out **dev+test** splits
+of that language's best-performing general-purpose treebank. Train splits are
+excluded from scoring because they do double duty: they are the source of the
+reviewed correction lists *and* what every candidate is gated against, which
+makes train the only in-sample split and leaves dev and test genuinely
+held out. A language with no train split is gated on a reported split instead,
+so its figure is optimistic. Parallel, spoken, learner, historical and
 other narrow-domain treebanks are excluded. Two
 annotation-driven exceptions: the Dutch figure excludes underscore-joined
 compound lemmas (e.g. `klooster_orde`), an Alpino convention that
@@ -447,7 +448,9 @@ pre-split sub-tokens by the protocol above, so on whole, unsegmented input
 those accuracies are ≈0.82 and ≈0.85. Finnish, Estonian and Hungarian
 gold lemmas mark compound boundaries (`yli#opisto`, `sisse_tulek`,
 `el+mond`); the markers, which no plain-text lemma can contain, are
-stripped from gold before comparison. See the `training/` folder for more.
+stripped from gold before comparison, except where the marker also appears
+in the surface form (`#luonto`, `MAX_FILE_SIZE`) and so belongs to the token
+itself. See the `training/` folder for more.
 
 The benchmark only incidentally captures what this library is most useful
 for, the lemmatization of less frequent words. In some languages a fixed

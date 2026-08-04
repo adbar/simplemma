@@ -13,7 +13,7 @@ so the file stays a reviewable delta.
 Usage: uv run python -m training.build_override <lang> [--in-place]
 
 The merged candidate file (existing overrides + mined additions) is gated
-with eval_gate on every test treebank; output goes to training/output/
+with eval_gate on every train treebank; output goes to training/output/
 unless --in-place updates training/overrides/<lang>.tsv. Shipping the effect
 still requires a dictionary rebuild (python -m training.dictionary_builder,
 --base shipped or merged, --in-place).
@@ -111,7 +111,12 @@ def merge_with_existing(
     candidates: dict[str, str], lang: str, overrides_dir: Path = OVERRIDES_DIR
 ) -> tuple[dict[str, str], int]:
     """Existing reviewed entries win their forms; candidates are folded into
-    the runtime key space before comparison. Returns (merged, n_added)."""
+    the runtime key space before comparison. Returns (merged, n_added).
+
+    Candidates are keyed by RAW form, so for grc/he/ar two forms can fold to one
+    canonical key and the first lemma wins silently (_layer_entries raises on
+    this in a hand-edited file). Measured zero collisions, so a loud check would
+    be dead code -- re-measure after a UD bump."""
     path = overrides_dir / f"{lang}.tsv"
     existing = _layer_entries(path, lang) if path.exists() else {}
     added = 0

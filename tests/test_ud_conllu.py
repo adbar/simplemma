@@ -86,10 +86,30 @@ def test_iter_word_tokens_underscore_run_form_survives():
 
 
 def test_canon_lemma_strips_compound_separators():
-    assert canon_lemma("yli#opisto", "fi") == "yliopisto"
-    assert canon_lemma("sisse_tulek", "et") == "sissetulek"
-    assert canon_lemma("el+mond", "hu") == "elmond"
-    assert canon_lemma("klooster_orde", "nl") == "klooster_orde"  # nl untouched
+    assert canon_lemma("yli#opisto", "yliopisto", "fi") == "yliopisto"
+    assert canon_lemma("sisse_tulek", "sissetulek", "et") == "sissetulek"
+    assert canon_lemma("el+mond", "elmond", "hu") == "elmond"
+    # nl untouched
+    assert canon_lemma("klooster_orde", "kloosterorde", "nl") == "klooster_orde"
+
+
+def test_canon_lemma_keeps_marker_present_in_the_form():
+    """A marker occurring in the surface form is part of the token, not a
+    compound annotation -- stripping it would turn a correct identity
+    prediction into an error (real UD rows: fi '#luonto', et 'MAX_FILE_SIZE',
+    hu '16+3')."""
+    assert canon_lemma("#luonto", "#luonto", "fi") == "#luonto"
+    assert canon_lemma("MAX_FILE_SIZE", "MAX_FILE_SIZE", "et") == "MAX_FILE_SIZE"
+    assert canon_lemma("16+3", "16+3", "hu") == "16+3"
+    # the gate compares MWT-stripped, so a he-style artifact can't defeat it
+    assert canon_lemma("20_000_", "_20_000", "et") == "20_000"
+
+
+def test_canon_lemma_never_strips_a_lemma_to_nothing():
+    """An all-marker lemma whose form differs would strip to '' and score every
+    prediction wrong. Unreachable in UD 2.18, guarded anyway."""
+    assert canon_lemma("###", "hashtags", "fi") == "###"
+    assert canon_lemma("+++", "plusses", "hu") == "+++"
 
 
 def test_dataset_to_lang_overrides_and_default():
