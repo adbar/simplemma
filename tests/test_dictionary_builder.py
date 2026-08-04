@@ -121,6 +121,38 @@ def test_read_dict_attestation_count_beats_distance(tmp_path) -> None:
     assert result["running"] == "run"
 
 
+def test_ensure_value_selfmaps() -> None:
+    """Every value gains an identity self-map unless it's already a key,
+    unreachable as a token, or letterless; existing keys are never touched."""
+    from training.dictionary_builder import _ensure_value_selfmaps
+
+    result = _ensure_value_selfmaps(
+        {
+            "dogs": "dog",  # missing lemma -> self-map added
+            "cats": "cat",
+            "cat": "kitten",  # 'cat' already a key -> its mapping stands
+            "als": "Als Sund",  # space: unreachable, no self-map
+            "x1": "123",  # letterless value, no self-map
+        }
+    )
+    assert result["dog"] == "dog"
+    assert result["kitten"] == "kitten"  # value of an existing key still covered
+    assert result["cat"] == "kitten"  # not overwritten
+    assert "Als Sund" not in result
+    assert "123" not in result
+
+
+def test_read_dict_paradigm_prior_breaks_ties(tmp_path) -> None:
+    """For PARADIGM_PRIOR_LANGS, an attestation tie goes to the lemma with the
+    larger attested paradigm, not the closer edit distance (grc ἦν: εἰμί and
+    ἠμί tie 2-2 in the source; distance alone picks the rare ἠμί)."""
+    lines = "εἰμί\tἦν\n" * 2 + "ἠμί\tἦν\n" * 2 + "εἰμί\tἐστί\nεἰμί\tἦσαν\n"
+    assert _read(tmp_path, "grc", lines)["ἦν"] == "εἰμί"
+    # same shape in an unregistered language keeps the distance tie-break
+    lines = "abcd\tab\n" * 2 + "abx\tab\n" * 2 + "abcd\tabcde\nabcd\tabcdf\n"
+    assert _read(tmp_path, "en", lines)["ab"] == "abx"
+
+
 def test_read_dict_lemma_headword_never_reduces(tmp_path) -> None:
     """A word attested as a lemma is forced to itself even if also mapped as a form
     elsewhere; a word only ever a form still reduces. Language-independent
@@ -139,17 +171,15 @@ def test_read_dict_soft_identity_for_grc(tmp_path) -> None:
     assert result["ἀκούσας"] == "ἀκούω"  # attested mapping wins, not forced to self
 
 
-def test_read_dict_soft_identity_for_ar_is_scoped_to_al_prefixed(tmp_path) -> None:
-    """ar's IDENTITY_SOFT_LANGS entry is a PREDICATE, not a blanket: only
-    definite-article-prefixed headwords (الكتاب) soften, so an attested
-    كتاب mapping wins -- while a non-ال headword still force-identities
-    even when noisily mapped elsewhere (a blanket ar predicate gate-FAILED,
-    token -0.36pp)."""
-    al_headword = "كتاب\tالكتاب\n" * 5 + "الكتاب\tالكتاب\n"  # attested candidate
-    non_al_headword = "قلم\tبيت\n" * 5 + "بيت\tبيوت\n"  # بيت noisily mapped
+def test_read_dict_self_only_lemma_is_soft(tmp_path) -> None:
+    """A lemma attested ONLY by its own identity line softens universally
+    (attested mapping wins); a paradigm-heading lemma still force-identities.
+    This replaced ar's IDENTITY_SOFT_LANGS entry (deleted at +0.000pp)."""
+    al_headword = "كتاب\tالكتاب\n" * 5 + "الكتاب\tالكتاب\n"  # self-only lemma
+    non_al_headword = "قلم\tبيت\n" * 5 + "بيت\tبيوت\n"  # بيت heads a paradigm
     result = _read(tmp_path, "ar", al_headword + non_al_headword)
-    assert result["الكتاب"] == "كتاب"  # softened: attested mapping wins
-    assert result["بيت"] == "بيت"  # non-ال headword: force-identity holds
+    assert result["الكتاب"] == "كتاب"  # soft: attested mapping wins
+    assert result["بيت"] == "بيت"  # paradigm-heading: force-identity holds
 
 
 def test_read_dict_rejects_maqaf_edged_fields(tmp_path) -> None:
@@ -317,6 +347,66 @@ def test_drop_junk_keys_uk_paradigm_codes() -> None:
     assert result == {"мати": "мати"}
 
 
+def test_drop_junk_keys_uk_latin_homoglyphs() -> None:
+    """uk: a key mixing Latin and Cyrillic letters is a homoglyph-poisoned
+    row ('cказився' with Latin c -- 15,870 shipped entries, none with a
+    legitimate multi-letter Latin segment)."""
+    result = dictionary_builder._drop_junk_keys(
+        {
+            "cказився": "сказитися",
+            "ремонтно-механічнe": "ремонтно-механічний",
+            "мати": "мати",
+        },
+        "uk",
+    )
+    assert result == {"мати": "мати"}
+
+
+def test_drop_junk_keys_grc_gloss_values() -> None:
+    """grc drops English gloss values (κάλαμος -> plants), the wholly-Latin
+    identity selfmaps they seed, and Beta-code keys; Greek->Greek stays."""
+    result = dictionary_builder._drop_junk_keys(
+        {"κάλαμος": "plants", "plants": "plants", "hubrisin": "ὑβρίς", "ἦν": "εἰμί"},
+        "grc",
+    )
+    assert result == {"ἦν": "εἰμί"}
+
+
+def test_drop_junk_keys_wholly_foreign_identity() -> None:
+    """Wholly-foreign identity rows drop in uk/ar/hi; bg keeps its legitimate
+    Latin currency abbreviations and he its Phoenician attestations --
+    both measured exclusions."""
+    assert dictionary_builder._drop_junk_keys({"vony": "vony"}, "uk") == {}
+    assert (
+        dictionary_builder._drop_junk_keys(
+            {"overweight": "overweight", "אללה": "אללה"}, "ar"
+        )
+        == {}
+    )
+    assert dictionary_builder._drop_junk_keys({"sweets": "sweets"}, "hi") == {}
+    assert dictionary_builder._drop_junk_keys(
+        {"and": "بودن", "jewels": "jewels", "بودن": "بودن"}, "fa"
+    ) == {"بودن": "بودن"}
+    assert dictionary_builder._drop_junk_keys({"DM": "dm"}, "bg") == {"DM": "dm"}
+    phoenician = {"𐤉𐤄𐤅𐤄": "𐤉𐤄𐤅𐤄"}
+    assert dictionary_builder._drop_junk_keys(phoenician, "he") == phoenician
+
+
+def test_selfmaps_are_planted_before_junk_keys_are_dropped() -> None:
+    """An identity key planted for a junk VALUE is still filtered -- whether
+    the key trips the predicate itself (uk homoglyph) or only as a pair
+    (grc Latin gloss, via _is_wholly_foreign_entry)."""
+    # uk: value carries a Latin homoglyph and is not itself a key
+    planted = dictionary_builder._ensure_value_selfmaps({"мати": "cказився"})
+    assert planted["cказився"] == "cказився"  # selfmap planted
+    # the planted key is filtered; the clean-keyed original entry stays
+    assert dictionary_builder._drop_junk_keys(planted, "uk") == {"мати": "cказився"}
+    # grc: the gloss pair AND the identity key it seeded are both dropped
+    planted = dictionary_builder._ensure_value_selfmaps({"κάλαμος": "plants"})
+    assert planted["plants"] == "plants"
+    assert dictionary_builder._drop_junk_keys(planted, "grc") == {}
+
+
 def test_drop_junk_keys_noop_for_other_langs() -> None:
     """A digit-leading key is a REAL word in many languages (da, de, en, ga,
     hu, sv all ship one) -- the filter must never apply outside its
@@ -344,13 +434,21 @@ def test_drop_junk_keys_he_latin_transliterations() -> None:
     assert result == {"בית": "בית", "3": "3"}
 
 
+def _foreign_script_key(key: str, value: str, allowed: frozenset[str]) -> bool:
+    """String-level adapter: the real predicate takes precomputed script sets
+    (_drop_junk_keys computes them once per entry)."""
+    return dictionary_builder._foreign_script_key(
+        dictionary_builder._script_classes(key),
+        dictionary_builder._script_classes(value),
+        allowed,
+    )
+
+
 def test_is_foreign_script_key_ipa_and_romanization_rows() -> None:
     """ar IPA transcription and grc Beta-code romanization: the key is
     entirely outside the allowed script, the value is inside it -- drop."""
-    assert dictionary_builder._is_foreign_script_key(
-        "uð.ðu.ki.ruː", "اذكروا", frozenset({"ARABIC"})
-    )
-    assert dictionary_builder._is_foreign_script_key(
+    assert _foreign_script_key("uð.ðu.ki.ruː", "اذكروا", frozenset({"ARABIC"}))
+    assert _foreign_script_key(
         "hubrisin", "ὑβρίς", frozenset({"GREEK", "CYPRIOT", "LINEAR"})
     )
 
@@ -359,7 +457,7 @@ def test_is_foreign_script_key_protects_alternate_attestations() -> None:
     """grc Cypriot-syllabary attestations are a real (if rare) alternate
     script for early Greek, not Wiktionary citation noise -- kept allowed,
     so they're never flagged."""
-    assert not dictionary_builder._is_foreign_script_key(
+    assert not _foreign_script_key(
         "𐠞𐠪𐠐𐠄𐠩", "βασιλεύς", frozenset({"GREEK", "CYPRIOT", "LINEAR"})
     )
 
@@ -368,30 +466,22 @@ def test_is_foreign_script_key_ms_asymmetric_direction() -> None:
     """ms is genuinely biscriptal: a Jawi key resolving to its standard Rumi
     citation lemma is CORRECT and must never be flagged, but a Rumi key
     resolving to a Jawi value is the defect -- only that direction drops."""
-    assert not dictionary_builder._is_foreign_script_key(
-        "جون", "Jun", frozenset({"ARABIC"})
-    )
-    assert dictionary_builder._is_foreign_script_key(
-        "pintu", "ڤينتو", frozenset({"ARABIC"})
-    )
+    assert not _foreign_script_key("جون", "Jun", frozenset({"ARABIC"}))
+    assert _foreign_script_key("pintu", "ڤينتو", frozenset({"ARABIC"}))
 
 
 def test_is_foreign_script_key_never_flags_mixed_script() -> None:
     """A key carrying ANY allowed-script letter (mixed script, e.g. hbs's
     Latin+Cyrillic 'atoмска') is never flagged -- only entirely
     foreign-scripted keys are."""
-    assert not dictionary_builder._is_foreign_script_key(
-        "atoмска", "атомски", frozenset({"CYRILLIC"})
-    )
+    assert not _foreign_script_key("atoмска", "атомски", frozenset({"CYRILLIC"}))
 
 
 def test_is_foreign_script_key_ignores_non_alphabetic():  # digits/punct
     """A purely non-alphabetic key (digits, punctuation) has no script class
     at all -- it's Phase B's (_drop_junk_keys pattern) concern, not this
     predicate's; it must never be flagged here."""
-    assert not dictionary_builder._is_foreign_script_key(
-        "123", "число", frozenset({"CYRILLIC"})
-    )
+    assert not _foreign_script_key("123", "число", frozenset({"CYRILLIC"}))
 
 
 def test_drop_junk_keys_ar_ipa_rows() -> None:
@@ -414,9 +504,11 @@ def test_drop_junk_keys_ms_keeps_jawi_to_rumi_direction() -> None:
     assert result == {"جون": "Jun"}
 
 
-def test_build_dictionary_ships_ar_hamza_alias(tmp_path) -> None:
+def test_build_dictionary_ships_ar_hamza_alias(tmp_path, monkeypatch) -> None:
     """End-to-end: a wordlist entry with a hamza-seat form ships both its own
     key and the folded-key alias in the built .plzma."""
+    # ar ships for real -- unlist it so ingestion doesn't layer the real dict
+    monkeypatch.setattr(dictionary_factory, "SUPPORTED_LANGUAGES", frozenset())
     listpath = str(tmp_path)
     (tmp_path / "ar.txt").write_text("أحمد\tأحمد\n", encoding="utf-8")
     outfile = str(tmp_path / "ar.plzma")
@@ -468,7 +560,7 @@ def test_apply_layers_rejects_junk_entries(tmp_path, monkeypatch) -> None:
 def test_apply_layers_rejects_empty_fields(tmp_path, monkeypatch) -> None:
     """An empty lemma/form in a curated layer fails the build rather than shipping a '' key."""
     _layers(tmp_path, monkeypatch, fill="good\tgoods\nlemma\t\n")
-    with pytest.raises(ValueError, match="empty field"):
+    with pytest.raises(ValueError, match="empty"):
         dictionary_builder._apply_layers({}, "zz")
 
 
@@ -528,6 +620,7 @@ def test_scrub_drops_unreachable_keys_and_fixes_junk_values() -> None:
         "hithau": "prpers",  # template placeholder value -> dropped
         "Andre" + "\u0306" + "as": "andreas",  # decomposed key -> dropped
         "don\u2019t": "do",  # curly-quote key: reachable (runtime is NFC-only) -> kept
+        "Alssund": "Als Sund",  # spaced value: multi-word output never ships
     }
     out = dictionary_builder._scrub(d)
     assert out == {"dogs": "dog", "as": "a", "don\u2019t": "do"}
@@ -540,13 +633,39 @@ def test_curly_quote_override_form_survives(tmp_path, monkeypatch) -> None:
     assert out == {"don\u2019t": "do"}
 
 
+def test_key_alias_renormalizes_stacked_diacritics() -> None:
+    """The la macron fold on a stacked diacritic strands a combining mark;
+    the alias must re-NFC or it ships NFC-invalid and _clean_base kills it
+    next rebuild (shipped la 'Boō̈tēs' regression)."""
+    out = dictionary_builder._apply_build_normalization({"Boō̈tēs": "Bootes"}, "la")
+    assert "Boötes" in out  # precomposed ö, _valid_key-clean
+    assert all(dictionary_builder._valid_key(k) for k in out)
+
+
+def test_compose_restores_override_entries_from_junk_filter(
+    tmp_path, monkeypatch, caplog
+) -> None:
+    """Reviewed override entries outrank the junk predicates: bg 'II' ->
+    'втори' is deliberate, while the same shape from a machine source
+    (BGN transliteration) still drops."""
+    overrides = tmp_path / "overrides"
+    overrides.mkdir()
+    (overrides / "bg.tsv").write_text("втори\tII\n", encoding="utf-8")
+    base = {"радост": "радост", "rádost": "радост"}  # machine translit row
+    with caplog.at_level(logging.INFO, logger=dictionary_builder.LOGGER.name):
+        out = dictionary_builder._compose_from_base(base, "bg", overrides_dir=overrides)
+    assert out["II"] == "втори"  # restored
+    assert "rádost" not in out  # machine junk still dropped
+    assert "restored 1 reviewed override entries" in caplog.text
+
+
 def test_clean_base_drops_junk_keys_keeps_values() -> None:
     d = {
         "dogs": "dog",  # clean: kept
         "-la": "\u00e9l",  # leading-hyphen key (affix fragment) -> dropped
         "astro-": "astro-",  # trailing-hyphen key -> dropped
         "a_b": "ab",  # underscore key -> dropped
-        "Alssund": "Als Sund",  # spaced VALUE is legit -> kept
+        "Alssund": "Als Sund",  # spaced VALUE passes here; _scrub drops it post-layer
     }
     out = dictionary_builder._clean_base(d)
     assert out == {"dogs": "dog", "Alssund": "Als Sund"}
@@ -615,47 +734,49 @@ def test_generated_plzma_loads_through_real_reader(tmp_path, monkeypatch) -> Non
     assert lemmatizer.lemmatize("dogs", lang="zz") == "dog"
 
 
-def test_build_base_shipped_composes_over_decoded_dict(tmp_path, monkeypatch) -> None:
-    """base='shipped' builds on the decoded shipped dict, not a wordlist rebuild."""
+def test_build_default_composes_over_shipped_dict(tmp_path, monkeypatch) -> None:
+    """A routine rebuild (no wordlist) builds on the decoded shipped dict."""
     _make_shipped(tmp_path, monkeypatch, "dog\tdogs\ncat\tcats\n")
     # override layer: one collision (cats -> CAT) + one new form (birds -> bird)
     _layers(tmp_path, monkeypatch, overrides="CAT\tcats\nbird\tbirds\n")
 
     built = tmp_path / "out.plzma"
-    dictionary_builder._build_dictionary("zz", filepath=str(built), base="shipped")
+    dictionary_builder._build_dictionary("zz", filepath=str(built))
     result = frontcode.decode(built.read_bytes())
     assert result[b"dogs"] == b"dog"  # decoded-shipped base survives
     assert result[b"cats"] == b"CAT"  # override wins the collision
     assert result[b"birds"] == b"bird"  # new form added
 
 
-def test_build_base_merged_keeps_curated_mappings(tmp_path, monkeypatch) -> None:
-    """base='merged' precedence: override > shipped > fresh > fill."""
+def test_build_wordlist_ingestion_keeps_curated_mappings(tmp_path, monkeypatch) -> None:
+    """Wordlist ingestion into a shipped language auto-layers the installed
+    mappings (override > shipped > list > fill): a re-extraction only ADDS."""
     _make_shipped(tmp_path, monkeypatch, "dog\tdogs\ncat\tcats\nmouse\tmice\n")
     _layers(tmp_path, monkeypatch, fill="FISH\tcats\n", overrides="RODENT\tmice\n")
 
-    # fresh re-extraction: DISAGREES on dogs, adds a new form birds
+    # re-extraction: DISAGREES on dogs, adds a new form birds
     (tmp_path / "fresh").mkdir()
     (tmp_path / "fresh" / "zz.txt").write_text(
         "WRONGDOG\tdogs\nbird\tbirds\n", encoding="utf-8"
     )
     built = tmp_path / "out.plzma"
     dictionary_builder._build_dictionary(
-        "zz", listpath=str(tmp_path / "fresh"), filepath=str(built), base="merged"
+        "zz", listpath=str(tmp_path / "fresh"), filepath=str(built)
     )
     result = frontcode.decode(built.read_bytes())
-    assert result[b"dogs"] == b"dog"  # shipped beats the fresh re-extraction
+    assert result[b"dogs"] == b"dog"  # shipped beats the re-extraction
     assert result[b"cats"] == b"cat"  # shipped beats fill
     assert result[b"mice"] == b"RODENT"  # override beats shipped
-    assert result[b"birds"] == b"bird"  # fresh-only key added
+    assert result[b"birds"] == b"bird"  # list-only key added
 
 
-def test_build_dictionary_rejects_unknown_base(tmp_path) -> None:
-    """An unrecognized base mode fails loud rather than silently building fresh."""
-    with pytest.raises(ValueError, match="unknown base mode"):
-        dictionary_builder._build_dictionary(
-            "zz", filepath=str(tmp_path / "out.plzma"), base="bogus"
-        )
+def test_build_dictionary_rejects_unshipped_language_without_wordlist(
+    tmp_path,
+) -> None:
+    """No shipped dict and no wordlist = nothing to build from; fail loud
+    instead of writing an empty dictionary."""
+    with pytest.raises(ValueError, match="no shipped dictionary"):
+        dictionary_builder._build_dictionary("zz", filepath=str(tmp_path / "out.plzma"))
 
 
 def test_build_dictionary_is_deterministic(tmp_path) -> None:
@@ -694,5 +815,6 @@ def test_build_from_shipped_scrubs_placeholder(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(dictionary_factory, "SUPPORTED_LANGUAGES", frozenset({"zz"}))
     _layers(tmp_path, monkeypatch)  # no fill, no override
     out = tmp_path / "out.plzma"
-    dictionary_builder._build_dictionary("zz", filepath=str(out), base="shipped")
-    assert frontcode.decode(out.read_bytes()) == {b"dogs": b"dog"}
+    dictionary_builder._build_dictionary("zz", filepath=str(out))
+    # b"dog": b"dog" is _ensure_value_selfmaps covering the surviving value
+    assert frontcode.decode(out.read_bytes()) == {b"dogs": b"dog", b"dog": b"dog"}

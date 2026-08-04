@@ -7,6 +7,7 @@ import pytest
 
 from simplemma.strategies import DefaultStrategy
 from training import wikidata_lexemes as wl
+from training.clean_wordlist import write_pairs
 from training.dictionary_builder import V2_FILL_LANGS
 from training.eval_harness import FixedDictionaryFactory
 
@@ -191,9 +192,9 @@ def test_stem_anchored_prune_pruned_form_still_lemmatizes_after_merge():
     assert strategy.get_lemma("talossa", "fi") == "talo"
 
 
-def test_write_tsv(tmp_path):
+def test_write_pairs(tmp_path):
     output_path = tmp_path / "out.tsv"
-    count = wl.write_tsv([("Hund", "Hunde"), ("Katze", "Katzen")], output_path)
+    count = write_pairs([("Hund", "Hunde"), ("Katze", "Katzen")], output_path)
     assert count == 2
     assert output_path.read_text(encoding="utf-8") == "Hund\tHunde\nKatze\tKatzen\n"
 

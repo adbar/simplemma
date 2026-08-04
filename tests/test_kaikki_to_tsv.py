@@ -22,6 +22,8 @@ def _readme_example_pairs(item):
         for f in item["forms"]:
             if f["form"]:
                 pairs.append((item["word"], f["form"]))
+    if not pairs and item.get("word"):
+        pairs.append((item["word"], item["word"]))  # uninflected headword
     return pairs
 
 
@@ -264,9 +266,10 @@ def test_extract_pairs_skips_possessive_cross_reference():
 
 
 def test_extract_pairs_skips_auxiliary_cross_reference():
-    """An 'auxiliary' row names a helper verb, not an inflected form of the entry."""
+    """An 'auxiliary' row names a helper verb, not an inflected form of the entry.
+    With every form dropped, the entry falls back to its identity pair."""
     entry = {"word": "ausgehen", "forms": [{"form": "sein", "tags": ["auxiliary"]}]}
-    assert list(extract_pairs(entry)) == []
+    assert list(extract_pairs(entry)) == [("ausgehen", "ausgehen")]
 
     entry = {"word": "sein", "forms": [{"form": "sein", "tags": ["auxiliary"]}]}
     assert list(extract_pairs(entry)) == [("sein", "sein")]
@@ -324,10 +327,46 @@ def test_extract_pairs_dedup_does_not_affect_forms_fallback_duplicates():
 
 def test_extract_pairs_handles_missing_data():
     assert list(extract_pairs({})) == []
-    assert list(extract_pairs({"word": "x", "senses": [{}]})) == []
-    assert list(extract_pairs({"word": "x", "senses": [{"form_of": []}]})) == []
-    assert list(extract_pairs({"word": "x", "forms": [{}]})) == []
-    assert list(extract_pairs({"word": "x", "form_of": []})) == []
+    assert list(extract_pairs({"word": "x", "senses": [{}]})) == [("x", "x")]
+    assert list(extract_pairs({"word": "x", "senses": [{"form_of": []}]})) == [
+        ("x", "x")
+    ]
+    assert list(extract_pairs({"word": "x", "forms": [{}]})) == [("x", "x")]
+    assert list(extract_pairs({"word": "x", "form_of": []})) == [("x", "x")]
+
+
+def test_extract_pairs_identity_for_uninflected_headword():
+    """A headword with no forms and no relations (grc μέν) must still enter the
+    dictionary as its own identity pair."""
+    assert list(extract_pairs({"word": "μέν"})) == [("μέν", "μέν")]
+
+
+def test_extract_pairs_no_identity_after_junk_form_drop():
+    """An entry whose whole forms table was never-real rows must NOT fall
+    back to identity -- that would resurrect what the drop tags block."""
+    entry = {"word": "plants", "forms": [{"form": "plánts", "tags": ["romanization"]}]}
+    assert list(extract_pairs(entry)) == []
+    entry = {"word": "x", "forms": [{"form": "y", "tags": ["table-tags"]}]}
+    assert list(extract_pairs(entry)) == []
+
+
+def test_extract_pairs_no_identity_when_relation_exists():
+    entry = {"word": "Hunde", "senses": [{"form_of": [{"word": "Hund"}]}]}
+    assert list(extract_pairs(entry)) == [("Hund", "Hunde")]
+
+
+def test_extract_pairs_expands_optional_letter_group():
+    """grc movable nu: 'ἦ(ν)' is unreachable as a literal key -- both spellings
+    are emitted. Multi-group or alternative shapes are left alone."""
+    entry = {"word": "εἰμί", "forms": [{"form": "ἦ(ν)"}]}
+    assert list(extract_pairs(entry)) == [("εἰμί", "ἦ"), ("εἰμί", "ἦν")]
+
+    entry = {"word": "hoten", "forms": [{"form": "(y)hote"}]}
+    assert list(extract_pairs(entry)) == [("hoten", "hote"), ("hoten", "yhote")]
+
+    # alternatives '(α/ε)' and nested/multiple groups are NOT expanded
+    entry = {"word": "x", "forms": [{"form": "a(b/c)"}, {"form": "a(b)c(d)"}]}
+    assert list(extract_pairs(entry)) == [("x", "a(b/c)"), ("x", "a(b)c(d)")]
 
 
 def test_main_writes_tsv(tmp_path):

@@ -56,7 +56,7 @@ def test_select_needs_support_and_a_net_gain():
 
 
 def test_boundary_f1_is_one_when_every_boundary_is_found(tmp_path):
-    path = tmp_path / "de_x-ud-test.conllu"
+    path = tmp_path / "de_x-ud-dev.conllu"
     _treebank(path, ["Das ist ein Satz.", "Und noch einer.", "Dazu ein dritter."])
     assert (
         sentencebuilder.boundary_f1("de", [sentencebuilder.gold_sentences(path)]) == 1.0
@@ -96,7 +96,7 @@ def test_main_emits_a_literal_when_the_mined_list_wins(tmp_path, monkeypatch, ca
     # "u. a." suppresses; only the mined starter "Ja" can reopen the boundary
     pairs = ["Er kauft u. a.", "Ja das stimmt."] * 4
     _treebank(tmp_path / "de_x-ud-train.conllu", pairs)
-    _treebank(tmp_path / "de_x-ud-test.conllu", pairs)
+    _treebank(tmp_path / "de_x-ud-dev.conllu", pairs)
 
     _cli(tmp_path, monkeypatch, "de")
 
@@ -109,7 +109,7 @@ def test_main_emits_a_literal_when_the_mined_list_wins(tmp_path, monkeypatch, ca
 def test_main_keeps_the_shipped_list_when_mining_does_not_help(
     tmp_path, monkeypatch, capsys
 ):
-    _treebank(tmp_path / "de_x-ud-test.conllu", ["Ein Satz.", "Noch einer."])
+    _treebank(tmp_path / "de_x-ud-dev.conllu", ["Ein Satz.", "Noch einer."])
     _treebank(tmp_path / "de_x-ud-train.conllu", ["Ein Satz.", "Noch einer."])
 
     _cli(tmp_path, monkeypatch, "de")
@@ -118,13 +118,25 @@ def test_main_keeps_the_shipped_list_when_mining_does_not_help(
 
 
 def test_main_check_only_scores_the_shipped_list(tmp_path, monkeypatch, capsys):
-    _treebank(tmp_path / "de_x-ud-test.conllu", ["Ein Satz.", "Noch einer."])
+    _treebank(tmp_path / "de_x-ud-dev.conllu", ["Ein Satz.", "Noch einer."])
 
     _cli(tmp_path, monkeypatch, "de", "--check")
 
     out = capsys.readouterr().out
     assert out.startswith("shipped: ")
     assert "mined" not in out
+
+
+def test_main_falls_back_to_test_without_dev(tmp_path, monkeypatch, capsys):
+    """se/gv ship train+test but no dev -- scoring must fall back to test
+    (with a warning) instead of aborting."""
+    _treebank(tmp_path / "de_x-ud-test.conllu", ["Ein Satz.", "Noch einer."])
+
+    _cli(tmp_path, monkeypatch, "de", "--check")
+
+    out = capsys.readouterr().out
+    assert out.startswith("WARNING: no dev treebank")
+    assert "test treebanks" in out
 
 
 def test_main_errors_without_a_test_treebank(tmp_path, monkeypatch):

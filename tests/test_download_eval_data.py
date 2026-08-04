@@ -97,8 +97,6 @@ def test_main_downloads_extracts_and_writes_splits(tmp_path, monkeypatch):
 
     download_eval_data.main()
 
-    # concatenation order is filename-sorted: "dev" < "train" alphabetically
-    assert (clean_folder / "de_gsd.conllu").read_bytes() == dev_content + train_content
     assert (splits_folder / "de_gsd-ud-train.conllu").read_bytes() == train_content
     assert (splits_folder / "de_gsd-ud-dev.conllu").read_bytes() == dev_content
     assert version_file.exists()
@@ -152,11 +150,6 @@ def test_get_relevant_language_data_folders(tmp_path):
     empty_folder = tmp_path / "UD_Empty-Test"
     empty_folder.mkdir()
 
-    results = {
-        lang: (dataset_name, folder)
-        for lang, dataset_name, folder in get_relevant_language_data_folders(tmp_path)
-    }
+    results = dict(get_relevant_language_data_folders(tmp_path))
 
-    assert set(results) == {"de", "nn"}
-    assert results["de"] == ("de_gsd", de_folder)
-    assert results["nn"] == ("no_nynorsk", nn_folder)
+    assert results == {"de": de_folder, "nn": nn_folder}

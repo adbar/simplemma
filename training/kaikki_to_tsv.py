@@ -10,10 +10,13 @@ Output format: lemma, tab, word form, newline.
 import argparse
 import json
 import logging
+import re
 import unicodedata
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
+
+from training.clean_wordlist import write_pairs
 
 log = logging.getLogger(__name__)
 
@@ -25,9 +28,7 @@ _UNCONDITIONAL_DROP_TAGS = frozenset(
         "class",
         "romanization",
         "transliteration",
-        # Baybayin-script display variant of the headword (Tagalog), not an
-        # inflected form -- same rationale as romanization/transliteration.
-        # Verified inert (0 rows) on every other on-disk dump, so kept global.
+        # tl Baybayin display-variant rows; verified inert on every other dump.
         "Baybayin",
     }
 )
@@ -38,14 +39,10 @@ _UNCONDITIONAL_DROP_TAGS = frozenset(
 _CROSS_REFERENCE_TAGS = frozenset({"pronoun", "possessive", "auxiliary"})
 
 
-# error-unrecognized-form is kaikki's "couldn't parse this template cell"
-# marker. NOT a reliable junk signal in general: a 27-lang audit (2026-07-21)
-# found it co-occurring with real grammatical forms in hu/lt/cy/ga/gl/sq/ka/
-# lv/sv/da (e.g. Welsh mutation brown->mrown, Irish prothesis ab->t-ab) --
-# dropping it globally would delete real inflections there. On Tagalog verb
-# pages it marks template header cells (root, bare affix, trigger labels)
-# bleeding into the forms list, worth +1pp+ vs identity -- so dropped there
-# only. (Narrower "drop only when it's the sole tag" measured WORSE on tl.)
+# error-unrecognized-form is NOT a reliable junk signal: a 27-lang audit
+# found it on real forms (cy mutation, ga prothesis). On tl verb pages it
+# marks header-cell junk, worth +1pp+ -- dropped there only ("sole tag"
+# variant measured WORSE).
 _DROP_UNRECOGNIZED_FORM_LANGS = frozenset({"tl"})
 
 _PLACEHOLDER_FORM = "-"  # marks a form that doesn't exist for this word
@@ -83,9 +80,25 @@ def _normalize(text: str, fold: bool) -> str:
     return _fold_length_marks(text) if fold else text
 
 
+# A form with one parenthesized optional letter group (grc movable nu "ἦ(ν)")
+# is unreachable as a literal key: expand to both spellings. Multi-group or
+# alternative shapes are annotation leakage and stay untouched.
+_OPTIONAL_GROUP = re.compile(r"^([^()]*)\(([^()/]{1,3})\)([^()]*)$")
+
+
+def _expand_optional_group(form: str) -> list[str]:
+    match = _OPTIONAL_GROUP.match(form)
+    if match is None:
+        return [form]
+    head, opt, tail = match.groups()
+    return [head + tail, head + opt + tail]
+
+
 def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
     """Yield (lemma, word_form) pairs, preferring form_of/alt_of over forms.
-    May repeat a pair across senses of the same entry -- extract_pairs dedups."""
+    May repeat a pair across senses of the same entry -- extract_pairs dedups.
+    An entry left with no pairs yields its own identity pair: uninflected
+    headwords (grc μέν) would otherwise never enter the dictionary."""
     word = entry.get("word")
     if not word:
         return
@@ -107,18 +120,28 @@ def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
     if found_relation:
         return
 
+    yielded_form = False
+    dropped_junk = False
     for form in entry.get("forms", ()):
         word_form = form.get("form")
         tags = form.get("tags", ())
-        if (
-            not word_form
-            or word_form == _PLACEHOLDER_FORM
-            or _UNCONDITIONAL_DROP_TAGS.intersection(tags)
-            or (drop_unrecognized and "error-unrecognized-form" in tags)
-            or (word_form != word and _CROSS_REFERENCE_TAGS.intersection(tags))
-        ):
+        if not word_form or word_form == _PLACEHOLDER_FORM:
             continue
-        yield (norm_word, _normalize(word_form, fold))
+        if _UNCONDITIONAL_DROP_TAGS.intersection(tags) or (
+            drop_unrecognized and "error-unrecognized-form" in tags
+        ):
+            dropped_junk = True
+            continue
+        if word_form != word and _CROSS_REFERENCE_TAGS.intersection(tags):
+            continue
+        for variant in _expand_optional_group(word_form):
+            yield (norm_word, _normalize(variant, fold))
+        yielded_form = True
+    # Identity fallback for uninflected headwords (grc μέν) -- but never after
+    # a junk-tag drop, which must not resurrect as an identity key. The
+    # fallback also votes in resolution ties; the per-language gates cover it.
+    if not yielded_form and not dropped_junk:
+        yield (norm_word, norm_word)
 
 
 def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
@@ -132,15 +155,9 @@ def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
 
 def main(input_path: Path, output_path: Path) -> None:
     log.info(f"Extracting pairs from {input_path}")
-    pair_count = 0
-    with (
-        open(input_path, encoding="utf-8") as infh,
-        open(output_path, "w", encoding="utf-8") as outfh,
-    ):
-        for line in infh:
-            for lemma, word_form in extract_pairs(json.loads(line)):
-                outfh.write(f"{lemma}\t{word_form}\n")
-                pair_count += 1
+    with open(input_path, encoding="utf-8") as infh:
+        pairs = (pair for line in infh for pair in extract_pairs(json.loads(line)))
+        pair_count = write_pairs(pairs, output_path)
     log.info(f"Wrote {pair_count} pairs to {output_path}")
 
 

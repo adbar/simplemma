@@ -1,6 +1,10 @@
 from conllu import parse
 
-from training.ud_conllu import dataset_to_lang, iter_word_tokens_in_sentences
+from training.ud_conllu import (
+    canon_lemma,
+    dataset_to_lang,
+    iter_word_tokens_in_sentences,
+)
 
 # id 3.1 = an empty node (enhanced deps) carrying a REAL lemma; id 1-2 = an MWT
 # span (lemma "_"). Only the four real word tokens must be yielded.
@@ -71,6 +75,58 @@ def test_iter_word_tokens_null_marker_unaffected_by_strip():
     must not be touched -- this is what the lemma=='_' skip check depends on."""
     forms = [f for f, _ in iter_word_tokens_in_sentences(parse(CONLLU), "en")]
     assert forms == ["do", "not", "know", "it"]  # unchanged: no artifact present
+
+
+def test_iter_word_tokens_underscore_run_form_survives():
+    """A real underscore-run PUNCT token (et_ewt '________') must not strip
+    to an empty form -- an empty string crashes the Lemmatizer input check."""
+    conllu = "1\t____\t____\tPUNCT\t_\t_\t0\tpunct\t_\t_\n\n"
+    (form, token), *_ = iter_word_tokens_in_sentences(parse(conllu), "et")
+    assert form == "____" and token["lemma"] == "____"
+
+
+def test_canon_lemma_strips_compound_separators():
+    assert canon_lemma("yli#opisto", "yliopisto", "fi") == "yliopisto"
+    assert canon_lemma("sisse_tulek", "sissetulek", "et") == "sissetulek"
+    assert canon_lemma("el+mond", "elmond", "hu") == "elmond"
+    # nl untouched
+    assert canon_lemma("klooster_orde", "kloosterorde", "nl") == "klooster_orde"
+
+
+def test_canon_lemma_keeps_marker_present_in_the_form():
+    """A marker in the surface form is token content, not annotation
+    (real UD rows: fi '#luonto', et 'MAX_FILE_SIZE', hu '16+3')."""
+    assert canon_lemma("#luonto", "#luonto", "fi") == "#luonto"
+    assert canon_lemma("MAX_FILE_SIZE", "MAX_FILE_SIZE", "et") == "MAX_FILE_SIZE"
+    assert canon_lemma("16+3", "16+3", "hu") == "16+3"
+    # the gate compares MWT-stripped, so a he-style artifact can't defeat it
+    assert canon_lemma("20_000_", "_20_000", "et") == "20_000"
+
+
+def test_canon_lemma_keeps_marker_per_occurrence_on_inflected_forms():
+    """Per-occurrence, not whole-string equality: an inflected form keeps the
+    edge marker it carries ('#oscarit' / '#Oscar' -- equality testing
+    corrupted 45 fi/et gold rows), internal compound markers still go."""
+    assert canon_lemma("#Oscar", "#oscarit", "fi") == "#Oscar"
+    assert canon_lemma("#luonto#kuva", "#luontokuvan", "fi") == "#luontokuva"
+    # no marker in the form at all: the lemma's markers are annotation
+    assert canon_lemma("#yli#opisto", "yliopistot", "fi") == "yliopisto"
+
+
+def test_canon_lemma_trailing_edge_marker_follows_the_form():
+    """A trailing marker run survives only when the form also ends with the
+    marker; otherwise it strips with the internal ones (mirror of the
+    '#oscarit' leading-edge rule)."""
+    assert canon_lemma("Oscar#", "oscarit#", "fi") == "Oscar#"
+    assert canon_lemma("Oscar#", "oscarit", "fi") == "Oscar"
+    assert canon_lemma("yli#opisto#", "yliopistot", "fi") == "yliopisto"
+
+
+def test_canon_lemma_never_strips_a_lemma_to_nothing():
+    """An all-marker lemma whose form differs would strip to '' and score every
+    prediction wrong. Unreachable in UD 2.18, guarded anyway."""
+    assert canon_lemma("###", "hashtags", "fi") == "###"
+    assert canon_lemma("+++", "plusses", "hu") == "+++"
 
 
 def test_dataset_to_lang_overrides_and_default():

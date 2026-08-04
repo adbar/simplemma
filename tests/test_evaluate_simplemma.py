@@ -1,3 +1,5 @@
+import csv
+
 import pytest
 from conllu import parse
 
@@ -83,22 +85,35 @@ def test_evaluate_dataset_canonicalizes_ar_gold_lemma():
 
 
 def test_main_writes_results(tmp_path):
-    clean = tmp_path / "UD"
-    clean.mkdir()
-    (clean / "en_test.conllu").write_text(CONLLU, encoding="utf-8")
-    # downloader-colocated decoys: main() must skip them (glob '*.conllu'), not crash
-    (clean / "UD_VERSION").write_text("2.18", encoding="utf-8")
-    (clean / "splits").mkdir()
+    """A dataset is scored over its held-out splits chained (dev+test); train
+    is excluded -- it feeds the override mining AND calibrates the gate."""
+    splits = tmp_path / "splits"
+    splits.mkdir()
+    (splits / "en_test-ud-train.conllu").write_text(CONLLU, encoding="utf-8")
+    (splits / "en_test-ud-dev.conllu").write_text(CONLLU, encoding="utf-8")
+    (splits / "en_test-ud-test.conllu").write_text(CONLLU, encoding="utf-8")
     results = tmp_path / "results"
 
     # run twice: the second call exercises the results-folder reset branch
-    evaluate_simplemma.main(clean, results)
-    evaluate_simplemma.main(clean, results)
+    evaluate_simplemma.main(splits, results)
+    evaluate_simplemma.main(splits, results)
 
-    summary = (results / "results_summary.csv").read_text()
-    assert "dataset" in summary
-    assert "en_test" in summary
+    with open(results / "results_summary.csv", newline="", encoding="utf-8") as fh:
+        rows = {row[0]: row for row in csv.reader(fh)}
+    assert "dataset" in rows  # header
+    assert rows["en_test"][2] == "6"  # dev+test counted, train's 3 tokens not
     assert (results / "en_test.csv").exists()
+
+
+def test_main_skips_train_only_dataset(tmp_path):
+    """A dataset with ONLY a train split yields nothing to score."""
+    splits = tmp_path / "splits"
+    splits.mkdir()
+    (splits / "en_test-ud-train.conllu").write_text(CONLLU, encoding="utf-8")
+    results = tmp_path / "results"
+
+    evaluate_simplemma.main(splits, results)
+    assert "en_test" not in (results / "results_summary.csv").read_text()
 
 
 def test_main_requires_data(tmp_path):
@@ -108,10 +123,10 @@ def test_main_requires_data(tmp_path):
 
 def test_main_maps_dataset_name_to_lang(tmp_path):
     """A UD prefix that isn't the ISO code (no_nynorsk) must go through dataset_to_lang."""
-    clean = tmp_path / "UD"
-    clean.mkdir()
-    (clean / "no_nynorsk.conllu").write_text(CONLLU, encoding="utf-8")
+    splits = tmp_path / "splits"
+    splits.mkdir()
+    (splits / "no_nynorsk-ud-test.conllu").write_text(CONLLU, encoding="utf-8")
     results = tmp_path / "results"
 
-    evaluate_simplemma.main(clean, results)  # would raise ValueError('no') pre-fix
+    evaluate_simplemma.main(splits, results)  # would raise ValueError('no') pre-fix
     assert "no_nynorsk" in (results / "results_summary.csv").read_text()

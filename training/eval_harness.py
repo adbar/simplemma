@@ -83,7 +83,7 @@ def iter_real_word_tokens(test_path: Path, lang: str) -> Iterator[tuple[str, str
                     # span sub-tokens are read straight from by_id, so apply
                     # the shared gold transform here (the sentence iterator
                     # below only touches the non-span tokens it yields).
-                    lemma = canon_lemma(pick[-1]["lemma"], lang)
+                    lemma = canon_lemma(pick[-1]["lemma"], pick[-1]["form"], lang)
                     yield _strip_mwt_artifact(t["form"]), lemma
             for form, token in iter_word_tokens_in_sentences([tokens], lang):
                 if token["id"] not in span_ranges:

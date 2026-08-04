@@ -16,6 +16,7 @@ import json
 import sys
 import unicodedata
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -75,6 +76,19 @@ def check_field(text: str) -> str | None:
     return None
 
 
+def pair_violation(lemma: str, form: str) -> str | None:
+    """Shared validity check for layer-file entries: read_pairs raises on it,
+    the mining merge skips on it, so nothing written can crash the load.
+    Fields must arrive pre-folded (NFC + canonicalize)."""
+    for name, value in (("lemma", lemma), ("form", form)):
+        if not value:
+            return f"empty {name}"
+        reason = check_field(value)
+        if reason:
+            return f"{name} {value!r} rejected ({reason})"
+    return None
+
+
 def read_pairs(path: Path) -> dict[str, str]:
     """Strictly load a curated ``lemma<TAB>form`` file into a form->lemma dict.
 
@@ -94,14 +108,9 @@ def read_pairs(path: Path) -> dict[str, str]:
                     f"{path}:{line_no}: expected 'lemma<TAB>form', got {stripped!r}"
                 )
             lemma, form = (normalize_token(part) for part in parts)
-            if not lemma or not form:
-                raise ValueError(f"{path}:{line_no}: empty field in {stripped!r}")
-            for name, value in (("lemma", lemma), ("form", form)):
-                reason = check_field(value)
-                if reason:
-                    raise ValueError(
-                        f"{path}:{line_no}: {name} {value!r} rejected ({reason})"
-                    )
+            reason = pair_violation(lemma, form)
+            if reason:
+                raise ValueError(f"{path}:{line_no}: {reason} in {stripped!r}")
             if form in mapping and mapping[form] != lemma:
                 raise ValueError(
                     f"{path}:{line_no}: form {form!r} maps to both "
@@ -109,6 +118,16 @@ def read_pairs(path: Path) -> dict[str, str]:
                 )
             mapping[form] = lemma
     return mapping
+
+
+def write_pairs(pairs: Iterable[tuple[str, str]], path: Path) -> int:
+    """Write ``lemma<TAB>form`` lines to `path`, returning the pair count."""
+    count = 0
+    with open(path, "w", encoding="utf-8") as filehandle:
+        for lemma, form in pairs:
+            filehandle.write(f"{lemma}\t{form}\n")
+            count += 1
+    return count
 
 
 @dataclass
