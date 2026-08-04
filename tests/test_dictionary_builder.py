@@ -434,7 +434,7 @@ def test_drop_junk_keys_he_latin_transliterations() -> None:
     assert result == {"בית": "בית", "3": "3"}
 
 
-def _foreign_script_key(key: str, value: str, allowed: frozenset) -> bool:
+def _foreign_script_key(key: str, value: str, allowed: frozenset[str]) -> bool:
     """String-level adapter: the real predicate takes precomputed script sets
     (_drop_junk_keys computes them once per entry)."""
     return dictionary_builder._foreign_script_key(
