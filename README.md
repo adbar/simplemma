@@ -9,14 +9,15 @@
 Fast, dependency-free lemmatization for 54 languages.
 Pure Python, no models to download, works offline.
 
-- **A 17 MB install** with no per-language downloads: 9 of the 54 languages have
+- **A 19 MB install** with no per-language downloads: 9 of the 54 languages have
   no Stanza lemmatizer and 34 no spaCy pipeline
 - **~1.9M tokens/s** (German) and **~3.4M** (English), milliseconds to first lemma
 - **Tunable RAM footprint**: ~175 MB, ~50 MB with `low_memory=True`, or ~30 MB per
   language with tries
-- **0.91 to 0.95 accuracy** for 21 languages, German and English at 0.95, and
-  0.85 to 0.90 for morphologically richer ones such as Russian, Finnish and
-  Hungarian: a few points behind trained neural pipelines, hundreds of times faster
+- **0.91 to 0.97 accuracy** for 34 languages, German at 0.97 and English at
+  0.96, and 0.85 to 0.90 for morphologically richer ones such as Hungarian,
+  Latin and Ancient Greek: a few points behind trained neural pipelines,
+  hundreds of times faster
 - Useful utilities included: script-aware tokenizer, rule-based sentence
   splitter, dictionary-based language detection
 
@@ -281,7 +282,7 @@ If no such code exists, a [ISO 639-3
 code](https://en.wikipedia.org/wiki/List_of_ISO_639-3_codes) is
 used instead.
 
-Available languages (2026-07-24):
+Available languages (2026-08-04):
 
 The *Forms* column counts the inflected word forms stored in the
 dictionary, while *Lemmata* counts the distinct base forms they map to
@@ -298,14 +299,14 @@ morphology rather than a data error.
 | `cs` | Czech | 363 | 47 | 0.95 | on UD CS-FicTree |
 | `cy` | Welsh | 402 | 21 | 0.94 | on UD CY-CCG |
 | `da` | Danish | 788 | 117 | 0.95 | on UD DA-DDT, alternative: [lemmy](https://github.com/sorenlind/lemmy) |
-| `de` | German | 1,117 | 334 | 0.97 | on UD DE-GSD, see also [German-NLP list](https://github.com/adbar/German-NLP#Lemmatization) |
+| `de` | German | 1,116 | 334 | 0.97 | on UD DE-GSD, see also [German-NLP list](https://github.com/adbar/German-NLP#Lemmatization) |
 | `el` | Greek | 250 | 28 | 0.93 | on UD EL-GDT |
 | `en` | English | 182 | 78 | 0.96 | on UD EN-LinES, alternative: [LemmInflect](https://github.com/bjascob/LemmInflect) |
 | `enm` | Middle English | 43 | 6 |  |  |
 | `eo` | Esperanto | 191 | 18 | 0.95 | on UD EO-PraGo (test-only treebank, no train split) |
 | `es` | Spanish | 824 | 88 | 0.93 | on UD ES-AnCora |
 | `et` | Estonian | 2,690 | 95 | 0.91 | on UD ET-EWT, low coverage |
-| `fa` | Persian | 52 | 14 | 0.95 | on UD FA-Seraji |
+| `fa` | Persian | 47 | 14 | 0.95 | on UD FA-Seraji |
 | `fi` | Finnish | 3,547 | 125 | 0.91 | on UD FI-TDT, see [this benchmark](https://github.com/aajanki/finnish-pos-accuracy) |
 | `fr` | French | 250 | 37 | 0.96 | on UD FR-Sequoia |
 | `ga` | Irish | 444 | 48 | 0.92 | on UD GA-IDT |
@@ -318,17 +319,17 @@ morphology rather than a data error.
 | `hi` | Hindi | 86 | 19 | 0.95 | on UD HI-HDTB |
 | `hu` | Hungarian | 1,763 | 45 | 0.88 | on UD HU-Szeged |
 | `hy` | Armenian | 467 | 17 | 0.91 | on UD HY-BSUT |
-| `id` | Indonesian | 21 | 4 | 0.93 | on UD ID-CSUI |
+| `id` | Indonesian | 22 | 4 | 0.93 | on UD ID-CSUI |
 | `is` | Icelandic | 210 | 18 | 0.81 | on UD IS-GC |
 | `it` | Italian | 358 | 28 | 0.95 | on UD IT-ISDT |
 | `ka` | Georgian | 448 | 16 | 0.85 | on UD KA-GLC |
-| `la` | Latin | 1,147 | 64 | 0.89 | on UD LA-PROIEL, alternative: [LatinCy](https://spacy.io/universe/project/latincy) |
+| `la` | Latin | 1,289 | 70 | 0.89 | on UD LA-PROIEL, alternative: [LatinCy](https://spacy.io/universe/project/latincy) |
 | `lb` | Luxembourgish | 306 | 79 |  | only a <1k-token UD treebank available |
 | `lt` | Lithuanian | 365 | 28 | 0.86 | on UD LT-ALKSNIS |
 | `lv` | Latvian | 178 | 15 | 0.83 | on UD LV-LVTB |
 | `mk` | Macedonian | 546 | 41 | 0.92 | on UD MK-MTB (test-only treebank, no train split) |
 | `ml` | Malayalam | 746 | 64 | 0.69 | on UD ML-UFAL (small test-only treebank, no train split), experimental |
-| `ms` | Malay | 17 | 4 |  |  |
+| `ms` | Malay | 18 | 4 |  |  |
 | `nb` | Norwegian (Bokmål) | 641 | 140 | 0.84 | on UD NO-Bokmaal |
 | `nl` | Dutch | 370 | 125 | 0.96 | on UD NL-Alpino, excl. underscore-joined compound lemmas |
 | `nn` | Norwegian (Nynorsk) | 138 | 36 | 0.83 | on UD NO-Nynorsk |

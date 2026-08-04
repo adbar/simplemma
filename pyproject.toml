@@ -21,6 +21,8 @@ keywords=[
     "lemmatizer",
     "lemmatiser",
     "nlp",
+    "sentence segmentation",
+    "sentence splitting",
     "tokenization",
     "tokenizer",
 ]

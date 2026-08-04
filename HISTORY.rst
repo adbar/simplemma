@@ -7,54 +7,27 @@ History
 
 - New languages: Arabic (``ar``), Ancient Greek (``grc``), Hebrew (``he``)
   and Malayalam (``ml``) (#180)
-- All dictionaries rebuilt from fresh sources, adding Wikidata lexemes and
-  reviewed closed-class overrides: accuracy improves markedly for more than
-  20 languages (e.g. Welsh 0.59 → 0.91, Armenian 0.63 → 0.88,
-  Swedish 0.79 → 0.91, Russian 0.86 → 0.89) (#178, #180)
-- Reviewed correction lists mined from UD training data for 43 languages,
-  each required to regress no treebank before shipping: further gains of
-  1–10 accuracy points per language (e.g. Arabic 0.81 → 0.91, Catalan
-  0.89 → 0.95, Russian 0.89 → 0.93); evaluation is strictly out-of-sample,
-  as candidates are gated on the training split and the reported dev/test
-  accuracies are never consulted by a shipping decision (#184)
-- Latin dictionary enlarged by 142,000 entries from a merged fresh
-  extraction; Indonesian correction list adopted after pruning its
-  treebank-convention conflicts (#184)
-- Dictionary consistency pass across all languages: identity self-maps and
-  casing/fold lookup aliases restored, foreign-script junk keys and legacy
-  junk values purged, and every shipped dictionary now rebuilds
-  byte-identically from its own data (#184)
-- Breaking: new front-coded dictionary format shrinks the shipped data from
-  67 MB to 17 MB; pre-2.0 pickled ``.plzma`` files are no longer read (#178)
-- More accurate default rules covering more languages: near-100% precision
-  enforced against the dictionaries, new rule sets (e.g. Georgian,
-  Icelandic) (#175)
-- More targeted affix handling, validated per language on UD treebanks: new
-  clitic-decomposition and apostrophe strategies, simplified greedy affix
-  search, updated prefix handling (#176)
-- New ``MorphemeDecompositionStrategy``, used by default: strips stacked
-  prefixes, infixes and reduplication (Tagalog, Indonesian) (#180)
-- Improved tokenization (apostrophes, hyphens) and new sentence-initial
-  casing handling in ``get_lemmas_in_text``, with a new ``casing`` module
-  (#177)
-- New ``split_sentences()`` function and ``sentences`` module: sentence
-  splitting by punctuation and per-language abbreviations (#182)
-- Faster tokenizer, now handling currency signs, more in-word joiners
-  (Hebrew, Armenian, Catalan) and symbols such as emoji (#182)
+- All dictionaries rebuilt from fresh sources: improved accuracy for many
+  languages (#178, #180)
+- Reviewed correction lists for 43 languages, bringing further accuracy
+  gains (#184)
+- Larger Latin dictionary, new Indonesian correction list, junk entries
+  removed in all languages (#184)
+- Breaking: new dictionary format shrinks the shipped data from 67 MB to
+  19 MB; pre-2.0 ``.plzma`` files are no longer read (#178)
+- More accurate rules covering more languages (#175)
+- Better affix handling: new clitic and apostrophe strategies, simpler
+  greedy search, updated prefixes (#176)
+- New morpheme decomposition for Tagalog and Indonesian (#180)
+- New ``split_sentences()`` function for sentence splitting (#182)
+- Faster, more precise tokenizer (#177, #182)
+- Text functions now lower sentence-initial capitals before lookup, with
+  proper-noun and acronym safeguards (#177)
+- Lower memory usage: shared dictionary cache and new ``low_memory``
+  flag (#178, #181)
 - Armenian lookups fall back to the form without intonation marks (#182)
-- Language detector fixes: ``main_language`` no longer mutates the token
-  sampler, no more mutable default arguments (#172)
-- Lower memory footprint: all strategies share one process-wide default
-  dictionary factory, so the dictionaries are cached once per process (#178)
-- New ``low_memory`` flag on ``lemmatize``, ``text_lemmatizer``,
-  ``lemma_iterator``, ``is_known``, ``langdetect``, ``in_target_language``
-  and ``DefaultStrategy`` to opt into the new zero-dependency
-  ``StreamDictionaryFactory`` (#181)
-- New ``StreamDictionaryFactory``: a stdlib-only low-memory backend that reads
-  the shipped dictionaries directly instead of loading them into a dict (#181)
-- Rebuilt training pipeline: layered dictionary builds (word-list base +
-  Wikidata fill + reviewed overrides) gated by cross-treebank evaluation
-  (#178)
+- Language detector fixes (#172)
+- Rebuilt training pipeline with cross-treebank evaluation (#178)
 
 
 1.2.0
