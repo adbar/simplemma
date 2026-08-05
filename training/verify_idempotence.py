@@ -11,13 +11,9 @@ Exits 1 listing the drifted languages (full run ~15 min).
 import argparse
 import logging
 import sys
-from pathlib import Path
 
-from simplemma.strategies.dictionaries import dictionary_factory, frontcode
-from training.dictionary_builder import (
-    FRONTCODE_REVERSE_KEY_LANGS,
-    _compose_dictionary,
-)
+from simplemma.strategies.dictionaries import dictionary_factory
+from training.dictionary_builder import _compose_dictionary, _encode_dictionary
 
 log = logging.getLogger(__name__)
 
@@ -27,11 +23,8 @@ def drifted_languages(langs: list[str]) -> list[str]:
     drifted = []
     for lang in langs:
         mydict = _compose_dictionary(lang)
-        encoded = {k.encode(): v.encode() for k, v in mydict.items()}
-        recomposed = frontcode._encode(
-            encoded, reverse_key=lang in FRONTCODE_REVERSE_KEY_LANGS
-        )
-        shipped = (Path(dictionary_factory.DATA_FOLDER) / f"{lang}.plzma").read_bytes()
+        recomposed = _encode_dictionary(mydict, lang)
+        shipped = (dictionary_factory.DATA_FOLDER / f"{lang}.plzma").read_bytes()
         status = "ok" if recomposed == shipped else "DRIFT"
         log.info("%s: %s (%d entries)", lang, status, len(mydict))
         if recomposed != shipped:

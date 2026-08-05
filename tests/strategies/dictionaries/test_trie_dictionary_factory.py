@@ -1,6 +1,6 @@
-from collections.abc import ItemsView, KeysView
+from collections.abc import ItemsView, Iterator, KeysView
+from contextlib import contextmanager
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -17,6 +17,24 @@ from simplemma.strategies import TrieDictionaryFactory
 
 if not HAS_MARISA:
     pytest.skip("skipping marisa-trie tests", allow_module_level=True)
+
+
+@contextmanager
+def _spy_trie_io(
+    factory: TrieDictionaryFactory,
+) -> Iterator[tuple[MagicMock, MagicMock]]:
+    """Spy on trie building and disk writes while keeping the real behavior."""
+    with (
+        patch.object(
+            TrieDictionaryFactory, "_build_trie", wraps=factory._build_trie
+        ) as build,
+        patch.object(
+            TrieDictionaryFactory,
+            "_write_trie_to_disk",
+            wraps=factory._write_trie_to_disk,
+        ) as write,
+    ):
+        yield build, write
 
 
 def test_import_error_without_deps(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -55,206 +73,151 @@ def test_max_lru_cache_size() -> None:
     assert dictionaries._get_dictionary.cache_info().hits == 1
 
 
-def test_disabled_disk_cache() -> None:
-    with TemporaryDirectory() as tmp_dir:
-        tmp_dir_path = Path(tmp_dir)
-        dictionaries = TrieDictionaryFactory(
-            disk_cache_dir=tmp_dir, use_disk_cache=False
-        )
+def test_no_disk_cache(tmp_path: Path) -> None:
+    dictionaries = TrieDictionaryFactory(
+        use_disk_cache=False, disk_cache_dir=str(tmp_path)
+    )
+
+    with _spy_trie_io(dictionaries) as (create_trie_mock, write_trie_mock):
+        assert sorted(tmp_path.iterdir()) == []
+
         dictionaries.get_dictionary("en")
         dictionaries.get_dictionary("fr")
-        assert sorted(tmp_dir_path.iterdir()) == []
 
-
-def test_no_disk_cache() -> None:
-    with TemporaryDirectory() as tmp_dir:
-        tmp_dir_path = Path(tmp_dir)
-        dictionaries = TrieDictionaryFactory(
-            use_disk_cache=False, disk_cache_dir=tmp_dir
-        )
-
-        with (
-            patch.object(
-                TrieDictionaryFactory,
-                "_build_trie",
-                wraps=dictionaries._build_trie,
-            ) as create_trie_mock,
-            patch.object(
-                TrieDictionaryFactory,
-                "_write_trie_to_disk",
-                wraps=dictionaries._write_trie_to_disk,
-            ) as write_trie_mock,
-        ):
-            assert sorted(tmp_dir_path.iterdir()) == []
-
-            dictionaries.get_dictionary("en")
-            dictionaries.get_dictionary("fr")
-
-            dictionaries.get_dictionary("en")
-            dictionaries.get_dictionary("fr")
-
-            create_trie_mock.assert_has_calls([call("en"), call("fr")])
-            write_trie_mock.assert_not_called()
-
-            assert sorted(tmp_dir_path.iterdir()) == []
-
-
-def test_disk_cache() -> None:
-    with TemporaryDirectory() as tmp_dir:
-        tmp_dir_path = Path(tmp_dir)
-        dictionaries = TrieDictionaryFactory(disk_cache_dir=tmp_dir)
-
-        with (
-            patch.object(
-                TrieDictionaryFactory,
-                "_build_trie",
-                wraps=dictionaries._build_trie,
-            ) as create_trie_mock,
-            patch.object(
-                TrieDictionaryFactory,
-                "_write_trie_to_disk",
-                wraps=dictionaries._write_trie_to_disk,
-            ) as write_trie_mock,
-        ):
-            assert sorted(tmp_dir_path.iterdir()) == []
-
-            # Initial cached trie files should be generated.
-            en_dictionary = dictionaries.get_dictionary("en")
-            fr_dictionary = dictionaries.get_dictionary("fr")
-
-            create_trie_mock.assert_has_calls([call("en"), call("fr")])
-            create_trie_mock.reset_mock()
-            write_trie_mock.assert_has_calls(
-                [
-                    call("en", en_dictionary._trie),  # type: ignore[attr-defined]
-                    call("fr", fr_dictionary._trie),  # type: ignore[attr-defined]
-                ]
-            )
-            write_trie_mock.reset_mock()
-
-            assert sorted(tmp_dir_path.iterdir()) == [
-                tmp_dir_path / "en.dic",
-                tmp_dir_path / "fr.dic",
-            ]
-
-            # LRU cache should result in not checking for cached tries.
-            dictionaries.get_dictionary("en")
-            dictionaries.get_dictionary("fr")
-
-            create_trie_mock.assert_not_called()
-            write_trie_mock.assert_not_called()
-
-            dictionaries._get_dictionary.cache_clear()
-
-            # Cached trie files should be checked, but not regenerated,
-            # as LRU cached got emptied.
-            dictionaries.get_dictionary("en")
-            dictionaries.get_dictionary("fr")
-
-            create_trie_mock.assert_not_called()
-            write_trie_mock.assert_not_called()
-
-            assert sorted(tmp_dir_path.iterdir()) == [
-                tmp_dir_path / "en.dic",
-                tmp_dir_path / "fr.dic",
-            ]
-
-
-def test_corrupted_disk_cache() -> None:
-    with TemporaryDirectory() as tmp_dir:
-        tmp_dir_path = Path(tmp_dir)
-        dictionaries = TrieDictionaryFactory(disk_cache_dir=tmp_dir)
-
-        with (
-            patch.object(
-                TrieDictionaryFactory,
-                "_build_trie",
-                wraps=dictionaries._build_trie,
-            ) as create_trie_mock,
-            patch.object(
-                TrieDictionaryFactory,
-                "_write_trie_to_disk",
-                wraps=dictionaries._write_trie_to_disk,
-            ) as write_trie_mock,
-        ):
-            assert sorted(tmp_dir_path.iterdir()) == []
-
-            # Initial cached trie file should be generated.
-            en_dictionary = dictionaries.get_dictionary("en")
-
-            create_trie_mock.assert_has_calls([call("en")])
-            create_trie_mock.reset_mock()
-            write_trie_mock.assert_has_calls(
-                [
-                    call("en", en_dictionary._trie),  # type: ignore[attr-defined]
-                ]
-            )
-            write_trie_mock.reset_mock()
-
-            assert sorted(tmp_dir_path.iterdir()) == [
-                tmp_dir_path / "en.dic",
-            ]
-
-            with (tmp_dir_path / "en.dic").open("wb") as f:
-                f.write(b"corrupted trie dictionary")
-            dictionaries._get_dictionary.cache_clear()
-
-            # Loading a corrupted file should regenerate it.
-            dictionaries.get_dictionary("en")
-
-            create_trie_mock.assert_called_once_with("en")
-            write_trie_mock.assert_called_once()
-
-            assert sorted(tmp_dir_path.iterdir()) == [tmp_dir_path / "en.dic"]
-
-
-def test_write_failure_removes_partial_file() -> None:
-    with TemporaryDirectory() as tmp_dir:
-        tmp_dir_path = Path(tmp_dir)
-        dictionaries = TrieDictionaryFactory(disk_cache_dir=tmp_dir)
-        mock_trie = MagicMock()
-        mock_trie.save.side_effect = OSError("disk full")
-        with pytest.raises(OSError, match="disk full"):
-            dictionaries._write_trie_to_disk("en", mock_trie)
-        assert sorted(tmp_dir_path.iterdir()) == []
-
-
-def test_write_failure_still_returns_dictionary() -> None:
-    with TemporaryDirectory() as tmp_dir:
-        dictionaries = TrieDictionaryFactory(disk_cache_dir=tmp_dir)
-        with patch.object(
-            TrieDictionaryFactory,
-            "_write_trie_to_disk",
-            side_effect=OSError("disk full"),
-        ):
-            result = dictionaries.get_dictionary("en")
-        assert result.get("balconies") == "balcony"
-
-
-def test_disabled_disk_cache_ignores_existing_file() -> None:
-    with TemporaryDirectory() as tmp_dir:
-        # Pre-populate a cache file with a disk-cache-enabled factory.
-        TrieDictionaryFactory(disk_cache_dir=tmp_dir).get_dictionary("en")
-
-        dictionaries = TrieDictionaryFactory(
-            disk_cache_dir=tmp_dir, use_disk_cache=False
-        )
-        with patch.object(
-            TrieDictionaryFactory,
-            "_build_trie",
-            wraps=dictionaries._build_trie,
-        ) as create_trie_mock:
-            dictionaries.get_dictionary("en")
-        # use_disk_cache=False must rebuild, not load the existing file.
-        create_trie_mock.assert_called_once_with("en")
-
-
-def test_disk_cache_creates_nested_dir() -> None:
-    with TemporaryDirectory() as tmp_dir:
-        nested = Path(tmp_dir) / "a" / "b"
-        dictionaries = TrieDictionaryFactory(disk_cache_dir=str(nested))
         dictionaries.get_dictionary("en")
-        assert (nested / "en.dic").exists()
+        dictionaries.get_dictionary("fr")
+
+        create_trie_mock.assert_has_calls([call("en"), call("fr")])
+        write_trie_mock.assert_not_called()
+
+        assert sorted(tmp_path.iterdir()) == []
+
+
+def test_disk_cache(tmp_path: Path) -> None:
+    dictionaries = TrieDictionaryFactory(disk_cache_dir=str(tmp_path))
+
+    with _spy_trie_io(dictionaries) as (create_trie_mock, write_trie_mock):
+        assert sorted(tmp_path.iterdir()) == []
+
+        # Initial cached trie files should be generated.
+        en_dictionary = dictionaries.get_dictionary("en")
+        fr_dictionary = dictionaries.get_dictionary("fr")
+
+        create_trie_mock.assert_has_calls([call("en"), call("fr")])
+        create_trie_mock.reset_mock()
+        write_trie_mock.assert_has_calls(
+            [
+                call("en", en_dictionary._trie),  # type: ignore[attr-defined]
+                call("fr", fr_dictionary._trie),  # type: ignore[attr-defined]
+            ]
+        )
+        write_trie_mock.reset_mock()
+
+        assert sorted(tmp_path.iterdir()) == [
+            tmp_path / "en.dic",
+            tmp_path / "fr.dic",
+        ]
+
+        # LRU cache should result in not checking for cached tries.
+        dictionaries.get_dictionary("en")
+        dictionaries.get_dictionary("fr")
+
+        create_trie_mock.assert_not_called()
+        write_trie_mock.assert_not_called()
+
+        dictionaries._get_dictionary.cache_clear()
+
+        # Cached trie files should be checked, but not regenerated,
+        # as LRU cached got emptied.
+        dictionaries.get_dictionary("en")
+        dictionaries.get_dictionary("fr")
+
+        create_trie_mock.assert_not_called()
+        write_trie_mock.assert_not_called()
+
+        assert sorted(tmp_path.iterdir()) == [
+            tmp_path / "en.dic",
+            tmp_path / "fr.dic",
+        ]
+
+
+def test_corrupted_disk_cache(tmp_path: Path) -> None:
+    dictionaries = TrieDictionaryFactory(disk_cache_dir=str(tmp_path))
+
+    with _spy_trie_io(dictionaries) as (create_trie_mock, write_trie_mock):
+        assert sorted(tmp_path.iterdir()) == []
+
+        # Initial cached trie file should be generated.
+        en_dictionary = dictionaries.get_dictionary("en")
+
+        create_trie_mock.assert_has_calls([call("en")])
+        create_trie_mock.reset_mock()
+        write_trie_mock.assert_has_calls(
+            [
+                call("en", en_dictionary._trie),  # type: ignore[attr-defined]
+            ]
+        )
+        write_trie_mock.reset_mock()
+
+        assert sorted(tmp_path.iterdir()) == [
+            tmp_path / "en.dic",
+        ]
+
+        with (tmp_path / "en.dic").open("wb") as f:
+            f.write(b"corrupted trie dictionary")
+        dictionaries._get_dictionary.cache_clear()
+
+        # Loading a corrupted file should regenerate it.
+        dictionaries.get_dictionary("en")
+
+        create_trie_mock.assert_called_once_with("en")
+        write_trie_mock.assert_called_once()
+
+        assert sorted(tmp_path.iterdir()) == [tmp_path / "en.dic"]
+
+
+def test_write_failure_removes_partial_file(tmp_path: Path) -> None:
+    dictionaries = TrieDictionaryFactory(disk_cache_dir=str(tmp_path))
+    mock_trie = MagicMock()
+    mock_trie.save.side_effect = OSError("disk full")
+    with pytest.raises(OSError, match="disk full"):
+        dictionaries._write_trie_to_disk("en", mock_trie)
+    assert sorted(tmp_path.iterdir()) == []
+
+
+def test_write_failure_still_returns_dictionary(tmp_path: Path) -> None:
+    dictionaries = TrieDictionaryFactory(disk_cache_dir=str(tmp_path))
+    with patch.object(
+        TrieDictionaryFactory,
+        "_write_trie_to_disk",
+        side_effect=OSError("disk full"),
+    ):
+        result = dictionaries.get_dictionary("en")
+    assert result.get("balconies") == "balcony"
+
+
+def test_disabled_disk_cache_ignores_existing_file(tmp_path: Path) -> None:
+    # Pre-populate a cache file with a disk-cache-enabled factory.
+    TrieDictionaryFactory(disk_cache_dir=str(tmp_path)).get_dictionary("en")
+
+    dictionaries = TrieDictionaryFactory(
+        disk_cache_dir=str(tmp_path), use_disk_cache=False
+    )
+    with patch.object(
+        TrieDictionaryFactory,
+        "_build_trie",
+        wraps=dictionaries._build_trie,
+    ) as create_trie_mock:
+        dictionaries.get_dictionary("en")
+    # use_disk_cache=False must rebuild, not load the existing file.
+    create_trie_mock.assert_called_once_with("en")
+
+
+def test_disk_cache_creates_nested_dir(tmp_path: Path) -> None:
+    nested = tmp_path / "a" / "b"
+    dictionaries = TrieDictionaryFactory(disk_cache_dir=str(nested))
+    dictionaries.get_dictionary("en")
+    assert (nested / "en.dic").exists()
 
 
 def test_dictionary_working_as_a_dict() -> None:

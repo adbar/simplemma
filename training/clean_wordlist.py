@@ -200,7 +200,7 @@ def main() -> None:
     parser.add_argument("--max-reject-pct", type=float, default=DEFAULT_MAX_REJECT_PCT)
     args = parser.parse_args()
 
-    lines = Path(args.input).read_text(encoding="utf-8").splitlines(keepends=True)
+    lines = Path(args.input).read_text(encoding="utf-8").splitlines()
     kept_lines, report = clean_wordlist(lines)
 
     Path(args.output).write_text("\n".join(kept_lines) + "\n", encoding="utf-8")

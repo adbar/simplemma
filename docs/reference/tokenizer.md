@@ -5,6 +5,6 @@ description: "API reference for Simplemma's script-aware tokenizer: simple_token
 
 # Tokenizer
 
-`simple_tokenizer()` splits raw text into a list of word and punctuation tokens, and `RegexTokenizer.split_text()` yields the same tokens as an iterator. The tokenizer is script-aware: in-word joiners, combining marks and number separators stay inside their token.
+`simple_tokenizer()` splits raw text into a list of word and punctuation tokens, and `RegexTokenizer.split_text()` yields the same tokens as an iterator. The tokenization rules are listed under `RegexTokenizer` below.
 
 ::: simplemma.tokenizer

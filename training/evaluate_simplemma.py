@@ -12,6 +12,7 @@ dictionary-quality gate -- different protocol, not a duplicate.
 
 import csv
 import logging
+import shutil
 import time
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
@@ -101,7 +102,7 @@ def main(
 ) -> None:
     if not splits_folder.exists():
         raise Exception(
-            "It doesn't seem like data was downloaded and precessed for evaluation."
+            "It doesn't seem like data was downloaded and processed for evaluation."
         )
 
     # dev+test chained per dataset in sorted filename order; train excluded
@@ -114,9 +115,7 @@ def main(
         datasets[path.name.split("-ud-", 1)[0]].append(path)
 
     if results_folder.exists():
-        for result_file in results_folder.iterdir():
-            result_file.unlink()
-        results_folder.rmdir()
+        shutil.rmtree(results_folder)
     results_folder.mkdir()
 
     with open(

@@ -5,13 +5,16 @@ The scores are calculated on `Universal Dependencies <https://universaldependenc
 
 Each figure published in the main README is the accuracy on that language's
 best-performing general-purpose treebank; parallel, spoken, learner,
-historical and other narrow-domain treebanks are excluded. Two
+historical and other narrow-domain treebanks are excluded. Three
 annotation-driven exceptions apply. The Dutch figure excludes
 underscore-joined compound lemmas (e.g. ``klooster_orde``), an Alpino
 convention that single-token output cannot match — it is ≈0.91 without that
 exclusion. Hebrew and Arabic proclitics fuse onto their host word in real
 text but are scored as pre-split sub-tokens by the protocol above, so on
-whole, unsegmented input those accuracies are ≈0.82 and ≈0.85.
+whole, unsegmented input those accuracies are ≈0.82 and ≈0.85. Finnish,
+Estonian and Hungarian gold lemmas mark compound boundaries (``yli#opisto``,
+``sisse_tulek``, ``el+mond``); these markers are stripped before scoring
+(see ``_GOLD_COMPOUND_SEPARATORS`` in ``training/ud_conllu.py``).
 
 The scores can be reproduced by the following steps:
 

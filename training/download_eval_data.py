@@ -88,15 +88,12 @@ def _md5(path: Path) -> str:
     return h.hexdigest()
 
 
-def get_dirs(folder: Path) -> list[str]:
-    return [d.name for d in folder.iterdir() if d.is_dir()]
-
-
 def get_relevant_language_data_folders(
     data_folder: Path,
 ) -> Iterable[tuple[str, Path]]:
-    for lang_folder in get_dirs(data_folder):
-        lang_data_folder = data_folder / lang_folder
+    for lang_data_folder in data_folder.iterdir():
+        if not lang_data_folder.is_dir():
+            continue
         conllu_files = list(lang_data_folder.glob("*.conllu"))
         if not conllu_files:
             continue

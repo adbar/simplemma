@@ -192,14 +192,18 @@ def _resolve_candidates(
     # IDENTITY_SOFT_LANGS and for lemmas attested only by their own line
     # (forcing those measured -1.3..-2.6pp).
     soft = langcode in IDENTITY_SOFT_LANGS
-    strong = {
-        lemma
-        for form, counts in candidates.items()
-        for lemma in counts
-        if lemma != form
-    }
+    strong = (
+        set()
+        if soft
+        else {
+            lemma
+            for form, counts in candidates.items()
+            for lemma in counts
+            if lemma != form
+        }
+    )
     for word in lemmas:
-        if word in strong and not soft:
+        if word in strong:
             mydict[word] = word
         else:
             mydict.setdefault(word, word)
@@ -258,11 +262,11 @@ def _layer_entries(
 
 
 def _apply_layers(
-    base: dict[str, str], langcode: str, overrides_dir: Path | None = None
+    base: dict[str, str], langcode: str, overrides: dict[str, str]
 ) -> dict[str, str]:
     """Merge the optional per-language source layers into the base dict.
     Precedence: overrides > base > fill; fill never displaces a base entry.
-    `overrides_dir` overrides OVERRIDES_DIR (candidate gating, tests)."""
+    `overrides` is the parsed override layer (_layer_entries), possibly empty."""
     merged = dict(base)
     fill_path = FILL_DIR / f"{langcode}.tsv"
     if fill_path.exists():
@@ -278,9 +282,8 @@ def _apply_layers(
         for form, lemma in _clean_base(fill_entries).items():
             merged.setdefault(form, lemma)
         LOGGER.info("%s: fill layer applied -> %s entries", langcode, len(merged))
-    override_path = (overrides_dir or OVERRIDES_DIR) / f"{langcode}.tsv"
-    if override_path.exists():
-        merged.update(_layer_entries(override_path, langcode))
+    if overrides:
+        merged.update(overrides)
         LOGGER.info("%s: override layer applied -> %s entries", langcode, len(merged))
     return merged
 
@@ -800,7 +803,11 @@ def _compose_from_base(
 ) -> dict[str, str]:
     """The post-base half of the pipeline: layers, scrub, normalization,
     selfmaps, junk filter."""
-    mydict = _apply_layers(base, langcode, overrides_dir)
+    override_path = (overrides_dir or OVERRIDES_DIR) / f"{langcode}.tsv"
+    overrides = (
+        _layer_entries(override_path, langcode) if override_path.exists() else {}
+    )
+    mydict = _apply_layers(base, langcode, overrides)
     mydict = _scrub(mydict)
     mydict = _apply_build_normalization(mydict, langcode)
     mydict = _ensure_value_selfmaps(mydict)
@@ -808,29 +815,25 @@ def _compose_from_base(
     # filtered too (needs identity-aware predicates, _foreign_script_entry).
     kept = _drop_junk_keys(mydict, langcode)
     if len(kept) < len(mydict):
-        override_path = (overrides_dir or OVERRIDES_DIR) / f"{langcode}.tsv"
-        if override_path.exists():
-            # Reviewed overrides outrank the junk predicates (bg "II" ->
-            # "втори" is deliberate); frontcode sorts, so re-adding is stable.
-            dropped = mydict.keys() - kept.keys()
-            casualties = _layer_entries(override_path, langcode).keys() & dropped
-            for key in casualties:
-                kept[key] = mydict[key]
-            if casualties:
-                LOGGER.info(
-                    "%s: restored %d reviewed override entries the junk "
-                    "filter had dropped: %s",
-                    langcode,
-                    len(casualties),
-                    sorted(casualties)[:5],
-                )
+        # Reviewed overrides outrank the junk predicates (bg "II" ->
+        # "втори" is deliberate); frontcode sorts, so re-adding is stable.
+        casualties = overrides.keys() & (mydict.keys() - kept.keys())
+        for key in casualties:
+            kept[key] = mydict[key]
+        if casualties:
+            LOGGER.info(
+                "%s: restored %d reviewed override entries the junk "
+                "filter had dropped: %s",
+                langcode,
+                len(casualties),
+                sorted(casualties)[:5],
+            )
     return kept
 
 
 def _compose_dictionary(
     langcode: str,
     listpath: str | None = None,
-    overrides_dir: Path | None = None,
 ) -> dict[str, str]:
     """The full build pipeline (see module docstring) as one in-memory step.
 
@@ -838,8 +841,14 @@ def _compose_dictionary(
     `listpath` (a directory holding <langcode>.txt): wordlist ingestion,
     installed mappings still winning shared keys. SUPPORTED_LANGUAGES is
     read from the factory at call time so a test's monkeypatch is honored."""
-    return _compose_from_base(
-        _compose_base(langcode, listpath), langcode, overrides_dir
+    return _compose_from_base(_compose_base(langcode, listpath), langcode)
+
+
+def _encode_dictionary(mydict: dict[str, str], langcode: str) -> bytes:
+    """Ship encoding: front-coded + lzma; str->bytes only at this edge."""
+    encoded = {k.encode(): v.encode() for k, v in mydict.items()}
+    return frontcode._encode(
+        encoded, reverse_key=langcode in FRONTCODE_REVERSE_KEY_LANGS
     )
 
 
@@ -860,10 +869,7 @@ def _build_dictionary(
             directory.mkdir(parents=True, exist_ok=True)
         filepath = str(directory / f"{langcode}.plzma")
     _report_tokenizer_reachability(mydict, langcode)
-    # str->bytes only at the edge: frontcode is the runtime (bytes) boundary.
-    encoded = {k.encode(): v.encode() for k, v in mydict.items()}
-    reverse_key = langcode in FRONTCODE_REVERSE_KEY_LANGS
-    Path(filepath).write_bytes(frontcode._encode(encoded, reverse_key=reverse_key))
+    Path(filepath).write_bytes(_encode_dictionary(mydict, langcode))
     LOGGER.debug("%s %s", langcode, len(mydict))
 
 

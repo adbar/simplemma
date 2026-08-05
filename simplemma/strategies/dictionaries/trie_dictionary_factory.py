@@ -1,7 +1,5 @@
-"""`DictionaryFactory` storing each language in a MARISA trie: lowest
-steady-state memory (~30 MB for de vs ~175 MB), but needs the `marisa-trie`
-extra and a one-off build per language, cached on disk.
-"""
+"""Trie-backed `DictionaryFactory`: lowest steady-state memory, needs the
+`marisa-trie` extra and a one-off cached build per language."""
 
 import logging
 from pathlib import Path

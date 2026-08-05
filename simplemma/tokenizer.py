@@ -136,15 +136,10 @@ class RegexTokenizer(Tokenizer):
     """
     Tokenizer that splits a text into tokens using a regex pattern.
 
-    The default pattern is script-aware:
-
-    - in-word joiners and combining marks stay inside their word (`l'homme`)
-    - punctuation becomes its own token, but a run of the same character
-      stays whole (`...`)
-    - numbers keep their internal separators (`3,50`, `4:1`)
-    - a currency sign next to a number splits off (`€3.50`), one attached
-      to a word does not (`R$`)
-    - emoji and other symbols are not emitted as tokens
+    The default pattern is script-aware: in-word joiners and combining marks
+    stay in their word (`l'homme`), same-character punctuation runs stay whole
+    (`...`), numbers keep internal separators (`3,50`), a currency sign splits
+    off a number (`€3.50`) but not a word (`R$`), and emoji/symbols are dropped.
     """
 
     __slots__ = ["_fast", "_splitting_regex"]

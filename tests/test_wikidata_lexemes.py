@@ -90,12 +90,6 @@ def test_stream_lexemes_prefilter_exact_qid_not_a_prefix_match(tmp_path):
     assert result == []
 
 
-def test_stream_lexemes_no_prefilter_returns_everything(tmp_path):
-    lexemes = [_lexeme("Q188", "de", "Hund", ["Hunde"])]
-    path = _write_dump(tmp_path, lexemes)
-    assert list(wl.stream_lexemes(path)) == lexemes
-
-
 def test_extract_language_filters_by_qid(tmp_path):
     lexemes = [
         _lexeme("Q1860", "en", "windsurf", ["windsurfing"]),

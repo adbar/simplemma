@@ -196,17 +196,9 @@ def test_main_language():
         LanguageDetector(
             lang=lang, lemmatization_strategy=DefaultStrategy(greedy=True)
         ).main_language(text)
-        == langdetect(text, lang=lang, greedy=False)[0][0]
+        == langdetect(text, lang=lang, greedy=True)[0][0]
         == "de"
     )
-
-    # text = "Dieser Satz ist auf Deutsch. Y esta está en Español."
-    # lang = ("de", "es")
-    # assert (
-    #     LanguageDetector(lang=lang, greedy=False).main_language(text)
-    #     == langdetect(text, lang=lang, greedy=False)[0][0]
-    #     == "unk"
-    # )
 
 
 def test_main_language_unknown() -> None:

@@ -10,7 +10,7 @@ from simplemma.strategies.dictionaries.stream_dictionary_factory import (
     StreamMap,
 )
 
-# sw is reverse-coded (suffix morphology); de/en are not.
+# sw is reverse-coded (prefixal morphology); de/en are not.
 LANGS = ["de", "en", "sw"]
 
 # Cache per lang: both builders are O(n) full-stream passes.

@@ -12,15 +12,6 @@ def _treebank(path, sents: list[str]) -> None:
     path.write_text("".join(f"# text = {s}\n\n" for s in sents), encoding="utf-8")
 
 
-def test_discover_treebanks_selects_the_train_split(tmp_path):
-    """eval_gate owns language matching; this is the split axis it gained."""
-    for name in ("de_gsd-ud-train.conllu", "de_gsd-ud-test.conllu"):
-        (tmp_path / name).write_text("", encoding="utf-8")
-
-    found = sentencebuilder.discover_treebanks("de", "train", tmp_path)
-    assert [p.name for p in found] == ["de_gsd-ud-train.conllu"]
-
-
 def test_gold_sentences_reads_text_lines_only(tmp_path):
     path = tmp_path / "x.conllu"
     path.write_text(

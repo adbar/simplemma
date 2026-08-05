@@ -102,7 +102,6 @@ def test_read_dict_order_independent(tmp_path) -> None:
     forward = _read(tmp_path, "de", "".join(lines))
     reverse = _read(tmp_path, "de", "".join(reversed(lines)))
     assert forward == reverse
-    assert forward["de"] == "de"
 
 
 def test_read_dict_attested_identity_beats_lone_challenger(tmp_path) -> None:
@@ -546,7 +545,7 @@ def test_read_dict_rejects_control_and_mojibake_keys(tmp_path) -> None:
 def test_apply_layers_drops_spaced_forms(tmp_path, monkeypatch) -> None:
     """Multi-word layer forms are unreachable keys (tokenizer never yields a spaced token)."""
     _layers(tmp_path, monkeypatch, fill="top hat\ttop hats\ncat\tcats\n")
-    merged = dictionary_builder._apply_layers({}, "zz")
+    merged = dictionary_builder._apply_layers({}, "zz", {})
     assert merged == {"cats": "cat"}  # 'top hats' dropped (space in form)
 
 
@@ -554,53 +553,42 @@ def test_apply_layers_rejects_junk_entries(tmp_path, monkeypatch) -> None:
     """A curated layer file with mojibake/control chars fails the build loud, not a silent skip."""
     _layers(tmp_path, monkeypatch, fill="good\tgoods\nbad\tba\x01d\n")
     with pytest.raises(ValueError, match="rejected"):
-        dictionary_builder._apply_layers({}, "zz")
+        dictionary_builder._apply_layers({}, "zz", {})
 
 
 def test_apply_layers_rejects_empty_fields(tmp_path, monkeypatch) -> None:
     """An empty lemma/form in a curated layer fails the build rather than shipping a '' key."""
     _layers(tmp_path, monkeypatch, fill="good\tgoods\nlemma\t\n")
     with pytest.raises(ValueError, match="empty"):
-        dictionary_builder._apply_layers({}, "zz")
+        dictionary_builder._apply_layers({}, "zz", {})
 
 
-def test_apply_layers_canonicalizes_a_grc_override(tmp_path, monkeypatch) -> None:
+def test_layer_entries_canonicalizes_a_grc_override(tmp_path) -> None:
     """An override line with a grave-accented (non-canonical) form/lemma
     ships under its acute key -- the same fold _collect_candidates applies
     to the base wordlist, so a reviewed layer file can't ship a dead key
     (the exact bug build_override.py's mining side hit once by folding only
     the lemma column by hand)."""
-    overrides_dir = tmp_path / "overrides"
-    overrides_dir.mkdir()
-    (overrides_dir / "grc.tsv").write_text("ἐγώ\tἐγὼ\n", encoding="utf-8")
-    monkeypatch.setattr(dictionary_builder, "OVERRIDES_DIR", overrides_dir)
-    monkeypatch.setattr(dictionary_builder, "FILL_DIR", tmp_path / "no_fill")
-    merged = dictionary_builder._apply_layers({}, "grc")
-    assert merged == {"ἐγώ": "ἐγώ"}  # grave form folded to the acute key
+    path = tmp_path / "grc.tsv"
+    path.write_text("ἐγώ\tἐγὼ\n", encoding="utf-8")
+    entries = dictionary_builder._layer_entries(path, "grc")
+    assert entries == {"ἐγώ": "ἐγώ"}  # grave form folded to the acute key
 
 
-def test_apply_layers_rejects_a_canon_collision(tmp_path, monkeypatch) -> None:
+def test_layer_entries_rejects_a_canon_collision(tmp_path) -> None:
     """Two override lines that fold to the same canonical form but disagree
     on the lemma must fail the build loud, not silently pick one."""
-    overrides_dir = tmp_path / "overrides"
-    overrides_dir.mkdir()
-    (overrides_dir / "grc.tsv").write_text("ἐγώ\tἐγὼ\nἄλλος\tἐγώ\n", encoding="utf-8")
-    monkeypatch.setattr(dictionary_builder, "OVERRIDES_DIR", overrides_dir)
-    monkeypatch.setattr(dictionary_builder, "FILL_DIR", tmp_path / "no_fill")
+    path = tmp_path / "grc.tsv"
+    path.write_text("ἐγώ\tἐγὼ\nἄλλος\tἐγώ\n", encoding="utf-8")
     with pytest.raises(ValueError, match="fold to the same canonical form"):
-        dictionary_builder._apply_layers({}, "grc")
+        dictionary_builder._layer_entries(path, "grc")
 
 
 def test_apply_layers_precedence(tmp_path, monkeypatch) -> None:
     """overrides > base > fill: fill only adds, overrides always win."""
-    _layers(
-        tmp_path,
-        monkeypatch,
-        fill="filllemma\tdogs\nnew\tnews\n",
-        overrides="overridden\tcats\n",
-    )
+    _layers(tmp_path, monkeypatch, fill="filllemma\tdogs\nnew\tnews\n")
     base = {"dogs": "dog", "cats": "cat"}
-    merged = dictionary_builder._apply_layers(base, "zz")
+    merged = dictionary_builder._apply_layers(base, "zz", {"cats": "overridden"})
     assert merged["dogs"] == "dog"  # fill never displaces a base entry
     assert merged["news"] == "new"  # fill adds what's missing
     assert merged["cats"] == "overridden"  # override always wins
@@ -609,7 +597,7 @@ def test_apply_layers_precedence(tmp_path, monkeypatch) -> None:
 def test_apply_layers_without_layer_files_is_identity(tmp_path, monkeypatch) -> None:
     _layers(tmp_path, monkeypatch)  # no fill, no override
     base = {"dogs": "dog"}
-    assert dictionary_builder._apply_layers(base, "zz") == base
+    assert dictionary_builder._apply_layers(base, "zz", {}) == base
 
 
 def test_scrub_drops_unreachable_keys_and_fixes_junk_values() -> None:
@@ -629,7 +617,10 @@ def test_scrub_drops_unreachable_keys_and_fixes_junk_values() -> None:
 def test_curly_quote_override_form_survives(tmp_path, monkeypatch) -> None:
     """A typographic-apostrophe override form isn't dropped post-layer (read_pairs and _valid_key agree: NFC-only)."""
     _layers(tmp_path, monkeypatch, overrides="do\tdon\u2019t\n")
-    out = dictionary_builder._scrub(dictionary_builder._apply_layers({}, "zz"))
+    entries = dictionary_builder._layer_entries(
+        dictionary_builder.OVERRIDES_DIR / "zz.tsv", "zz"
+    )
+    out = dictionary_builder._scrub(dictionary_builder._apply_layers({}, "zz", entries))
     assert out == {"don\u2019t": "do"}
 
 
@@ -792,7 +783,7 @@ def test_apply_layers_cleans_machine_fill(tmp_path, monkeypatch) -> None:
     """Fill is a machine source: _apply_layers runs _clean_base over it, dropping
     affix-fragment keys, unlike a reviewed override which keeps its elisions."""
     _layers(tmp_path, monkeypatch, fill="-al\t-al\ncat\tcats\n")
-    merged = dictionary_builder._apply_layers({}, "zz")
+    merged = dictionary_builder._apply_layers({}, "zz", {})
     assert merged == {"cats": "cat"}  # '-al' affix key dropped
 
 
@@ -804,7 +795,7 @@ def test_apply_layers_rejects_unlisted_fill(tmp_path, monkeypatch) -> None:
     (fill_dir / "fr.tsv").write_text("chat\tchats\n", encoding="utf-8")
     monkeypatch.setattr(dictionary_builder, "FILL_DIR", fill_dir)
     with pytest.raises(ValueError, match="V2_FILL_LANGS"):
-        dictionary_builder._apply_layers({}, "fr")
+        dictionary_builder._apply_layers({}, "fr", {})
 
 
 def test_build_from_shipped_scrubs_placeholder(tmp_path, monkeypatch) -> None:

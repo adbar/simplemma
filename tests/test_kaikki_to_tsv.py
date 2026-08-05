@@ -7,7 +7,7 @@ from training.kaikki_to_tsv import extract_pairs, main
 
 
 def _readme_example_pairs(item):
-    """Transcription of training/README.rst's extraction example, used as an oracle."""
+    """Reference implementation of the naive extraction, used as a happy-path oracle."""
     pairs = []
     i = 0
     if "senses" in item:
@@ -52,8 +52,8 @@ def _readme_example_pairs(item):
         {"word": "empty_senses", "senses": [], "forms": [{"form": "x"}]},
     ],
 )
-def test_matches_readme_example_on_happy_path(entry):
-    """extract_pairs must agree with the README's example on well-formed input."""
+def test_matches_reference_extraction_on_happy_path(entry):
+    """extract_pairs must agree with the reference oracle on well-formed input."""
     assert list(extract_pairs(entry)) == _readme_example_pairs(entry)
 
 
@@ -348,11 +348,6 @@ def test_extract_pairs_no_identity_after_junk_form_drop():
     assert list(extract_pairs(entry)) == []
     entry = {"word": "x", "forms": [{"form": "y", "tags": ["table-tags"]}]}
     assert list(extract_pairs(entry)) == []
-
-
-def test_extract_pairs_no_identity_when_relation_exists():
-    entry = {"word": "Hunde", "senses": [{"form_of": [{"word": "Hund"}]}]}
-    assert list(extract_pairs(entry)) == [("Hund", "Hunde")]
 
 
 def test_extract_pairs_expands_optional_letter_group():

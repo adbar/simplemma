@@ -16,12 +16,15 @@ from training.eval_harness import (
 from .conftest import conllu as _conllu
 
 
-def score_token(strategy, lang, gold_tokens):
-    return accuracy(strategy, lang, gold_tokens)
-
-
 def score_type(strategy, lang, gold_tokens):
     return accuracy(strategy, lang, gold_types(gold_tokens))
+
+
+def _ar(word):
+    """Lemmatize with a fresh default pipeline (re-reads the patched tables)."""
+    return Lemmatizer(lemmatization_strategy=DefaultStrategy()).lemmatize(
+        word, lang="ar"
+    )
 
 
 def test_fixed_dictionary_factory_serves_the_mapping():
@@ -34,7 +37,7 @@ def test_token_accuracy_perfect_dictionary(tmp_path):
     path.write_text(
         _conllu([[(1, "dogs", "dog"), (2, "cats", "cat")]]), encoding="utf-8"
     )
-    acc, n = score_token(
+    acc, n = accuracy(
         build_strategy({"dogs": "dog", "cats": "cat"}),
         "en",
         load_gold_tokens(path, "en"),
@@ -47,7 +50,7 @@ def test_token_accuracy_identity_fallback_on_miss(tmp_path):
     """A form absent from the dict falls back to itself, matching gold only when equal."""
     path = tmp_path / "test.conllu"
     path.write_text(_conllu([[(1, "run", "run")]]), encoding="utf-8")
-    acc, n = score_token(build_strategy({}), "en", load_gold_tokens(path, "en"))
+    acc, n = accuracy(build_strategy({}), "en", load_gold_tokens(path, "en"))
     assert acc == 1.0  # identity fallback happens to be correct here
     assert n == 1
 
@@ -58,7 +61,7 @@ def test_token_accuracy_skips_underscore_lemma_and_lowercases_initial(tmp_path):
         _conllu([[(1, "Dogs", "dog"), (2, "x", "_")]]),  # sentence-initial + skip
         encoding="utf-8",
     )
-    acc, n = score_token(
+    acc, n = accuracy(
         build_strategy({"dogs": "dog"}), "en", load_gold_tokens(path, "en")
     )
     assert n == 1  # the lemma=='_' token is excluded
@@ -73,7 +76,7 @@ def test_token_accuracy_skips_multiword_tokens(tmp_path):
         "2\tel\tel\tX\t_\t_\t0\troot\t_\t_\n\n"
     )
     path.write_text(text, encoding="utf-8")
-    acc, n = score_token(
+    acc, n = accuracy(
         build_strategy({"de": "de", "el": "el"}), "es", load_gold_tokens(path, "es")
     )
     assert n == 2  # the MWT span row itself is not a token
@@ -87,7 +90,7 @@ def test_token_accuracy_is_frequency_weighted(tmp_path):
     ]
     path.write_text(_conllu(rows), encoding="utf-8")
     mapping = {"common": "commonlemma", "rare": "WRONG"}
-    acc, n = score_token(build_strategy(mapping), "en", load_gold_tokens(path, "en"))
+    acc, n = accuracy(build_strategy(mapping), "en", load_gold_tokens(path, "en"))
     assert n == 4
     assert acc == 0.75  # 3 correct commons out of 4 total tokens
 
@@ -129,7 +132,7 @@ def test_type_and_token_agree_when_no_repeats(tmp_path):
     mapping = {"a": "a", "b": "b", "c": "c"}
     gold_tokens = load_gold_tokens(path, "en")
     strategy = build_strategy(mapping)
-    tok_acc, tok_n = score_token(strategy, "en", gold_tokens)
+    tok_acc, tok_n = accuracy(strategy, "en", gold_tokens)
     typ_acc, typ_n = score_type(strategy, "en", gold_tokens)
     assert tok_acc == typ_acc
     assert tok_n == typ_n
@@ -140,7 +143,7 @@ def test_real_affix_chain_is_exercised_not_just_dict_lookup(tmp_path):
     but is derivable from "talo" via Finnish's -ssa suffix rule."""
     path = tmp_path / "test.conllu"
     path.write_text(_conllu([[(1, "talossa", "talo")]]), encoding="utf-8")
-    acc, n = score_token(
+    acc, n = accuracy(
         build_strategy({"talo": "talo"}), "fi", load_gold_tokens(path, "fi")
     )
     assert n == 1
@@ -155,7 +158,7 @@ def test_load_gold_tokens_canonicalizes_gold_lemma_for_ar(tmp_path):
     path.write_text(_conllu([[(1, "كتاب", "كِتَاب")]]), encoding="utf-8")
     ((form, gold),) = load_gold_tokens(path, "ar")
     assert gold == "كتاب"  # vocalization stripped
-    acc, n = score_token(
+    acc, n = accuracy(
         build_strategy({"كتاب": "كتاب"}), "ar", load_gold_tokens(path, "ar")
     )
     assert acc == 1.0
@@ -193,61 +196,32 @@ def test_iter_real_word_tokens_canonicalizes_gold_for_ar(tmp_path):
     assert list(iter_real_word_tokens(path, "ar")) == [("كتاب", "كتاب")]
 
 
-def test_mechanism_disabled_clitic_targets_the_derived_cache(tmp_path):
+def test_mechanism_disabled_clitic_targets_the_derived_cache():
     """The false-+0.00pp trap: the clitic lookup reads _CLITIC_SUFFIXES (a
     precomputed cache), not CLITIC_LANGS. mechanism_disabled must patch the
     cache so the A/B actually changes behavior."""
-    lem = Lemmatizer(lemmatization_strategy=DefaultStrategy())
-    # baseline: ar enclitic strips (كتابه -> كتاب)
-    assert lem.lemmatize("كتابه", lang="ar") == "كتاب"
+    assert _ar("كتابه") == "كتاب"  # baseline: ar enclitic strips
     with mechanism_disabled("clitic", "ar"):
-        lem2 = Lemmatizer(lemmatization_strategy=DefaultStrategy())
-        assert lem2.lemmatize("كتابه", lang="ar") != "كتاب"  # strip disabled
-    # restored
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy()).lemmatize(
-            "كتابه", lang="ar"
-        )
-        == "كتاب"
-    )
+        assert _ar("كتابه") != "كتاب"  # strip disabled
+    assert _ar("كتابه") == "كتاب"  # restored
 
 
-def test_mechanism_disabled_prefix_targets_the_bound_default(tmp_path):
+def test_mechanism_disabled_prefix_targets_the_bound_default():
     """The other trap: PrefixDecomposition binds DEFAULT_KNOWN_PREFIXES once as
     a default arg. mechanism_disabled mutates that object in place."""
-    lem = Lemmatizer(lemmatization_strategy=DefaultStrategy())
-    assert lem.lemmatize("بالبيت", lang="ar") == "بيت"
+    assert _ar("بالبيت") == "بيت"
     with mechanism_disabled("prefix", "ar"):
-        assert (
-            Lemmatizer(lemmatization_strategy=DefaultStrategy()).lemmatize(
-                "بالبيت", lang="ar"
-            )
-            != "بيت"
-        )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy()).lemmatize(
-            "بالبيت", lang="ar"
-        )
-        == "بيت"
-    )
+        assert _ar("بالبيت") != "بيت"
+    assert _ar("بالبيت") == "بيت"
 
 
-def test_mechanism_disabled_canon_targets_the_fold_table(tmp_path):
+def test_mechanism_disabled_canon_targets_the_fold_table():
     """canonicalize_token reads _CANON_TABLES: disabling must stop the fold."""
-    lem = Lemmatizer(lemmatization_strategy=DefaultStrategy())
     # baseline: vocalized ar folds to the unvocalized dict entry
-    assert lem.lemmatize("بِيت", lang="ar") == "بيت"
+    assert _ar("بِيت") == "بيت"
     with mechanism_disabled("canon", "ar"):
-        assert (
-            Lemmatizer(lemmatization_strategy=DefaultStrategy()).lemmatize(
-                "بِيت", lang="ar"
-            )
-            != "بيت"
-        )
-    assert (
-        Lemmatizer(lemmatization_strategy=DefaultStrategy()).lemmatize("بِيت", lang="ar")
-        == "بيت"
-    )
+        assert _ar("بِيت") != "بيت"
+    assert _ar("بِيت") == "بيت"
 
 
 def test_mechanism_disabled_canon_also_narrows_clitic_snapshot():

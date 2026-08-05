@@ -86,9 +86,8 @@ def gate(
     on dev/test logs a WARNING (that figure is selected, not held out)."""
     treebanks: dict[str, Path] = {}
     for split in ("train", "dev", "test"):
-        suffix = f"-ud-{split}.conllu"
         for path in discover_treebanks(lang, split, ud_splits=ud_splits):
-            dataset = path.name.removesuffix(suffix)
+            dataset = path.name.split("-ud-", 1)[0]
             if dataset in treebanks:
                 continue
             treebanks[dataset] = path

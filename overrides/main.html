@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 
-{# Open Graph tags from each page's own metadata. No og:image: it would need a
-   static asset or the social plugin (cairo/pillow). #}
+{# Open Graph tags; no og:image (would need the social plugin). #}
 {% block extrahead %}
-  {# meta.title first: page.title falls back to the H1, not the SEO title #}
+  {# meta.title first: page.title falls back to the H1 #}
   {% set own_title = (page.meta.title if page and page.meta and page.meta.title else (page.title if page else None)) %}
   {% set page_title = (own_title ~ " - " ~ config.site_name) if own_title else config.site_name %}
   {% set page_description = (page.meta.description if page and page.meta and page.meta.description else config.site_description) %}
@@ -11,7 +10,9 @@
   <meta property="og:site_name" content="{{ config.site_name }}">
   <meta property="og:title" content="{{ page_title }}">
   <meta property="og:description" content="{{ page_description }}">
+  {% if page and page.canonical_url %}
   <meta property="og:url" content="{{ page.canonical_url }}">
+  {% endif %}
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="{{ page_title }}">
   <meta name="twitter:description" content="{{ page_description }}">
