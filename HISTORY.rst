@@ -5,29 +5,15 @@ History
 2.0.0
 -----
 
-- New languages: Arabic (``ar``), Ancient Greek (``grc``), Hebrew (``he``)
-  and Malayalam (``ml``) (#180)
-- All dictionaries rebuilt from fresh sources: improved accuracy for many
-  languages (#178, #180)
-- Reviewed correction lists for 43 languages, bringing further accuracy
-  gains (#184)
-- Larger Latin dictionary, new Indonesian correction list, junk entries
-  removed in all languages (#184)
-- Breaking: new front-coded dictionary format shrinks the shipped data from
-  67 MB to 19 MB; pre-2.0 pickled ``.plzma`` files are no longer read (#178)
+- New languages: Arabic (ar), Ancient Greek (grc), Hebrew (he) and Malayalam (ml) (#180)
+- All dictionaries rebuilt from fresh sources with reviewed correction lists: improved accuracy for many languages (#178, #180, #184)
+- New front-coded dictionary format shrinks the shipped data from 67 MB to 19 MB
 - More accurate rules covering more languages (#175)
-- Better affix handling: new clitic and apostrophe strategies, simpler
-  greedy search, updated prefixes (#176)
-- New morpheme decomposition for Tagalog and Indonesian (#180)
-- New ``split_sentences()`` function for sentence splitting (#182)
-- Faster, more precise tokenizer (#177, #182)
-- Text functions now lower sentence-initial capitals before lookup, with
-  proper-noun and acronym safeguards (#177)
-- Lower memory usage: shared dictionary cache and new ``low_memory``
-  flag (#178, #181)
-- Armenian lookups fall back to the form without intonation marks (#182)
+- Better affix handling: new clitic and apostrophe strategies, simpler greedy search, updated prefixes (#176)
+- New morpheme decomposition strategy, used for Tagalog and Indonesian (#180)
+- Faster, more precise tokenizer, and new split_sentences() function for sentence splitting (#177, #182)
+- Lower memory usage: shared dictionary cache and new low_memory flag (#178, #181)
 - Language detector fixes (#172)
-- Rebuilt training pipeline with cross-treebank evaluation (#178)
 
 
 1.2.0
