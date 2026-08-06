@@ -1,6 +1,5 @@
 import re
 
-from .generic import apply_rules
 
 # Slovak noun/adjective declension and verb conjugation; cells that failed
 # on UD real text despite >=99% in-dict (skej/ckej, áte, tému, rmi) dropped.
@@ -80,10 +79,3 @@ _EXCLUDED = frozenset(
         "zúfalo",
     }
 )
-
-
-def apply_sk(token: str) -> str | None:
-    "Apply pre-defined rules for Slovak."
-    return apply_rules(
-        token, DEFAULT_RULES, min_len=6, caps=True, hyphen=True, excluded=_EXCLUDED
-    )

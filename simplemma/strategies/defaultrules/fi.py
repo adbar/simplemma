@@ -1,7 +1,5 @@
 import re
 
-from .generic import apply_rules
-
 # Finnish nominal/verbal suffix classes, mined lemma-first (99.72% in-dict).
 # Only harmony-determinate cells survive (a suffix's own vowels fix -taa vs
 # -tää); TU/VA-participle oblique cells were dropped (UD wants the verb
@@ -193,11 +191,3 @@ _EXCLUDED = frozenset(
         "vastatusten",
     }
 )
-
-
-def apply_fi(token: str) -> str | None:
-    "Apply pre-defined rules for Finnish."
-    # hyphen-elliptic compound lemmas are unreachable by suffix rules
-    return apply_rules(
-        token, DEFAULT_RULES, min_len=10, caps=True, hyphen=True, excluded=_EXCLUDED
-    )

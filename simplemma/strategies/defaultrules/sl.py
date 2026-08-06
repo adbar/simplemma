@@ -1,6 +1,5 @@
 import re
 
-from .generic import apply_rules
 
 # Slovenian adjective declension and a handful of noun/verb suffixes,
 # mined lemma-first (99.73% in-dict).
@@ -29,10 +28,3 @@ DEFAULT_RULES = {
 
 # OOV invariants plus one pluralia-tantum conflict
 _EXCLUDED = frozenset({"eventualno", "epiduralno", "totalno", "počitnice"})
-
-
-def apply_sl(token: str) -> str | None:
-    "Apply pre-defined rules for Slovenian."
-    return apply_rules(
-        token, DEFAULT_RULES, min_len=6, caps=True, hyphen=True, excluded=_EXCLUDED
-    )

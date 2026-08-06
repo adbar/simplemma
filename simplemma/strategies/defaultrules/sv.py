@@ -1,6 +1,5 @@
 import re
 
-from .generic import apply_rules
 
 # Swedish noun declension, adjective comparison, and verb conjugation,
 # mined lemma-first (99.76% in-dict).
@@ -25,10 +24,3 @@ DEFAULT_RULES = {
 
 # OOV invariants
 _EXCLUDED = frozenset({"enligt", "antingen", "enbart"})
-
-
-def apply_sv(token: str) -> str | None:
-    "Apply pre-defined rules for Swedish."
-    return apply_rules(
-        token, DEFAULT_RULES, min_len=6, caps=True, hyphen=True, excluded=_EXCLUDED
-    )

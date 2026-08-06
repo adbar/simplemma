@@ -3,6 +3,7 @@ import lzma
 import pytest
 
 from simplemma.strategies.dictionaries import frontcode
+from training.frontcode_encode import _encode as _fc_encode
 
 
 @pytest.mark.parametrize(
@@ -45,7 +46,7 @@ from simplemma.strategies.dictionaries import frontcode
     ],
 )
 def test_roundtrip(mapping: dict[bytes, bytes], reverse_key: bool) -> None:
-    assert frontcode._decode(frontcode._encode(mapping, reverse_key)) == mapping
+    assert frontcode._decode(_fc_encode(mapping, reverse_key)) == mapping
 
 
 def test_is_frontcoded_rejects_other_data() -> None:
@@ -60,7 +61,7 @@ def test_decode_stream_rejects_non_frontcoded_data() -> None:
 def test_decode_stream_rejects_truncated_trailing_suffix() -> None:
     """Truncation inside a trailing value-suffix overruns a slice silently; the
     length check must reject it instead of returning a corrupt short value."""
-    raw = lzma.decompress(frontcode._encode({b"dog": b"dog", b"zz": b"zzabc"}))
+    raw = lzma.decompress(_fc_encode({b"dog": b"dog", b"zz": b"zzabc"}))
     with pytest.raises(ValueError, match="truncated or corrupt"):
         frontcode._decode_stream(raw[:-1])
 
@@ -68,13 +69,13 @@ def test_decode_stream_rejects_truncated_trailing_suffix() -> None:
 def test_decode_stream_rejects_truncated_key_suffix() -> None:
     """Truncation inside a key-suffix (as opposed to a value-suffix) must also
     raise, not just return a shortened key."""
-    raw = lzma.decompress(frontcode._encode({b"dog": b"dog", b"zzzzzz": b"zzzzzz"}))
+    raw = lzma.decompress(_fc_encode({b"dog": b"dog", b"zzzzzz": b"zzzzzz"}))
     with pytest.raises(ValueError, match="truncated or corrupt"):
         frontcode._decode_stream(raw[:-6])
 
 
 def test_decode_stream_rejects_trailing_garbage() -> None:
-    raw = lzma.decompress(frontcode._encode({b"dog": b"dog"}))
+    raw = lzma.decompress(_fc_encode({b"dog": b"dog"}))
     with pytest.raises(ValueError, match="truncated or corrupt"):
         frontcode._decode_stream(raw + b"\x00")
 
@@ -83,7 +84,7 @@ def test_decode_stream_rejects_boundary_truncated_records() -> None:
     """Dropping a whole trailing record leaves no partial garbage, so only the
     record-count check (not _iter_records' bounds check) can catch it."""
     mapping = {b"ant": b"ant", b"bee": b"bee", b"cat": b"cat"}
-    raw = lzma.decompress(frontcode._encode(mapping))
+    raw = lzma.decompress(_fc_encode(mapping))
     _, _, pos = frontcode._read_header(raw)
     starts = [start for start, _, _ in frontcode._iter_records(raw, pos)]
     with pytest.raises(ValueError, match="truncated or corrupt"):

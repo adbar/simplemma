@@ -9,6 +9,7 @@ measured precision down with no runtime effect.
 """
 
 import ast
+import functools
 import importlib
 import inspect
 import re
@@ -57,11 +58,20 @@ _EXTRA_MATCH_SURFACE = {"ru": "ё$"}
 
 
 def _is_pure_wrapper(fn) -> bool:
-    """True iff the fn's whole body is one `return apply_rules(..DEFAULT_RULES..)`,
-    which fires only where the prefilter matches -- so its skips need no check.
-    Structural, so a bespoke branch is detected even before it's registered in
-    _EXTRA_MATCH_SURFACE (a single such return can't itself be bespoke)."""
-    fn_def = ast.parse(textwrap.dedent(inspect.getsource(fn))).body[0]
+    """True iff fn delegates entirely to apply_rules(..DEFAULT_RULES..):
+    either a partial wrapping apply_rules (data-driven languages) or a
+    function whose whole body is `return apply_rules(..DEFAULT_RULES..)`.
+    Pure wrappers fire only where the prefilter matches, so their skips
+    need no verification."""
+    from simplemma.strategies.defaultrules.generic import apply_rules
+
+    if isinstance(fn, functools.partial) and fn.func is apply_rules:
+        return True
+    try:
+        src = textwrap.dedent(inspect.getsource(fn))
+    except (OSError, TypeError):
+        return False
+    fn_def = ast.parse(src).body[0]
     assert isinstance(fn_def, ast.FunctionDef)
     body = fn_def.body[1:] if ast.get_docstring(fn_def) else fn_def.body
     return (

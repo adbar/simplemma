@@ -44,6 +44,6 @@ footprint you can choose.
   dictionary sizes and their measured accuracy
 - [Classes and strategies](classes-and-strategies.md) to assemble your own
   lemmatizer out of strategies and dictionary factories
-- [Memory usage](memory-usage.md) to trade speed for a smaller footprint,
-  down to ~30 MB per language
+- [Memory usage](memory-usage.md) to trade speed for a smaller footprint
+  (~50 MB per language, or ~30 MB with the optional `marisa-trie` extra)
 - [Reference](reference/lemmatizer.md) for the full API

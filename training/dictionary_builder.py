@@ -26,7 +26,8 @@ from pathlib import Path
 
 from simplemma.strategies.defaultrules import RULE_FUNCTIONS
 from simplemma.tokenizer import simple_tokenizer
-from simplemma.strategies.dictionaries import dictionary_factory, frontcode
+from simplemma.strategies.dictionaries import dictionary_factory
+from training.frontcode_encode import _encode as _frontcode_encode
 from simplemma.strategies.dictionaries.dictionary_factory import (
     SUPPORTED_LANGUAGES,
     _load_dictionary_from_disk,
@@ -847,7 +848,7 @@ def _compose_dictionary(
 def _encode_dictionary(mydict: dict[str, str], langcode: str) -> bytes:
     """Ship encoding: front-coded + lzma; str->bytes only at this edge."""
     encoded = {k.encode(): v.encode() for k, v in mydict.items()}
-    return frontcode._encode(
+    return _frontcode_encode(
         encoded, reverse_key=langcode in FRONTCODE_REVERSE_KEY_LANGS
     )
 

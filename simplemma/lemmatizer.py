@@ -169,6 +169,10 @@ def _legacy_lemmatizer_for(greedy: bool, low_memory: bool) -> Lemmatizer:
     )
 
 
+_LOOKUP_DEFAULT = DictionaryLookupStrategy(DEFAULT_DICTIONARY_FACTORY)
+_LOOKUP_LOW_MEM = DictionaryLookupStrategy(LOW_MEMORY_DICTIONARY_FACTORY)
+
+
 def is_known(token: str, lang: str | tuple[str, ...], low_memory: bool = False) -> bool:
     """Check if a token is known in the specified language(s).
 
@@ -180,17 +184,11 @@ def is_known(token: str, lang: str | tuple[str, ...], low_memory: bool = False) 
     Returns:
         bool: True if the token is known, False otherwise.
     """
-
     _control_input_type(token)
     token = normalize_token(token)
     lang = validate_lang_input(lang)
-
-    dictionary_lookup = DictionaryLookupStrategy(
-        LOW_MEMORY_DICTIONARY_FACTORY if low_memory else DEFAULT_DICTIONARY_FACTORY
-    )
-    return any(
-        dictionary_lookup.get_lemma(token, lang_code) is not None for lang_code in lang
-    )
+    lookup = _LOOKUP_LOW_MEM if low_memory else _LOOKUP_DEFAULT
+    return any(lookup.get_lemma(token, code) is not None for code in lang)
 
 
 def lemmatize(

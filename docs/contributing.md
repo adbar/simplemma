@@ -1,4 +1,5 @@
 ---
+title: Contributing
 description: "How to contribute to Simplemma: development setup with uv, the ruff, mypy and pytest checks CI runs, and how to build the documentation."
 ---
 

@@ -6,6 +6,7 @@ import pytest
 from simplemma import Lemmatizer
 from simplemma.strategies import DefaultStrategy, DictionaryFactory
 from simplemma.strategies.dictionaries import dictionary_factory, frontcode
+from training.frontcode_encode import _encode as _fc_encode
 from simplemma.strategies.dictionaries.dictionary_factory import MappingStrToByteString
 from training import dictionary_builder
 
@@ -801,7 +802,7 @@ def test_apply_layers_rejects_unlisted_fill(tmp_path, monkeypatch) -> None:
 def test_build_from_shipped_scrubs_placeholder(tmp_path, monkeypatch) -> None:
     """A pre-v2 shipped dict with a template placeholder value is scrubbed on rebuild."""
     raw = {b"hithau": b"prpers", b"dogs": b"dog"}
-    (tmp_path / "zz.plzma").write_bytes(frontcode._encode(raw))
+    (tmp_path / "zz.plzma").write_bytes(_fc_encode(raw))
     monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
     monkeypatch.setattr(dictionary_factory, "SUPPORTED_LANGUAGES", frozenset({"zz"}))
     _layers(tmp_path, monkeypatch)  # no fill, no override

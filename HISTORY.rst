@@ -13,8 +13,8 @@ History
   gains (#184)
 - Larger Latin dictionary, new Indonesian correction list, junk entries
   removed in all languages (#184)
-- Breaking: new dictionary format shrinks the shipped data from 67 MB to
-  19 MB; pre-2.0 ``.plzma`` files are no longer read (#178)
+- Breaking: new front-coded dictionary format shrinks the shipped data from
+  67 MB to 19 MB; pre-2.0 pickled ``.plzma`` files are no longer read (#178)
 - More accurate rules covering more languages (#175)
 - Better affix handling: new clitic and apostrophe strategies, simpler
   greedy search, updated prefixes (#176)

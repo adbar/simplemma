@@ -1,6 +1,5 @@
 import re
 
-from .generic import apply_rules
 
 # Norwegian Nynorsk noun/adjective declension. "-arar" dropped (collides with
 # the open class of -a verb presents); "-aren"/"-arane" kept, their finite
@@ -52,11 +51,3 @@ _EXCLUDED = frozenset(
         "umyndiggjøringen",
     }
 )
-
-
-def apply_nn(token: str) -> str | None:
-    "Apply pre-defined rules for Norwegian Nynorsk."
-    # hyphenated compounds are mostly proper-noun heads -- skip
-    return apply_rules(
-        token, DEFAULT_RULES, min_len=6, caps=True, hyphen=True, excluded=_EXCLUDED
-    )

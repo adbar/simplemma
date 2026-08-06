@@ -1,6 +1,5 @@
 import re
 
-from .generic import apply_rules
 
 # Pruned to the cells that hold >=99%: short elative/illative forms collide
 # with plain nouns and the -dus paradigm with -dune adjectives.
@@ -29,9 +28,3 @@ DEFAULT_RULES = {
         r"(?:kondadesse|kondadest|kondadelt|kondadele|kondadega|kondades|kondadel|konnata|konnast|konnalt|konnaks|konnaga|kondade|konnas|konnal|kondi|konda)$"
     ): "kond",
 }
-
-
-def apply_et(token: str) -> str | None:
-    "Apply pre-defined rules for Estonian."
-    # hyphenated-compound gold uses morpheme markers suffix rules can't reproduce
-    return apply_rules(token, DEFAULT_RULES, min_len=8, caps=True, hyphen=True)

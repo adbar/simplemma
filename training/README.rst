@@ -11,7 +11,7 @@ underscore-joined compound lemmas (e.g. ``klooster_orde``), an Alpino
 convention that single-token output cannot match — it is ≈0.91 without that
 exclusion. Hebrew and Arabic proclitics fuse onto their host word in real
 text but are scored as pre-split sub-tokens by the protocol above, so on
-whole, unsegmented input those accuracies are ≈0.82 and ≈0.85. Finnish,
+whole unsegmented input those accuracies are ≈0.82 and ≈0.85. Finnish,
 Estonian and Hungarian gold lemmas mark compound boundaries (``yli#opisto``,
 ``sisse_tulek``, ``el+mond``); these markers are stripped before scoring
 (see ``_GOLD_COMPOUND_SEPARATORS`` in ``training/ud_conllu.py``).
@@ -60,7 +60,7 @@ The scores can be reproduced by the following steps:
    logs a WARNING naming it, and its published figure is then selected rather
    than held out. ``sw`` has no UD data at all, so it is neither gated nor
    scored.
-4. Results are stored at ``training/data/results/results_summary.csv``. Also, errors are written in a CSV file for each dataset under the ``data/results``folder.
+4. Results are stored at ``training/data/results/results_summary.csv``. Also, errors are written in a CSV file for each dataset under the ``data/results`` folder.
 
 
 Evaluating a candidate change (rules, affix config, new language)
@@ -336,4 +336,4 @@ wordlist comes next, and an optional ``training/fill/<code>.tsv`` (git-ignored,
 ``wikidata_lexemes.py`` output) only fills gaps, never overriding. Keys are
 NFC-normalized at build time, matching runtime lookups. Output is the
 front-coded byte-stream format (see ``frontcode.py``), which replaced the
-pickled ``.plzma`` format in 2.0.0.
+pickled format used by pre-2.0 ``.plzma`` files.
