@@ -5,11 +5,9 @@ Recipe: `mine()` finds candidate cells -> `trim_by_mass()` drops the
 low-frequency tail -> `refine()` builds rules and iterates dropping any cell
 that is imprecise or (once combined with the others) under-supported ->
 `subsume()` removes alternatives whose own group already produces them via a
-more general alternative -> `evaluate()` for the dictionary report ->
-`render_rules_dict()` emits DEFAULT_RULES source (write it directly rather
-than hand-copying a printout, which can silently reorder first-match
-priority). Not a one-command generator: every language needs real judgment
-calls (stoplists, structural guards) on top of this.
+more general alternative -> `evaluate()` for the dictionary report.
+Not a one-command generator: every language needs real judgment calls
+(stoplists, structural guards) on top of this.
 
 `build_rules()` now emits a `(?<=..)` stem floor on every group; modules
 shipped before that (all current ones except la) lack it, so a regenerated
@@ -26,7 +24,7 @@ import os
 import re
 import sys
 from collections import Counter, defaultdict
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 
 from simplemma.strategies.dictionaries.dictionary_factory import (
     DEFAULT_DICTIONARY_FACTORY,
@@ -462,45 +460,6 @@ def trim_by_mass(cells: Cells, share: float = 0.90) -> Cells:
         kept[cell] = n
         running += n
     return kept
-
-
-def complexity_report(langs: Iterable[str]) -> None:
-    "Groups / alternatives / stoplist size per rule language -- the lean-rules budget check."
-    import importlib
-
-    print(f"{'lang':4} {'groups':>7} {'alts':>6} {'stoplist':>9}")
-    for lang in sorted(langs):
-        modname = "is_" if lang == "is" else lang
-        mod = importlib.import_module(f"simplemma.strategies.defaultrules.{modname}")
-        if not hasattr(mod, "DEFAULT_RULES"):
-            print(f"{lang:4} {'bespoke':>7}")
-            continue
-        n_alts = sum(len(pattern_alts(p)) for p in mod.DEFAULT_RULES)
-        n_stop = len(getattr(mod, "_EXCLUDED", ()))
-        print(f"{lang:4} {len(mod.DEFAULT_RULES):7d} {n_alts:6d} {n_stop:9d}")
-
-
-def render_rules_dict(rules: Rules, indent: str = "    ") -> str:
-    "Render `rules` as Python source for a module's DEFAULT_RULES, in order."
-    lines = []
-    for pattern, target in rules.items():
-        if '"' in pattern.pattern or '"' in target:  # would break the r"..." literal
-            raise ValueError(f"quote in rule {pattern.pattern!r} -> {target!r}")
-        lines.append(f'{indent}re.compile(r"{pattern.pattern}"): r"{target}",')
-    return "\n".join(lines)
-
-
-def print_groups(cells: Cells, top_n_per_target: int | None = None) -> None:
-    "Print mined cells grouped by target, largest group first."
-    by_target = group_by_target(cells)
-    for target, suffixes in sorted(
-        by_target.items(), key=lambda kv: -sum(cells[(s, kv[0])] for s in kv[1])
-    ):
-        total = sum(cells[(s, target)] for s in suffixes)
-        print(f"-> -{target}  (n_total={total}, {len(suffixes)} suffixes)")
-        rows = sorted(suffixes, key=lambda s: -cells[(s, target)])
-        for s in rows[:top_n_per_target]:
-            print(f"    n={cells[(s, target)]:5d}  -{s}")
 
 
 if __name__ == "__main__":

@@ -18,6 +18,8 @@ Usage: uv run python training/prefixbuilder.py <lang> [min_len] [support_min]
 import sys
 from collections import Counter
 
+# imported, not mirrored: the harness must track the runtime's remainder floor
+from simplemma.strategies.affix_decomposition import MINCOMPLEN
 from simplemma.strategies.dictionaries.dictionary_factory import (
     DEFAULT_DICTIONARY_FACTORY,
 )
@@ -26,7 +28,6 @@ FACTORY = DEFAULT_DICTIONARY_FACTORY  # shared process-wide cache
 MIN_LEN_DEFAULT = 6  # shortest word considered for a prefix split
 SUPPORT_MIN_DEFAULT = 30
 PREFIX_LENS = range(2, 7)
-MIN_REMAINDER = 4  # mirrors affix_decomposition.MINCOMPLEN
 
 
 def mine(
@@ -41,7 +42,7 @@ def mine(
         if not form.isalpha() or not form.islower() or len(form) < min_len:
             continue
         for plen in PREFIX_LENS:
-            if len(form) - plen < MIN_REMAINDER:
+            if len(form) - plen < MINCOMPLEN:
                 break
             prefix, remainder = form[:plen], form[plen:]
             remainder_lemma = dictionary.get(remainder)

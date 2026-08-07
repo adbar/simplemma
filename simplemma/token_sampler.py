@@ -129,8 +129,9 @@ class MostCommonTokenSampler(BaseTokenSampler):
             tokenizer (Tokenizer, optional): The tokenizer to use for splitting text into tokens.
                 Defaults to `RegexTokenizer(SPLIT_INPUT)`.
             sample_size (int, optional): The number of tokens to sample. Defaults to `100`.
-            capitalized_threshold (float, optional): The threshold for removing capitalized tokens.
-                Tokens with a frequency greater than this threshold will be removed. Defaults to `0.8`.
+            capitalized_threshold (float, optional): Capitalized tokens are all removed
+                (as likely proper nouns) unless they make up at least this share of the
+                distinct tokens; `0` disables the removal. Defaults to `0.8`.
         """
         super().__init__(tokenizer)
         self._sample_size = sample_size
@@ -180,9 +181,9 @@ class RelaxedMostCommonTokenSampler(MostCommonTokenSampler):
             tokenizer (Tokenizer, optional): The tokenizer to use for splitting text into tokens.
                 Defaults to `RegexTokenizer(RELAXED_SPLIT_INPUT)`.
             sample_size (int, optional): The number of tokens to sample. Defaults to `1000`.
-            capitalized_threshold (float, optional): The threshold for removing capitalized tokens.
-                Tokens with a frequency greater than this threshold will be removed.
-                Defaults to `0`.
+            capitalized_threshold (float, optional): Capitalized tokens are all removed
+                (as likely proper nouns) unless they make up at least this share of the
+                distinct tokens. Defaults to `0` (removal disabled).
 
         """
 

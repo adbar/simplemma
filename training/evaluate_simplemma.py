@@ -25,13 +25,11 @@ from conllu import parse_incr
 from simplemma import Lemmatizer
 from simplemma.strategies.default import DefaultStrategy
 from simplemma.utils import canonicalize_token
-from training.ud_conllu import dataset_to_lang, iter_word_tokens_in_sentences
+from training.ud_conllu import UD_SPLITS, dataset_to_lang, iter_word_tokens_in_sentences
 
 log = logging.getLogger(__name__)
 
-DATA_FOLDER = Path(__file__).parent / "data"
-SPLITS_FOLDER = DATA_FOLDER / "UD" / "splits"
-RESULTS_FOLDER = DATA_FOLDER / "results"
+RESULTS_FOLDER = Path(__file__).parent / "data" / "results"
 
 
 @dataclass
@@ -97,7 +95,7 @@ def _iter_sentences(paths: list[Path]) -> Iterator[Any]:
 
 
 def main(
-    splits_folder: Path = SPLITS_FOLDER,
+    splits_folder: Path = UD_SPLITS,
     results_folder: Path = RESULTS_FOLDER,
 ) -> None:
     if not splits_folder.exists():

@@ -21,7 +21,7 @@ from simplemma.strategies.defaultrules import RULE_FUNCTIONS
 from simplemma.strategies.dictionaries.dictionary_factory import (
     DefaultDictionaryFactory,
 )
-from training.dictionary_builder import BUILD_NORMALIZATION
+from training.build_lang_config import BUILD_NORMALIZATION
 from training.rulebuilder import _ACCENT_FOLD_LANGS, output_is_lemma, pattern_alts
 
 RULE_LANGS = sorted(

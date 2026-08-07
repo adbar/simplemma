@@ -75,7 +75,11 @@ def test_target_agrees_with_each_language() -> None:
         (("de", "en"), "Test test", False),
         (("de", "en"), "Test test", True),
         (("de", "en"), "Nztruedg nsüplke deutsches weiter bgfnki gtrpinadsc.", False),
-        (("cs", "sk"), '"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."', None),
+        (
+            ("cs", "sk"),
+            '"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."',
+            None,
+        ),
     ],
 )
 def test_langdetect_agrees_with_class(

@@ -8,7 +8,7 @@ from simplemma.strategies import DefaultStrategy, DictionaryFactory
 from simplemma.strategies.dictionaries import dictionary_factory, frontcode
 from training.frontcode_encode import _encode as _fc_encode
 from simplemma.strategies.dictionaries.dictionary_factory import MappingStrToByteString
-from training import dictionary_builder
+from training import build_lang_config, dictionary_builder
 
 TEST_DIR = Path(__file__).parent
 
@@ -208,7 +208,7 @@ def test_add_key_aliases_ar_hamza() -> None:
     """ar: a hamza-seat/alef-maqsura key gets a folded-key ALIAS pointing at
     the same (correctly spelled) value -- unlike canonicalize_token, the
     value is never touched, so output stays correctly spelled."""
-    table = dictionary_builder.BUILD_NORMALIZATION["ar"].key_alias
+    table = build_lang_config.BUILD_NORMALIZATION["ar"].key_alias
     assert table is not None
     result = dictionary_builder._add_key_aliases({"أحمد": "أحمد", "بيت": "بيت"}, table)
     assert result["احمد"] == "أحمد"  # alias key -> the properly-spelled value
@@ -219,7 +219,7 @@ def test_add_key_aliases_ar_hamza() -> None:
 def test_add_key_aliases_never_overwrites_an_existing_exact_key() -> None:
     """A folded key that's ALSO a real, independently-attested entry keeps
     its own value -- the alias must never shadow it."""
-    table = dictionary_builder.BUILD_NORMALIZATION["ar"].key_alias
+    table = build_lang_config.BUILD_NORMALIZATION["ar"].key_alias
     assert table is not None
     result = dictionary_builder._add_key_aliases(
         {"أمن": "أمن", "امن": "امن_different_word"}, table
@@ -231,7 +231,7 @@ def test_add_key_aliases_ru_yo() -> None:
     """ru: a ё-spelled key gains an е-spelled twin (real text writes е for ё),
     value untouched; an existing е-spelled entry always wins (все/всё are
     distinct lemmas and must never merge)."""
-    table = dictionary_builder.BUILD_NORMALIZATION["ru"].key_alias
+    table = build_lang_config.BUILD_NORMALIZATION["ru"].key_alias
     assert table is not None
     result = dictionary_builder._add_key_aliases(
         {"ребёнка": "ребёнок", "всё": "всё", "все": "весь"}, table
@@ -245,7 +245,7 @@ def test_add_key_aliases_hbs_pitch_marks() -> None:
     never types the marks); an existing plain entry always wins. The raw
     function defaults to ADD (both keys survive) -- drop_original is a
     separate, explicit opt-in (see test_add_key_aliases_drop_original)."""
-    table = dictionary_builder.BUILD_NORMALIZATION["hbs"].key_alias
+    table = build_lang_config.BUILD_NORMALIZATION["hbs"].key_alias
     assert table is not None
     result = dictionary_builder._add_key_aliases(
         {"Hr̀vātskā": "Hrvatska", "vȉde": "vidjeti", "vide": "videti"}, table
@@ -260,7 +260,7 @@ def test_add_key_aliases_drop_original() -> None:
     of keeping both -- the shipped hbs/fa/bg/uk/lt/sl/la behavior. A real
     plain entry still always wins (never overwritten), and the marked
     original is gone either way."""
-    table = dictionary_builder.BUILD_NORMALIZATION["hbs"].key_alias
+    table = build_lang_config.BUILD_NORMALIZATION["hbs"].key_alias
     assert table is not None
     result = dictionary_builder._add_key_aliases(
         {"Hr̀vātskā": "Hrvatska", "vȉde": "vidjeti", "vide": "videti"},
@@ -275,7 +275,7 @@ def test_add_key_aliases_drop_original() -> None:
 def test_hbs_pitch_fold_keeps_montenegrin_letters() -> None:
     """ś/ź (real Montenegrin letters) must survive the pitch fold's keep=,
     like ć -- else dośetka/źenica get corrupted."""
-    table = dictionary_builder.BUILD_NORMALIZATION["hbs"].key_alias
+    table = build_lang_config.BUILD_NORMALIZATION["hbs"].key_alias
     assert table is not None
     for ch in "śŚźŹ":
         assert ch.translate(table) == ch  # untouched, like ć/Ć
@@ -305,7 +305,7 @@ def test_fix_value_scripts_hbs() -> None:
     """A Latin key never keeps a Cyrillic value (deterministic Cyr->Lat
     transliteration); Cyrillic and mixed-script keys stay untouched, and a
     value with non-Serbian Cyrillic is left whole, not half-transliterated."""
-    table = dictionary_builder.BUILD_NORMALIZATION["hbs"].value_script_fix
+    table = build_lang_config.BUILD_NORMALIZATION["hbs"].value_script_fix
     assert table is not None
     result = dictionary_builder._fix_value_scripts(
         {
@@ -327,7 +327,7 @@ def test_fix_value_scripts_hbs() -> None:
 def test_add_key_aliases_never_plants_an_empty_key() -> None:
     """A mark-only key (kept by _scrub's identity exemption) folds to "" under
     fa's deletion table -- the empty alias must be skipped, not added."""
-    table = dictionary_builder.BUILD_NORMALIZATION["fa"].key_alias
+    table = build_lang_config.BUILD_NORMALIZATION["fa"].key_alias
     assert table is not None
     result = dictionary_builder._add_key_aliases({"ـ": "ـ"}, table)
     assert result == {"ـ": "ـ"}  # no "" key
@@ -437,7 +437,7 @@ def test_drop_junk_keys_he_latin_transliterations() -> None:
 def _foreign_script_key(key: str, value: str, allowed: frozenset[str]) -> bool:
     """String-level adapter: the real predicate takes precomputed script sets
     (_drop_junk_keys computes them once per entry)."""
-    return dictionary_builder._foreign_script_key(
+    return build_lang_config._foreign_script_key(
         dictionary_builder._script_classes(key),
         dictionary_builder._script_classes(value),
         allowed,

@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
-from training.ud_conllu import dataset_to_lang
+from training.ud_conllu import UD_SPLITS, dataset_to_lang
 
 log = logging.getLogger(__name__)
 
@@ -30,10 +30,9 @@ UD_VERSION = "2.18"
 UD_HANDLE = "11234/1-6149"
 API_BASE = "https://lindat.mff.cuni.cz/repository/server/api"
 
-CLEAN_DATA_FOLDER = Path(__file__).parent / "data" / "UD"
+CLEAN_DATA_FOLDER = UD_SPLITS.parent
 DATA_FOLDER = CLEAN_DATA_FOLDER / "_download"  # raw tgz + extracted archive
 DATA_FILE = DATA_FOLDER / "ud-treebanks.tgz"
-SPLITS_FOLDER = CLEAN_DATA_FOLDER / "splits"
 VERSION_FILE = CLEAN_DATA_FOLDER / "UD_VERSION"
 
 
@@ -123,7 +122,7 @@ def main(keep_download: bool = False) -> None:
 
     CLEAN_DATA_FOLDER.mkdir()
     DATA_FOLDER.mkdir()
-    SPLITS_FOLDER.mkdir()
+    UD_SPLITS.mkdir()
 
     filename = f"ud-treebanks-v{UD_VERSION}.tgz"
     log.info(f"Resolving UD {UD_VERSION} (handle {UD_HANDLE})...")
@@ -149,7 +148,7 @@ def main(keep_download: bool = False) -> None:
     ):
         log.info(f"{lang} - {dataset_folder}")
         for file in sorted(dataset_folder.glob("*.conllu")):
-            (SPLITS_FOLDER / file.name).write_bytes(file.read_bytes())
+            (UD_SPLITS / file.name).write_bytes(file.read_bytes())
 
     VERSION_FILE.write_text(
         f"version={UD_VERSION}\nhandle={UD_HANDLE}\nmd5={expected_md5}\n"

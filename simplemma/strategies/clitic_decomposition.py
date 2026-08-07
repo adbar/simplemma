@@ -133,11 +133,6 @@ PROCLITIC_LANGS: dict[str, tuple[str, ...]] = {
     ),
     "ca": ("l'", "d'", "s'", "m'", "n'", "t'"),
 }
-PROCLITIC_LANGS = {
-    lang: tuple(sorted(clitics, key=len, reverse=True))
-    for lang, clitics in PROCLITIC_LANGS.items()
-}
-
 MIN_STEM_LEN = 4  # mirrors affix_decomposition.MINCOMPLEN
 # Much lower than the enclitic floor: an apostrophe + 1-3 trailing letters is
 # almost always elision, so the short-stem false-fire risk doesn't apply.

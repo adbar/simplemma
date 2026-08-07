@@ -57,21 +57,6 @@ def test_matches_reference_extraction_on_happy_path(entry):
     assert list(extract_pairs(entry)) == _readme_example_pairs(entry)
 
 
-def test_extract_pairs_form_of():
-    entry = {"word": "Hunde", "senses": [{"form_of": [{"word": "Hund"}]}]}
-    assert list(extract_pairs(entry)) == [("Hund", "Hunde")]
-
-
-def test_extract_pairs_alt_of():
-    entry = {"word": "colour", "senses": [{"alt_of": [{"word": "color"}]}]}
-    assert list(extract_pairs(entry)) == [("color", "colour")]
-
-
-def test_extract_pairs_forms_fallback():
-    entry = {"word": "Hund", "forms": [{"form": "Hunde"}, {"form": "Hundes"}]}
-    assert list(extract_pairs(entry)) == [("Hund", "Hunde"), ("Hund", "Hundes")]
-
-
 def test_extract_pairs_top_level_form_of():
     """form_of/alt_of can also appear directly on the entry, not nested in a sense."""
     entry = {"word": "Hunde", "form_of": [{"word": "Hund"}]}

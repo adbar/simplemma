@@ -15,7 +15,7 @@ from simplemma.utils import (
     _GRAVE_TO_ACUTE,
     _HEBREW_POINTS,
 )
-from training.dictionary_builder import (
+from training.build_lang_config import (
     _HBS_CYR_TO_LAT,
     _HBS_PITCH_MARKS,
     BUILD_NORMALIZATION,

@@ -26,11 +26,9 @@ from training.eval_harness import (
     gold_types,
     load_gold_tokens,
 )
-from training.ud_conllu import dataset_to_lang
+from training.ud_conllu import UD_SPLITS, dataset_to_lang
 
 log = logging.getLogger(__name__)
-
-UD_SPLITS = Path(__file__).parent / "data" / "UD" / "splits"
 
 # Tolerance for measurement noise, not a researched constant.
 DEFAULT_EPSILON = 0.001
