@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "simplemma"
-description = "A lightweight toolkit for multilingual lemmatization and language detection."
+description = "Fast and zero-dependency lemmatization, tokenization and sentence splitting for 54 languages."
 readme = "README.md"
 license = { text = "MIT License" }
 dynamic = ["version"]
@@ -21,6 +21,8 @@ keywords=[
     "lemmatizer",
     "lemmatiser",
     "nlp",
+    "sentence segmentation",
+    "sentence splitting",
     "tokenization",
     "tokenizer",
 ]
@@ -32,6 +34,7 @@ classifiers = [
     "Intended Audience :: Information Technology",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
+    "Natural Language :: Arabic",
     "Natural Language :: Armenian",
     "Natural Language :: Bosnian",
     "Natural Language :: Bulgarian",
@@ -49,6 +52,7 @@ classifiers = [
     "Natural Language :: Georgian",
     "Natural Language :: German",
     "Natural Language :: Greek",
+    "Natural Language :: Hebrew",
     "Natural Language :: Hindi",
     "Natural Language :: Hungarian",
     "Natural Language :: Icelandic",
@@ -80,6 +84,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Software Development :: Internationalization",
     "Topic :: Software Development :: Localization",
@@ -157,6 +162,7 @@ line-length = 88
 testpaths = ["tests"]
 # the precision harness shares its predicate/pattern parser with training/rulebuilder.py
 pythonpath = ["."]
+addopts = "-n auto"
 
 [tool.coverage.run]
 source = ["simplemma"]

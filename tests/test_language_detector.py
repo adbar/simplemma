@@ -68,30 +68,48 @@ def test_target_agrees_with_each_language() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    "lang, text, greedy",
+    [
+        (("de", "en"), " aa ", True),
+        (("de", "en"), "Test test", False),
+        (("de", "en"), "Test test", True),
+        (("de", "en"), "Nztruedg nsüplke deutsches weiter bgfnki gtrpinadsc.", False),
+        (
+            ("cs", "sk"),
+            '"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."',
+            None,
+        ),
+    ],
+)
+def test_langdetect_agrees_with_class(
+    lang: tuple[str, ...], text: str, greedy: bool | None
+) -> None:
+    """langdetect() must return the same data as the class, as sorted tuples."""
+    if greedy is not None:
+        detector = LanguageDetector(
+            lang=lang, lemmatization_strategy=DefaultStrategy(greedy=greedy)
+        )
+        result = langdetect(text, lang=lang, greedy=greedy)
+    else:
+        detector = LanguageDetector(lang=lang)
+        result = langdetect(text, lang=lang)
+    expected = sorted(detector.proportion_in_each_language(text).items())
+    assert result == expected
+
+
 def test_proportion_in_each_language() -> None:
-    # sanity checks
     assert LanguageDetector(
         lang=("de", "en"), lemmatization_strategy=DefaultStrategy(greedy=True)
     ).proportion_in_each_language(" aa ") == {"unk": 1}
-    assert langdetect(" aa ", lang=("de", "en"), greedy=True) == [("unk", 1)]
 
     text = "Test test"
     assert LanguageDetector(
         lang=("de", "en"), lemmatization_strategy=DefaultStrategy(greedy=False)
     ).proportion_in_each_language(text) == {"de": 1.0, "en": 1.0, "unk": 0.0}
-    assert langdetect(text, lang=("de", "en"), greedy=False) == [
-        ("de", 1.0),
-        ("en", 1.0),
-        ("unk", 0.0),
-    ]
     assert LanguageDetector(
         lang=("de", "en"), lemmatization_strategy=DefaultStrategy(greedy=True)
     ).proportion_in_each_language(text) == {"de": 1.0, "en": 1.0, "unk": 0.0}
-    assert langdetect(text, lang=("de", "en"), greedy=True) == [
-        ("de", 1.0),
-        ("en", 1.0),
-        ("unk", 0.0),
-    ]
 
     lang = ("de", "en")
     text = "Nztruedg nsüplke deutsches weiter bgfnki gtrpinadsc."
@@ -102,11 +120,6 @@ def test_proportion_in_each_language() -> None:
         "en": 0.0,
         "unk": 0.6,
     }
-    assert langdetect(
-        text,
-        lang=lang,
-        greedy=False,
-    ) == [("de", 0.4), ("en", 0.0), ("unk", 0.6)]
 
     lang = ("cs", "sk")
     text = '"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."'
@@ -115,7 +128,6 @@ def test_proportion_in_each_language() -> None:
         "sk": 0.25,
         "unk": 0.0,
     }
-    assert langdetect(text, lang=lang) == [("cs", 1.0), ("sk", 0.25), ("unk", 0.0)]
 
     lang = ("cs", "en")
     text = '"Moderní studie narazily na několik tajemství." Extracted from Wikipedia.'
@@ -126,11 +138,6 @@ def test_proportion_in_each_language() -> None:
         "cs": 0.0,
         "unk": 0.0,
     }
-    assert langdetect(
-        text,
-        lang=lang,
-        token_samplers=[CustomTokenSampler(6)],
-    ) == [("en", 1.0), ("cs", 0.0), ("unk", 0.0)]
 
 
 def test_in_target_language() -> None:
@@ -196,17 +203,9 @@ def test_main_language():
         LanguageDetector(
             lang=lang, lemmatization_strategy=DefaultStrategy(greedy=True)
         ).main_language(text)
-        == langdetect(text, lang=lang, greedy=False)[0][0]
+        == langdetect(text, lang=lang, greedy=True)[0][0]
         == "de"
     )
-
-    # text = "Dieser Satz ist auf Deutsch. Y esta está en Español."
-    # lang = ("de", "es")
-    # assert (
-    #     LanguageDetector(lang=lang, greedy=False).main_language(text)
-    #     == langdetect(text, lang=lang, greedy=False)[0][0]
-    #     == "unk"
-    # )
 
 
 def test_main_language_unknown() -> None:

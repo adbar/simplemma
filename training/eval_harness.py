@@ -1,6 +1,6 @@
 """Shared evaluation helpers: run the real DefaultStrategy chain over an
 arbitrary in-memory dictionary and score it against a UD treebank. Used by
-wikidata_lexemes.py's prune functions, eval_gate.py, and validate_* scripts,
+eval_gate.py, build_override.py and wikidata_lexemes.py's prune functions,
 so the eval protocol lives in one place.
 
 Bare strategy with identity fallback -- the dictionary-quality gate protocol.

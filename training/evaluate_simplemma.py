@@ -12,6 +12,7 @@ dictionary-quality gate -- different protocol, not a duplicate.
 
 import csv
 import logging
+import shutil
 import time
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
@@ -24,13 +25,11 @@ from conllu import parse_incr
 from simplemma import Lemmatizer
 from simplemma.strategies.default import DefaultStrategy
 from simplemma.utils import canonicalize_token
-from training.ud_conllu import dataset_to_lang, iter_word_tokens_in_sentences
+from training.ud_conllu import UD_SPLITS, dataset_to_lang, iter_word_tokens_in_sentences
 
 log = logging.getLogger(__name__)
 
-DATA_FOLDER = Path(__file__).parent / "data"
-SPLITS_FOLDER = DATA_FOLDER / "UD" / "splits"
-RESULTS_FOLDER = DATA_FOLDER / "results"
+RESULTS_FOLDER = Path(__file__).parent / "data" / "results"
 
 
 @dataclass
@@ -96,12 +95,12 @@ def _iter_sentences(paths: list[Path]) -> Iterator[Any]:
 
 
 def main(
-    splits_folder: Path = SPLITS_FOLDER,
+    splits_folder: Path = UD_SPLITS,
     results_folder: Path = RESULTS_FOLDER,
 ) -> None:
     if not splits_folder.exists():
         raise Exception(
-            "It doesn't seem like data was downloaded and precessed for evaluation."
+            "It doesn't seem like data was downloaded and processed for evaluation."
         )
 
     # dev+test chained per dataset in sorted filename order; train excluded
@@ -114,9 +113,7 @@ def main(
         datasets[path.name.split("-ud-", 1)[0]].append(path)
 
     if results_folder.exists():
-        for result_file in results_folder.iterdir():
-            result_file.unlink()
-        results_folder.rmdir()
+        shutil.rmtree(results_folder)
     results_folder.mkdir()
 
     with open(

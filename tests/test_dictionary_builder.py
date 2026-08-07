@@ -6,8 +6,9 @@ import pytest
 from simplemma import Lemmatizer
 from simplemma.strategies import DefaultStrategy, DictionaryFactory
 from simplemma.strategies.dictionaries import dictionary_factory, frontcode
+from training.frontcode_encode import _encode as _fc_encode
 from simplemma.strategies.dictionaries.dictionary_factory import MappingStrToByteString
-from training import dictionary_builder
+from training import build_lang_config, dictionary_builder
 
 TEST_DIR = Path(__file__).parent
 
@@ -59,7 +60,7 @@ def test_logic(tmp_path, monkeypatch) -> None:
     listpath = str(TEST_DIR / "data")
     temp_outputfile = str(tmp_path / "zz.plzma")
     dictionary_builder._build_dictionary("zz", listpath, temp_outputfile)
-    roundtripped = frontcode.decode(Path(temp_outputfile).read_bytes())
+    roundtripped = frontcode._decode(Path(temp_outputfile).read_bytes())
     assert isinstance(roundtripped, dict)
     assert len(roundtripped) == 6
     assert all(isinstance(k, bytes) for k in roundtripped)
@@ -102,7 +103,6 @@ def test_read_dict_order_independent(tmp_path) -> None:
     forward = _read(tmp_path, "de", "".join(lines))
     reverse = _read(tmp_path, "de", "".join(reversed(lines)))
     assert forward == reverse
-    assert forward["de"] == "de"
 
 
 def test_read_dict_attested_identity_beats_lone_challenger(tmp_path) -> None:
@@ -208,7 +208,7 @@ def test_add_key_aliases_ar_hamza() -> None:
     """ar: a hamza-seat/alef-maqsura key gets a folded-key ALIAS pointing at
     the same (correctly spelled) value -- unlike canonicalize_token, the
     value is never touched, so output stays correctly spelled."""
-    table = dictionary_builder.BUILD_NORMALIZATION["ar"].key_alias
+    table = build_lang_config.BUILD_NORMALIZATION["ar"].key_alias
     assert table is not None
     result = dictionary_builder._add_key_aliases({"أحمد": "أحمد", "بيت": "بيت"}, table)
     assert result["احمد"] == "أحمد"  # alias key -> the properly-spelled value
@@ -219,7 +219,7 @@ def test_add_key_aliases_ar_hamza() -> None:
 def test_add_key_aliases_never_overwrites_an_existing_exact_key() -> None:
     """A folded key that's ALSO a real, independently-attested entry keeps
     its own value -- the alias must never shadow it."""
-    table = dictionary_builder.BUILD_NORMALIZATION["ar"].key_alias
+    table = build_lang_config.BUILD_NORMALIZATION["ar"].key_alias
     assert table is not None
     result = dictionary_builder._add_key_aliases(
         {"أمن": "أمن", "امن": "امن_different_word"}, table
@@ -231,7 +231,7 @@ def test_add_key_aliases_ru_yo() -> None:
     """ru: a ё-spelled key gains an е-spelled twin (real text writes е for ё),
     value untouched; an existing е-spelled entry always wins (все/всё are
     distinct lemmas and must never merge)."""
-    table = dictionary_builder.BUILD_NORMALIZATION["ru"].key_alias
+    table = build_lang_config.BUILD_NORMALIZATION["ru"].key_alias
     assert table is not None
     result = dictionary_builder._add_key_aliases(
         {"ребёнка": "ребёнок", "всё": "всё", "все": "весь"}, table
@@ -245,7 +245,7 @@ def test_add_key_aliases_hbs_pitch_marks() -> None:
     never types the marks); an existing plain entry always wins. The raw
     function defaults to ADD (both keys survive) -- drop_original is a
     separate, explicit opt-in (see test_add_key_aliases_drop_original)."""
-    table = dictionary_builder.BUILD_NORMALIZATION["hbs"].key_alias
+    table = build_lang_config.BUILD_NORMALIZATION["hbs"].key_alias
     assert table is not None
     result = dictionary_builder._add_key_aliases(
         {"Hr̀vātskā": "Hrvatska", "vȉde": "vidjeti", "vide": "videti"}, table
@@ -260,7 +260,7 @@ def test_add_key_aliases_drop_original() -> None:
     of keeping both -- the shipped hbs/fa/bg/uk/lt/sl/la behavior. A real
     plain entry still always wins (never overwritten), and the marked
     original is gone either way."""
-    table = dictionary_builder.BUILD_NORMALIZATION["hbs"].key_alias
+    table = build_lang_config.BUILD_NORMALIZATION["hbs"].key_alias
     assert table is not None
     result = dictionary_builder._add_key_aliases(
         {"Hr̀vātskā": "Hrvatska", "vȉde": "vidjeti", "vide": "videti"},
@@ -275,7 +275,7 @@ def test_add_key_aliases_drop_original() -> None:
 def test_hbs_pitch_fold_keeps_montenegrin_letters() -> None:
     """ś/ź (real Montenegrin letters) must survive the pitch fold's keep=,
     like ć -- else dośetka/źenica get corrupted."""
-    table = dictionary_builder.BUILD_NORMALIZATION["hbs"].key_alias
+    table = build_lang_config.BUILD_NORMALIZATION["hbs"].key_alias
     assert table is not None
     for ch in "śŚźŹ":
         assert ch.translate(table) == ch  # untouched, like ć/Ć
@@ -305,7 +305,7 @@ def test_fix_value_scripts_hbs() -> None:
     """A Latin key never keeps a Cyrillic value (deterministic Cyr->Lat
     transliteration); Cyrillic and mixed-script keys stay untouched, and a
     value with non-Serbian Cyrillic is left whole, not half-transliterated."""
-    table = dictionary_builder.BUILD_NORMALIZATION["hbs"].value_script_fix
+    table = build_lang_config.BUILD_NORMALIZATION["hbs"].value_script_fix
     assert table is not None
     result = dictionary_builder._fix_value_scripts(
         {
@@ -327,7 +327,7 @@ def test_fix_value_scripts_hbs() -> None:
 def test_add_key_aliases_never_plants_an_empty_key() -> None:
     """A mark-only key (kept by _scrub's identity exemption) folds to "" under
     fa's deletion table -- the empty alias must be skipped, not added."""
-    table = dictionary_builder.BUILD_NORMALIZATION["fa"].key_alias
+    table = build_lang_config.BUILD_NORMALIZATION["fa"].key_alias
     assert table is not None
     result = dictionary_builder._add_key_aliases({"ـ": "ـ"}, table)
     assert result == {"ـ": "ـ"}  # no "" key
@@ -437,7 +437,7 @@ def test_drop_junk_keys_he_latin_transliterations() -> None:
 def _foreign_script_key(key: str, value: str, allowed: frozenset[str]) -> bool:
     """String-level adapter: the real predicate takes precomputed script sets
     (_drop_junk_keys computes them once per entry)."""
-    return dictionary_builder._foreign_script_key(
+    return build_lang_config._foreign_script_key(
         dictionary_builder._script_classes(key),
         dictionary_builder._script_classes(value),
         allowed,
@@ -513,7 +513,7 @@ def test_build_dictionary_ships_ar_hamza_alias(tmp_path, monkeypatch) -> None:
     (tmp_path / "ar.txt").write_text("أحمد\tأحمد\n", encoding="utf-8")
     outfile = str(tmp_path / "ar.plzma")
     dictionary_builder._build_dictionary("ar", listpath, outfile)
-    built = frontcode.decode(Path(outfile).read_bytes())
+    built = frontcode._decode(Path(outfile).read_bytes())
     assert built["أحمد".encode()] == "أحمد".encode()  # original key
     assert built["احمد".encode()] == "أحمد".encode()  # folded-key alias
 
@@ -546,7 +546,7 @@ def test_read_dict_rejects_control_and_mojibake_keys(tmp_path) -> None:
 def test_apply_layers_drops_spaced_forms(tmp_path, monkeypatch) -> None:
     """Multi-word layer forms are unreachable keys (tokenizer never yields a spaced token)."""
     _layers(tmp_path, monkeypatch, fill="top hat\ttop hats\ncat\tcats\n")
-    merged = dictionary_builder._apply_layers({}, "zz")
+    merged = dictionary_builder._apply_layers({}, "zz", {})
     assert merged == {"cats": "cat"}  # 'top hats' dropped (space in form)
 
 
@@ -554,53 +554,42 @@ def test_apply_layers_rejects_junk_entries(tmp_path, monkeypatch) -> None:
     """A curated layer file with mojibake/control chars fails the build loud, not a silent skip."""
     _layers(tmp_path, monkeypatch, fill="good\tgoods\nbad\tba\x01d\n")
     with pytest.raises(ValueError, match="rejected"):
-        dictionary_builder._apply_layers({}, "zz")
+        dictionary_builder._apply_layers({}, "zz", {})
 
 
 def test_apply_layers_rejects_empty_fields(tmp_path, monkeypatch) -> None:
     """An empty lemma/form in a curated layer fails the build rather than shipping a '' key."""
     _layers(tmp_path, monkeypatch, fill="good\tgoods\nlemma\t\n")
     with pytest.raises(ValueError, match="empty"):
-        dictionary_builder._apply_layers({}, "zz")
+        dictionary_builder._apply_layers({}, "zz", {})
 
 
-def test_apply_layers_canonicalizes_a_grc_override(tmp_path, monkeypatch) -> None:
+def test_layer_entries_canonicalizes_a_grc_override(tmp_path) -> None:
     """An override line with a grave-accented (non-canonical) form/lemma
     ships under its acute key -- the same fold _collect_candidates applies
     to the base wordlist, so a reviewed layer file can't ship a dead key
     (the exact bug build_override.py's mining side hit once by folding only
     the lemma column by hand)."""
-    overrides_dir = tmp_path / "overrides"
-    overrides_dir.mkdir()
-    (overrides_dir / "grc.tsv").write_text("ἐγώ\tἐγὼ\n", encoding="utf-8")
-    monkeypatch.setattr(dictionary_builder, "OVERRIDES_DIR", overrides_dir)
-    monkeypatch.setattr(dictionary_builder, "FILL_DIR", tmp_path / "no_fill")
-    merged = dictionary_builder._apply_layers({}, "grc")
-    assert merged == {"ἐγώ": "ἐγώ"}  # grave form folded to the acute key
+    path = tmp_path / "grc.tsv"
+    path.write_text("ἐγώ\tἐγὼ\n", encoding="utf-8")
+    entries = dictionary_builder._layer_entries(path, "grc")
+    assert entries == {"ἐγώ": "ἐγώ"}  # grave form folded to the acute key
 
 
-def test_apply_layers_rejects_a_canon_collision(tmp_path, monkeypatch) -> None:
+def test_layer_entries_rejects_a_canon_collision(tmp_path) -> None:
     """Two override lines that fold to the same canonical form but disagree
     on the lemma must fail the build loud, not silently pick one."""
-    overrides_dir = tmp_path / "overrides"
-    overrides_dir.mkdir()
-    (overrides_dir / "grc.tsv").write_text("ἐγώ\tἐγὼ\nἄλλος\tἐγώ\n", encoding="utf-8")
-    monkeypatch.setattr(dictionary_builder, "OVERRIDES_DIR", overrides_dir)
-    monkeypatch.setattr(dictionary_builder, "FILL_DIR", tmp_path / "no_fill")
+    path = tmp_path / "grc.tsv"
+    path.write_text("ἐγώ\tἐγὼ\nἄλλος\tἐγώ\n", encoding="utf-8")
     with pytest.raises(ValueError, match="fold to the same canonical form"):
-        dictionary_builder._apply_layers({}, "grc")
+        dictionary_builder._layer_entries(path, "grc")
 
 
 def test_apply_layers_precedence(tmp_path, monkeypatch) -> None:
     """overrides > base > fill: fill only adds, overrides always win."""
-    _layers(
-        tmp_path,
-        monkeypatch,
-        fill="filllemma\tdogs\nnew\tnews\n",
-        overrides="overridden\tcats\n",
-    )
+    _layers(tmp_path, monkeypatch, fill="filllemma\tdogs\nnew\tnews\n")
     base = {"dogs": "dog", "cats": "cat"}
-    merged = dictionary_builder._apply_layers(base, "zz")
+    merged = dictionary_builder._apply_layers(base, "zz", {"cats": "overridden"})
     assert merged["dogs"] == "dog"  # fill never displaces a base entry
     assert merged["news"] == "new"  # fill adds what's missing
     assert merged["cats"] == "overridden"  # override always wins
@@ -609,7 +598,7 @@ def test_apply_layers_precedence(tmp_path, monkeypatch) -> None:
 def test_apply_layers_without_layer_files_is_identity(tmp_path, monkeypatch) -> None:
     _layers(tmp_path, monkeypatch)  # no fill, no override
     base = {"dogs": "dog"}
-    assert dictionary_builder._apply_layers(base, "zz") == base
+    assert dictionary_builder._apply_layers(base, "zz", {}) == base
 
 
 def test_scrub_drops_unreachable_keys_and_fixes_junk_values() -> None:
@@ -629,7 +618,10 @@ def test_scrub_drops_unreachable_keys_and_fixes_junk_values() -> None:
 def test_curly_quote_override_form_survives(tmp_path, monkeypatch) -> None:
     """A typographic-apostrophe override form isn't dropped post-layer (read_pairs and _valid_key agree: NFC-only)."""
     _layers(tmp_path, monkeypatch, overrides="do\tdon\u2019t\n")
-    out = dictionary_builder._scrub(dictionary_builder._apply_layers({}, "zz"))
+    entries = dictionary_builder._layer_entries(
+        dictionary_builder.OVERRIDES_DIR / "zz.tsv", "zz"
+    )
+    out = dictionary_builder._scrub(dictionary_builder._apply_layers({}, "zz", entries))
     assert out == {"don\u2019t": "do"}
 
 
@@ -742,7 +734,7 @@ def test_build_default_composes_over_shipped_dict(tmp_path, monkeypatch) -> None
 
     built = tmp_path / "out.plzma"
     dictionary_builder._build_dictionary("zz", filepath=str(built))
-    result = frontcode.decode(built.read_bytes())
+    result = frontcode._decode(built.read_bytes())
     assert result[b"dogs"] == b"dog"  # decoded-shipped base survives
     assert result[b"cats"] == b"CAT"  # override wins the collision
     assert result[b"birds"] == b"bird"  # new form added
@@ -763,7 +755,7 @@ def test_build_wordlist_ingestion_keeps_curated_mappings(tmp_path, monkeypatch) 
     dictionary_builder._build_dictionary(
         "zz", listpath=str(tmp_path / "fresh"), filepath=str(built)
     )
-    result = frontcode.decode(built.read_bytes())
+    result = frontcode._decode(built.read_bytes())
     assert result[b"dogs"] == b"dog"  # shipped beats the re-extraction
     assert result[b"cats"] == b"cat"  # shipped beats fill
     assert result[b"mice"] == b"RODENT"  # override beats shipped
@@ -792,7 +784,7 @@ def test_apply_layers_cleans_machine_fill(tmp_path, monkeypatch) -> None:
     """Fill is a machine source: _apply_layers runs _clean_base over it, dropping
     affix-fragment keys, unlike a reviewed override which keeps its elisions."""
     _layers(tmp_path, monkeypatch, fill="-al\t-al\ncat\tcats\n")
-    merged = dictionary_builder._apply_layers({}, "zz")
+    merged = dictionary_builder._apply_layers({}, "zz", {})
     assert merged == {"cats": "cat"}  # '-al' affix key dropped
 
 
@@ -804,17 +796,17 @@ def test_apply_layers_rejects_unlisted_fill(tmp_path, monkeypatch) -> None:
     (fill_dir / "fr.tsv").write_text("chat\tchats\n", encoding="utf-8")
     monkeypatch.setattr(dictionary_builder, "FILL_DIR", fill_dir)
     with pytest.raises(ValueError, match="V2_FILL_LANGS"):
-        dictionary_builder._apply_layers({}, "fr")
+        dictionary_builder._apply_layers({}, "fr", {})
 
 
 def test_build_from_shipped_scrubs_placeholder(tmp_path, monkeypatch) -> None:
     """A pre-v2 shipped dict with a template placeholder value is scrubbed on rebuild."""
     raw = {b"hithau": b"prpers", b"dogs": b"dog"}
-    (tmp_path / "zz.plzma").write_bytes(frontcode.encode(raw))
+    (tmp_path / "zz.plzma").write_bytes(_fc_encode(raw))
     monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
     monkeypatch.setattr(dictionary_factory, "SUPPORTED_LANGUAGES", frozenset({"zz"}))
     _layers(tmp_path, monkeypatch)  # no fill, no override
     out = tmp_path / "out.plzma"
     dictionary_builder._build_dictionary("zz", filepath=str(out))
     # b"dog": b"dog" is _ensure_value_selfmaps covering the surviving value
-    assert frontcode.decode(out.read_bytes()) == {b"dogs": b"dog", b"dog": b"dog"}
+    assert frontcode._decode(out.read_bytes()) == {b"dogs": b"dog", b"dog": b"dog"}

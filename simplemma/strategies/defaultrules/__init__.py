@@ -1,49 +1,74 @@
 """Rule-based lemmatization of unknown tokens."""
 
-from collections.abc import Callable
+import re
+from collections.abc import Callable, Container
+from functools import partial
 
-from .cs import apply_cs
+from .generic import apply_rules
+
+# Custom apply functions (logic beyond a single apply_rules call)
 from .de import apply_de
 from .en import apply_en
-from .eo import apply_eo
-from .es import apply_es
-from .et import apply_et
-from .fi import apply_fi
-from .is_ import apply_is
 from .ka import apply_ka
-from .la import apply_la
 from .lv import apply_lv
-from .ms import apply_ms
 from .nl import apply_nl
-from .nn import apply_nn
-from .pt import apply_pt
-from .ro import apply_ro
 from .ru import apply_ru
-from .sk import apply_sk
-from .sl import apply_sl
-from .sv import apply_sv
-from .uk import apply_uk
+
+# Data-only rule modules
+from . import cs, eo, es, et, fi, is_ as is_mod, la, ms, nn, pt, ro, sk, sl, sv, uk
+
+
+def _data_fn(
+    rules: dict[re.Pattern[str], str],
+    *,
+    min_len: int = 1,
+    caps: bool = True,
+    hyphen: bool = True,
+    excluded: Container[str] = frozenset(),
+) -> Callable[[str], str | None]:
+    """Build an apply function from a rule table and its guards."""
+    return partial(
+        apply_rules,
+        rules=rules,
+        min_len=min_len,
+        caps=caps,
+        hyphen=hyphen,
+        excluded=excluded,
+    )
+
 
 RULE_FUNCTIONS: dict[str, Callable[[str], str | None]] = {
-    "cs": apply_cs,
+    # custom logic
     "de": apply_de,
     "en": apply_en,
-    "eo": apply_eo,
-    "es": apply_es,
-    "et": apply_et,
-    "fi": apply_fi,
-    "is": apply_is,
     "ka": apply_ka,
-    "la": apply_la,
     "lv": apply_lv,
-    "ms": apply_ms,
     "nl": apply_nl,
-    "nn": apply_nn,
-    "pt": apply_pt,
-    "ro": apply_ro,
     "ru": apply_ru,
-    "sk": apply_sk,
-    "sl": apply_sl,
-    "sv": apply_sv,
-    "uk": apply_uk,
 }
+
+# data-only: (code, module, min_len) — caps=True, hyphen=True are defaults
+_DATA_LANGS: list[tuple[str, object, int]] = [
+    ("cs", cs, 6),
+    ("eo", eo, 4),
+    ("es", es, 6),
+    ("et", et, 8),
+    ("fi", fi, 10),
+    ("is", is_mod, 6),
+    ("la", la, 6),
+    ("ms", ms, 7),
+    ("nn", nn, 6),
+    ("pt", pt, 6),
+    ("ro", ro, 6),
+    ("sk", sk, 6),
+    ("sl", sl, 6),
+    ("sv", sv, 6),
+    ("uk", uk, 6),
+]
+for _code, _mod, _min_len in _DATA_LANGS:
+    RULE_FUNCTIONS[_code] = _data_fn(
+        _mod.DEFAULT_RULES,  # type: ignore[attr-defined]
+        min_len=_min_len,
+        caps=_code != "ms",
+        excluded=getattr(_mod, "_EXCLUDED", frozenset()),
+    )

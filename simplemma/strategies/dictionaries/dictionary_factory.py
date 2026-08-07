@@ -45,7 +45,7 @@ def _read_decompressed(langcode: str) -> bytes:
 
 def _load_dictionary_from_disk(langcode: str) -> dict[bytes, bytes]:
     """Load the shipped `data/{langcode}.plzma` as a bytes->bytes dict."""
-    return frontcode.decode_stream(_read_decompressed(langcode))
+    return frontcode._decode_stream(_read_decompressed(langcode))
 
 
 class DictionaryFactory(Protocol):
@@ -126,6 +126,10 @@ class MappingStrToByteString(DecodedStrMapping):
 
     def __len__(self) -> int:
         return len(self._dict)
+
+    def items(self) -> Iterator[tuple[str, str]]:  # type: ignore[override]
+        for k, v in self._dict.items():
+            yield k.decode(), v.decode()
 
 
 class CachingDictionaryFactory(DictionaryFactory):

@@ -21,7 +21,8 @@ from pathlib import Path
 
 import simplemma.sentences as sentences
 from simplemma.utils import normalize_token
-from training.eval_gate import UD_SPLITS, discover_treebanks
+from training.eval_gate import discover_treebanks
+from training.ud_conllu import UD_SPLITS
 
 MIN_SUPPORT = 2  # junctions a candidate must fix before it earns an entry
 

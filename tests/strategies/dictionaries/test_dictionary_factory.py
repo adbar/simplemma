@@ -13,7 +13,7 @@ def test_decode_rejects_non_frontcoded_payload() -> None:
     # Pre-2.0 pickled .plzma is no longer readable: reject it, don't mis-parse it.
     blob = lzma.compress(b"\x80\x05 legacy pickle bytes, no SMFC1 magic")
     with pytest.raises(ValueError, match="front-coded"):
-        frontcode.decode(blob)
+        frontcode._decode(blob)
 
 
 def test_mapping_str_to_bytestring() -> None:

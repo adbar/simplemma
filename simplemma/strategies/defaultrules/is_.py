@@ -1,6 +1,5 @@
 import re
 
-from .generic import apply_rules
 
 # Icelandic adjective declension/comparison and definite noun forms, mined
 # lemma-first (99.70% in-dict).
@@ -17,8 +16,3 @@ DEFAULT_RULES = {
     re.compile(r"(?:unin)$"): r"un",
     re.compile(r"(?:aðu)$"): r"a",
 }
-
-
-def apply_is(token: str) -> str | None:
-    "Apply pre-defined rules for Icelandic."
-    return apply_rules(token, DEFAULT_RULES, min_len=6, caps=True, hyphen=True)

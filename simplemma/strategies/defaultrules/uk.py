@@ -1,6 +1,5 @@
 import re
 
-from .generic import apply_rules
 
 # Ukrainian verb conjugation and adjective declension, mined lemma-first
 # (99.69% in-dict).
@@ -35,10 +34,3 @@ DEFAULT_RULES = {
 
 # invariant adverbs whose own dictionary lemma is themselves
 _EXCLUDED = frozenset({"повністю", "вручну"})
-
-
-def apply_uk(token: str) -> str | None:
-    "Apply pre-defined rules for Ukrainian."
-    return apply_rules(
-        token, DEFAULT_RULES, min_len=6, caps=True, hyphen=True, excluded=_EXCLUDED
-    )

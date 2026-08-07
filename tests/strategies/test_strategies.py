@@ -30,7 +30,6 @@ def test_search() -> None:
     assert HyphenRemovalStrategy().get_lemma("magni-ficents", "en") is None
     assert HyphenRemovalStrategy().get_lemma("magni-", "en") is None
 
-    # assert simplemma.simplemma._greedy_dictionary_lookup('Ignorance-Tests') == 'Ignorance-Test'
     # don't lemmatize numbers
     assert DefaultStrategy().get_lemma("01234", "en") == "01234"
 
@@ -353,9 +352,11 @@ def test_morpheme_decomposition_tagalog_infix() -> None:
 
 
 def test_morpheme_decomposition_tagalog_reduplication() -> None:
-    """Aspect reduplication of the root's first syllable. (A further
-    vowel-alternation stage -- gusto+han -> gustuhan, folding u->o back --
-    was measured at <=0.3pp on one treebank with no verdict change and
+    """Aspect reduplication of the root's first syllable. Also locks the
+    deepest-decomposition order: "maiiwasan" hit "iiwas" (a real but wrong
+    entry) before reaching "iwas" when candidates were tried shallowest-first.
+    (A further vowel-alternation stage -- gusto+han -> gustuhan, folding u->o
+    back -- was measured at <=0.3pp on one treebank with no verdict change and
     removed: not worth a config dimension.)"""
     morpheme = MorphemeDecompositionStrategy()
     assert morpheme.get_lemma("maiiwasan", "tl") == "iwas"  # ma-i-REDUP(i)-was-an
@@ -367,15 +368,6 @@ def test_morpheme_decomposition_capitalized_token() -> None:
     morpheme = MorphemeDecompositionStrategy()
     assert morpheme.get_lemma("Nagbasa", "tl") == "basa"
     assert morpheme.get_lemma("Tumakbo", "tl") == "takbo"
-
-
-def test_morpheme_decomposition_prefers_deepest_decomposition() -> None:
-    """A shallower residue that happens to ALSO be a real (unrelated) dict
-    entry must not win over the correctly fully-decomposed root -- measured
-    regression: "maiiwasan" hit "iiwas" (a real but wrong entry) before
-    reaching "iwas" when candidates were tried shallowest-first."""
-    morpheme = MorphemeDecompositionStrategy()
-    assert morpheme.get_lemma("maiiwasan", "tl") == "iwas"
 
 
 def test_morpheme_decomposition_guards() -> None:

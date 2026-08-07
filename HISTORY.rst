@@ -5,74 +5,15 @@ History
 2.0.0
 -----
 
-- All dictionaries rebuilt from fresh sources, adding Wikidata lexemes and
-  reviewed closed-class overrides: accuracy improves markedly for more than
-  20 languages (e.g. Welsh 0.59 → 0.91, Armenian 0.63 → 0.88,
-  Swedish 0.79 → 0.91, Russian 0.86 → 0.89)
-- Reviewed correction lists mined from UD training data for 43 languages,
-  each required to regress no treebank before shipping: further gains of
-  1–10 accuracy points per language (e.g. Arabic 0.81 → 0.91, Catalan
-  0.89 → 0.95, Russian 0.89 → 0.93)
-- Evaluation is now strictly out-of-sample: training data does all the work —
-  it is mined for the correction lists and is also what every candidate is
-  gated against — so the reported dev and test accuracies are never consulted
-  by a shipping decision. Gating on training rather than development data is
-  measured, not assumed: across all 40 gateable languages the two agree on 37
-  of the 38 that can be compared, and the single exception favours training
-  (development data would have rejected the whole Lithuanian layer over a
-  0.6-point dip on a 1,086-token treebank that improves on both other splits).
-  Training does overstate the size of a gain, by a mean 1.22×, so it is used
-  only for the accept/reject decision and never to report. A treebank with no
-  training split (e.g. the parallel PUD sets) is gated on a reported split
-  instead and logs a warning, so its figure is optimistic.
-- The correction lists shed 5,096 entries (9%) that the dictionaries already
-  reproduced, verified to leave every built dictionary byte-identical: the
-  reviewed files are that much shorter to review, with no accuracy change
-- Latin dictionary enlarged by 142,000 entries from a merged fresh
-  extraction (+0.3 to +1.5 accuracy points on five of the six UD treebanks,
-  e.g. PROIEL type accuracy 0.727 → 0.742); the sixth, CIRCSE, dips 0.2
-  points from its lowercase-proper-noun lemma convention, adopted knowingly
-- Indonesian correction list adopted after pruning its treebank-convention
-  conflicts (360 case-folding rows dropped): +1.3 points on GSD and +0.5 on
-  PUD; CSUI dips 0.2 points on exact match from its case-preserving lemma
-  convention while improving 0.7 points case-folded, adopted knowingly
-- Dictionary consistency pass across all languages: missing identity
-  self-maps and casing/fold lookup aliases restored (+715 entries over 9
-  languages) and residual foreign-script junk keys removed (fa/uk/ar/hi/grc,
-  including 9% of the Persian dictionary);
-  every shipped dictionary now rebuilds byte-identically from its own data;
-  legacy junk values purged from the shipped bases (169 German entries
-  mapping real words to the literal placeholder ``unknown`` — unmasking 88
-  correct lemmas the placeholders had shadowed — 10 vandalized Russian
-  entries, and the remaining multi-word lemmas across eight languages:
-  a lemmatizer must never return more than one word), each removal gated
-  against every treebank; reviewed correction entries now outrank the
-  per-language junk filters
-- Compound-boundary markers in Finnish/Estonian/Hungarian gold lemmas
-  (``yli#opisto``), which no plain-text lemma can contain, are stripped
-  before comparison — except where the marker also occurs in the surface
-  form (``#luonto``, ``MAX_FILE_SIZE``), which is part of the token
-- Breaking: new front-coded dictionary format shrinks the shipped data from
-  67 MB to 17 MB; pre-2.0 pickled ``.plzma`` files are no longer read
-- More accurate default rules covering more languages: near-100% precision
-  enforced against the dictionaries, new rule sets (e.g. Georgian,
-  Icelandic) (#175)
-- More targeted affix handling, validated per language on UD treebanks: new
-  clitic-decomposition and apostrophe strategies, simplified greedy affix
-  search, updated prefix handling (#176)
-- Improved tokenization (apostrophes, hyphens) and new sentence-initial
-  casing handling in ``get_lemmas_in_text``, with a new ``casing`` module
-  (#177)
-- Lower memory footprint: all strategies share one process-wide default
-  dictionary factory, so the dictionaries are cached once per process
-- New ``low_memory`` flag on ``lemmatize``, ``text_lemmatizer``,
-  ``lemma_iterator``, ``is_known``, ``langdetect``, ``in_target_language``
-  and ``DefaultStrategy`` to opt into the new zero-dependency
-  ``StreamDictionaryFactory``
-- New ``StreamDictionaryFactory``: a stdlib-only low-memory backend that reads
-  the shipped dictionaries directly instead of loading them into a dict
-- Rebuilt training pipeline: layered dictionary builds (word-list base +
-  Wikidata fill + reviewed overrides) gated by cross-treebank evaluation
+- New languages: Arabic (ar), Ancient Greek (grc), Hebrew (he) and Malayalam (ml) (#180)
+- All dictionaries rebuilt from fresh sources with reviewed correction lists: improved accuracy for many languages (#178, #180, #184)
+- New front-coded dictionary format shrinks the shipped data from 67 MB to 19 MB
+- More accurate rules covering more languages (#175)
+- Better affix handling: new clitic and apostrophe strategies, simpler greedy search, updated prefixes (#176)
+- New morpheme decomposition strategy, used for Tagalog and Indonesian (#180)
+- Faster, more precise tokenizer, and new split_sentences() function for sentence splitting (#177, #182)
+- Lower memory usage: shared dictionary cache and new low_memory flag (#178, #181)
+- Language detector fixes (#172)
 
 
 1.2.0
@@ -109,8 +50,9 @@ History
 1.1.0
 -----
 
-- Add a memory-efficient dictionary factory backed by MARISA-tries by @Dunedan in #133
-- Drop support for Python 3.6 & 3.7 by @Dunedan in #134
+- Add a memory-efficient dictionary factory backed by MARISA-tries
+  by @Dunedan (#133)
+- Drop support for Python 3.6 & 3.7 by @Dunedan (#134)
 - Update setup files (#138)
 
 
