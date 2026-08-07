@@ -58,7 +58,7 @@ def test_dictionary_lru_cache() -> None:
     dictionaries = TrieDictionaryFactory(use_disk_cache=False)
     for _ in range(iterations):
         dictionaries.get_dictionary("en")
-        dictionaries.get_dictionary("de")
+        dictionaries.get_dictionary("eo")
     assert dictionaries._get_dictionary.cache_info().misses == 2
     assert dictionaries._get_dictionary.cache_info().hits == (iterations - 1) * 2
 
@@ -66,7 +66,7 @@ def test_dictionary_lru_cache() -> None:
 def test_max_lru_cache_size() -> None:
     dictionaries = TrieDictionaryFactory(cache_max_size=3, use_disk_cache=False)
 
-    for lang in ["de", "en", "en", "es", "fr", "it", "de"]:
+    for lang in ["eo", "en", "en", "ga", "tl", "cy", "eo"]:
         dictionaries.get_dictionary(lang)
 
     assert dictionaries._get_dictionary.cache_info().misses == 6

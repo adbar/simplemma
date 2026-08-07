@@ -127,6 +127,10 @@ class MappingStrToByteString(DecodedStrMapping):
     def __len__(self) -> int:
         return len(self._dict)
 
+    def items(self) -> Iterator[tuple[str, str]]:  # type: ignore[override]
+        for k, v in self._dict.items():
+            yield k.decode(), v.decode()
+
 
 class CachingDictionaryFactory(DictionaryFactory):
     """Base wiring an lru cache (size `cache_max_size`) around the subclass's

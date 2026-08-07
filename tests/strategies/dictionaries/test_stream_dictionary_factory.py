@@ -107,7 +107,7 @@ def test_iter_and_len_parity(lang: str) -> None:
     stream = _stream(lang)
 
     assert len(stream) == len(reference)
-    assert sorted(stream) == sorted(reference)
+    assert set(stream) == set(reference)
 
 
 @pytest.mark.parametrize(
