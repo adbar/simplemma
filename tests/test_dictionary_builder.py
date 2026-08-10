@@ -444,44 +444,37 @@ def _foreign_script_key(key: str, value: str, allowed: frozenset[str]) -> bool:
     )
 
 
-def test_is_foreign_script_key_ipa_and_romanization_rows() -> None:
-    """ar IPA transcription and grc Beta-code romanization: the key is
-    entirely outside the allowed script, the value is inside it -- drop."""
-    assert _foreign_script_key("uð.ðu.ki.ruː", "اذكروا", frozenset({"ARABIC"}))
-    assert _foreign_script_key(
-        "hubrisin", "ὑβρίς", frozenset({"GREEK", "CYPRIOT", "LINEAR"})
-    )
+_FOREIGN_SCRIPT_KEY_CASES = [
+    # ar IPA transcription: key entirely outside the allowed script → drop
+    pytest.param("uð.ðu.ki.ruː", "اذكروا", frozenset({"ARABIC"}), True, id="ar-ipa"),
+    # grc Beta-code romanization → drop
+    pytest.param(
+        "hubrisin", "ὑβρίς", frozenset({"GREEK", "CYPRIOT", "LINEAR"}), True,
+        id="grc-betacode",
+    ),
+    # grc Cypriot-syllabary: a real alternate script, not noise → keep
+    pytest.param(
+        "𐠞𐠪𐠐𐠄𐠩", "βασιλεύς", frozenset({"GREEK", "CYPRIOT", "LINEAR"}), False,
+        id="grc-cypriot-kept",
+    ),
+    # ms Jawi→Rumi direction is correct → keep
+    pytest.param("جون", "Jun", frozenset({"ARABIC"}), False, id="ms-jawi-to-rumi"),
+    # ms Rumi→Jawi direction is the defect → drop
+    pytest.param("pintu", "ڤينتو", frozenset({"ARABIC"}), True, id="ms-rumi-to-jawi"),
+    # mixed-script key (Latin+Cyrillic): never flagged
+    pytest.param(
+        "atoмска", "атомски", frozenset({"CYRILLIC"}), False, id="mixed-script",
+    ),
+    # purely non-alphabetic key (digits): no script class → never flagged
+    pytest.param("123", "число", frozenset({"CYRILLIC"}), False, id="non-alphabetic"),
+]
 
 
-def test_is_foreign_script_key_protects_alternate_attestations() -> None:
-    """grc Cypriot-syllabary attestations are a real (if rare) alternate
-    script for early Greek, not Wiktionary citation noise -- kept allowed,
-    so they're never flagged."""
-    assert not _foreign_script_key(
-        "𐠞𐠪𐠐𐠄𐠩", "βασιλεύς", frozenset({"GREEK", "CYPRIOT", "LINEAR"})
-    )
-
-
-def test_is_foreign_script_key_ms_asymmetric_direction() -> None:
-    """ms is genuinely biscriptal: a Jawi key resolving to its standard Rumi
-    citation lemma is CORRECT and must never be flagged, but a Rumi key
-    resolving to a Jawi value is the defect -- only that direction drops."""
-    assert not _foreign_script_key("جون", "Jun", frozenset({"ARABIC"}))
-    assert _foreign_script_key("pintu", "ڤينتو", frozenset({"ARABIC"}))
-
-
-def test_is_foreign_script_key_never_flags_mixed_script() -> None:
-    """A key carrying ANY allowed-script letter (mixed script, e.g. hbs's
-    Latin+Cyrillic 'atoмска') is never flagged -- only entirely
-    foreign-scripted keys are."""
-    assert not _foreign_script_key("atoмска", "атомски", frozenset({"CYRILLIC"}))
-
-
-def test_is_foreign_script_key_ignores_non_alphabetic():  # digits/punct
-    """A purely non-alphabetic key (digits, punctuation) has no script class
-    at all -- it's Phase B's (_drop_junk_keys pattern) concern, not this
-    predicate's; it must never be flagged here."""
-    assert not _foreign_script_key("123", "число", frozenset({"CYRILLIC"}))
+@pytest.mark.parametrize("key, value, allowed, expected", _FOREIGN_SCRIPT_KEY_CASES)
+def test_is_foreign_script_key(
+    key: str, value: str, allowed: frozenset[str], expected: bool
+) -> None:
+    assert _foreign_script_key(key, value, allowed) is expected
 
 
 def test_drop_junk_keys_ar_ipa_rows() -> None:

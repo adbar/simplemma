@@ -15,16 +15,20 @@ from simplemma.strategies.greedy_dictionary_lookup import greedy_min_length
 from simplemma.strategies.morpheme_decomposition import _Morphemes
 from tests.conftest import FixedMapping
 
+_LOOKUP = DictionaryLookupStrategy()
+_CLITIC = CliticDecompositionStrategy()
+_MORPHEME = MorphemeDecompositionStrategy()
+
 
 def test_search() -> None:
     """Test simple and greedy dict search."""
-    assert DictionaryLookupStrategy().get_lemma("ignorant", "en") == "ignorant"
-    assert DictionaryLookupStrategy().get_lemma("Ignorant", "en") == "ignorant"
+    assert _LOOKUP.get_lemma("ignorant", "en") == "ignorant"
+    assert _LOOKUP.get_lemma("Ignorant", "en") == "ignorant"
 
-    assert DictionaryLookupStrategy().get_lemma("dritte", "de") == "dritt"
-    assert DictionaryLookupStrategy().get_lemma("Dritte", "de") == "Dritter"
+    assert _LOOKUP.get_lemma("dritte", "de") == "dritt"
+    assert _LOOKUP.get_lemma("Dritte", "de") == "Dritter"
     # empty token must not crash the case-flip retry
-    assert DictionaryLookupStrategy().get_lemma("", "en") is None
+    assert _LOOKUP.get_lemma("", "en") is None
 
     assert HyphenRemovalStrategy().get_lemma("magni-ficent", "en") == "magnificent"
     assert HyphenRemovalStrategy().get_lemma("magni-ficents", "en") is None
@@ -139,111 +143,75 @@ def test_clitic_decomposition_skips_diacritic_fold_for_canon_languages() -> None
     assert clitic.get_lemma("مؤمنه", "ar") is None
 
 
-def test_clitic_decomposition() -> None:
-    """Enclitic pronoun chains strip to the bare verb lemma, no reattachment."""
-    clitic = CliticDecompositionStrategy()
-    assert clitic.get_lemma("transmitiéndose", "es") == "transmitir"
-    assert clitic.get_lemma("encontrarlo", "es") == "encontrar"
-    assert clitic.get_lemma("aprova-se", "pt") == "aprovar"
-    assert clitic.get_lemma("mobilitzar-se", "ca") == "mobilitzar"
-    assert clitic.get_lemma("mettersi", "it") == "mettere"
-    assert clitic.get_lemma("sitúanse", "gl") == "situar"
-    # unsupported language
-    assert clitic.get_lemma("transmitiéndose", "de") is None
-
-
-def test_clitic_decomposition_guards() -> None:
-    """Capitalized-initial tokens (proper nouns) and stems under the
-    length floor are rejected, not decomposed."""
-    clitic = CliticDecompositionStrategy()
-    assert clitic.get_lemma("Paulo", "pt") is None  # would otherwise fabricate "paul"
-    assert clitic.get_lemma("tê-lo", "pt") is None  # "ter" is under the stem floor
-    assert clitic.get_lemma("fer-ho", "ca") is None  # "fer" is under the stem floor
-    # MAX_CLITICS strips succeed but no stem ever verifies in the dictionary
-    assert clitic.get_lemma("zzzzzzselo", "es") is None
+# (token, lang, expected): clitic decomposition through the shared architecture.
+# Enclitics strip to the bare verb/noun lemma (no reattachment); proclitics
+# strip from the front (elision before vowel-initial words).
+_CLITIC_CASES = [
+    # --- enclitics: pronoun chains strip to the bare verb lemma ---
+    pytest.param("transmitiéndose", "es", "transmitir", id="enclitic-es-transmitir"),
+    pytest.param("encontrarlo", "es", "encontrar", id="enclitic-es-encontrar"),
+    pytest.param("aprova-se", "pt", "aprovar", id="enclitic-pt-aprovar"),
+    pytest.param("mobilitzar-se", "ca", "mobilitzar", id="enclitic-ca-mobilitzar"),
+    pytest.param("mettersi", "it", "mettere", id="enclitic-it-mettere"),
+    pytest.param("sitúanse", "gl", "situar", id="enclitic-gl-situar"),
+    pytest.param("transmitiéndose", "de", None, id="enclitic-unsupported-lang"),
+    # --- enclitic guards: capitalized/short-stem/unresolvable → None ---
+    pytest.param("Paulo", "pt", None, id="guard-capitalized-paulo"),
+    pytest.param("tê-lo", "pt", None, id="guard-short-stem-telo"),
+    pytest.param("fer-ho", "ca", None, id="guard-short-stem-ferho"),
+    pytest.param("zzzzzzselo", "es", None, id="guard-no-dict-hit"),
     # pt/ca strip only a hyphenated clitic: a bare strip would mangle these
-    assert clitic.get_lemma("paulo", "pt") is None  # not "paul"
-    assert clitic.get_lemma("carona", "pt") is None  # not "caro"
-    assert clitic.get_lemma("alumne", "ca") is None  # not "alumar"
+    pytest.param("paulo", "pt", None, id="guard-bare-strip-paulo"),
+    pytest.param("carona", "pt", None, id="guard-bare-strip-carona"),
+    pytest.param("alumne", "ca", None, id="guard-bare-strip-alumne"),
+    # --- English contractions: same enclitic architecture ---
+    pytest.param("don’t", "en", "do", id="en-dont"),
+    pytest.param("don’t", "en", "do", id="en-curly-dont"),
+    pytest.param("Don’t", "en", "do", id="en-sentence-initial-Dont"),
+    pytest.param("I’m", "en", "I", id="en-Im"),
+    pytest.param("you’re", "en", "you", id="en-youre"),
+    pytest.param("isn’t", "en", "be", id="en-isnt"),
+    # "’s"/"’d" are multi-valued clitics; the stem lemma isn’t
+    pytest.param("it’s", "en", "it", id="en-its"),
+    pytest.param("company’s", "en", "company", id="en-companys"),
+    pytest.param("he’d", "en", "he", id="en-hed"),
+    # can’t/won’t: "can" is the only English modal ending in "n", so
+    # stripping "n’t" would leave "ca" (a real, wrong entry) — excluded
+    pytest.param("can’t", "en", None, id="en-cant-excluded"),
+    pytest.param("won’t", "en", None, id="en-wont-excluded"),
+    # --- proclitics: elision before a vowel-initial word ---
+    pytest.param("l’arbre", "fr", "arbre", id="proclitic-fr-arbre"),
+    pytest.param("qu’avait", "fr", "avoir", id="proclitic-fr-avoir"),
+    pytest.param("jusqu’alors", "fr", "alors", id="proclitic-fr-alors"),
+    pytest.param("l’arbre", "fr", "arbre", id="proclitic-fr-curly"),
+    pytest.param("quest’anno", "it", "anno", id="proclitic-it-anno"),
+    pytest.param("nell’aula", "it", "aula", id="proclitic-it-aula"),
+    pytest.param("l’home", "ca", "home", id="proclitic-ca-home"),
+    pytest.param("l’arbre", "de", None, id="proclitic-unsupported-lang"),
+    # PROCLITIC_MIN_STEM_LEN=1: short remainders are structurally always
+    # elision in these orthographies
+    pytest.param("c’est", "fr", "être", id="proclitic-fr-cest"),
+    pytest.param("j’ai", "fr", "avoir", id="proclitic-fr-jai"),
+    pytest.param("qu’il", "fr", "il", id="proclitic-fr-quil"),
+    # --- proclitic guards: capitalized stem = surname, no strip ---
+    pytest.param("L’arbre", "fr", "arbre", id="proclitic-guard-lowercase-stem"),
+    pytest.param("D’Annunzio", "it", None, id="proclitic-guard-capitalized-stem"),
+    pytest.param("aujourd’hui", "fr", None, id="proclitic-guard-no-prefix-match"),
+    # --- Arabic enclitic pronouns: same drop-not-reattach shape ---
+    pytest.param("كتابه", "ar", "كتاب", id="ar-enclitic-hu"),
+    pytest.param("كتابها", "ar", "كتاب", id="ar-enclitic-ha"),
+    pytest.param("كتابهم", "ar", "كتاب", id="ar-enclitic-hum"),
+    # ك excluded (measured net-negative: collides with root-final letters)
+    pytest.param("كتابك", "ar", None, id="ar-enclitic-kaf-excluded"),
+    # MIN_STEM_LEN=4: a 3-letter stem is rejected
+    pytest.param("بيته", "ar", None, id="ar-enclitic-short-stem"),
+    pytest.param("كِتَابُهُ", "ar", "كتاب", id="ar-enclitic-vocalized"),
+]
 
 
-def test_clitic_decomposition_english_contractions() -> None:
-    """English auxiliary contractions use the same enclitic architecture
-    (a per-language stem floor and case guard, not new code)."""
-    clitic = CliticDecompositionStrategy()
-    assert clitic.get_lemma("don't", "en") == "do"
-    assert clitic.get_lemma("don’t", "en") == "do"  # curly apostrophe (smart quotes)
-    assert (
-        clitic.get_lemma("Don't", "en") == "do"
-    )  # sentence-initial, not a proper noun
-    assert clitic.get_lemma("I'm", "en") == "I"
-    assert clitic.get_lemma("you're", "en") == "you"
-    assert clitic.get_lemma("isn't", "en") == "be"
-    # "'s"/"'d" are multi-valued clitics; the stem lemma isn't
-    assert clitic.get_lemma("it's", "en") == "it"
-    assert clitic.get_lemma("company's", "en") == "company"
-    assert clitic.get_lemma("he'd", "en") == "he"
-    # can't/won't/shan't are irregular exceptions: "can" is the only
-    # English modal ending in "n", so stripping "n't" would leave "ca"
-    # (itself a real, wrong dictionary entry) -- excluded, not mapped wrong.
-    assert clitic.get_lemma("can't", "en") is None
-    assert clitic.get_lemma("won't", "en") is None
-
-
-def test_clitic_decomposition_proclitics() -> None:
-    """Romance proclitics (elision before a vowel-initial word) strip from
-    the front; only the following content word's lemma is ever returned,
-    never the elided article/pronoun/conjunction's own (sidesteps their
-    genuine article-vs-pronoun / soi-vs-si ambiguity entirely)."""
-    clitic = CliticDecompositionStrategy()
-    assert clitic.get_lemma("l'arbre", "fr") == "arbre"
-    assert clitic.get_lemma("qu'avait", "fr") == "avoir"
-    assert clitic.get_lemma("jusqu'alors", "fr") == "alors"
-    assert clitic.get_lemma("l’arbre", "fr") == "arbre"  # curly apostrophe
-    assert clitic.get_lemma("quest'anno", "it") == "anno"
-    assert (
-        clitic.get_lemma("nell'aula", "it") == "aula"
-    )  # contracted preposition+article
-    assert clitic.get_lemma("l'home", "ca") == "home"
-    # unsupported language for the proclitic table
-    assert clitic.get_lemma("l'arbre", "de") is None
-    # PROCLITIC_MIN_STEM_LEN=1: a 1-3 letter remainder after an
-    # apostrophe is structurally almost never anything but elision in
-    # these orthographies (unlike a bare short stem), so the floor is
-    # much lower than the enclitic side's -- these are some of the
-    # highest-frequency apostrophe tokens in French and were previously
-    # unreachable at floor=4.
-    assert clitic.get_lemma("c'est", "fr") == "être"
-    assert clitic.get_lemma("j'ai", "fr") == "avoir"
-    assert clitic.get_lemma("qu'il", "fr") == "il"
-
-
-def test_clitic_decomposition_proclitic_guards() -> None:
-    """A sentence-initial capital on the proclitic still strips when the
-    stem stays lowercase ("L'arbre" -> "arbre"), but a capitalized stem
-    signals a surname where stripping is wrong -- "D'Annunzio" (a real
-    Italian surname) must not strip to the unrelated verb "annunziare"."""
-    clitic = CliticDecompositionStrategy()
-    assert clitic.get_lemma("L'arbre", "fr") == "arbre"
-    assert clitic.get_lemma("D'Annunzio", "it") is None
-    # apostrophe present but no proclitic matches the prefix: no strip
-    assert clitic.get_lemma("aujourd'hui", "fr") is None
-
-
-def test_clitic_decomposition_ar_enclitic_pronouns() -> None:
-    """Arabic possessive/object pronoun suffixes strip to the bare noun/verb
-    lemma, same drop-not-reattach shape as Romance enclitics. ك/ي are
-    deliberately NOT in CLITIC_LANGS["ar"] -- measured net-negative (collide
-    with native root-final letters/nisba endings), so "كتابك" must not strip."""
-    clitic = CliticDecompositionStrategy()
-    assert clitic.get_lemma("كتابه", "ar") == "كتاب"
-    assert clitic.get_lemma("كتابها", "ar") == "كتاب"
-    assert clitic.get_lemma("كتابهم", "ar") == "كتاب"
-    assert clitic.get_lemma("كتابك", "ar") is None  # ك excluded: no strip attempted
-    # MIN_STEM_LEN=4 (the shared default, no ar override needed): a 3-letter
-    # stem is rejected, matching every other enclitic language's floor.
-    assert clitic.get_lemma("بيته", "ar") is None  # "بيت" is under the stem floor
-    assert clitic.get_lemma("كِتَابُهُ", "ar") == "كتاب"  # vocalized: folded first
+@pytest.mark.parametrize("token, lang, expected", _CLITIC_CASES)
+def test_clitic_decomposition(token: str, lang: str, expected: str | None) -> None:
+    assert _CLITIC.get_lemma(token, lang) == expected
 
 
 def test_apostrophe_boundary() -> None:
@@ -256,18 +224,15 @@ def test_apostrophe_boundary() -> None:
     assert strat.get_lemma("Erdoğan’ın", "tr") == "Erdoğan"
     # a curated whole-token dict entry is authoritative: boundary splitting
     # defers so dictionary lookup wins ("isen'e" -> "isen", not head "i").
-    lookup = DictionaryLookupStrategy()
-    assert lookup.exact_lemma("isen'e", "tr") == "isen"
+    assert _LOOKUP.exact_lemma("isen'e", "tr") == "isen"
     assert (
-        ApostropheBoundaryStrategy(strat.get_lemma, lookup).get_lemma("isen'e", "tr")
+        ApostropheBoundaryStrategy(strat.get_lemma, _LOOKUP).get_lemma("isen'e", "tr")
         is None
     )
     assert strat.get_lemma("isen'e", "tr") == "isen"
     # unsupported language: no-op
     assert (
-        ApostropheBoundaryStrategy(
-            strat.get_lemma, DictionaryLookupStrategy()
-        ).get_lemma("l'arbre", "fr")
+        ApostropheBoundaryStrategy(strat.get_lemma, _LOOKUP).get_lemma("l'arbre", "fr")
         is None
     )
 
@@ -275,14 +240,13 @@ def test_apostrophe_boundary() -> None:
 def test_dictionary_lookup_apostrophe_variant() -> None:
     """A key stored under another apostrophe variant (straight ', curly U+2019,
     modifier-letter U+02BC -- NFC does not unify them) is still found."""
-    lookup = DictionaryLookupStrategy()
-    assert lookup.get_lemma("виб’єш", "uk") == "вибити"  # curly
-    assert lookup.get_lemma("вибʼєш", "uk") == "вибити"  # U+02BC (Ukrainian)
-    assert lookup.get_lemma("виб'єш", "uk") == "вибити"  # straight
-    assert lookup.get_lemma("un’", "it") == "uno"
+    assert _LOOKUP.get_lemma("виб’єш", "uk") == "вибити"  # curly
+    assert _LOOKUP.get_lemma("вибʼєш", "uk") == "вибити"  # U+02BC (Ukrainian)
+    assert _LOOKUP.get_lemma("виб’єш", "uk") == "вибити"  # straight
+    assert _LOOKUP.get_lemma("un’", "it") == "uno"
     # Probe order preserved across variants: this glyph-mixed fi entry keeps
     # its straight-variant answer.
-    assert lookup.get_lemma("Vaa'assa", "fi") == "vaaka"
+    assert _LOOKUP.get_lemma("Vaa’assa", "fi") == "vaaka"
 
 
 def test_dictionary_lookup_grc_accent_canon() -> None:
@@ -336,18 +300,16 @@ def test_morphemes_sorts_affixes_longest_first_regardless_of_input_order() -> No
 def test_morpheme_decomposition_tagalog_prefixes_and_ability_forms() -> None:
     """Actor/ability-focus prefixes are discarded entirely (unlike
     PrefixDecompositionStrategy, which keeps a derivational prefix)."""
-    morpheme = MorphemeDecompositionStrategy()
-    assert morpheme.get_lemma("nagbasa", "tl") == "basa"  # mag-/nag- actor focus
-    assert morpheme.get_lemma("magkakatrabaho", "tl") == "trabaho"  # distributive
-    assert morpheme.get_lemma("maulit", "tl") == "ulit"  # ma- stative
+    assert _MORPHEME.get_lemma("nagbasa", "tl") == "basa"  # mag-/nag- actor focus
+    assert _MORPHEME.get_lemma("magkakatrabaho", "tl") == "trabaho"  # distributive
+    assert _MORPHEME.get_lemma("maulit", "tl") == "ulit"  # ma- stative
 
 
 def test_morpheme_decomposition_tagalog_infix() -> None:
     """-um-/-in- infixes attach after the root's onset consonant."""
-    morpheme = MorphemeDecompositionStrategy()
-    assert morpheme.get_lemma("tumakbo", "tl") == "takbo"  # -um- infix
-    assert morpheme.get_lemma("binasa", "tl") == "basa"  # -in- infix
-    assert morpheme.get_lemma("umalis", "tl") == "alis"  # -um- as a plain
+    assert _MORPHEME.get_lemma("tumakbo", "tl") == "takbo"  # -um- infix
+    assert _MORPHEME.get_lemma("binasa", "tl") == "basa"  # -in- infix
+    assert _MORPHEME.get_lemma("umalis", "tl") == "alis"  # -um- as a plain
     # prefix when the root is vowel-initial (no onset consonant to infix after)
 
 
@@ -358,23 +320,20 @@ def test_morpheme_decomposition_tagalog_reduplication() -> None:
     (A further vowel-alternation stage -- gusto+han -> gustuhan, folding u->o
     back -- was measured at <=0.3pp on one treebank with no verdict change and
     removed: not worth a config dimension.)"""
-    morpheme = MorphemeDecompositionStrategy()
-    assert morpheme.get_lemma("maiiwasan", "tl") == "iwas"  # ma-i-REDUP(i)-was-an
+    assert _MORPHEME.get_lemma("maiiwasan", "tl") == "iwas"  # ma-i-REDUP(i)-was-an
 
 
 def test_morpheme_decomposition_capitalized_token() -> None:
     """A sentence-initial capitalized verb still resolves -- affix matching
     works on the lowercased form, and the dictionary lemma is lowercase."""
-    morpheme = MorphemeDecompositionStrategy()
-    assert morpheme.get_lemma("Nagbasa", "tl") == "basa"
-    assert morpheme.get_lemma("Tumakbo", "tl") == "takbo"
+    assert _MORPHEME.get_lemma("Nagbasa", "tl") == "basa"
+    assert _MORPHEME.get_lemma("Tumakbo", "tl") == "takbo"
 
 
 def test_morpheme_decomposition_guards() -> None:
     """Unconfigured languages and unresolvable residues return None."""
-    morpheme = MorphemeDecompositionStrategy()
-    assert morpheme.get_lemma("maiiwasan", "en") is None  # not a configured lang
-    assert morpheme.get_lemma("zzzznagzzzzz", "tl") is None  # no dict hit at all
+    assert _MORPHEME.get_lemma("maiiwasan", "en") is None  # not a configured lang
+    assert _MORPHEME.get_lemma("zzzznagzzzzz", "tl") is None  # no dict hit at all
 
 
 def test_morpheme_decomposition_infix_and_reduplication_respect_min_stem_len() -> None:
@@ -396,20 +355,18 @@ def test_morpheme_decomposition_infix_and_reduplication_respect_min_stem_len() -
 def test_morpheme_decomposition_indonesian_prefix_and_suffix() -> None:
     """Indonesian verbal affixes are compositional (prefix + suffix together);
     a single-strip mechanism (PrefixDecompositionStrategy) can't reach these."""
-    morpheme = MorphemeDecompositionStrategy()
-    assert morpheme.get_lemma("ditingkatkan", "id") == "tingkat"  # di- + -kan
-    assert morpheme.get_lemma("berdasarkan", "id") == "dasar"  # ber- + -kan
-    assert morpheme.get_lemma("menceritakan", "id") == "cerita"  # men- + -kan
+    assert _MORPHEME.get_lemma("ditingkatkan", "id") == "tingkat"  # di- + -kan
+    assert _MORPHEME.get_lemma("berdasarkan", "id") == "dasar"  # ber- + -kan
+    assert _MORPHEME.get_lemma("menceritakan", "id") == "cerita"  # men- + -kan
 
 
 def test_morpheme_decomposition_indonesian_conservative_config() -> None:
     """Short/ambiguous prefixes (bare me/ke/se/pe, without their
     consonant-initial variants) were measured to overfire and are
     deliberately excluded -- only the longer, unambiguous forms ship."""
-    morpheme = MorphemeDecompositionStrategy()
     # "melihat" = me- (no epenthetic consonant) + "lihat" (a real dict root) --
     # would resolve if bare "me" were configured, but it isn't.
-    assert morpheme.get_lemma("melihat", "id") is None
+    assert _MORPHEME.get_lemma("melihat", "id") is None
 
 
 def test_dictionary_lookup_apostrophe_variant_recased() -> None:

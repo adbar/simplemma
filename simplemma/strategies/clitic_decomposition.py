@@ -177,26 +177,9 @@ class CliticDecompositionStrategy(LemmatizationStrategy):
         self,
         dictionary_lookup: DictionaryLookupStrategy = DictionaryLookupStrategy(),
     ):
-        """
-        Initialize the Clitic Decomposition Strategy.
-
-        Args:
-            dictionary_lookup (DictionaryLookupStrategy): The dictionary lookup strategy to use.
-                Defaults to `DictionaryLookupStrategy()`.
-        """
         self._dictionary_lookup = dictionary_lookup
 
     def get_lemma(self, token: str, lang: str) -> str | None:
-        """
-        Get the lemma of a token by stripping a clitic chain, front or back.
-
-        Args:
-            token (str): The input token.
-            lang (str): The language code.
-
-        Returns:
-            str | None: The lemma of the token if found, or None otherwise.
-        """
         # fold before matching, like the other dict-matching strategies
         token = canonicalize_token(token, lang)
         return self._enclitic_lemma(token, lang) or self._proclitic_lemma(token, lang)

@@ -181,27 +181,9 @@ class MorphemeDecompositionStrategy(LemmatizationStrategy):
     def __init__(
         self, dictionary_lookup: DictionaryLookupStrategy = DictionaryLookupStrategy()
     ):
-        """
-        Initialize the Morpheme Decomposition Strategy.
-
-        Args:
-            dictionary_lookup (DictionaryLookupStrategy): The dictionary lookup strategy used to
-                verify candidate residues. Defaults to `DictionaryLookupStrategy()`.
-        """
         self._dictionary_lookup = dictionary_lookup
 
     def get_lemma(self, token: str, lang: str) -> str | None:
-        """
-        Get the lemma of a token by stripping compositional affixes and
-        verifying the residue against the dictionary.
-
-        Args:
-            token (str): The input token.
-            lang (str): The language code.
-
-        Returns:
-            str | None: The lemma of the token if found, or None otherwise.
-        """
         morphemes = MORPHEME_LANGS.get(lang)
         if morphemes is None:
             return None

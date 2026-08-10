@@ -187,23 +187,15 @@ def test_in_target_language() -> None:
     )
 
 
-def test_main_language():
+@pytest.mark.parametrize("greedy", [False, True])
+def test_main_language(greedy: bool) -> None:
     text = "Dieser Satz ist auf Deutsch."
     lang = ("de", "en")
-
     assert (
         LanguageDetector(
-            lang=lang, lemmatization_strategy=DefaultStrategy(greedy=False)
+            lang=lang, lemmatization_strategy=DefaultStrategy(greedy=greedy)
         ).main_language(text)
-        == langdetect(text, lang=lang, greedy=False)[0][0]
-        == "de"
-    )
-
-    assert (
-        LanguageDetector(
-            lang=lang, lemmatization_strategy=DefaultStrategy(greedy=True)
-        ).main_language(text)
-        == langdetect(text, lang=lang, greedy=True)[0][0]
+        == langdetect(text, lang=lang, greedy=greedy)[0][0]
         == "de"
     )
 
