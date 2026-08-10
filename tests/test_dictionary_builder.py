@@ -449,12 +449,18 @@ _FOREIGN_SCRIPT_KEY_CASES = [
     pytest.param("uð.ðu.ki.ruː", "اذكروا", frozenset({"ARABIC"}), True, id="ar-ipa"),
     # grc Beta-code romanization → drop
     pytest.param(
-        "hubrisin", "ὑβρίς", frozenset({"GREEK", "CYPRIOT", "LINEAR"}), True,
+        "hubrisin",
+        "ὑβρίς",
+        frozenset({"GREEK", "CYPRIOT", "LINEAR"}),
+        True,
         id="grc-betacode",
     ),
     # grc Cypriot-syllabary: a real alternate script, not noise → keep
     pytest.param(
-        "𐠞𐠪𐠐𐠄𐠩", "βασιλεύς", frozenset({"GREEK", "CYPRIOT", "LINEAR"}), False,
+        "𐠞𐠪𐠐𐠄𐠩",
+        "βασιλεύς",
+        frozenset({"GREEK", "CYPRIOT", "LINEAR"}),
+        False,
         id="grc-cypriot-kept",
     ),
     # ms Jawi→Rumi direction is correct → keep
@@ -463,7 +469,11 @@ _FOREIGN_SCRIPT_KEY_CASES = [
     pytest.param("pintu", "ڤينتو", frozenset({"ARABIC"}), True, id="ms-rumi-to-jawi"),
     # mixed-script key (Latin+Cyrillic): never flagged
     pytest.param(
-        "atoмска", "атомски", frozenset({"CYRILLIC"}), False, id="mixed-script",
+        "atoмска",
+        "атомски",
+        frozenset({"CYRILLIC"}),
+        False,
+        id="mixed-script",
     ),
     # purely non-alphabetic key (digits): no script class → never flagged
     pytest.param("123", "число", frozenset({"CYRILLIC"}), False, id="non-alphabetic"),

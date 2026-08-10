@@ -18,10 +18,12 @@ class TokenSampler(Protocol):
     __slots__ = ()
 
     @abstractmethod
-    def sample_text(self, text: str) -> list[str]: ...
+    def sample_text(self, text: str) -> list[str]:
+        """Tokenize text and return a sample of its tokens."""
 
     @abstractmethod
-    def sample_tokens(self, tokens: Iterable[str]) -> list[str]: ...
+    def sample_tokens(self, tokens: Iterable[str]) -> list[str]:
+        """Return a sample of the given tokens."""
 
 
 class BaseTokenSampler(ABC, TokenSampler):
@@ -37,9 +39,6 @@ class BaseTokenSampler(ABC, TokenSampler):
 
     def sample_text(self, text: str) -> list[str]:
         return self.sample_tokens(self._tokenizer.split_text(text))
-
-    @abstractmethod
-    def sample_tokens(self, tokens: Iterable[str]) -> list[str]: ...
 
 
 class MostCommonTokenSampler(BaseTokenSampler):
