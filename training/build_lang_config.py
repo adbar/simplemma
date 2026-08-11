@@ -6,6 +6,7 @@ build pipeline.  The pipeline logic that *consumes* these lives in
 dictionary_builder.py.
 """
 
+import sys
 import unicodedata
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -20,19 +21,33 @@ from simplemma.utils import (
 # ── mark-fold generator ─────────────────────────────────────────────
 
 
-def _mark_fold_table(marks: frozenset[int], keep: str = "") -> dict[int, str | None]:
-    """Deletion of `marks` + every precomposed Latin/Cyrillic letter carrying
+# All of Unicode, scanned once: no script's precomposed letters can be
+# silently missed by a hardcoded block range.
+_DECOMPOSABLE: list[tuple[int, frozenset[int]]] = [
+    (cp, frozenset(map(ord, decomposed)))
+    for cp in range(sys.maxunicode + 1)
+    if len(decomposed := unicodedata.normalize("NFD", chr(cp))) >= 2
+]
+
+
+def _mark_fold_table(
+    marks: frozenset[int],
+    keep: str = "",
+    scripts: tuple[str, ...] = ("LATIN ", "CYRILLIC "),
+) -> dict[int, str | None]:
+    """Deletion of `marks` + every precomposed letter of `scripts` carrying
     one, generated from unicodedata (hand-typed tables shipped wrong twice).
     `keep` protects letters whose mark is orthographic, not pitch/length
-    marking (hbs/sl ć)."""
+    marking (hbs/sl ć). `scripts` are Unicode-name prefixes: a fold names its
+    scripts, so a bg acute fold never touches Greek accented letters."""
     table: dict[int, str | None] = {cp: None for cp in marks}
-    for cp in (*range(0x00C0, 0x0250), *range(0x0400, 0x0500), *range(0x1E00, 0x1F00)):
+    for cp, decomposed_ords in _DECOMPOSABLE:
         ch = chr(cp)
-        if ch in keep:
+        if ch in keep or not marks & decomposed_ords:
+            continue
+        if not unicodedata.name(ch, "").startswith(scripts):
             continue
         decomposed = unicodedata.normalize("NFD", ch)
-        if len(decomposed) < 2 or not marks & set(map(ord, decomposed)):
-            continue
         table[cp] = normalize_token(
             "".join(c for c in decomposed if ord(c) not in marks)
         )
@@ -135,6 +150,12 @@ _DEVANAGARI_SCRIPTS = frozenset({"DEVANAGARI"})
 _HEBREW_SCRIPTS = frozenset({"HEBREW"})
 _LATIN_PLUS_CYRILLIC = frozenset({"LATIN", "CYRILLIC"})
 
+
+def _ar_fa_junk(k: str, ks: frozenset[str], vs: frozenset[str]) -> bool:
+    """Shared ar/fa predicate: same defect shape in both."""
+    return _foreign_script_entry(ks, vs, _ARABIC_SCRIPTS)
+
+
 # Per-language (key, key_scripts, value_scripts) -> drop predicates. Each
 # entry is a verified, language-specific defect -- there is no universal
 # "foreign script" or "digit-leading" rule (a digit-leading token is a real
@@ -152,18 +173,13 @@ JUNK_ENTRY_PREDICATES: dict[
     # 15,828 fill entries -- broader than the evidence, IT-фахівець would
     # drop too).
     "uk": lambda k, ks, vs: (
-        k[:1] in "0123456789¹²³"
+        k[:1].isdigit()
         or _foreign_script_entry(ks, vs, _CYRILLIC_SCRIPTS)
         or _LATIN_PLUS_CYRILLIC <= ks
     ),
     # ar: IPA transcription rows (98,864 shipped entries) + wholly-foreign
     # English junk and Judeo-Arabic spellings (95, polluted langdetect vs he).
-    # fa: romanized rows ("and" -> بودن), template artifacts, English junk
-    # -- 4,938 shipped entries (9.4%, 2026-08).
-    # Same predicate: both Arabic-script languages with the same defect shape.
-    "ar": (
-        _ar_fa_junk := lambda k, ks, vs: _foreign_script_entry(ks, vs, _ARABIC_SCRIPTS)
-    ),
+    "ar": _ar_fa_junk,
     # grc: Beta-code romanization keys and the selfmaps they seed
     # (CYPRIOT/LINEAR stay allowed, genuine early-Greek attestations); the
     # swapped-argument direction catches English glosses (κάλαμος -> "plants").
@@ -171,6 +187,8 @@ JUNK_ENTRY_PREDICATES: dict[
         _foreign_script_entry(ks, vs, _GREEK_SCRIPTS)
         or _foreign_script_key(vs, ks, _GREEK_SCRIPTS)
     ),
+    # fa: romanized rows ("and" -> بودن), template artifacts, English junk
+    # -- 4,938 shipped entries (9.4%, 2026-08).
     "fa": _ar_fa_junk,
     # bg: BGN transliteration rows ("rádost" -> "радост"). The broad entry
     # check NOT used: its extra hits are US/DM abbreviations, legitimate in

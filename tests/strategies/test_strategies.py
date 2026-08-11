@@ -165,38 +165,38 @@ _CLITIC_CASES = [
     pytest.param("carona", "pt", None, id="guard-bare-strip-carona"),
     pytest.param("alumne", "ca", None, id="guard-bare-strip-alumne"),
     # --- English contractions: same enclitic architecture ---
-    pytest.param("don’t", "en", "do", id="en-dont"),
+    pytest.param("don't", "en", "do", id="en-dont"),
     pytest.param("don’t", "en", "do", id="en-curly-dont"),
-    pytest.param("Don’t", "en", "do", id="en-sentence-initial-Dont"),
-    pytest.param("I’m", "en", "I", id="en-Im"),
-    pytest.param("you’re", "en", "you", id="en-youre"),
-    pytest.param("isn’t", "en", "be", id="en-isnt"),
-    # "’s"/"’d" are multi-valued clitics; the stem lemma isn’t
-    pytest.param("it’s", "en", "it", id="en-its"),
-    pytest.param("company’s", "en", "company", id="en-companys"),
-    pytest.param("he’d", "en", "he", id="en-hed"),
-    # can’t/won’t: "can" is the only English modal ending in "n", so
-    # stripping "n’t" would leave "ca" (a real, wrong entry) — excluded
-    pytest.param("can’t", "en", None, id="en-cant-excluded"),
-    pytest.param("won’t", "en", None, id="en-wont-excluded"),
+    pytest.param("Don't", "en", "do", id="en-sentence-initial-Dont"),
+    pytest.param("I'm", "en", "I", id="en-Im"),
+    pytest.param("you're", "en", "you", id="en-youre"),
+    pytest.param("isn't", "en", "be", id="en-isnt"),
+    # "'s"/"'d" are multi-valued clitics; the stem lemma isn't
+    pytest.param("it's", "en", "it", id="en-its"),
+    pytest.param("company's", "en", "company", id="en-companys"),
+    pytest.param("he'd", "en", "he", id="en-hed"),
+    # can't/won't: "can" is the only English modal ending in "n", so
+    # stripping "n't" would leave "ca" (a real, wrong entry) — excluded
+    pytest.param("can't", "en", None, id="en-cant-excluded"),
+    pytest.param("won't", "en", None, id="en-wont-excluded"),
     # --- proclitics: elision before a vowel-initial word ---
-    pytest.param("l’arbre", "fr", "arbre", id="proclitic-fr-arbre"),
-    pytest.param("qu’avait", "fr", "avoir", id="proclitic-fr-avoir"),
-    pytest.param("jusqu’alors", "fr", "alors", id="proclitic-fr-alors"),
+    pytest.param("l'arbre", "fr", "arbre", id="proclitic-fr-arbre"),
+    pytest.param("qu'avait", "fr", "avoir", id="proclitic-fr-avoir"),
+    pytest.param("jusqu'alors", "fr", "alors", id="proclitic-fr-alors"),
     pytest.param("l’arbre", "fr", "arbre", id="proclitic-fr-curly"),
-    pytest.param("quest’anno", "it", "anno", id="proclitic-it-anno"),
-    pytest.param("nell’aula", "it", "aula", id="proclitic-it-aula"),
-    pytest.param("l’home", "ca", "home", id="proclitic-ca-home"),
-    pytest.param("l’arbre", "de", None, id="proclitic-unsupported-lang"),
+    pytest.param("quest'anno", "it", "anno", id="proclitic-it-anno"),
+    pytest.param("nell'aula", "it", "aula", id="proclitic-it-aula"),
+    pytest.param("l'home", "ca", "home", id="proclitic-ca-home"),
+    pytest.param("l'arbre", "de", None, id="proclitic-unsupported-lang"),
     # PROCLITIC_MIN_STEM_LEN=1: short remainders are structurally always
     # elision in these orthographies
-    pytest.param("c’est", "fr", "être", id="proclitic-fr-cest"),
-    pytest.param("j’ai", "fr", "avoir", id="proclitic-fr-jai"),
-    pytest.param("qu’il", "fr", "il", id="proclitic-fr-quil"),
+    pytest.param("c'est", "fr", "être", id="proclitic-fr-cest"),
+    pytest.param("j'ai", "fr", "avoir", id="proclitic-fr-jai"),
+    pytest.param("qu'il", "fr", "il", id="proclitic-fr-quil"),
     # --- proclitic guards: capitalized stem = surname, no strip ---
-    pytest.param("L’arbre", "fr", "arbre", id="proclitic-guard-lowercase-stem"),
-    pytest.param("D’Annunzio", "it", None, id="proclitic-guard-capitalized-stem"),
-    pytest.param("aujourd’hui", "fr", None, id="proclitic-guard-no-prefix-match"),
+    pytest.param("L'arbre", "fr", "arbre", id="proclitic-guard-lowercase-stem"),
+    pytest.param("D'Annunzio", "it", None, id="proclitic-guard-capitalized-stem"),
+    pytest.param("aujourd'hui", "fr", None, id="proclitic-guard-no-prefix-match"),
     # --- Arabic enclitic pronouns: same drop-not-reattach shape ---
     pytest.param("كتابه", "ar", "كتاب", id="ar-enclitic-hu"),
     pytest.param("كتابها", "ar", "كتاب", id="ar-enclitic-ha"),
@@ -242,11 +242,11 @@ def test_dictionary_lookup_apostrophe_variant() -> None:
     modifier-letter U+02BC -- NFC does not unify them) is still found."""
     assert _LOOKUP.get_lemma("виб’єш", "uk") == "вибити"  # curly
     assert _LOOKUP.get_lemma("вибʼєш", "uk") == "вибити"  # U+02BC (Ukrainian)
-    assert _LOOKUP.get_lemma("виб’єш", "uk") == "вибити"  # straight
+    assert _LOOKUP.get_lemma("виб'єш", "uk") == "вибити"  # straight
     assert _LOOKUP.get_lemma("un’", "it") == "uno"
     # Probe order preserved across variants: this glyph-mixed fi entry keeps
     # its straight-variant answer.
-    assert _LOOKUP.get_lemma("Vaa’assa", "fi") == "vaaka"
+    assert _LOOKUP.get_lemma("Vaa'assa", "fi") == "vaaka"
 
 
 def test_dictionary_lookup_grc_accent_canon() -> None:

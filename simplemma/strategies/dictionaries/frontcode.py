@@ -11,7 +11,6 @@ stream compresses far better under lzma than a pickled dict.
 partial/resumable reads.
 """
 
-import lzma
 from collections.abc import Iterator
 
 _MAGIC = b"SMFC1"
@@ -131,8 +130,3 @@ def _decode_stream(data: bytes) -> dict[bytes, bytes]:
     if n != count:
         raise ValueError(_CORRUPT_STREAM_MSG)
     return result
-
-
-def _decode(blob: bytes) -> dict[bytes, bytes]:
-    """Decompress and decode a full blob (inverse of `_encode`)."""
-    return _decode_stream(lzma.decompress(blob))

@@ -80,12 +80,16 @@ def test_target_agrees_with_each_language() -> None:
             '"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."',
             None,
         ),
+        # en outscores de: pins the descending sort against alphabetical order
+        (("de", "en"), "It was a true gift", None),
+        # "unk" outscores both languages: pins its unconditional last place
+        (("de", "sv"), "Nztruedg nsüplke deutsches weiter bgfnki gtrpinadsc.", None),
     ],
 )
 def test_langdetect_agrees_with_class(
     lang: tuple[str, ...], text: str, greedy: bool | None
 ) -> None:
-    """langdetect() must return the same data as the class, as sorted tuples."""
+    """langdetect() must return the class' data, descending by score, "unk" last."""
     if greedy is not None:
         detector = LanguageDetector(
             lang=lang, lemmatization_strategy=DefaultStrategy(greedy=greedy)
@@ -94,8 +98,11 @@ def test_langdetect_agrees_with_class(
     else:
         detector = LanguageDetector(lang=lang)
         result = langdetect(text, lang=lang)
-    expected = sorted(detector.proportion_in_each_language(text).items())
-    assert result == expected
+    assert dict(result) == detector.proportion_in_each_language(text)
+    scores = [score for code, score in result if code != "unk"]
+    assert scores == sorted(scores, reverse=True)
+    if len(result) > 1:
+        assert result[-1][0] == "unk"
 
 
 def test_proportion_in_each_language() -> None:

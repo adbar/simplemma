@@ -5,8 +5,8 @@ import pytest
 
 from simplemma import Lemmatizer
 from simplemma.strategies import DefaultStrategy, DictionaryFactory
-from simplemma.strategies.dictionaries import dictionary_factory, frontcode
-from training.frontcode_encode import _encode as _fc_encode
+from simplemma.strategies.dictionaries import dictionary_factory
+from training.frontcode_encode import _decode as _fc_decode, _encode as _fc_encode
 from simplemma.strategies.dictionaries.dictionary_factory import MappingStrToByteString
 from training import build_lang_config, dictionary_builder
 
@@ -60,7 +60,7 @@ def test_logic(tmp_path, monkeypatch) -> None:
     listpath = str(TEST_DIR / "data")
     temp_outputfile = str(tmp_path / "zz.plzma")
     dictionary_builder._build_dictionary("zz", listpath, temp_outputfile)
-    roundtripped = frontcode._decode(Path(temp_outputfile).read_bytes())
+    roundtripped = _fc_decode(Path(temp_outputfile).read_bytes())
     assert isinstance(roundtripped, dict)
     assert len(roundtripped) == 6
     assert all(isinstance(k, bytes) for k in roundtripped)
@@ -516,7 +516,7 @@ def test_build_dictionary_ships_ar_hamza_alias(tmp_path, monkeypatch) -> None:
     (tmp_path / "ar.txt").write_text("أحمد\tأحمد\n", encoding="utf-8")
     outfile = str(tmp_path / "ar.plzma")
     dictionary_builder._build_dictionary("ar", listpath, outfile)
-    built = frontcode._decode(Path(outfile).read_bytes())
+    built = _fc_decode(Path(outfile).read_bytes())
     assert built["أحمد".encode()] == "أحمد".encode()  # original key
     assert built["احمد".encode()] == "أحمد".encode()  # folded-key alias
 
@@ -737,7 +737,7 @@ def test_build_default_composes_over_shipped_dict(tmp_path, monkeypatch) -> None
 
     built = tmp_path / "out.plzma"
     dictionary_builder._build_dictionary("zz", filepath=str(built))
-    result = frontcode._decode(built.read_bytes())
+    result = _fc_decode(built.read_bytes())
     assert result[b"dogs"] == b"dog"  # decoded-shipped base survives
     assert result[b"cats"] == b"CAT"  # override wins the collision
     assert result[b"birds"] == b"bird"  # new form added
@@ -758,7 +758,7 @@ def test_build_wordlist_ingestion_keeps_curated_mappings(tmp_path, monkeypatch) 
     dictionary_builder._build_dictionary(
         "zz", listpath=str(tmp_path / "fresh"), filepath=str(built)
     )
-    result = frontcode._decode(built.read_bytes())
+    result = _fc_decode(built.read_bytes())
     assert result[b"dogs"] == b"dog"  # shipped beats the re-extraction
     assert result[b"cats"] == b"cat"  # shipped beats fill
     assert result[b"mice"] == b"RODENT"  # override beats shipped
@@ -812,4 +812,4 @@ def test_build_from_shipped_scrubs_placeholder(tmp_path, monkeypatch) -> None:
     out = tmp_path / "out.plzma"
     dictionary_builder._build_dictionary("zz", filepath=str(out))
     # b"dog": b"dog" is _ensure_value_selfmaps covering the surviving value
-    assert frontcode._decode(out.read_bytes()) == {b"dogs": b"dog", b"dog": b"dog"}
+    assert _fc_decode(out.read_bytes()) == {b"dogs": b"dog", b"dog": b"dog"}

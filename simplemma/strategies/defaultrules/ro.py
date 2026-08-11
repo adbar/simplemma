@@ -1,5 +1,6 @@
 import re
 
+from .generic import apply_rules
 
 # Romanian verb conjugation and noun/adjective endings (fused definite
 # articles included), mined lemma-first (99.73% in-dict).
@@ -65,3 +66,10 @@ _EXCLUDED = frozenset(
         "stabili",
     }
 )
+
+
+def apply_ro(token: str) -> str | None:
+    "Apply pre-defined rules for Romanian."
+    return apply_rules(
+        token, DEFAULT_RULES, min_len=6, caps=True, hyphen=True, excluded=_EXCLUDED
+    )

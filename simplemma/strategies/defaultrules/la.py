@@ -1,5 +1,6 @@
 import re
 
+from .generic import apply_rules
 
 # Latin verb conjugation and noun/adjective declension, mined lemma-first
 # (99.69% in-dict). The (?<=..) stem floor keeps whole-word or 1-char-stem
@@ -57,3 +58,10 @@ _EXCLUDED = frozenset(
         "fortasse",
     }
 )
+
+
+def apply_la(token: str) -> str | None:
+    "Apply pre-defined rules for Latin."
+    return apply_rules(
+        token, DEFAULT_RULES, min_len=6, caps=True, hyphen=True, excluded=_EXCLUDED
+    )

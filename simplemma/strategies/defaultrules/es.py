@@ -1,5 +1,7 @@
 import re
 
+from .generic import apply_rules
+
 # Spanish verb conjugation and noun/adjective plural endings, mined
 # lemma-first (99.81% in-dict).
 DEFAULT_RULES = {
@@ -94,3 +96,10 @@ _EXCLUDED = frozenset(
         "itelmenos",
     }
 )
+
+
+def apply_es(token: str) -> str | None:
+    "Apply pre-defined rules for Spanish."
+    return apply_rules(
+        token, DEFAULT_RULES, min_len=6, caps=True, hyphen=True, excluded=_EXCLUDED
+    )

@@ -1,5 +1,6 @@
 import re
 
+from .generic import apply_rules
 
 # Portuguese verb conjugation and noun/adjective endings, mined lemma-first
 # (99.72% in-dict).
@@ -71,3 +72,10 @@ _EXCLUDED = frozenset(
         "girolando",
     }
 )
+
+
+def apply_pt(token: str) -> str | None:
+    "Apply pre-defined rules for Portuguese."
+    return apply_rules(
+        token, DEFAULT_RULES, min_len=6, caps=True, hyphen=True, excluded=_EXCLUDED
+    )

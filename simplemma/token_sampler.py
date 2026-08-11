@@ -20,10 +20,12 @@ class TokenSampler(Protocol):
     @abstractmethod
     def sample_text(self, text: str) -> list[str]:
         """Tokenize text and return a sample of its tokens."""
+        raise NotImplementedError
 
     @abstractmethod
     def sample_tokens(self, tokens: Iterable[str]) -> list[str]:
         """Return a sample of the given tokens."""
+        raise NotImplementedError
 
 
 class BaseTokenSampler(ABC, TokenSampler):

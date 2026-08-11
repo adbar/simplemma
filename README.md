@@ -160,7 +160,7 @@ corpora.
 ``` python
 >>> from simplemma import langdetect
 >>> langdetect('"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy."', lang=("cs", "sk"))
-[('cs', 1.0), ('sk', 0.25), ('unk', 0.0)]
+[('cs', 1.0), ('sk', 0.14285714285714285), ('unk', 0.0)]
 ```
 
 

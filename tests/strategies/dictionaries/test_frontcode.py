@@ -3,7 +3,7 @@ import lzma
 import pytest
 
 from simplemma.strategies.dictionaries import frontcode
-from training.frontcode_encode import _encode as _fc_encode
+from training.frontcode_encode import _decode as _fc_decode, _encode as _fc_encode
 
 
 @pytest.mark.parametrize(
@@ -46,7 +46,7 @@ from training.frontcode_encode import _encode as _fc_encode
     ],
 )
 def test_roundtrip(mapping: dict[bytes, bytes], reverse_key: bool) -> None:
-    assert frontcode._decode(_fc_encode(mapping, reverse_key)) == mapping
+    assert _fc_decode(_fc_encode(mapping, reverse_key)) == mapping
 
 
 def test_is_frontcoded_rejects_other_data() -> None:

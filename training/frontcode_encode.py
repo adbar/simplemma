@@ -10,6 +10,7 @@ from simplemma.strategies.dictionaries.frontcode import (
     _MAGIC,
     _REVERSE_FLAG,
     _SAME_AS_PREV,
+    _decode_stream,
 )
 
 
@@ -78,3 +79,8 @@ def _encode(mapping: dict[bytes, bytes], reverse_key: bool = False) -> bytes:
         prev_value = stored_value
 
     return lzma.compress(bytes(stream), preset=9 | lzma.PRESET_EXTREME)
+
+
+def _decode(blob: bytes) -> dict[bytes, bytes]:
+    """Decompress and decode a full blob (inverse of `_encode`)."""
+    return _decode_stream(lzma.decompress(blob))
