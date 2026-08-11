@@ -1,7 +1,4 @@
-"""
-This module defines the `RulesStrategy` class, which is a concrete implementation of the `LemmatizationStrategy` protocol.
-It provides lemmatization by applying pre-defined rules for each language.
-"""
+"""Rule-based lemmatization strategy."""
 
 from collections.abc import Callable
 
@@ -10,41 +7,13 @@ from .lemmatization_strategy import LemmatizationStrategy
 
 
 class RulesStrategy(LemmatizationStrategy):
-    """
-    This class represents a lemmatization strategy that performs lemmatization by applying pre-defined rules for each language.
-    It implements the `LemmatizationStrategy` protocol.
-    """
+    """Apply per-language suffix-replacement rules to unknown tokens."""
 
     __slots__ = ["_rules"]
 
     def __init__(self, rules: dict[str, Callable[[str], str | None]] = RULE_FUNCTIONS):
-        """
-        Initialize the Rules Strategy.
-
-        Args:
-            rules (dict[str, Callable[[str], str | None]]): A dictionary of pre-defined rules for various languages.
-                Defaults to `RULE_FUNCTIONS`.
-
-        """
         self._rules = rules
 
     def get_lemma(self, token: str, lang: str) -> str | None:
-        """
-        Get Lemma using Rules Strategy
-
-        This method performs lemmatization by applying pre-defined rules for each language.
-        It checks if the language has pre-defined rules defined.
-        If rules are defined, it applies the corresponding rule on the token to get the lemma.
-        If a lemma is found, it is returned.
-        If no rules are defined for the language or no lemma is found, None is returned.
-
-        Args:
-            token (str): The input token to lemmatize.
-            lang (str): The language code for the token's language.
-
-        Returns:
-            str | None: The lemma for the token, or None if no lemma is found.
-
-        """
         rule_fn = self._rules.get(lang)
         return rule_fn(token) if rule_fn is not None else None

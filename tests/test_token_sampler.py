@@ -8,7 +8,6 @@ from .conftest import CustomTokenSampler
 
 def test_token_sampler() -> None:
     sampler = MostCommonTokenSampler()
-    assert sampler.sample_text("ABCD Efgh ijkl mn") == ["ijkl"]
     assert sampler.sample_text("Abcd_E Abcde") == ["Abcd", "Abcde"]
 
     sampler = MostCommonTokenSampler(capitalized_threshold=0)

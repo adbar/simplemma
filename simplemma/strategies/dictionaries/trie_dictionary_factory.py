@@ -1,3 +1,6 @@
+"""Trie-backed `DictionaryFactory`: lowest steady-state memory, needs the
+`marisa-trie` extra and a one-off cached build per language."""
+
 import logging
 from pathlib import Path
 from collections.abc import Iterator, Mapping

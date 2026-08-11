@@ -1,6 +1,7 @@
 """Tests for `simplemma.utils`."""
 
 import unicodedata
+from collections.abc import Iterable
 
 import pytest
 
@@ -62,6 +63,66 @@ def test_canon_langs_disjoint_from_raw_token_strategies() -> None:
     assert CANON_LANGS.isdisjoint(AFFIX_LANGS)
     assert CANON_LANGS.isdisjoint(RULE_FUNCTIONS)
     assert CANON_LANGS.isdisjoint(MORPHEME_LANGS)
+
+
+def test_per_language_tables_reference_supported_languages() -> None:
+    """A typo'd language code in a per-language config table fails silently --
+    the mechanism just never fires. Explicit register, not auto-discovery."""
+    from simplemma.casing import ALLCAPS_KEEP_LANGS, GATED_INITIAL_LOWERING_LANGS
+    from simplemma.sentences import _ABBREVS, _STARTERS, _TERMINATORS
+    from simplemma.strategies.affix_decomposition import AFFIX_LANGS, GREEDY_EXCLUDE
+    from simplemma.strategies.apostrophe_boundary import APOSTROPHE_BOUNDARY_LANGS
+    from simplemma.strategies.clitic_decomposition import CLITIC_LANGS, PROCLITIC_LANGS
+    from simplemma.strategies.defaultprefixes import DEFAULT_KNOWN_PREFIXES
+    from simplemma.strategies.defaultrules import RULE_FUNCTIONS
+    from simplemma.strategies.dictionaries.dictionary_factory import (
+        SUPPORTED_LANGUAGES,
+    )
+    from simplemma.strategies.fallback.to_lowercase import BETTER_LOWER
+    from simplemma.strategies.greedy_dictionary_lookup import MIN_LENGTH_OVERRIDES
+    from simplemma.strategies.morpheme_decomposition import MORPHEME_LANGS
+    from simplemma.utils import CANON_LANGS
+    from training.build_lang_config import BUILD_NORMALIZATION, JUNK_ENTRY_PREDICATES
+    from training.dictionary_builder import (
+        FRONTCODE_REVERSE_KEY_LANGS,
+        IDENTITY_SOFT_LANGS,
+        OVERRIDES_DIR,
+        PARADIGM_PRIOR_LANGS,
+        V2_FILL_LANGS,
+    )
+    from training.ud_conllu import DATASET_LANG_OVERRIDES, _GOLD_COMPOUND_SEPARATORS
+    from training.wikidata_lexemes import LANGUAGE_QIDS
+
+    tables: dict[str, Iterable[str]] = {
+        "ALLCAPS_KEEP_LANGS": ALLCAPS_KEEP_LANGS,
+        "GATED_INITIAL_LOWERING_LANGS": GATED_INITIAL_LOWERING_LANGS,
+        "_ABBREVS": _ABBREVS,
+        "_STARTERS": _STARTERS,
+        "_TERMINATORS": [k for k in _TERMINATORS if k is not None],
+        "AFFIX_LANGS": AFFIX_LANGS,
+        "GREEDY_EXCLUDE": GREEDY_EXCLUDE,
+        "APOSTROPHE_BOUNDARY_LANGS": APOSTROPHE_BOUNDARY_LANGS,
+        "CLITIC_LANGS": CLITIC_LANGS,
+        "PROCLITIC_LANGS": PROCLITIC_LANGS,
+        "DEFAULT_KNOWN_PREFIXES": DEFAULT_KNOWN_PREFIXES,
+        "RULE_FUNCTIONS": RULE_FUNCTIONS,
+        "BETTER_LOWER": BETTER_LOWER,
+        "MIN_LENGTH_OVERRIDES": MIN_LENGTH_OVERRIDES,
+        "MORPHEME_LANGS": MORPHEME_LANGS,
+        "CANON_LANGS": CANON_LANGS,
+        "BUILD_NORMALIZATION": BUILD_NORMALIZATION,
+        "JUNK_ENTRY_PREDICATES": JUNK_ENTRY_PREDICATES,
+        "FRONTCODE_REVERSE_KEY_LANGS": FRONTCODE_REVERSE_KEY_LANGS,
+        "IDENTITY_SOFT_LANGS": IDENTITY_SOFT_LANGS,
+        "PARADIGM_PRIOR_LANGS": PARADIGM_PRIOR_LANGS,
+        "V2_FILL_LANGS": V2_FILL_LANGS,
+        "LANGUAGE_QIDS": LANGUAGE_QIDS,
+        "_GOLD_COMPOUND_SEPARATORS": _GOLD_COMPOUND_SEPARATORS,
+        "DATASET_LANG_OVERRIDES values": DATASET_LANG_OVERRIDES.values(),
+        "overrides/*.tsv": [p.stem for p in OVERRIDES_DIR.glob("*.tsv")],
+    }
+    unknown = {name: set(t) - SUPPORTED_LANGUAGES for name, t in tables.items()}
+    assert {name: codes for name, codes in unknown.items() if codes} == {}
 
 
 def test_apostrophe_helpers() -> None:

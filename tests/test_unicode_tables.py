@@ -15,7 +15,7 @@ from simplemma.utils import (
     _GRAVE_TO_ACUTE,
     _HEBREW_POINTS,
 )
-from training.dictionary_builder import (
+from training.build_lang_config import (
     _HBS_CYR_TO_LAT,
     _HBS_PITCH_MARKS,
     BUILD_NORMALIZATION,
@@ -149,6 +149,9 @@ def test_mark_fold_table_generic_deletion_and_precomposed_carriers() -> None:
     assert "é".translate(table) == "é"  # kept: absent from the table
     assert "á".translate(table) == "a"  # folded: precomposed carrier
     assert "a".translate(table) == "a"  # unrelated letter: untouched
+    assert "ά".translate(table) == "ά"  # Greek carrier: outside default scripts
+    greek = _mark_fold_table(acute, scripts=("GREEK ",))
+    assert "ά".translate(greek) == "α"  # folded once its script is named
 
 
 def test_hbs_pitch_fold_protects_orthographic_letters() -> None:

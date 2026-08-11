@@ -33,7 +33,7 @@ jobs:
         python-version: '3.13'
     - uses: astral-sh/setup-uv@v6
     - run: uv sync --extra dev --extra marisa-trie
-    - run: uv run pytest --cov=./ --cov-report=xml
+    - run: uv run pytest -n0 --cov=./ --cov-report=xml
     - uses: codecov/codecov-action@v5
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -70,7 +70,7 @@ jobs:
     - run: uv sync --extra dev
     - if: ${{ matrix.env.MINIMAL == 'false'}}
       run: uv sync --extra dev --extra marisa-trie
-    - run: uv run pytest
+    - run: uv run pytest -n0
 
   # Single stable context for branch protection: require only `all-checks`, so
   # the matrix above can change freely without touching the protection rule.

@@ -1,6 +1,4 @@
-"""
-This file defines the `AffixDecompositionStrategy` class, which implements an affix decomposition lemmatization strategy in the Simplemma library.
-"""
+"""Affix decomposition lemmatization strategy."""
 
 from .dictionary_lookup import DictionaryLookupStrategy
 
@@ -59,13 +57,8 @@ MAXLEN = 100
 
 
 class AffixDecompositionStrategy(LemmatizationStrategy):
-    """
-    Lemmatization strategy that uses affix decomposition to find lemmas of tokens.
-
-    This strategy decomposes tokens into affixes and looks up their lemmas in a dictionary.
-    It first attempts to decompose the token using affix decomposition and then falls back
-    to suffix decomposition if affix decomposition fails.
-    """
+    """Affix decomposition: split a token into affix + complement and look up
+    the complement in the dictionary; falls back to suffix decomposition."""
 
     __slots__ = ["_greedy", "_dictionary_lookup"]
 
@@ -74,28 +67,10 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
         greedy: bool,
         dictionary_lookup: DictionaryLookupStrategy = DictionaryLookupStrategy(),
     ):
-        """
-        Initialize the Affix Decomposition Strategy.
-
-        Args:
-            greedy (bool): Flag indicating whether to use greedy decomposition.
-            dictionary_lookup (DictionaryLookupStrategy): The dictionary lookup strategy to use.
-                Defaults to `DictionaryLookupStrategy()`.
-        """
         self._greedy = greedy
         self._dictionary_lookup = dictionary_lookup
 
     def get_lemma(self, token: str, lang: str) -> str | None:
-        """
-        Get the lemma of a token using affix decomposition strategy.
-
-        Args:
-            token (str): The input token.
-            lang (str): The language code.
-
-        Returns:
-            str | None: The lemma of the token if found, or None otherwise.
-        """
         excluded = lang in GREEDY_EXCLUDE if self._greedy else lang not in AFFIX_LANGS
         if excluded or len(token) <= greedy_min_length(lang) or len(token) > MAXLEN:
             return None
@@ -113,18 +88,6 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
         max_affix_len: int = 0,
         min_complem_len: int = 0,
     ) -> str | None:
-        """
-        Perform affix decomposition on a token.
-
-        Args:
-            token (str): The input token.
-            lang (str): The language code.
-            max_affix_len (int): The maximum length of the affix.
-            min_complem_len (int): The minimum length of the complementary part.
-
-        Returns:
-            str | None: The lemma of the token if found, or None otherwise.
-        """
         # Left-to-right languages only. A single pass at the largest affix
         # length is equivalent to looping over smaller ones (first match wins).
         for count in range(1, len(token) - min_complem_len + 1):
@@ -153,18 +116,6 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
         lang: str,
         min_complem_len: int = 0,
     ) -> str | None:
-        """
-        Decomposes the token using suffix decomposition strategy.
-
-        Args:
-            token (str): The token to be decomposed.
-            lang (str): The language of the token.
-            min_complem_len (int, optional): The minimum length of the complementary part
-                to consider during decomposition. Defaults to 0.
-
-        Returns:
-            str | None: The decomposed token if decomposition is successful, None otherwise.
-        """
         for count in range(len(token) - min_complem_len, min_complem_len - 1, -1):
             suffix = self._dictionary_lookup.get_lemma(
                 token[-count:].capitalize(), lang

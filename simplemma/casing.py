@@ -21,7 +21,8 @@ class SupportsMembership(Protocol):
     """A lemmatization strategy exposing a raw dictionary-membership check (no
     case/apostrophe fallback), which the casing heuristics require."""
 
-    def is_dictionary_member(self, token: str, lang: str) -> bool: ...
+    def is_dictionary_member(self, token: str, lang: str) -> bool:
+        """Whether `token` is a literal dictionary key for `lang`."""
 
 
 # Sentence terminators only (narrower than the tokenizer's punctuation class).

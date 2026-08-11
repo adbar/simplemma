@@ -82,11 +82,11 @@ class DefaultStrategy(LemmatizationStrategy):
         self._apostrophe_search = ApostropheBoundaryStrategy(
             self._search_pipeline, self._dictionary_lookup
         )
-        greedy_dictionary_lookup = GreedyDictionaryLookupStrategy(dictionary_factory)
         self._affix_search = AffixDecompositionStrategy(greedy, self._dictionary_lookup)
         self._morpheme_search = MorphemeDecompositionStrategy(self._dictionary_lookup)
-
-        self._greedy_dictionary_lookup = greedy_dictionary_lookup if greedy else None
+        self._greedy_dictionary_lookup = (
+            GreedyDictionaryLookupStrategy(dictionary_factory) if greedy else None
+        )
 
     def get_lemma(self, token: str, lang: str) -> str | None:
         """

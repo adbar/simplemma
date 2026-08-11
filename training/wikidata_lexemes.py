@@ -58,7 +58,8 @@ LANGUAGE_QIDS = {
     # words): feeds training/lists/ml.txt, not fill/.
     "ml": "Q36236",
     # FILL candidates for shipped-but-weak languages (census 2026-07-17):
-    # feed training/fill/<lang>.tsv, gated by assess_wikidata_fill.py.
+    # feed training/fill/<lang>.tsv, gated by assess_wikidata_fill.py
+    # (gitignored local tooling under training/local/).
     "nn": "Q25164",
     "id": "Q9240",
     "se": "Q33947",

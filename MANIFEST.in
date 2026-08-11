@@ -1,5 +1,4 @@
 include CITATION.cff HISTORY.rst LICENSE README.md
-include licenses/
 include simplemma/py.typed
 graft simplemma/strategies/
 
@@ -11,7 +10,7 @@ graft tests/strategies/
 
 graft licenses/
 
-include training/*.py training/*.rst training/*.txt
+include training/*.py training/*.rst
 
 # recursive-include docs *.md
 # include requirements-*.txt

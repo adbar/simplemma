@@ -1,5 +1,5 @@
 """
-This file defines the `LemmatizationStrategy` protocl class, which all lemmatization strategies should extend to be usable by the Simplemma library.
+This file defines the `LemmatizationStrategy` protocol class, which all lemmatization strategies should extend to be usable by the Simplemma library.
 """
 
 from abc import abstractmethod

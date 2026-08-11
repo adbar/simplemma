@@ -5,12 +5,13 @@ import pytest
 
 from simplemma.strategies import DefaultDictionaryFactory, StreamDictionaryFactory
 from simplemma.strategies.dictionaries import dictionary_factory, frontcode
+from training.frontcode_encode import _encode as _fc_encode
 from simplemma.strategies.dictionaries.stream_dictionary_factory import (
     _BLOCK_SIZE,
     StreamMap,
 )
 
-# sw is reverse-coded (suffix morphology); de/en are not.
+# sw is reverse-coded (prefixal morphology); de/en are not.
 LANGS = ["de", "en", "sw"]
 
 # Cache per lang: both builders are O(n) full-stream passes.
@@ -106,7 +107,7 @@ def test_iter_and_len_parity(lang: str) -> None:
     stream = _stream(lang)
 
     assert len(stream) == len(reference)
-    assert sorted(stream) == sorted(reference)
+    assert set(stream) == set(reference)
 
 
 @pytest.mark.parametrize(
@@ -120,7 +121,7 @@ def test_synthetic_block_boundaries(
         f"word{i:06d}".encode(): f"lemma{i:06d}".encode() for i in range(count)
     }
     stream = _streammap_from_bytes(
-        frontcode.encode(reference, reverse), tmp_path, monkeypatch
+        _fc_encode(reference, reverse), tmp_path, monkeypatch
     )
 
     decoded = {k.decode(): v.decode() for k, v in reference.items()}
@@ -138,9 +139,9 @@ def test_truncated_stream_raises(tmp_path, monkeypatch: pytest.MonkeyPatch) -> N
         f"word{i:04d}".encode(): f"lemma{i:04d}".encode()
         for i in range(2 * _BLOCK_SIZE)
     }
-    raw = lzma.decompress(frontcode.encode(reference))
-    _, _, pos = frontcode.read_header(raw)
-    starts = [start for start, _, _ in frontcode.iter_records(raw, pos)]
+    raw = lzma.decompress(_fc_encode(reference))
+    _, _, pos = frontcode._read_header(raw)
+    starts = [start for start, _, _ in frontcode._iter_records(raw, pos)]
     truncated = raw[: starts[_BLOCK_SIZE]]
 
     with pytest.raises(ValueError, match="truncated or corrupt"):
@@ -149,7 +150,7 @@ def test_truncated_stream_raises(tmp_path, monkeypatch: pytest.MonkeyPatch) -> N
 
 def test_trailing_garbage_raises(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
     reference = {b"word0000": b"lemma0000", b"word0001": b"lemma0001"}
-    raw = lzma.decompress(frontcode.encode(reference))
+    raw = lzma.decompress(_fc_encode(reference))
     extra_record = bytes([0, 4]) + b"zzzz" + bytes([254])
     padded = raw + extra_record
 
@@ -161,7 +162,7 @@ def test_synthetic_literal_value(tmp_path, monkeypatch: pytest.MonkeyPatch) -> N
     # forces the rare _LITERAL_VALUE branch (no shipped key is this long)
     key = "a" * 300
     reference = {key.encode(): b"lemma"}
-    stream = _streammap_from_bytes(frontcode.encode(reference), tmp_path, monkeypatch)
+    stream = _streammap_from_bytes(_fc_encode(reference), tmp_path, monkeypatch)
 
     assert len(stream) == 1
     assert list(stream) == [key]

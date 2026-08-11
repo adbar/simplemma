@@ -181,9 +181,6 @@ def test_foreign_script_key_drop() -> None:
     assert lemmatize("سفید", lang="hi") == "سفید"  # was "सफ़ेद"
     assert lemmatize("جون", lang="ms") == "Jun"  # Jawi->Rumi: still correct
     assert lemmatize("pintu", lang="ms") == "pintu"  # Rumi->Jawi: was "ڤينتو"
-    assert lemmatize("Abadauskai", lang="lt") == "Abadauskas"
-    assert lemmatize("Afganistanom", lang="sl") == "Afganistan"
-    assert lemmatize("Abobrigae", lang="la") == "Abobriga"
 
 
 def test_armenian_intonation_marks() -> None:

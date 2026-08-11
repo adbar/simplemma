@@ -14,7 +14,11 @@ Usage: uv run python training/affixbuilder.py [lang ...]  (default: all)
 import random
 from typing import cast
 
-from simplemma.strategies.affix_decomposition import AffixDecompositionStrategy
+# imported, not mirrored: the harness must track the runtime's remainder floor
+from simplemma.strategies.affix_decomposition import (
+    MINCOMPLEN,
+    AffixDecompositionStrategy,
+)
 from simplemma.strategies.dictionaries.dictionary_factory import (
     SUPPORTED_LANGUAGES,
     DEFAULT_DICTIONARY_FACTORY,
@@ -28,7 +32,6 @@ Pairs = list[tuple[str, str]]
 
 SAMPLE_DEFAULT = 4000
 SEED_DEFAULT = 7
-MINCOMPLEN_DEFAULT = 4
 
 FACTORY = DEFAULT_DICTIONARY_FACTORY  # shared process-wide cache
 _DICT_LOOKUP = DictionaryLookupStrategy(FACTORY)
@@ -91,8 +94,8 @@ def measure(
     fired = gain = harm = changed = changed_ok = 0
     for f, lemma in pairs:
         p = _STRAT._affix_decomposition(
-            f, lang, max_affix_len, MINCOMPLEN_DEFAULT
-        ) or _STRAT._suffix_decomposition(f, lang, MINCOMPLEN_DEFAULT)
+            f, lang, max_affix_len, MINCOMPLEN
+        ) or _STRAT._suffix_decomposition(f, lang, MINCOMPLEN)
         if p is None:
             continue
         fired += 1

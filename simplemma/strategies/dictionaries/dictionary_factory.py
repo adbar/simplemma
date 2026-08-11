@@ -45,7 +45,7 @@ def _read_decompressed(langcode: str) -> bytes:
 
 def _load_dictionary_from_disk(langcode: str) -> dict[bytes, bytes]:
     """Load the shipped `data/{langcode}.plzma` as a bytes->bytes dict."""
-    return frontcode.decode_stream(_read_decompressed(langcode))
+    return frontcode._decode_stream(_read_decompressed(langcode))
 
 
 class DictionaryFactory(Protocol):

@@ -65,7 +65,7 @@ def test_main_downloads_extracts_and_writes_splits(tmp_path, monkeypatch):
     monkeypatch.setattr(download_eval_data, "CLEAN_DATA_FOLDER", clean_folder)
     monkeypatch.setattr(download_eval_data, "DATA_FOLDER", data_folder)
     monkeypatch.setattr(download_eval_data, "DATA_FILE", data_folder / "ud.tgz")
-    monkeypatch.setattr(download_eval_data, "SPLITS_FOLDER", splits_folder)
+    monkeypatch.setattr(download_eval_data, "UD_SPLITS", splits_folder)
     monkeypatch.setattr(download_eval_data, "VERSION_FILE", version_file)
 
     train_content = b"# a German treebank line\nHunde\tHund\n"
@@ -109,7 +109,7 @@ def test_main_raises_on_checksum_mismatch(tmp_path, monkeypatch):
     monkeypatch.setattr(download_eval_data, "CLEAN_DATA_FOLDER", clean_folder)
     monkeypatch.setattr(download_eval_data, "DATA_FOLDER", data_folder)
     monkeypatch.setattr(download_eval_data, "DATA_FILE", data_folder / "ud.tgz")
-    monkeypatch.setattr(download_eval_data, "SPLITS_FOLDER", clean_folder / "splits")
+    monkeypatch.setattr(download_eval_data, "UD_SPLITS", clean_folder / "splits")
     monkeypatch.setattr(download_eval_data, "VERSION_FILE", clean_folder / "UD_VERSION")
 
     monkeypatch.setattr(download_eval_data, "resolve_item_uuid", lambda handle: "uuid")

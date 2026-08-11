@@ -10,6 +10,9 @@ from conllu import parse_incr
 
 from simplemma.utils import canonicalize_token
 
+# The splits location every evaluator/miner reads; download_eval_data.py writes it.
+UD_SPLITS = Path(__file__).parent / "data" / "UD" / "splits"
+
 # UD's file-prefix isn't always simplemma's ISO code -- both Norwegian sets
 # share "no", North Sami is "sme" -- so key by full dataset name here.
 DATASET_LANG_OVERRIDES = {

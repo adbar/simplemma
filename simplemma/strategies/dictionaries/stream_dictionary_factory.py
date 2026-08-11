@@ -30,14 +30,14 @@ class StreamMap(DecodedStrMapping):
 
     def __init__(self, lang: str) -> None:
         self._data = _read_decompressed(lang)
-        self._rev, self._count, self._pos = frontcode.read_header(self._data)
+        self._rev, self._count, self._pos = frontcode._read_header(self._data)
 
         firsts: list[bytes] = []
         blocks: list[tuple[int, bytes, bytes]] = []
         prev_key, prev_value = b"", b""
         index = -1
         for index, (record_start, stored_key, stored_value) in enumerate(
-            frontcode.iter_records(self._data, self._pos)
+            frontcode._iter_records(self._data, self._pos)
         ):
             if index % _BLOCK_SIZE == 0:
                 firsts.append(stored_key)
@@ -59,7 +59,7 @@ class StreamMap(DecodedStrMapping):
             return None
 
         # sorted keys bound the scan: the next block's first key exceeds target
-        for _, stored_key, stored_value in frontcode.iter_records(
+        for _, stored_key, stored_value in frontcode._iter_records(
             self._data, *self._blocks[block]
         ):
             if stored_key == target:
@@ -70,7 +70,7 @@ class StreamMap(DecodedStrMapping):
         return None
 
     def __iter__(self) -> Iterator[str]:
-        for _, stored_key, _ in frontcode.iter_records(self._data, self._pos):
+        for _, stored_key, _ in frontcode._iter_records(self._data, self._pos):
             key = stored_key[::-1] if self._rev else stored_key
             yield key.decode()
 

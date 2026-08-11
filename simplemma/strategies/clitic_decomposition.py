@@ -133,11 +133,11 @@ PROCLITIC_LANGS: dict[str, tuple[str, ...]] = {
     ),
     "ca": ("l'", "d'", "s'", "m'", "n'", "t'"),
 }
+# Longest first, so a short proclitic can't shadow a longer one (as above).
 PROCLITIC_LANGS = {
-    lang: tuple(sorted(clitics, key=len, reverse=True))
-    for lang, clitics in PROCLITIC_LANGS.items()
+    lang: tuple(sorted(proclitics, key=len, reverse=True))
+    for lang, proclitics in PROCLITIC_LANGS.items()
 }
-
 MIN_STEM_LEN = 4  # mirrors affix_decomposition.MINCOMPLEN
 # Much lower than the enclitic floor: an apostrophe + 1-3 trailing letters is
 # almost always elision, so the short-stem false-fire risk doesn't apply.
@@ -182,26 +182,9 @@ class CliticDecompositionStrategy(LemmatizationStrategy):
         self,
         dictionary_lookup: DictionaryLookupStrategy = DictionaryLookupStrategy(),
     ):
-        """
-        Initialize the Clitic Decomposition Strategy.
-
-        Args:
-            dictionary_lookup (DictionaryLookupStrategy): The dictionary lookup strategy to use.
-                Defaults to `DictionaryLookupStrategy()`.
-        """
         self._dictionary_lookup = dictionary_lookup
 
     def get_lemma(self, token: str, lang: str) -> str | None:
-        """
-        Get the lemma of a token by stripping a clitic chain, front or back.
-
-        Args:
-            token (str): The input token.
-            lang (str): The language code.
-
-        Returns:
-            str | None: The lemma of the token if found, or None otherwise.
-        """
         # fold before matching, like the other dict-matching strategies
         token = canonicalize_token(token, lang)
         return self._enclitic_lemma(token, lang) or self._proclitic_lemma(token, lang)

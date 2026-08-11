@@ -19,26 +19,24 @@ import logging
 import re
 import unicodedata
 from collections import Counter, defaultdict
-from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from collections.abc import Mapping
 from functools import lru_cache
 from pathlib import Path
 
 from simplemma.strategies.defaultrules import RULE_FUNCTIONS
 from simplemma.tokenizer import simple_tokenizer
-from simplemma.strategies.dictionaries import dictionary_factory, frontcode
+from simplemma.strategies.dictionaries import dictionary_factory
+from training.frontcode_encode import _encode as _frontcode_encode
 from simplemma.strategies.dictionaries.dictionary_factory import (
     SUPPORTED_LANGUAGES,
     _load_dictionary_from_disk,
 )
 from simplemma.utils import (
-    _ARABIC_MARKS,  # private, but this is the reviewed ar/fa tashkeel table
-    _FOLDED_APOSTROPHES,  # private: utils owns the apostrophe glyph set
-    _STRAIGHT_APOSTROPHE,
     canonicalize_token,
     levenshtein_dist,
     normalize_token,
 )
+from training.build_lang_config import BUILD_NORMALIZATION, JUNK_ENTRY_PREDICATES
 from training.clean_wordlist import canonicalize, check_field, read_pairs
 
 # sw inflection is prefixal (forms share an ending, not a start), so
@@ -50,8 +48,9 @@ FRONTCODE_REVERSE_KEY_LANGS = {"sw"}
 OVERRIDES_DIR = Path(__file__).parent / "overrides"
 FILL_DIR = Path(__file__).parent / "fill"
 
-# Wikidata fill allowlist (gated by assess_wikidata_fill.py; fill/ is
-# gitignored, so a stale local TSV must fail loud). Gate-rejected:
+# Wikidata fill allowlist (gated by assess_wikidata_fill.py, gitignored
+# local tooling under training/local/; fill/ is gitignored too, so a stale
+# local TSV must fail loud). Gate-rejected:
 # fr/it/tr/id/fa/se; nb has no UD treebank.
 V2_FILL_LANGS = frozenset(
     {
@@ -78,16 +77,17 @@ V2_FILL_LANGS = frozenset(
 
 LOGGER = logging.getLogger(__name__)
 
-# Punctuation a tokenizer never yields inside one token: comma/colon/star/
-# slash/plus/underscore anywhere, or a leading/trailing hyphen (affix
-# fragment). Hebrew maqaf (U+05BE) is Wiktionary's hyphen for bound-morpheme
-# headwords (ב־), so it counts as a hyphen here.
+# Fields dropped from dictionary entries: punctuation the tokenizer splits on
+# (comma/colon/slash/plus), an edge hyphen (affix fragment), and star/
+# underscore (tokenizer-reachable word-body chars, but Wiktionary artifacts in
+# wordlists; `_`-joined tokens are served by hyphen removal). Hebrew maqaf
+# (U+05BE) is Wiktionary's hyphen for bound-morpheme headwords (ב־).
 FIELD_PUNCT = re.compile(r"[,:*/\+_]|.+[-־]$|^[-־].+")
 
 
 def _is_single_token(text: str) -> bool:
-    """True if a tokenizer could yield `text` as ONE token: no space and no
-    FIELD_PUNCT. The orthogonal 'not mojibake/control' check is check_field;
+    """True if `text` is acceptable as ONE dictionary token: no space and no
+    FIELD_PUNCT (mostly tokenizer reachability, partly policy -- see above). The orthogonal 'not mojibake/control' check is check_field;
     the two callers (_collect_candidates on raw columns, _reachable_key via
     _valid_key) each pair this with it."""
     return " " not in text and not FIELD_PUNCT.search(text)
@@ -192,14 +192,18 @@ def _resolve_candidates(
     # IDENTITY_SOFT_LANGS and for lemmas attested only by their own line
     # (forcing those measured -1.3..-2.6pp).
     soft = langcode in IDENTITY_SOFT_LANGS
-    strong = {
-        lemma
-        for form, counts in candidates.items()
-        for lemma in counts
-        if lemma != form
-    }
+    strong = (
+        set()
+        if soft
+        else {
+            lemma
+            for form, counts in candidates.items()
+            for lemma in counts
+            if lemma != form
+        }
+    )
     for word in lemmas:
-        if word in strong and not soft:
+        if word in strong:
             mydict[word] = word
         else:
             mydict.setdefault(word, word)
@@ -258,11 +262,11 @@ def _layer_entries(
 
 
 def _apply_layers(
-    base: dict[str, str], langcode: str, overrides_dir: Path | None = None
+    base: dict[str, str], langcode: str, overrides: dict[str, str]
 ) -> dict[str, str]:
     """Merge the optional per-language source layers into the base dict.
     Precedence: overrides > base > fill; fill never displaces a base entry.
-    `overrides_dir` overrides OVERRIDES_DIR (candidate gating, tests)."""
+    `overrides` is the parsed override layer (_layer_entries), possibly empty."""
     merged = dict(base)
     fill_path = FILL_DIR / f"{langcode}.tsv"
     if fill_path.exists():
@@ -278,9 +282,8 @@ def _apply_layers(
         for form, lemma in _clean_base(fill_entries).items():
             merged.setdefault(form, lemma)
         LOGGER.info("%s: fill layer applied -> %s entries", langcode, len(merged))
-    override_path = (overrides_dir or OVERRIDES_DIR) / f"{langcode}.tsv"
-    if override_path.exists():
-        merged.update(_layer_entries(override_path, langcode))
+    if overrides:
+        merged.update(overrides)
         LOGGER.info("%s: override layer applied -> %s entries", langcode, len(merged))
     return merged
 
@@ -387,94 +390,11 @@ def _script_classes(word: str) -> frozenset[str]:
     return frozenset(s for s in map(_char_script, word) if s is not None)
 
 
-def _foreign_script_key(
-    ks: frozenset[str], vs: frozenset[str], allowed: frozenset[str]
-) -> bool:
-    """Key uses NO script in `allowed` while the value uses one -- a
-    transliteration/IPA row leaked in as a word form (grc Beta-code
-    "hubrisin" -> "ὑβρίς"). Mixed-script keys never flag; swap the arguments
-    for the value direction (gloss-as-lemma, grc κάλαμος -> "plants").
-    `ks`/`vs` are _script_classes, computed once in _drop_junk_keys."""
-    return bool(ks) and bool(vs) and not (ks & allowed) and bool(vs & allowed)
-
-
-def _foreign_script_entry(
-    ks: frozenset[str], vs: frozenset[str], allowed: frozenset[str]
-) -> bool:
-    """Broader: both sides scripted, key has no script in `allowed` --
-    the union of _foreign_script_key with the wholly-foreign shape
-    (planted selfmaps like grc "plants" -> "plants")."""
-    return bool(ks) and bool(vs) and not (ks & allowed)
-
-
-# Script sets the predicates test against, hoisted to module level: a
-# lambda-local frozenset would be rebuilt per entry across 600k+ rows.
-_CYRILLIC_SCRIPTS = frozenset({"CYRILLIC"})
-_GREEK_SCRIPTS = frozenset({"GREEK", "CYPRIOT", "LINEAR"})
-_ARABIC_SCRIPTS = frozenset({"ARABIC"})
-_DEVANAGARI_SCRIPTS = frozenset({"DEVANAGARI"})
-_HEBREW_SCRIPTS = frozenset({"HEBREW"})
-_LATIN_PLUS_CYRILLIC = frozenset({"LATIN", "CYRILLIC"})
-
-# Per-language (key, key_scripts, value_scripts) -> drop predicates. Each
-# entry is a verified, language-specific defect -- there is no universal
-# "foreign script" or "digit-leading" rule (a digit-leading token is a real
-# word in many languages: da "0-1-nederlaget", de "1-Cent-Münze", en
-# "1000000", ga "1000ú", hu "10-es", sv "10-krona", all verified present in
-# their shipped dicts; a Latin-script key is legitimate in most languages
-# too).
-_JUNK_ENTRY_PREDICATES: dict[
-    str, Callable[[str, frozenset[str], frozenset[str]], bool]
-] = {
-    # uk: digit-leading paradigm-class codes ("10a") -- all verified junk;
-    # BGN transliteration rows ("zanos" -> "занос") and wholly-foreign
-    # romanized identity rows ("vony", 11 shipped), both via the broad
-    # entry check; every Latin+Cyrillic mixed key (homoglyph poisoning,
-    # 15,828 fill entries -- broader than the evidence, IT-фахівець would
-    # drop too).
-    "uk": lambda k, ks, vs: (
-        bool(re.match(r"^[\d¹²³]", k))
-        or _foreign_script_entry(ks, vs, _CYRILLIC_SCRIPTS)
-        or _LATIN_PLUS_CYRILLIC <= ks
-    ),
-    # ar: IPA transcription rows (98,864 shipped entries) + wholly-foreign
-    # English junk and Judeo-Arabic spellings (95, polluted langdetect vs he).
-    "ar": lambda k, ks, vs: _foreign_script_entry(ks, vs, _ARABIC_SCRIPTS),
-    # grc: Beta-code romanization keys and the selfmaps they seed
-    # (CYPRIOT/LINEAR stay allowed, genuine early-Greek attestations); the
-    # swapped-argument direction catches English glosses (κάλαμος -> "plants").
-    "grc": lambda k, ks, vs: (
-        _foreign_script_entry(ks, vs, _GREEK_SCRIPTS)
-        or _foreign_script_key(vs, ks, _GREEK_SCRIPTS)
-    ),
-    # fa: romanized rows ("and" -> بودن), template artifacts, English junk
-    # -- 4,938 shipped entries (9.4%, 2026-08).
-    "fa": lambda k, ks, vs: _foreign_script_entry(ks, vs, _ARABIC_SCRIPTS),
-    # bg: BGN transliteration rows ("rádost" -> "радост"). The broad entry
-    # check NOT used: its extra hits are US/DM abbreviations, legitimate in
-    # bg text.
-    "bg": lambda k, ks, vs: _foreign_script_key(ks, vs, _CYRILLIC_SCRIPTS),
-    # hi: Urdu-script rows from the shared Hindi/Urdu extraction -- real
-    # Hindi text is Devanagari. PLUS wholly-foreign ("sweets").
-    "hi": lambda k, ks, vs: _foreign_script_entry(ks, vs, _DEVANAGARI_SCRIPTS),
-    # ms: biscriptal, Jawi keys KEPT (3,301 shipped); a Latin key must never
-    # resolve to a Jawi value (446 did).
-    "ms": lambda k, ks, vs: _foreign_script_key(ks, vs, _ARABIC_SCRIPTS),
-    # tl: Baybayin keys via alt_of, no modern running-text use (3,909
-    # shipped). Key-side check: 5 entries carry Baybayin VALUES too.
-    "tl": lambda k, ks, vs: "TAGALOG" in ks,
-    # he: Latin keys -> Hebrew values (transliterations). The broad entry
-    # check NOT used: its extra hits are Phoenician attestations, kept like
-    # grc's ancient scripts.
-    "he": lambda k, ks, vs: _foreign_script_key(ks, vs, _HEBREW_SCRIPTS),
-}
-
-
 def _drop_junk_keys(mydict: dict[str, str], langcode: str) -> dict[str, str]:
-    """Drop entries matching langcode's _JUNK_ENTRY_PREDICATES entry; a
+    """Drop entries matching langcode's JUNK_ENTRY_PREDICATES entry; a
     no-op for any other language. Each side's script set is computed once
     here and handed to the predicate."""
-    predicate = _JUNK_ENTRY_PREDICATES.get(langcode)
+    predicate = JUNK_ENTRY_PREDICATES.get(langcode)
     if predicate is None:
         return mydict
     out = {
@@ -487,178 +407,6 @@ def _drop_junk_keys(mydict: dict[str, str], langcode: str) -> dict[str, str]:
             "%s: junk filter dropped %d entries", langcode, len(mydict) - len(out)
         )
     return out
-
-
-# fa tashkeel/tatweel deletion (was 23.8% of keys) + Arabic-script ي/ك ->
-# standard Persian ی/ک (was 41% of keys, 23% of values).
-_FA_NORMALIZE: dict[int, int | None] = {
-    **_ARABIC_MARKS,
-    ord("ي"): ord("ی"),
-    ord("ك"): ord("ک"),
-}
-
-
-def _mark_fold_table(marks: frozenset[int], keep: str = "") -> dict[int, str | None]:
-    """Deletion of `marks` + every precomposed Latin/Cyrillic letter carrying
-    one, generated from unicodedata (hand-typed tables shipped wrong twice).
-    `keep` protects letters whose mark is orthographic, not pitch/length
-    marking (hbs/sl ć)."""
-    table: dict[int, str | None] = {cp: None for cp in marks}
-    for cp in (*range(0x00C0, 0x0250), *range(0x0400, 0x0500), *range(0x1E00, 0x1F00)):
-        ch = chr(cp)
-        if ch in keep:
-            continue
-        decomposed = unicodedata.normalize("NFD", ch)
-        if len(decomposed) < 2 or not marks & set(map(ord, decomposed)):
-            continue
-        table[cp] = unicodedata.normalize(
-            "NFC", "".join(c for c in decomposed if ord(c) not in marks)
-        )
-    return table
-
-
-# hbs pitch (grave/acute) + length (macron/double-grave/inverted-breve, rare
-# circumflex) marking: a Wiktionary headword convention on 13.3% of shipped
-# keys, never typed in real text (0 marked tokens in 297k UD gold). NOT
-# breve U+0306 (2 foreign-loan keys, not a BCS convention). keep=: ć/ś/ź are
-# real letters (c/s/z-acute), not pitch marks.
-_HBS_PITCH_MARKS = frozenset(map(ord, "̀́̄̏̑̂"))
-_HBS_PITCH_FOLD = _mark_fold_table(_HBS_PITCH_MARKS, keep="ćĆśŚźŹ")
-
-# sl tonemic marking uses the identical mark set and the identical ć-trap
-# (BCS proper nouns in sl text carry ć): reuse the table object, not a copy.
-_SL_TONEME_FOLD = _HBS_PITCH_FOLD
-
-# bg stress = combining acute only -- grave stays: ѝ (i-grave, "her") and its
-# family are ORTHOGRAPHIC Bulgarian, not stress marking (unlike uk below).
-# keep=: ѓ/ќ are Macedonian letters (acute-based), guarded though 0 in dict.
-_BG_STRESS_FOLD = _mark_fold_table(frozenset({0x0301}), keep="ѓЃќЌ")
-
-# uk stress = acute + rare grave; neither is orthographic in Ukrainian (no
-# real ѐ/ѝ-style letters in the shipped dict -- verified, not assumed).
-# keep=: ѓ/ќ guarded like bg (0 in dict). NOT ѐ/ѝ: real pitch-fold targets.
-_UK_STRESS_FOLD = _mark_fold_table(frozenset({0x0300, 0x0301}), keep="ѓЃќЌ")
-
-# lt pitch accent: grave/acute/tilde marking + a redundant dotted-i encoding
-# (U+0307) that rides accented i. ė/Ė are real Lithuanian letters (also
-# built from e+U+0307) and must be kept.
-_LT_PITCH_FOLD = _mark_fold_table(
-    frozenset({0x0300, 0x0301, 0x0303, 0x0307}), keep="ėĖ"
-)
-
-# la pedagogical vowel length (the grc precedent, applied build-side instead
-# of as a runtime canon fold since real Latin text never marks length).
-_LA_LENGTH_FOLD = _mark_fold_table(frozenset({0x0304, 0x0306}))
-
-# grc/el elision: strip so the tokenizer's bare stem aliases to the value.
-# Not ca/fr/it, where the elided form is a single letter (apostrophe_boundary
-# handles those instead).
-_ELISION_GLYPHS = (_STRAIGHT_APOSTROPHE, *_FOLDED_APOSTROPHES, "᾽")
-_ELISION_FOLD = str.maketrans("", "", "".join(_ELISION_GLYPHS))
-
-# he geresh/gershayim -> the ASCII quotes real text and UD gold use
-_HE_QUOTE_FOLD = str.maketrans("״׳", "\"'")
-
-# Serbian Cyrillic -> Latin is 1:1 per letter (the reverse is not: lj/nj/dž
-# digraphs are ambiguous), so this direction is deterministically safe.
-_HBS_CYR_LETTERS = "абвгдђежзијклљмнњопрстћуфхцчџш"
-_HBS_LAT_LETTERS = (
-    "a b v g d đ e ž z i j k l lj m n nj o p r s t ć u f h c č dž š".split()
-)
-_HBS_CYR_TO_LAT: dict[int, str] = {
-    **{ord(c): latin for c, latin in zip(_HBS_CYR_LETTERS, _HBS_LAT_LETTERS)},
-    **{
-        ord(c.upper()): latin.capitalize()
-        for c, latin in zip(_HBS_CYR_LETTERS, _HBS_LAT_LETTERS)
-    },
-}
-
-
-@dataclass(frozen=True)
-class BuildNormalization:
-    """A language's build-time-only normalization (unlike canonicalize_token's
-    symmetric fold in simplemma.utils, applied equally to build-time keys and
-    runtime queries). key_alias adds a folded key twin, value unchanged, an
-    existing exact key always wins. value_fold rewrites values in place, keys
-    untouched, so it can never create a collision. value_script_fix
-    transliterates a value whose script disagrees with its (unmarked) key --
-    only ever narrows a value's script, never touches keys. A language
-    needing both value_fold and key_alias for the same fold (e.g. fa)
-    references ONE table object in both fields, so the mechanisms cannot
-    drift apart on what "normalization" means -- as two hand-synced copies
-    once did. Applied in this field order by `_apply_build_normalization`.
-
-    drop_folded_keys additionally REPLACES a folded key instead of adding a
-    twin: safe only when the UNFOLDED spelling is never typed in real text
-    (verified per language, e.g. fa vocalization, hbs/bg/uk/lt/sl/la
-    pitch/stress/length marks) -- NOT for a language where both spellings
-    are genuinely attested (ar hamza-seat variance, ru's real ё usage), or
-    the real spelling becomes unreachable. Cuts shipped size 16-49% (marked
-    keys front-code poorly against their plain twin -- a mid-word combining
-    mark breaks the shared byte prefix)."""
-
-    key_alias: Mapping[int, int | str | None] | None = None
-    value_fold: Mapping[int, int | str | None] | None = None
-    value_script_fix: Mapping[int, str] | None = None
-    drop_folded_keys: bool = False
-
-
-BUILD_NORMALIZATION: dict[str, BuildNormalization] = {
-    # ar hamza-seat/maqsura spelling variance. +0.8-1.2pp ar.
-    "ar": BuildNormalization(key_alias=str.maketrans("أإآٱى", "ااااي")),
-    # ru text routinely writes е for ё while lemmas keep ё (SynTagRus gold:
-    # 85 ё-forms vs 234 ё-lemmas) -- the alias bridges е-spelled input to the
-    # ё-spelled entry. Key alias ONLY: a symmetric or value fold would merge
-    # real pairs (все/всё) and treebanks contradict each other on lemma
-    # spelling (GSD gold is е-spelled, SynTagRus ё-spelled). Positive on all
-    # 5 UD treebanks, up to +0.8pp type (poetry).
-    "ru": BuildNormalization(key_alias=str.maketrans("ёЁ", "еЕ")),
-    # queries never need folding here -- real Persian text is never
-    # vocalized or Arabic-spelled, and a query-side fold (a _CANON_TABLES
-    # entry) risks merging distinct keys for zero measured benefit.
-    # drop_folded_keys NOT set, unlike the mark-fold langs below: the
-    # assumption that fa's vocalized spelling is NEVER typed does NOT hold --
-    # measured drop-gate FAIL on fa_perdt (token -0.0012, type -0.0002), so
-    # some real fa text does exercise the vocalized key directly. Keep both.
-    "fa": BuildNormalization(key_alias=_FA_NORMALIZE, value_fold=_FA_NORMALIZE),
-    # dictionary-only marks (fa-shaped: build-side fold suffices, 26.4k of
-    # 89.9k marked keys had no plain twin at all) + hbs is dual-script but a
-    # LATIN key must never carry a CYRILLIC value (738 shipped entries did,
-    # e.g. Milorad -> Милорад -- wrong for any monoscript text).
-    # drop_folded_keys: the marked spelling is never typed in real text (0
-    # marked tokens in 297k UD gold) -- safe to replace, not alias (~49% smaller).
-    "hbs": BuildNormalization(
-        key_alias=_HBS_PITCH_FOLD,
-        value_fold=_HBS_PITCH_FOLD,
-        value_script_fix=_HBS_CYR_TO_LAT,
-        drop_folded_keys=True,
-    ),
-    # same shape as hbs, dictionary-only marks: bg 55.6% of keys stress-
-    # marked, uk 26.4%, lt 7.4%, sl tonemic (hbs's own table), la 13.3%
-    # pedagogical length -- none typed in real text, all measured gate-PASS
-    # on every available treebank (12/12) before shipping. drop_folded_keys
-    # for the same reason as fa/hbs above: cuts shipped size 16-35%.
-    "bg": BuildNormalization(
-        key_alias=_BG_STRESS_FOLD, value_fold=_BG_STRESS_FOLD, drop_folded_keys=True
-    ),
-    "uk": BuildNormalization(
-        key_alias=_UK_STRESS_FOLD, value_fold=_UK_STRESS_FOLD, drop_folded_keys=True
-    ),
-    "lt": BuildNormalization(
-        key_alias=_LT_PITCH_FOLD, value_fold=_LT_PITCH_FOLD, drop_folded_keys=True
-    ),
-    "sl": BuildNormalization(
-        key_alias=_SL_TONEME_FOLD, value_fold=_SL_TONEME_FOLD, drop_folded_keys=True
-    ),
-    "la": BuildNormalization(
-        key_alias=_LA_LENGTH_FOLD, value_fold=_LA_LENGTH_FOLD, drop_folded_keys=True
-    ),
-    # elided headwords (Δί', ἀλλ'): the tokenizer yields the bare stem
-    "grc": BuildNormalization(key_alias=_ELISION_FOLD),
-    "el": BuildNormalization(key_alias=_ELISION_FOLD),
-    # he acronyms are spelled with geresh/gershayim or ASCII quotes; fold both
-    "he": BuildNormalization(key_alias=_HE_QUOTE_FOLD, value_fold=_HE_QUOTE_FOLD),
-}
 
 
 def _fold_values(
@@ -800,7 +548,11 @@ def _compose_from_base(
 ) -> dict[str, str]:
     """The post-base half of the pipeline: layers, scrub, normalization,
     selfmaps, junk filter."""
-    mydict = _apply_layers(base, langcode, overrides_dir)
+    override_path = (overrides_dir or OVERRIDES_DIR) / f"{langcode}.tsv"
+    overrides = (
+        _layer_entries(override_path, langcode) if override_path.exists() else {}
+    )
+    mydict = _apply_layers(base, langcode, overrides)
     mydict = _scrub(mydict)
     mydict = _apply_build_normalization(mydict, langcode)
     mydict = _ensure_value_selfmaps(mydict)
@@ -808,29 +560,25 @@ def _compose_from_base(
     # filtered too (needs identity-aware predicates, _foreign_script_entry).
     kept = _drop_junk_keys(mydict, langcode)
     if len(kept) < len(mydict):
-        override_path = (overrides_dir or OVERRIDES_DIR) / f"{langcode}.tsv"
-        if override_path.exists():
-            # Reviewed overrides outrank the junk predicates (bg "II" ->
-            # "втори" is deliberate); frontcode sorts, so re-adding is stable.
-            dropped = mydict.keys() - kept.keys()
-            casualties = _layer_entries(override_path, langcode).keys() & dropped
-            for key in casualties:
-                kept[key] = mydict[key]
-            if casualties:
-                LOGGER.info(
-                    "%s: restored %d reviewed override entries the junk "
-                    "filter had dropped: %s",
-                    langcode,
-                    len(casualties),
-                    sorted(casualties)[:5],
-                )
+        # Reviewed overrides outrank the junk predicates (bg "II" ->
+        # "втори" is deliberate); frontcode sorts, so re-adding is stable.
+        casualties = overrides.keys() & (mydict.keys() - kept.keys())
+        for key in casualties:
+            kept[key] = mydict[key]
+        if casualties:
+            LOGGER.info(
+                "%s: restored %d reviewed override entries the junk "
+                "filter had dropped: %s",
+                langcode,
+                len(casualties),
+                sorted(casualties)[:5],
+            )
     return kept
 
 
 def _compose_dictionary(
     langcode: str,
     listpath: str | None = None,
-    overrides_dir: Path | None = None,
 ) -> dict[str, str]:
     """The full build pipeline (see module docstring) as one in-memory step.
 
@@ -838,8 +586,14 @@ def _compose_dictionary(
     `listpath` (a directory holding <langcode>.txt): wordlist ingestion,
     installed mappings still winning shared keys. SUPPORTED_LANGUAGES is
     read from the factory at call time so a test's monkeypatch is honored."""
-    return _compose_from_base(
-        _compose_base(langcode, listpath), langcode, overrides_dir
+    return _compose_from_base(_compose_base(langcode, listpath), langcode)
+
+
+def _encode_dictionary(mydict: dict[str, str], langcode: str) -> bytes:
+    """Ship encoding: front-coded + lzma; str->bytes only at this edge."""
+    encoded = {k.encode(): v.encode() for k, v in mydict.items()}
+    return _frontcode_encode(
+        encoded, reverse_key=langcode in FRONTCODE_REVERSE_KEY_LANGS
     )
 
 
@@ -860,10 +614,7 @@ def _build_dictionary(
             directory.mkdir(parents=True, exist_ok=True)
         filepath = str(directory / f"{langcode}.plzma")
     _report_tokenizer_reachability(mydict, langcode)
-    # str->bytes only at the edge: frontcode is the runtime (bytes) boundary.
-    encoded = {k.encode(): v.encode() for k, v in mydict.items()}
-    reverse_key = langcode in FRONTCODE_REVERSE_KEY_LANGS
-    Path(filepath).write_bytes(frontcode.encode(encoded, reverse_key=reverse_key))
+    Path(filepath).write_bytes(_encode_dictionary(mydict, langcode))
     LOGGER.debug("%s %s", langcode, len(mydict))
 
 

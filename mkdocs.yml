@@ -1,9 +1,10 @@
 site_name: Simplemma
-site_description: A lightweight toolkit for multilingual lemmatization and language detection.
+site_description: Fast, dependency-free lemmatization, tokenization and sentence splitting for 54 languages.
 site_url: https://adbar.github.io/simplemma/
 
 theme:
   name: "material"
+  custom_dir: overrides
   palette:
 
     # Palette toggle for light mode
@@ -43,6 +44,9 @@ plugins:
 
 nav:
   - Introduction: index.md
+  - Usage: usage.md
+  - Classes and strategies: classes-and-strategies.md
+  - Memory usage: memory-usage.md
   - Reference:
     - Lemmatizer: reference/lemmatizer.md
     - Language Detector: reference/language_detector.md
@@ -69,6 +73,7 @@ nav:
         - Raise Error Strategy: reference/strategies/fallback/raise_error.md
       - Dictionaries:
         - Dictionary Factory: reference/strategies/dictionaries/dictionary_factory.md
+        - Stream Dictionary Factory: reference/strategies/dictionaries/stream_dictionary_factory.md
         - Trie Dictionary Factory: reference/strategies/dictionaries/trie_dictionary_factory.md
   - Supported languages: supported-languages.md
   - Contributing: contributing.md

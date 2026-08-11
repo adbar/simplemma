@@ -1,7 +1,22 @@
 Running the evaluation
 ----------------------
 
-The scores are calculated on `Universal Dependencies <https://universaldependencies.org/>`_ treebanks on single word tokens (including some contractions but not merged prepositions). They can be reproduced by the following steps:
+The scores are calculated on `Universal Dependencies <https://universaldependencies.org/>`_ treebanks on single word tokens (including some contractions but not merged prepositions).
+
+Each figure published in the main README is the accuracy on that language's
+best-performing general-purpose treebank; parallel, spoken, learner,
+historical and other narrow-domain treebanks are excluded. Three
+annotation-driven exceptions apply. The Dutch figure excludes
+underscore-joined compound lemmas (e.g. ``klooster_orde``), an Alpino
+convention that single-token output cannot match — it is ≈0.91 without that
+exclusion. Hebrew and Arabic proclitics fuse onto their host word in real
+text but are scored as pre-split sub-tokens by the protocol above, so on
+whole unsegmented input those accuracies are ≈0.82 and ≈0.85. Finnish,
+Estonian and Hungarian gold lemmas mark compound boundaries (``yli#opisto``,
+``sisse_tulek``, ``el+mond``); these markers are stripped before scoring
+(see ``_GOLD_COMPOUND_SEPARATORS`` in ``training/ud_conllu.py``).
+
+The scores can be reproduced by the following steps:
 
 1. Install the evaluation dependencies, Python >= 3.10 required (``pip install ".[dev]"``)
 2. Run ``python3 -m training.download_eval_data``, which resolves the pinned
@@ -45,7 +60,7 @@ The scores are calculated on `Universal Dependencies <https://universaldependenc
    logs a WARNING naming it, and its published figure is then selected rather
    than held out. ``sw`` has no UD data at all, so it is neither gated nor
    scored.
-4. Results are stored at ``training/data/results/results_summary.csv``. Also, errors are written in a CSV file for each dataset under the ``data/results``folder.
+4. Results are stored at ``training/data/results/results_summary.csv``. Also, errors are written in a CSV file for each dataset under the ``data/results`` folder.
 
 
 Evaluating a candidate change (rules, affix config, new language)
@@ -74,9 +89,10 @@ lemma-first). ``rulebuilder.mine``/``score_cells``/``evaluate`` and the CI
 precision harness all score with ``rulebuilder.output_is_lemma`` — exact
 match against the dictionary lemma; "the output is at least a real word" no
 longer counts. Combining accents are folded only for
-``_ACCENT_FOLD_LANGS`` (uk stress acute, la macron, sl tonal marks — each
-0% of UD lemmas but present in the dictionary, i.e. pedagogical marks real
-text drops); every other language is scored exact, so a standard
+``_ACCENT_FOLD_LANGS`` (today just sl's tonal marks — 0% of UD lemmas but
+present in the dictionary, i.e. pedagogical marks real text drops; uk and
+la left the set once ``BUILD_NORMALIZATION`` began dropping their marked
+keys at build time); every other language is scored exact, so a standard
 orthographic letter (fi ä/ö, cs/sk long-vowel acute, es/pt lexical acute)
 that the rule gets wrong is no longer masked as a hit. Languages built under the old
 predicate are being rebuilt one by one; until then they sit in the harness's
@@ -124,8 +140,8 @@ skipped in rules via ``generic.apply_rules(..., hyphen=True)``.
 Keep a language's stoplist small and FINITE — if a rule cell needs more
 than roughly a dozen exceptions, or the comment would have to say "more will
 likely need adding", drop that rule cell instead of growing the list
-(``rulebuilder.complexity_report()`` is the at-a-glance budget check: groups
-/ alternatives / stoplist size per language). One measured exception (the
+(review the rule cells' group count, alternative count, and stoplist size
+per language to stay within budget). One measured exception (the
 hybrid rule, 2026-07): when dropping a colliding cell would cost ~100 or more
 correct tokens on the UD treebank, keep the cell and enumerate its exceptions
 past the dozen mark instead (each checked against the dictionary and the
@@ -321,4 +337,4 @@ wordlist comes next, and an optional ``training/fill/<code>.tsv`` (git-ignored,
 ``wikidata_lexemes.py`` output) only fills gaps, never overriding. Keys are
 NFC-normalized at build time, matching runtime lookups. Output is the
 front-coded byte-stream format (see ``frontcode.py``), which replaced the
-pickled ``.plzma`` format in 2.0.0.
+pickled format used by pre-2.0 ``.plzma`` files.

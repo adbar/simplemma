@@ -1,7 +1,4 @@
-"""
-This module defines the `DictionaryLookupStrategy` class, which is a concrete implementation of the `LemmatizationStrategy` protocol.
-It provides lemmatization using dictionary lookup.
-"""
+"""Dictionary lookup lemmatization strategy."""
 
 from ..utils import (
     apostrophe_variants,
@@ -25,30 +22,10 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
     def __init__(
         self, dictionary_factory: DictionaryFactory = DEFAULT_DICTIONARY_FACTORY
     ):
-        """
-        Initialize the Dictionary Lookup Strategy.
-
-        Args:
-            dictionary_factory (DictionaryFactory): The dictionary factory used to obtain language dictionaries.
-                Defaults to the shared `DEFAULT_DICTIONARY_FACTORY`.
-        """
         self._dictionary_factory = dictionary_factory
 
     def get_lemma(self, token: str, lang: str) -> str | None:
-        """
-        Get Lemma using Dictionary Lookup
-
-        This method performs lemmatization by looking up the token in the language-specific dictionary.
-        It returns the lemma if found, or `None` if not found.
-
-        Args:
-            token (str): The input token to lemmatize.
-            lang (str): The language code for the token's language.
-
-        Returns:
-            str | None: The lemma for the token, or `None` if not found in the dictionary.
-
-        """
+        """Return the lemma for `token` in `lang`, or None."""
         dictionary = self._dictionary_factory.get_dictionary(lang)
         # no-op for unregistered langs: matches the canonicalization
         # dictionary_builder applies to keys at build time.
