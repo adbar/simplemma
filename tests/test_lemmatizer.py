@@ -277,6 +277,9 @@ _SUBWORD_CASES = [
     ("de", "zerlemmatisiertes", False, "zerlemmatisiert"),
     ("ru", "фиксированные", False, "фиксированный"),
     ("ru", "зафиксированные", False, "зафиксированный"),
+    ("de", "Pseudowissenschaftlerinnen", False, "Pseudowissenschaftlerin"),
+    ("fr", "micro-ondes", False, "micro-onde"),
+    ("en", "re-evaluating", False, "re-evaluate"),
 ]
 
 
