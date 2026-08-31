@@ -390,6 +390,34 @@ _TEXT_CASES = [
         "Mi vidas la pomon.",
         ["mi", "vidi", "la", "pomo", "."],
     ),
+    (
+        "en",
+        False,
+        "The doctors are performing complex surgeries.",
+        [
+            "the",
+            "doctor",
+            "be",
+            "perform",
+            "complex",
+            "surgery",
+            ".",
+        ],
+    ),
+    (
+        "fr",
+        False,
+        "Les étudiants lisent des livres intéressants.",
+        [
+            "le",
+            "étudiant",
+            "lire",
+            "un",
+            "livre",
+            "intéressant",
+            ".",
+        ],
+    ),
 ]
 
 
