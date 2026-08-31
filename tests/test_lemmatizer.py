@@ -390,6 +390,34 @@ _TEXT_CASES = [
         "Mi vidas la pomon.",
         ["mi", "vidi", "la", "pomo", "."],
     ),
+    (
+        "hi",
+        False,
+        "बच्चे स्कूल जा रहे हैं।",
+        [
+            "बच्चा",
+            "स्कूल",
+            "जाना",
+            "रहना",
+            "है",
+            "।",
+        ],
+    ),
+    (
+        "de",
+        False,
+        "Die klugen Kinder lesen ein interessantes Buch.",
+        [
+            "der",
+            "klug",
+            "Kind",
+            "lesen",
+            "ein",
+            "interessant",
+            "Buch",
+            ".",
+        ],
+    ),
 ]
 
 
