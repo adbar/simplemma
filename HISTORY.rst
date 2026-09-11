@@ -14,6 +14,11 @@ History
 - Faster, more precise tokenizer, and new split_sentences() function for sentence splitting (#177, #182)
 - Lower memory usage: shared dictionary cache and new low_memory flag (#178, #181)
 - Language detector fixes (#172)
+- Unknown tokens are no longer lowercased for es, hy, lt, lv, pt and uk (proper nouns keep their case); the fallback stays for bg and sk
+- Breaking: dictionaries use a new format, ``.plzma`` files from 1.x cannot be read
+- Breaking: apostrophes are folded to the straight form (``'``) in output, and strategies
+  used directly expect ``normalize_token`` input (``Lemmatizer`` folds for you)
+- Breaking: ``ApostropheBoundaryStrategy`` removed, folded into ``DefaultStrategy``
 
 
 1.2.0

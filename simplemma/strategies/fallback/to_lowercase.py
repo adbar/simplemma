@@ -4,7 +4,9 @@ This module defines the `ToLowercaseFallbackStrategy` class, which is a concrete
 
 from .lemmatization_fallback_strategy import LemmatizationFallbackStrategy
 
-BETTER_LOWER = {"bg", "es", "hy", "lt", "lv", "pt", "sk", "uk"}
+# Only where UD gold lowercases proper nouns; elsewhere identity wins held-out
+# (es +2.8, lv +1.6, uk +1.2, lt +1.1, pt +1.1, hy +0.6pp, 2026-09).
+BETTER_LOWER = {"bg", "sk"}
 
 
 class ToLowercaseFallbackStrategy(LemmatizationFallbackStrategy):

@@ -93,6 +93,10 @@ def test_canon_lemma_strips_compound_separators():
     assert canon_lemma("klooster_orde", "kloosterorde", "nl") == "klooster_orde"
 
 
+def test_canon_lemma_folds_apostrophes_like_the_runtime():
+    assert canon_lemma("Chomksy’ye", "Chomksy’ye", "tr") == "Chomksy'ye"
+
+
 def test_canon_lemma_keeps_marker_present_in_the_form():
     """A marker in the surface form is token content, not annotation
     (real UD rows: fi '#luonto', et 'MAX_FILE_SIZE', hu '16+3')."""

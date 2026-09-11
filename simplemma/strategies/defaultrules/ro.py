@@ -1,75 +1,61 @@
-import re
-
-from .generic import apply_rules
-
-# Romanian verb conjugation and noun/adjective endings (fused definite
-# articles included), mined lemma-first (99.73% in-dict).
-DEFAULT_RULES = {
-    re.compile(r"(?:tase|tai|tam|tăm|tau|tez)$"): r"ta",
-    re.compile(r"(?:zează|zară|zase|zași|zezi|zeze|zau|zai|zam|zăm|zez)$"): r"za",
-    re.compile(r"(?:nase|nau|nam|nai|năm)$"): r"na",
-    re.compile(r"(?:ităților|itățile|ității|ități)$"): r"itate",
-    re.compile(r"(?:aserăți|aserăm|aseră|aseși|arăți|arăm|asem|aţi|atu)$"): r"a",
-    re.compile(r"(?:torule)$"): r"tor",
-    re.compile(r"(?:bilului|bililor|bilul|bilii|bili)$"): r"bil",
-    re.compile(r"(?:ațiilor|ațiile|ația)$"): r"ație",
-    re.compile(r"(?:aților|atule)$"): r"at",
-    re.compile(r"(?:iților|itule)$"): r"it",
-    re.compile(r"(?:orului|orul)$"): r"or",
-    re.compile(r"(?:icului|icul)$"): r"ic",
-    re.compile(r"(?:alului|alul|ali)$"): r"al",
-    re.compile(r"(?:osul)$"): r"os",
-    re.compile(r"(?:arului|arul)$"): r"ar",
-    re.compile(r"(?:erului|erul)$"): r"er",
-    re.compile(r"(?:ivului|ivul)$"): r"iv",
-    re.compile(r"(?:tului|tul)$"): r"t",
-    re.compile(r"(?:irăți|irăm|isem|iţi|itu)$"): r"i",
-    re.compile(r"(?:nului|nul)$"): r"n",
-    re.compile(r"(?:irile|irea|ireo)$"): r"ire",
-    re.compile(r"(?:ările)$"): r"are",
-    re.compile(r"(?:mului|mul)$"): r"m",
-    re.compile(r"(?:sului)$"): r"s",
-    re.compile(r"(?:izați)$"): r"izat",
-    re.compile(r"(?:tați|tată)$"): r"tat",
-    re.compile(r"(?:uite|uită|uiți)$"): r"uit",
-    re.compile(r"(?:cată|cați)$"): r"cat",
-    re.compile(r"(?:niți|nită)$"): r"nit",
-    re.compile(r"(?:zată)$"): r"zat",
-    re.compile(r"(?:nați)$"): r"nat",
-    re.compile(r"(?:ției)$"): r"ție",
-    re.compile(r"(?:atea)$"): r"ate",
-    re.compile(r"(?:iată)$"): r"iat",
-    re.compile(r"(?:lați)$"): r"lat",
-}
+from .generic import SuffixRules
 
 # genuine collisions only (identity lemmas, participle-vs-noun homographs,
 # vowel-changing plurals, irregulars); UD preferring the infinitive over the
 # dict's participle lemma is a convention difference, not stoplisted
 _EXCLUDED = frozenset(
+    (
+        "înspăimânțaseși admirăm rămaseră vreunul țările păsările flăcările destul "
+        "stimul vehicul neconformitatea conduită judecată bucată turburatu "
+        "endonimul stabili".split()
+    )
+)
+
+# Romanian verb conjugation and noun/adjective endings (fused definite
+# articles included), mined lemma-first (99.73% in-dict).
+DEFAULT_RULES = SuffixRules(
     {
-        "înspăimânțaseși",
-        "admirăm",
-        "rămaseră",
-        "vreunul",
-        "țările",
-        "păsările",
-        "flăcările",
-        "destul",
-        "stimul",
-        "vehicul",
-        "neconformitatea",
-        "conduită",
-        "judecată",
-        "bucată",
-        "turburatu",
-        "endonimul",
-        "stabili",
-    }
+        "ta": "tase tai tam tăm tau tez",
+        "za": "zează zară zase zași zezi zeze zau zai zam zăm zez",
+        "na": "nase nau nam nai năm",
+        "itate": "ităților itățile ității ități",
+        "a": "aserăți aserăm aseră aseși arăți arăm asem aţi atu",
+        "tor": "torule",
+        "bil": "bilului bililor bilul bilii bili",
+        "ație": "ațiilor ațiile ația",
+        "at": "aților atule",
+        "it": "iților itule",
+        "or": "orului orul",
+        "ic": "icului icul",
+        "al": "alului alul ali",
+        "os": "osul",
+        "ar": "arului arul",
+        "er": "erului erul",
+        "iv": "ivului ivul",
+        "t": "tului tul",
+        "i": "irăți irăm isem iţi itu",
+        "n": "nului nul",
+        "ire": "irile irea ireo",
+        "are": "ările",
+        "m": "mului mul",
+        "s": "sului",
+        "izat": "izați",
+        "tat": "tați tată",
+        "uit": "uite uită uiți",
+        "cat": "cată cați",
+        "nit": "niți nită",
+        "zat": "zată",
+        "nat": "nați",
+        "ție": "ției",
+        "ate": "atea",
+        "iat": "iată",
+        "lat": "lați",
+    },
+    min_len=6,
+    caps=True,
+    hyphen=True,
+    excluded=_EXCLUDED,
 )
 
 
-def apply_ro(token: str) -> str | None:
-    "Apply pre-defined rules for Romanian."
-    return apply_rules(
-        token, DEFAULT_RULES, min_len=6, caps=True, hyphen=True, excluded=_EXCLUDED
-    )
+apply_ro = DEFAULT_RULES.apply

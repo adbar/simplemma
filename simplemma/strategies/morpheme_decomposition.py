@@ -21,8 +21,9 @@ list measured net-negative on sw).
 """
 
 from collections.abc import Iterator
-from dataclasses import dataclass
+from typing import NamedTuple
 
+from ..utils import longest_first
 from .dictionary_lookup import DictionaryLookupStrategy
 from .lemmatization_strategy import LemmatizationStrategy
 
@@ -31,48 +32,10 @@ from .lemmatization_strategy import LemmatizationStrategy
 # intensive paradigms; gated on real UD text (tune=nc-dev,
 # confirm=nc-test+trg+ugnayan), not hand-picked.
 _TL_PREFIXES = (
-    "magkaka",
-    "nagkaka",
-    "makapag",
-    "nakapag",
-    "magpaka",
-    "nagpaka",
-    "makipag",
-    "nakipag",
-    "nagpapa",
-    "magpapa",
-    "magka",
-    "nagka",
-    "nakaka",
-    "makaka",
-    "ipinag",
-    "ipinang",
-    "magsi",
-    "nagsi",
-    "ipang",
-    "ipag",
-    "ikina",
-    "ipina",
-    "pinag",
-    "maka",
-    "naka",
-    "magpa",
-    "nagpa",
-    "maki",
-    "naki",
-    "mang",
-    "nang",
-    "ika",
-    "ipa",
-    "mag",
-    "nag",
-    "ma",
-    "na",
-    "pa",
-    "ka",
-    "um",
-    "in",
-    "i",
+    "magkaka nagkaka makapag nakapag magpaka nagpaka makipag nakipag nagpapa "
+    "magpapa magka nagka nakaka makaka ipinag ipinang magsi nagsi ipang ipag ikina "
+    "ipina pinag maka naka magpa nagpa maki naki mang nang ika ipa mag nag ma na "
+    "pa ka um in i"
 )
 # Object/locative-focus suffixes, plus the linker (ligature) na fused onto
 # its host: vowel-final host + "ng" (maganda -> magandang), n-final host +
@@ -80,44 +43,39 @@ _TL_PREFIXES = (
 # form must be decomposed at runtime; dict verification gates the residue
 # (measured +1.1 to +2.9pp real-word on all 4 tl treebanks, at the cost of
 # a -0.1pp per-sub-token dip on newscrawl from unconstrained "g" strips).
-_TL_SUFFIXES = ("han", "hin", "an", "in", "ng", "g")
+_TL_SUFFIXES = "han hin an in ng g"
 
 MIN_STEM_LEN = 3
 _VOWELS = frozenset("aeiou")
 
 
-@dataclass(frozen=True)
-class _Morphemes:
-    """Per-language affix inventory. Order in the literals doesn't matter:
-    __post_init__ sorts longest-first, which the candidate search relies on
-    (a longer real match must be tried before a shorter prefix of it)."""
-
+class _Morphemes(NamedTuple):
     prefixes: tuple[str, ...]
     suffixes: tuple[str, ...]
-    infixes: tuple[str, ...] = ()
+    infixes: tuple[str, ...]
 
-    def __post_init__(self) -> None:
-        for f in ("prefixes", "suffixes", "infixes"):
-            object.__setattr__(
-                self, f, tuple(sorted(getattr(self, f), key=len, reverse=True))
-            )
+
+def _morphemes(prefixes: str, suffixes: str, infixes: str = "") -> _Morphemes:
+    """Affix inventory from space-separated lists, each sorted longest-first
+    (the candidate search relies on it)."""
+    return _Morphemes(
+        longest_first(prefixes.split()),
+        longest_first(suffixes.split()),
+        longest_first(infixes.split()),
+    )
 
 
 MORPHEME_LANGS: dict[str, _Morphemes] = {
     # A vowel-alternation stage (gusto+han -> gustuhan, fold u->o back) was
     # tried and removed: <=0.3pp on one treebank, no verdict changes -- not
     # worth a config dimension.
-    "tl": _Morphemes(
-        prefixes=_TL_PREFIXES,
-        suffixes=_TL_SUFFIXES,
-        infixes=("um", "in"),
-    ),
-    "id": _Morphemes(
+    "tl": _morphemes(_TL_PREFIXES, _TL_SUFFIXES, infixes="um in"),
+    "id": _morphemes(
         # Indonesian verbal affixes; conservative on purpose -- short/ambiguous
         # prefixes (me/ke/se/pe alone, without their consonant-initial variants)
         # measured net-negative (overfire on unrelated words) in an earlier A/B.
-        prefixes=("memper", "diper", "meng", "meny", "mem", "men", "ber", "ter", "di"),
-        suffixes=("kan", "i", "an"),
+        "memper diper meng meny mem men ber ter di",
+        "kan i an",
     ),
 }
 

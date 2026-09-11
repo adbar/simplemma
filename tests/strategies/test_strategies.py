@@ -2,7 +2,6 @@ import pytest
 
 from simplemma.strategies import (
     AffixDecompositionStrategy,
-    ApostropheBoundaryStrategy,
     CliticDecompositionStrategy,
     DefaultStrategy,
     DictionaryLookupStrategy,
@@ -12,7 +11,9 @@ from simplemma.strategies import (
     PrefixDecompositionStrategy,
 )
 from simplemma.strategies.greedy_dictionary_lookup import greedy_min_length
-from simplemma.strategies.morpheme_decomposition import _Morphemes
+from simplemma.strategies.morpheme_decomposition import _morphemes
+from simplemma import lemmatize
+from simplemma.utils import normalize_token
 from tests.conftest import FixedMapping
 
 _LOOKUP = DictionaryLookupStrategy()
@@ -119,7 +120,7 @@ def test_affix_decomposition_guards() -> None:
     assert greedy_min_length("lt") == 7  # lowered from the default
     assert greedy_min_length("bg") == 6
     assert greedy_min_length("xx") == 8
-    assert affix._suffix_decomposition("-changanya", "sw", 4) is not None
+    assert affix._suffix_decomposition("-changanya", "sw") is not None
     assert affix.get_lemma("a" * 101, "fi") is None
     assert affix.get_lemma("a" * 100000, "fi") is None
 
@@ -164,9 +165,12 @@ _CLITIC_CASES = [
     pytest.param("paulo", "pt", None, id="guard-bare-strip-paulo"),
     pytest.param("carona", "pt", None, id="guard-bare-strip-carona"),
     pytest.param("alumne", "ca", None, id="guard-bare-strip-alumne"),
+    # hyphen-chained clitics get one more strip; a dead chain stays None
+    pytest.param("portar-se-la", "ca", "portar", id="chain-ca-portar-se-la"),
+    pytest.param("vendê-se-lo", "pt", "vender", id="chain-pt-vende-se-lo"),
+    pytest.param("zzzzzz-se-lo", "pt", None, id="chain-pt-dead-stem"),
     # --- English contractions: same enclitic architecture ---
     pytest.param("don't", "en", "do", id="en-dont"),
-    pytest.param("don’t", "en", "do", id="en-curly-dont"),
     pytest.param("Don't", "en", "do", id="en-sentence-initial-Dont"),
     pytest.param("I'm", "en", "I", id="en-Im"),
     pytest.param("you're", "en", "you", id="en-youre"),
@@ -183,7 +187,6 @@ _CLITIC_CASES = [
     pytest.param("l'arbre", "fr", "arbre", id="proclitic-fr-arbre"),
     pytest.param("qu'avait", "fr", "avoir", id="proclitic-fr-avoir"),
     pytest.param("jusqu'alors", "fr", "alors", id="proclitic-fr-alors"),
-    pytest.param("l’arbre", "fr", "arbre", id="proclitic-fr-curly"),
     pytest.param("quest'anno", "it", "anno", id="proclitic-it-anno"),
     pytest.param("nell'aula", "it", "aula", id="proclitic-it-aula"),
     pytest.param("l'home", "ca", "home", id="proclitic-ca-home"),
@@ -220,32 +223,27 @@ def test_apostrophe_boundary() -> None:
     strat = DefaultStrategy()
     assert strat.get_lemma("İstanbul'da", "tr") == "İstanbul"
     assert strat.get_lemma("Erdoğan'ın", "tr") == "Erdoğan"
+    assert strat.get_lemma("1991'de", "tr") == "1991"  # numeric head
     # curly apostrophes (smart quotes) mark the same boundary
     assert strat.get_lemma("Erdoğan’ın", "tr") == "Erdoğan"
     # a curated whole-token dict entry is authoritative: boundary splitting
     # defers so dictionary lookup wins ("isen'e" -> "isen", not head "i").
-    assert _LOOKUP.exact_lemma("isen'e", "tr") == "isen"
-    assert (
-        ApostropheBoundaryStrategy(strat.get_lemma, _LOOKUP).get_lemma("isen'e", "tr")
-        is None
-    )
+    assert _LOOKUP.is_dictionary_member("isen'e", "tr")
+    assert strat._apostrophe_lemma("isen'e", "tr") is None
     assert strat.get_lemma("isen'e", "tr") == "isen"
     # unsupported language: no-op
-    assert (
-        ApostropheBoundaryStrategy(strat.get_lemma, _LOOKUP).get_lemma("l'arbre", "fr")
-        is None
-    )
+    assert strat._apostrophe_lemma("l'arbre", "fr") is None
 
 
 def test_dictionary_lookup_apostrophe_variant() -> None:
-    """A key stored under another apostrophe variant (straight ', curly U+2019,
-    modifier-letter U+02BC -- NFC does not unify them) is still found."""
-    assert _LOOKUP.get_lemma("виб’єш", "uk") == "вибити"  # curly
-    assert _LOOKUP.get_lemma("вибʼєш", "uk") == "вибити"  # U+02BC (Ukrainian)
-    assert _LOOKUP.get_lemma("виб'єш", "uk") == "вибити"  # straight
-    assert _LOOKUP.get_lemma("un’", "it") == "uno"
-    # Probe order preserved across variants: this glyph-mixed fi entry keeps
-    # its straight-variant answer.
+    """Every apostrophe glyph (straight ', curly U+2019, modifier-letter U+02BC
+    -- NFC does not unify them) reaches the straight-keyed entry: the
+    Lemmatizer folds them in normalize_token before any strategy runs."""
+    for glyph in ("’", "ʼ", "'"):
+        assert lemmatize(f"виб{glyph}єш", lang="uk") == "вибити"
+        assert lemmatize(f"don{glyph}t", lang="en") == "do"  # enclitic
+        assert lemmatize(f"l{glyph}arbre", lang="fr") == "arbre"  # proclitic
+    assert lemmatize("un’", lang="it") == "uno"
     assert _LOOKUP.get_lemma("Vaa'assa", "fi") == "vaaka"
 
 
@@ -259,7 +257,6 @@ def test_dictionary_lookup_grc_accent_canon() -> None:
     assert lookup.get_lemma("δὲ", "grc") == "δέ"  # grave query -> acute key
     assert lookup.get_lemma("garā", "lv") == "gara"  # unrelated: no fold applied
     assert lookup.is_dictionary_member("δὲ", "grc")
-    assert lookup.exact_lemma("δὲ", "grc") == "δέ"
 
 
 def test_dictionary_lookup_he_niqqud_canon() -> None:
@@ -289,10 +286,10 @@ def test_prefix_decomposition_drops_particle_for_drop_prefix_langs() -> None:
 
 
 def test_morphemes_sorts_affixes_longest_first_regardless_of_input_order() -> None:
-    """_Morphemes.__post_init__ sorts every field so a config literal never
+    """_morphemes sorts every field so a config literal never
     has to be pre-sorted -- a shorter prefix listed BEFORE a longer one it's
     a prefix of must not shadow the longer, correct match."""
-    m = _Morphemes(prefixes=("a", "aba"), suffixes=("n", "wan"))
+    m = _morphemes("a aba", "n wan")
     assert m.prefixes == ("aba", "a")
     assert m.suffixes == ("wan", "n")
 
@@ -376,4 +373,4 @@ def test_dictionary_lookup_apostrophe_variant_recased() -> None:
 
     mapping = {"L'eau": "eau"}  # straight apostrophe, capitalized
     lookup = DictionaryLookupStrategy(dictionary_factory=FixedMapping(mapping))
-    assert lookup.get_lemma("l’eau", "xx") == "eau"  # curly, lowercase
+    assert lookup.get_lemma(normalize_token("l’eau"), "xx") == "eau"  # curly, lowercase

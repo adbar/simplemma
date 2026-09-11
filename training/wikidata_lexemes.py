@@ -1,8 +1,9 @@
 """Extract (lemma, form) pairs for one language from a Wikidata lexeme dump
-(`latest-lexemes.json.gz`, dumps.wikimedia.org/wikidatawiki/entities/), for
-use either as an OOV-fill source layered onto (never overriding) a shipped
-dictionary, or as the PRIMARY base wordlist for a language Wiktionary covers
-poorly (ml). Coverage is lexicon-dependent.
+(`latest-lexemes.json.gz`, dumps.wikimedia.org/wikidatawiki/entities/), as a
+wordlist for wordlist_ingest: appended to the Wiktionary list of a shipped
+language (its pairs then vote in resolution; installed mappings still win
+shared keys), or as the PRIMARY base wordlist for a language Wiktionary
+covers poorly (ml). Coverage is lexicon-dependent.
 
 Dump format: a JSON array serialized one object per line (not true JSONL,
 but each line parses once leading/trailing punctuation is stripped).
@@ -23,10 +24,6 @@ from pathlib import Path
 from typing import Any
 
 from training.clean_wordlist import check_field, write_pairs
-
-# private, but these are sibling build modules
-from training.dictionary_builder import _shipped_str_dict
-from training.eval_harness import build_strategy
 
 log = logging.getLogger(__name__)
 
@@ -55,11 +52,11 @@ LANGUAGE_QIDS = {
     "fi": "Q1412",
     "tr": "Q256",
     # WD-as-PRIMARY source (3rd-largest lexeme count; Wiktionary ml is ~11k
-    # words): feeds training/lists/ml.txt, not fill/.
+    # words): feeds training/lists/ml.txt.
     "ml": "Q36236",
-    # FILL candidates for shipped-but-weak languages (census 2026-07-17):
-    # feed training/fill/<lang>.tsv, gated by assess_wikidata_fill.py
-    # (gitignored local tooling under training/local/).
+    # 2026-07 census; gate-tested as a (since retired) fill layer: shipped
+    # cs da de el en es et fi la nb nl nn pl pt ru sk sv uk, fr it tr id fa
+    # regressed, se +0.0000.
     "nn": "Q25164",
     "id": "Q9240",
     "se": "Q33947",
@@ -147,66 +144,11 @@ def drop_junk_pairs(
     return kept, {"total": len(all_pairs), "kept": len(kept)}
 
 
-def _prune_with_anchor(
-    fill_pairs: list[tuple[str, str]], anchor: dict[str, str], lang: str
-) -> tuple[list[tuple[str, str]], dict[str, int]]:
-    """Drop fill pairs the real lemmatization chain already reproduces from
-    `anchor` alone (dict lookup + hyphen + rules + prefix + affix, no fill)."""
-    strategy = build_strategy(anchor)
-    kept = []
-    pruned = 0
-    for lemma, form in fill_pairs:
-        if strategy.get_lemma(form, lang) == lemma:
-            pruned += 1
-        else:
-            kept.append((lemma, form))
-    return kept, {"total": len(fill_pairs), "pruned": pruned, "kept": len(kept)}
-
-
-def stem_anchored_prune(
-    fill_pairs: list[tuple[str, str]], shipped: dict[str, str], lang: str
-) -> tuple[list[tuple[str, str]], dict[str, int]]:
-    """Anchor on shipped + every fill lemma's own self-map, then keep only
-    forms the affix chain still can't regenerate from those anchors alone.
-
-    A RAM-only lever (we ship full-fill on disk): prunes ~half the entries,
-    accuracy-neutral, most so for agglutinative languages.
-
-    CRUCIAL: the fill-lemma self-maps that make pruning safe are NOT
-    guaranteed to be in `shipped`, so they must ship with the kept output --
-    otherwise a pruned form regenerates to a lemma absent from the final
-    dict and lemmatizes to None."""
-    fill_lemmas = {lemma for lemma, _ in fill_pairs}
-    anchor = dict(shipped)
-    for lemma in fill_lemmas:
-        anchor.setdefault(lemma, lemma)
-    kept, stats = _prune_with_anchor(fill_pairs, anchor, lang)
-    # Re-add anchoring self-maps not in shipped (identity forms never survive
-    # _prune). The invariant requires L->L present, so a self-map must win
-    # over any surviving pair whose FORM is L -- drop that conflict
-    # explicitly rather than relying on append order.
-    self_map_lemmas = {lemma for lemma in fill_lemmas if lemma not in shipped}
-    deconflicted = [(lem, form) for lem, form in kept if form not in self_map_lemmas]
-    self_maps = [(lemma, lemma) for lemma in self_map_lemmas]
-    stats["dropped_form_lemma_conflict"] = len(kept) - len(deconflicted)
-    kept = deconflicted + self_maps
-    stats["self_maps_added"] = len(self_maps)
-    stats["kept"] = len(kept)
-    return kept, stats
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("lang", choices=sorted(LANGUAGE_QIDS))
     parser.add_argument("dump", type=Path, help="Path to latest-lexemes.json.gz")
     parser.add_argument("output", type=Path, help="Output TSV path (lemma TAB form)")
-    parser.add_argument(
-        "--prune",
-        choices=("none", "stem-anchored"),
-        default="none",
-        help="stem-anchored: drop fill pairs the shipped-dict+rules/affix chain "
-        "already regenerates (RAM lever; we ship full-fill by default).",
-    )
     args = parser.parse_args()
 
     log.info(f"Extracting {args.lang} pairs from {args.dump}...")
@@ -224,11 +166,6 @@ def main() -> None:
 
     kept_pairs, ambiguity_stats = drop_ambiguous(raw_pairs)
     log.info(f"Ambiguity filter: {ambiguity_stats}")
-
-    if args.prune == "stem-anchored":
-        shipped = _shipped_str_dict(args.lang)
-        kept_pairs, prune_stats = stem_anchored_prune(kept_pairs, shipped, args.lang)
-        log.info(f"stem-anchored prune: {prune_stats}")
 
     kept_pairs, junk_stats = drop_junk_pairs(kept_pairs)
     log.info(f"Junk filter: {junk_stats}")

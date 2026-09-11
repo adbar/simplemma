@@ -4,11 +4,10 @@ It provides lemmatization using a combination of different strategies such as di
 """
 
 from .affix_decomposition import AffixDecompositionStrategy
-from .apostrophe_boundary import ApostropheBoundaryStrategy
 from .clitic_decomposition import CliticDecompositionStrategy
-from .dictionaries import LOW_MEMORY_DICTIONARY_FACTORY
-from .dictionaries.dictionary_factory import (
+from .dictionaries import (
     DEFAULT_DICTIONARY_FACTORY,
+    LOW_MEMORY_DICTIONARY_FACTORY,
     DictionaryFactory,
 )
 from .dictionary_lookup import DictionaryLookupStrategy
@@ -19,6 +18,16 @@ from .morpheme_decomposition import MorphemeDecompositionStrategy
 from .prefix_decomposition import PrefixDecompositionStrategy
 from .rules import RulesStrategy
 
+# Apostrophe marks a fixed morpheme boundary ("Istanbul'da"): the head is a
+# proper noun or number, looked up as-is. UD-validated (tr_imst); routing the
+# head through the affix chain measured worse (Güvenpark -> güven).
+APOSTROPHE_BOUNDARY_LANGS = frozenset({"tr"})
+MIN_HEAD_LEN = 2
+
+
+def _case_key(word: str) -> str:
+    return word.lower().replace("i̇", "i")
+
 
 class DefaultStrategy(LemmatizationStrategy):
     """
@@ -26,17 +35,16 @@ class DefaultStrategy(LemmatizationStrategy):
     It implements the `LemmatizationStrategy` protocol.
     """
 
-    __slots__ = [
+    __slots__ = (
         "_dictionary_lookup",
         "_hyphen_search",
         "_rules_search",
         "_prefix_search",
         "_clitic_search",
-        "_apostrophe_search",
         "_greedy_dictionary_lookup",
         "_affix_search",
         "_morpheme_search",
-    ]
+    )
 
     def __init__(
         self,
@@ -77,11 +85,6 @@ class DefaultStrategy(LemmatizationStrategy):
             dictionary_lookup=self._dictionary_lookup
         )
         self._clitic_search = CliticDecompositionStrategy(self._dictionary_lookup)
-        # Callback is the search chain, not get_lemma: avoids a circular
-        # construction dependency and a second greedy round on the head.
-        self._apostrophe_search = ApostropheBoundaryStrategy(
-            self._search_pipeline, self._dictionary_lookup
-        )
         self._affix_search = AffixDecompositionStrategy(greedy, self._dictionary_lookup)
         self._morpheme_search = MorphemeDecompositionStrategy(self._dictionary_lookup)
         self._greedy_dictionary_lookup = (
@@ -100,24 +103,13 @@ class DefaultStrategy(LemmatizationStrategy):
             str | None: The lemma of the token, or None if no lemma is found.
 
         """
-        candidate = self._search_pipeline(token, lang)
-
-        # additional round, applied exactly once regardless of path
-        if candidate is not None and self._greedy_dictionary_lookup is not None:
-            candidate = self._greedy_dictionary_lookup.get_lemma(candidate, lang)
-
-        return candidate
-
-    def _search_pipeline(self, token: str, lang: str) -> str | None:
-        """Run the ordered search chain (no greedy round). Shared by
-        `get_lemma` and injected as the apostrophe-boundary head callback."""
         if token.isnumeric():
             return token
 
-        return (
+        candidate = (
             # before dictionary_lookup: its reverse-case fallback else
             # mangles capitalized proper nouns (Erdoğan'ın -> erdoğan)
-            self._apostrophe_search.get_lemma(token, lang)
+            self._apostrophe_lemma(token, lang)
             or self._dictionary_lookup.get_lemma(token, lang)
             # before hyphen_search: a hyphenated clitic's last part often
             # self-resolves, so hyphen_search would return the token as-is
@@ -128,6 +120,30 @@ class DefaultStrategy(LemmatizationStrategy):
             or self._affix_search.get_lemma(token, lang)
             or self._morpheme_search.get_lemma(token, lang)
         )
+        if candidate is not None and self._greedy_dictionary_lookup is not None:
+            candidate = self._greedy_dictionary_lookup.get_lemma(candidate, lang)
+        return candidate
+
+    def _apostrophe_lemma(self, token: str, lang: str) -> str | None:
+        """Split at the first apostrophe and look the head up in the dictionary."""
+        if lang not in APOSTROPHE_BOUNDARY_LANGS:
+            return None
+        boundary = token.find("'")  # normalize_token already folded smart quotes
+        if boundary < MIN_HEAD_LEN or boundary == len(token) - 1:
+            return None
+        # A curated whole-token entry is authoritative over decomposition
+        # (tr "isen'e" -> "isen").
+        if self._dictionary_lookup.is_dictionary_member(token, lang):
+            return None
+        head = token[:boundary]
+        if head.isnumeric():
+            return head
+        lemma = self._dictionary_lookup.get_lemma(head, lang)
+        if lemma is None:
+            return None
+        # A case-only change is just the dict's case-fallback, not a real answer;
+        # keep the head's case. _case_key folds Turkish "İ".lower() (i + dot).
+        return head if _case_key(lemma) == _case_key(head) else lemma
 
     def is_dictionary_member(self, token: str, lang: str) -> bool:
         """Raw dictionary membership for `token` (no case/apostrophe fallback)."""

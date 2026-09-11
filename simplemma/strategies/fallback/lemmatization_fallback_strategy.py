@@ -33,8 +33,4 @@ class LemmatizationFallbackStrategy(Protocol):
 
         Returns:
             str: The lemma of the token in the specified language.
-
-        Raises:
-            NotImplementedError: This method must be implemented by concrete classes.
         """
-        raise NotImplementedError()

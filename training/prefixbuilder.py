@@ -1,10 +1,10 @@
 """
-Generates prefix-stripping candidates for `simplemma/strategies/defaultprefixes/`
+Generates prefix-stripping candidates for `simplemma/strategies/prefix_decomposition.py`
 from the shipped dictionaries -- a hypothesis generator, NEVER evidence
 (in-dict measurement has ~0% hit rate for sign on prefix decisions). A candidate
-must still clear the UD tune/confirm gate as de/ru did (training/data/affix_eval/
-scripts/prefix_audit.py) before shipping; that whole tree is gitignored local
-tooling, rebuild via training/download_eval_data.py.
+must still clear the UD tune/confirm gate as de/ru did (prefix_audit.py in the
+gitignored, archived training/data/affix_eval/ study; the live A/B tool is
+training/local/ud_end_to_end.py) before shipping.
 
 For each (form, lemma) and prefix length whose remainder (>=4 chars) is itself a
 dict entry, checks lemma(form) == prefix + lemma(remainder); groups by prefix,

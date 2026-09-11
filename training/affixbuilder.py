@@ -16,7 +16,6 @@ from typing import cast
 
 # imported, not mirrored: the harness must track the runtime's remainder floor
 from simplemma.strategies.affix_decomposition import (
-    MINCOMPLEN,
     AffixDecompositionStrategy,
 )
 from simplemma.strategies.dictionaries.dictionary_factory import (
@@ -94,8 +93,8 @@ def measure(
     fired = gain = harm = changed = changed_ok = 0
     for f, lemma in pairs:
         p = _STRAT._affix_decomposition(
-            f, lang, max_affix_len, MINCOMPLEN
-        ) or _STRAT._suffix_decomposition(f, lang, MINCOMPLEN)
+            f, lang, max_affix_len
+        ) or _STRAT._suffix_decomposition(f, lang)
         if p is None:
             continue
         fired += 1

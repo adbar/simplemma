@@ -129,7 +129,6 @@ class Tokenizer(Protocol):
             Iterator[str]: An iterator yielding the individual tokens.
 
         """
-        raise NotImplementedError
 
 
 class RegexTokenizer(Tokenizer):

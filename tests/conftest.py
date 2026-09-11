@@ -9,7 +9,7 @@ from simplemma.strategies import DictionaryFactory
 
 class FixedMapping(DictionaryFactory):
     """Serves the same fixed str->str mapping for every language. Test-only
-    stub -- distinct from training.eval_harness.FixedDictionaryFactory, which
+    stub -- distinct from training.eval_gate.FixedDictionaryFactory, which
     encodes to bytes to match the production reader."""
 
     def __init__(self, mapping: Mapping[str, str]) -> None:

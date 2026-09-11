@@ -11,20 +11,20 @@ Contains utility functions for language processing.
 """
 
 import unicodedata
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
+
+
+# curly U+2019 and modifier-letter U+02BC fold to U+0027 (NFC does not unify them)
+_APOSTROPHE_GLYPHS = "’ʼ"
+_APOSTROPHES = str.maketrans(_APOSTROPHE_GLYPHS, "''")
 
 
 def normalize_token(token: str) -> str:
-    """
-    Normalize a token to Unicode NFC, matching the shipped dictionaries.
-
-    Args:
-        token (str): The input token.
-
-    Returns:
-        str: The token in NFC form.
-    """
-    return unicodedata.normalize("NFC", token)
+    """Normalize a token to NFC with straight apostrophes, matching the shipped
+    dictionaries (keys and values go through the same call at build time)."""
+    token = unicodedata.normalize("NFC", token)
+    # guard: translate costs 10x NFC, and almost no token carries either glyph
+    return token.translate(_APOSTROPHES) if "’" in token or "ʼ" in token else token
 
 
 def strip_diacritics(word: str) -> str:
@@ -36,48 +36,14 @@ def strip_diacritics(word: str) -> str:
     )
 
 
-# Apostrophe glyphs folded to straight U+0027 (the form dictionaries key on);
-# NFC does not unify them. Single source of truth for the helpers below.
-_STRAIGHT_APOSTROPHE = "'"
-_FOLDED_APOSTROPHES = ("’", "ʼ")  # curly U+2019, modifier letter U+02BC
-
-
-def normalize_apostrophes(text: str) -> str:
-    """Fold curly and modifier-letter apostrophes to straight (U+0027)."""
-    for glyph in _FOLDED_APOSTROPHES:
-        text = text.replace(glyph, _STRAIGHT_APOSTROPHE)
-    return text
-
-
-def has_apostrophe(text: str) -> bool:
-    """True if the text carries any apostrophe glyph normalize_apostrophes folds.
-    Inline (hot path: gates every OOV lookup); mirror the glyph constants above."""
-    return "'" in text or "’" in text or "ʼ" in text
-
-
-def apostrophe_variants(token: str) -> tuple[str, ...]:
-    """Every apostrophe-glyph form of the token to try in dictionary lookups."""
-    straight = normalize_apostrophes(token)
-    if _STRAIGHT_APOSTROPHE not in straight:
-        return (token,)
-    folded = (straight.replace(_STRAIGHT_APOSTROPHE, g) for g in _FOLDED_APOSTROPHES)
-    return tuple(dict.fromkeys((token, straight, *folded)))
+def longest_first(words: Iterable[str]) -> tuple[str, ...]:
+    """Longest first, so a shorter affix never shadows a longer one it prefixes."""
+    return tuple(sorted(words, key=len, reverse=True))
 
 
 # hy intonation marks (Մի՞թե); NOT a canon table -- some dict keys carry the
 # mark contrastively (ազատի՛ -> ազատել vs ազատի -> ազատ)
 _ARMENIAN_MARKS = "՛՜՞"
-_ARMENIAN_MARKS_TABLE = str.maketrans("", "", _ARMENIAN_MARKS)
-
-
-def has_armenian_marks(text: str) -> bool:
-    """True if the text carries any hy intonation mark (՛ ՜ ՞)."""
-    return "՛" in text or "՜" in text or "՞" in text
-
-
-def strip_armenian_marks(text: str) -> str:
-    """Remove the hy intonation marks (՛ ՜ ՞)."""
-    return text.translate(_ARMENIAN_MARKS_TABLE)
 
 
 # Per-language dictionary-matching canonicalization, applied to BOTH

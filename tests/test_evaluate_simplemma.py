@@ -8,6 +8,7 @@ from simplemma.strategies.default import DefaultStrategy
 from simplemma.strategies.dictionaries import DefaultDictionaryFactory
 from training import evaluate_simplemma
 from training.evaluate_simplemma import evaluate_dataset
+from training.ud_conllu import iter_word_tokens_in_sentences
 
 from .conftest import FixedMapping
 
@@ -47,7 +48,10 @@ def lemmatizers() -> tuple[Lemmatizer, Lemmatizer]:
 def test_evaluate_dataset(lemmatizers):
     lemmatizer, greedy_lemmatizer = lemmatizers
     overall, focus, _ = evaluate_dataset(
-        parse(CONLLU), lemmatizer, greedy_lemmatizer, "en"
+        iter_word_tokens_in_sentences(parse(CONLLU), "en"),
+        lemmatizer,
+        greedy_lemmatizer,
+        "en",
     )
 
     assert overall.total == 3
@@ -59,7 +63,10 @@ def test_evaluate_dataset(lemmatizers):
 def test_evaluate_dataset_errors_and_skip(lemmatizers):
     lemmatizer, greedy_lemmatizer = lemmatizers
     overall, _, errors = evaluate_dataset(
-        parse(CONLLU_ERRORS), lemmatizer, greedy_lemmatizer, "en"
+        iter_word_tokens_in_sentences(parse(CONLLU_ERRORS), "en"),
+        lemmatizer,
+        greedy_lemmatizer,
+        "en",
     )
 
     assert overall.total == 1
@@ -78,7 +85,9 @@ def test_evaluate_dataset_canonicalizes_ar_gold_lemma():
         lemmatization_strategy=DefaultStrategy(dictionary_factory=FixedMapping(mapping))
     )
     conllu = "1\tكتاب\tكِتَاب\tNOUN\t_\t_\t0\troot\t_\t_\n\n"  # vocalized gold
-    overall, _, errors = evaluate_dataset(parse(conllu), lemmatizer, lemmatizer, "ar")
+    overall, _, errors = evaluate_dataset(
+        iter_word_tokens_in_sentences(parse(conllu), "ar"), lemmatizer, lemmatizer, "ar"
+    )
     assert overall.total == 1
     assert overall.nongreedy == 1  # matches only because gold was canonicalized
     assert not errors

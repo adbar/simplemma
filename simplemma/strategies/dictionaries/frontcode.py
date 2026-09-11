@@ -56,15 +56,9 @@ def _read_header(data: bytes) -> tuple[bool, int, int]:
 def _iter_records(
     data: bytes, pos: int, prev_key: bytes = b"", prev_value: bytes = b""
 ) -> Iterator[tuple[int, bytes, bytes]]:
-    """Yield (record_start, stored_key, stored_value) from `pos` to the end of
-    `data`, resuming front-code decoding from the given seed. Keys/values are
-    in on-disk form: sorted, not un-reversed for `reverse_key` streams.
-
-    The single per-record decoder used by both `_decode_stream` and `StreamMap`.
-    Almost-always-single-byte varints are read inline; rare multi-byte ones
-    fall back to `_read_varint` (measured 1.5-1.6x on shipped dicts). Raises
-    ValueError on a slice/varint that runs past the buffer.
-    """
+    """Yield (record_start, stored_key, stored_value) from `pos` onward, resuming
+    from the given seed; on-disk form (not un-reversed). ValueError on overrun.
+    Single-byte varints are read inline (1.5x over `_read_varint` throughout)."""
     n = len(data)
     try:
         while pos < n:
@@ -112,10 +106,7 @@ def _iter_records(
 
 
 def _decode_stream(data: bytes) -> dict[bytes, bytes]:
-    """Decode already-decompressed front-coded bytes.
-
-    Assumes a well-formed `_encode` stream; truncation or trailing garbage
-    raises ValueError."""
+    """Decode decompressed front-coded bytes; ValueError if truncated or trailing."""
     reverse_key, count, pos = _read_header(data)
 
     result: dict[bytes, bytes] = {}

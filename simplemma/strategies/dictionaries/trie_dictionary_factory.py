@@ -1,6 +1,8 @@
 """Trie-backed `DictionaryFactory`: lowest steady-state memory, needs the
 `marisa-trie` extra and a one-off cached build per language."""
 
+from __future__ import annotations
+
 import logging
 from pathlib import Path
 from collections.abc import Iterator, Mapping
@@ -12,10 +14,6 @@ try:
     _TRIE_DEPS_AVAILABLE = True
 except ImportError:
     _TRIE_DEPS_AVAILABLE = False
-
-    class BytesTrie:  # type: ignore[no-redef]
-        pass
-
 
 from simplemma.__metadata__ import __version__ as SIMPLEMMA_VERSION
 from simplemma.strategies.dictionaries.dictionary_factory import (
@@ -100,11 +98,7 @@ class TrieDictionaryFactory(CachingDictionaryFactory):
         )
 
     def _write_trie_to_disk(self, lang: str, trie: BytesTrie) -> None:
-        """Persist the trie to disk for later usage.
-
-        The persisted trie can be loaded by subsequent runs to speed up
-        loading times.
-        """
+        """Persist the trie so later runs skip the build."""
         logger.debug("Caching trie on disk. This might take a second.")
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         target = self._cache_dir / f"{lang}.dic"

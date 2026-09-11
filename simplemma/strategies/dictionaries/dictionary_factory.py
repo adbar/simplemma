@@ -76,7 +76,6 @@ class DictionaryFactory(Protocol):
         Raises:
             ValueError: If the specified language is not supported.
         """
-        raise NotImplementedError
 
 
 class DecodedStrMapping(Mapping[str, str]):

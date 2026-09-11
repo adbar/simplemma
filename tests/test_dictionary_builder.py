@@ -8,7 +8,7 @@ from simplemma.strategies import DefaultStrategy, DictionaryFactory
 from simplemma.strategies.dictionaries import dictionary_factory
 from training.frontcode_encode import _decode as _fc_decode, _encode as _fc_encode
 from simplemma.strategies.dictionaries.dictionary_factory import MappingStrToByteString
-from training import build_lang_config, dictionary_builder
+from training import build_lang_config, dictionary_builder, wordlist_ingest
 
 TEST_DIR = Path(__file__).parent
 
@@ -17,49 +17,35 @@ def _read(tmp_path, lang: str, text: str) -> dict[str, str]:
     """Write a TSV fixture and return the parsed dictionary."""
     fixture = tmp_path / f"{lang}.txt"
     fixture.write_text(text, encoding="utf-8")
-    return dictionary_builder._read_dict(fixture, lang)
+    return wordlist_ingest.read_wordlist(fixture, lang)
 
 
 def _make_shipped(tmp_path, monkeypatch, text: str) -> None:
     """Build a zz.plzma and install it as the shipped dict (DATA_FOLDER -> tmp_path)."""
     (tmp_path / "zz.txt").write_text(text, encoding="utf-8")
-    dictionary_builder._build_dictionary(
-        "zz", listpath=str(tmp_path), filepath=str(tmp_path / "zz.plzma")
-    )
+    wordlist_ingest.ingest("zz", tmp_path, filepath=str(tmp_path / "zz.plzma"))
     monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
     monkeypatch.setattr(dictionary_factory, "SUPPORTED_LANGUAGES", frozenset({"zz"}))
 
 
-def _layers(
-    tmp_path, monkeypatch, *, fill: str | None = None, overrides: str | None = None
-):
-    """Point FILL_DIR/OVERRIDES_DIR at tmp dirs, writing the given zz.tsv
-    (lemma<TAB>form) text. A None layer points at a missing dir (no layer)."""
-    for kind, text, attr in (
-        ("fill", fill, "FILL_DIR"),
-        ("overrides", overrides, "OVERRIDES_DIR"),
-    ):
-        directory = tmp_path / kind
-        if text is not None:
-            directory.mkdir(exist_ok=True)
-            (directory / "zz.tsv").write_text(text, encoding="utf-8")
-        monkeypatch.setattr(dictionary_builder, attr, directory)
-    if fill is not None:  # allowlist the test language for the fill layer
-        monkeypatch.setattr(
-            dictionary_builder,
-            "V2_FILL_LANGS",
-            dictionary_builder.V2_FILL_LANGS | {"zz"},
-        )
+def _layers(tmp_path, monkeypatch, *, overrides: str | None = None):
+    """Point OVERRIDES_DIR at a tmp dir, writing the given zz.tsv
+    (lemma<TAB>form) text; None points at a missing dir (no layer)."""
+    directory = tmp_path / "overrides"
+    if overrides is not None:
+        directory.mkdir(exist_ok=True)
+        (directory / "zz.tsv").write_text(overrides, encoding="utf-8")
+    monkeypatch.setattr(dictionary_builder, "OVERRIDES_DIR", directory)
 
 
 def test_logic(tmp_path, monkeypatch) -> None:
     # 6 entries: 1-char-lemma pair (s/st) kept -- min-lemma floor is just non-empty now
-    mydict = dictionary_builder._read_dict(TEST_DIR / "data/zz.txt", "zz")
+    mydict = wordlist_ingest.read_wordlist(TEST_DIR / "data/zz.txt", "zz")
     assert len(mydict) == 6
 
-    listpath = str(TEST_DIR / "data")
+    listpath = TEST_DIR / "data"
     temp_outputfile = str(tmp_path / "zz.plzma")
-    dictionary_builder._build_dictionary("zz", listpath, temp_outputfile)
+    wordlist_ingest.ingest("zz", listpath, temp_outputfile)
     roundtripped = _fc_decode(Path(temp_outputfile).read_bytes())
     assert isinstance(roundtripped, dict)
     assert len(roundtripped) == 6
@@ -69,7 +55,7 @@ def test_logic(tmp_path, monkeypatch) -> None:
     # leave a stray zz.plzma in the real package data. Patch the factory module,
     # since dictionary_builder reads DATA_FOLDER from it at call time.
     monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
-    dictionary_builder._build_dictionary("zz", listpath, in_place=True)
+    wordlist_ingest.ingest("zz", listpath, in_place=True)
     assert (tmp_path / "zz.plzma").exists()
 
 
@@ -95,6 +81,18 @@ def test_read_dict_filtering(tmp_path) -> None:
         "running": "xunning",
         "xunning": "xunning",  # losing a conflict doesn't cost the identity
     }  # 'good'/'-bad' contribute nothing: the whole line is skipped pre-collect
+
+
+def test_read_dict_applies_character_hygiene(tmp_path) -> None:
+    """Curly apostrophes fold, invisible chars strip, control chars still drop."""
+    result = _read(
+        tmp_path,
+        "en",
+        "l'ami\tl’ami\n"  # curly apostrophe in the form -> straight
+        "word\two\u00adrds\n"  # soft hyphen stripped
+        "bad\tba\x01d\n",  # control char -> line dropped
+    )
+    assert result == {"l'ami": "l'ami", "words": "word", "word": "word"}
 
 
 def test_read_dict_order_independent(tmp_path) -> None:
@@ -512,10 +510,9 @@ def test_build_dictionary_ships_ar_hamza_alias(tmp_path, monkeypatch) -> None:
     key and the folded-key alias in the built .plzma."""
     # ar ships for real -- unlist it so ingestion doesn't layer the real dict
     monkeypatch.setattr(dictionary_factory, "SUPPORTED_LANGUAGES", frozenset())
-    listpath = str(tmp_path)
     (tmp_path / "ar.txt").write_text("أحمد\tأحمد\n", encoding="utf-8")
     outfile = str(tmp_path / "ar.plzma")
-    dictionary_builder._build_dictionary("ar", listpath, outfile)
+    wordlist_ingest.ingest("ar", tmp_path, outfile)
     built = _fc_decode(Path(outfile).read_bytes())
     assert built["أحمد".encode()] == "أحمد".encode()  # original key
     assert built["احمد".encode()] == "أحمد".encode()  # folded-key alias
@@ -546,25 +543,27 @@ def test_read_dict_rejects_control_and_mojibake_keys(tmp_path) -> None:
     assert result == {"dog": "dog", "dogs": "dog"}  # \x01 and U+FFFD lines gone
 
 
-def test_apply_layers_drops_spaced_forms(tmp_path, monkeypatch) -> None:
+def _layer(tmp_path, text: str) -> dict[str, str]:
+    path = tmp_path / "zz.tsv"
+    path.write_text(text, encoding="utf-8")
+    return dictionary_builder._layer_entries(path, "zz")
+
+
+def test_layer_entries_drops_spaced_forms(tmp_path) -> None:
     """Multi-word layer forms are unreachable keys (tokenizer never yields a spaced token)."""
-    _layers(tmp_path, monkeypatch, fill="top hat\ttop hats\ncat\tcats\n")
-    merged = dictionary_builder._apply_layers({}, "zz", {})
-    assert merged == {"cats": "cat"}  # 'top hats' dropped (space in form)
+    assert _layer(tmp_path, "top hat\ttop hats\ncat\tcats\n") == {"cats": "cat"}
 
 
-def test_apply_layers_rejects_junk_entries(tmp_path, monkeypatch) -> None:
+def test_layer_entries_rejects_junk_entries(tmp_path) -> None:
     """A curated layer file with mojibake/control chars fails the build loud, not a silent skip."""
-    _layers(tmp_path, monkeypatch, fill="good\tgoods\nbad\tba\x01d\n")
     with pytest.raises(ValueError, match="rejected"):
-        dictionary_builder._apply_layers({}, "zz", {})
+        _layer(tmp_path, "good\tgoods\nbad\tba\x01d\n")
 
 
-def test_apply_layers_rejects_empty_fields(tmp_path, monkeypatch) -> None:
+def test_layer_entries_rejects_empty_fields(tmp_path) -> None:
     """An empty lemma/form in a curated layer fails the build rather than shipping a '' key."""
-    _layers(tmp_path, monkeypatch, fill="good\tgoods\nlemma\t\n")
     with pytest.raises(ValueError, match="empty"):
-        dictionary_builder._apply_layers({}, "zz", {})
+        _layer(tmp_path, "good\tgoods\nlemma\t\n")
 
 
 def test_layer_entries_canonicalizes_a_grc_override(tmp_path) -> None:
@@ -588,20 +587,13 @@ def test_layer_entries_rejects_a_canon_collision(tmp_path) -> None:
         dictionary_builder._layer_entries(path, "grc")
 
 
-def test_apply_layers_precedence(tmp_path, monkeypatch) -> None:
-    """overrides > base > fill: fill only adds, overrides always win."""
-    _layers(tmp_path, monkeypatch, fill="filllemma\tdogs\nnew\tnews\n")
+def test_override_layer_wins_base(tmp_path, monkeypatch) -> None:
+    _layers(tmp_path, monkeypatch, overrides="overridden\tcats\nnew\tnews\n")
     base = {"dogs": "dog", "cats": "cat"}
-    merged = dictionary_builder._apply_layers(base, "zz", {"cats": "overridden"})
-    assert merged["dogs"] == "dog"  # fill never displaces a base entry
-    assert merged["news"] == "new"  # fill adds what's missing
-    assert merged["cats"] == "overridden"  # override always wins
-
-
-def test_apply_layers_without_layer_files_is_identity(tmp_path, monkeypatch) -> None:
-    _layers(tmp_path, monkeypatch)  # no fill, no override
-    base = {"dogs": "dog"}
-    assert dictionary_builder._apply_layers(base, "zz", {}) == base
+    out = dictionary_builder._compose_from_base(base, "zz")
+    assert out["dogs"] == "dog"  # base survives
+    assert out["cats"] == "overridden"  # override always wins
+    assert out["news"] == "new"  # override adds what's missing
 
 
 def test_scrub_drops_unreachable_keys_and_fixes_junk_values() -> None:
@@ -611,21 +603,34 @@ def test_scrub_drops_unreachable_keys_and_fixes_junk_values() -> None:
         "as": "\ufeff" + "a",  # BOM in value: normalized to clean lemma
         "hithau": "prpers",  # template placeholder value -> dropped
         "Andre" + "\u0306" + "as": "andreas",  # decomposed key -> dropped
-        "don\u2019t": "do",  # curly-quote key: reachable (runtime is NFC-only) -> kept
+        "don\u2019t": "do",  # curly-quote key: not normalize_token-stable -> dropped
         "Alssund": "Als Sund",  # spaced value: multi-word output never ships
     }
     out = dictionary_builder._scrub(d)
-    assert out == {"dogs": "dog", "as": "a", "don\u2019t": "do"}
+    assert out == {"dogs": "dog", "as": "a"}
 
 
-def test_curly_quote_override_form_survives(tmp_path, monkeypatch) -> None:
-    """A typographic-apostrophe override form isn't dropped post-layer (read_pairs and _valid_key agree: NFC-only)."""
-    _layers(tmp_path, monkeypatch, overrides="do\tdon\u2019t\n")
-    entries = dictionary_builder._layer_entries(
-        dictionary_builder.OVERRIDES_DIR / "zz.tsv", "zz"
+def test_shipped_dict_folds_keys_and_rejects_twins(monkeypatch) -> None:
+    """Shipped keys are folded into the runtime key space; two keys folding
+    together with different values is a data bug, not something to arbitrate."""
+    entries = {"\u03c0\u03b1\u03c1\u2019".encode(): "\u03c0\u03b1\u03c1\u03ac".encode()}
+    monkeypatch.setattr(
+        dictionary_builder, "_load_dictionary_from_disk", lambda lang: entries
     )
-    out = dictionary_builder._scrub(dictionary_builder._apply_layers({}, "zz", entries))
-    assert out == {"don\u2019t": "do"}
+    assert dictionary_builder._shipped_str_dict("zz") == {
+        "\u03c0\u03b1\u03c1'": "\u03c0\u03b1\u03c1\u03ac"
+    }
+    entries[b"can't"], entries["can\u2019t".encode()] = b"cannot", b"can"
+    with pytest.raises(ValueError, match="folds to"):
+        dictionary_builder._shipped_str_dict("zz")
+
+
+def test_curly_quote_override_form_survives(tmp_path) -> None:
+    """A typographic-apostrophe override form is folded to the straight key the
+    runtime queries, not dropped post-layer."""
+    assert dictionary_builder._scrub(_layer(tmp_path, "do\tdon\u2019t\n")) == {
+        "don't": "do"
+    }
 
 
 def test_key_alias_renormalizes_stacked_diacritics() -> None:
@@ -685,13 +690,13 @@ def test_read_dict_rule_mismatch_logged(tmp_path, caplog) -> None:
     # rule("Bäckerei") == "Bäckerei", but the list gives a different lemma.
     fixture.write_text("baeckerei\tBäckerei\n", encoding="utf-8")
 
-    with caplog.at_level(logging.DEBUG, logger=dictionary_builder.LOGGER.name):
-        dictionary_builder._read_dict(fixture, "de")
+    with caplog.at_level(logging.DEBUG, logger=wordlist_ingest.LOGGER.name):
+        wordlist_ingest.read_wordlist(fixture, "de")
     assert "Bäckerei" in caplog.text and "rule mismatch" in caplog.text
 
     caplog.clear()
-    with caplog.at_level(logging.INFO, logger=dictionary_builder.LOGGER.name):
-        dictionary_builder._read_dict(fixture, "de")
+    with caplog.at_level(logging.INFO, logger=wordlist_ingest.LOGGER.name):
+        wordlist_ingest.read_wordlist(fixture, "de")
     assert "rule mismatch" not in caplog.text
 
 
@@ -745,9 +750,9 @@ def test_build_default_composes_over_shipped_dict(tmp_path, monkeypatch) -> None
 
 def test_build_wordlist_ingestion_keeps_curated_mappings(tmp_path, monkeypatch) -> None:
     """Wordlist ingestion into a shipped language auto-layers the installed
-    mappings (override > shipped > list > fill): a re-extraction only ADDS."""
+    mappings (override > shipped > list): a re-extraction only ADDS."""
     _make_shipped(tmp_path, monkeypatch, "dog\tdogs\ncat\tcats\nmouse\tmice\n")
-    _layers(tmp_path, monkeypatch, fill="FISH\tcats\n", overrides="RODENT\tmice\n")
+    _layers(tmp_path, monkeypatch, overrides="RODENT\tmice\n")
 
     # re-extraction: DISAGREES on dogs, adds a new form birds
     (tmp_path / "fresh").mkdir()
@@ -755,12 +760,9 @@ def test_build_wordlist_ingestion_keeps_curated_mappings(tmp_path, monkeypatch) 
         "WRONGDOG\tdogs\nbird\tbirds\n", encoding="utf-8"
     )
     built = tmp_path / "out.plzma"
-    dictionary_builder._build_dictionary(
-        "zz", listpath=str(tmp_path / "fresh"), filepath=str(built)
-    )
+    wordlist_ingest.ingest("zz", tmp_path / "fresh", filepath=str(built))
     result = _fc_decode(built.read_bytes())
     assert result[b"dogs"] == b"dog"  # shipped beats the re-extraction
-    assert result[b"cats"] == b"cat"  # shipped beats fill
     assert result[b"mice"] == b"RODENT"  # override beats shipped
     assert result[b"birds"] == b"bird"  # list-only key added
 
@@ -778,28 +780,9 @@ def test_build_dictionary_is_deterministic(tmp_path) -> None:
     """Two builds of the same input produce byte-identical .plzma (trie cache is keyed on shipped bytes)."""
     (tmp_path / "zz.txt").write_text("dog\tdogs\ncat\tcats\n", encoding="utf-8")
     a, b = tmp_path / "a.plzma", tmp_path / "b.plzma"
-    dictionary_builder._build_dictionary("zz", listpath=str(tmp_path), filepath=str(a))
-    dictionary_builder._build_dictionary("zz", listpath=str(tmp_path), filepath=str(b))
+    wordlist_ingest.ingest("zz", tmp_path, filepath=str(a))
+    wordlist_ingest.ingest("zz", tmp_path, filepath=str(b))
     assert a.read_bytes() == b.read_bytes()
-
-
-def test_apply_layers_cleans_machine_fill(tmp_path, monkeypatch) -> None:
-    """Fill is a machine source: _apply_layers runs _clean_base over it, dropping
-    affix-fragment keys, unlike a reviewed override which keeps its elisions."""
-    _layers(tmp_path, monkeypatch, fill="-al\t-al\ncat\tcats\n")
-    merged = dictionary_builder._apply_layers({}, "zz", {})
-    assert merged == {"cats": "cat"}  # '-al' affix key dropped
-
-
-def test_apply_layers_rejects_unlisted_fill(tmp_path, monkeypatch) -> None:
-    """A fill file outside V2_FILL_LANGS fails the build loud: fill/ is gitignored,
-    so a stale local TSV must not ship silently against the reviewed decision."""
-    fill_dir = tmp_path / "fill"
-    fill_dir.mkdir()
-    (fill_dir / "fr.tsv").write_text("chat\tchats\n", encoding="utf-8")
-    monkeypatch.setattr(dictionary_builder, "FILL_DIR", fill_dir)
-    with pytest.raises(ValueError, match="V2_FILL_LANGS"):
-        dictionary_builder._apply_layers({}, "fr", {})
 
 
 def test_build_from_shipped_scrubs_placeholder(tmp_path, monkeypatch) -> None:
@@ -808,8 +791,45 @@ def test_build_from_shipped_scrubs_placeholder(tmp_path, monkeypatch) -> None:
     (tmp_path / "zz.plzma").write_bytes(_fc_encode(raw))
     monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
     monkeypatch.setattr(dictionary_factory, "SUPPORTED_LANGUAGES", frozenset({"zz"}))
-    _layers(tmp_path, monkeypatch)  # no fill, no override
+    _layers(tmp_path, monkeypatch)  # no override
     out = tmp_path / "out.plzma"
     dictionary_builder._build_dictionary("zz", filepath=str(out))
     # b"dog": b"dog" is _ensure_value_selfmaps covering the surviving value
     assert _fc_decode(out.read_bytes()) == {b"dogs": b"dog", b"dog": b"dog"}
+
+
+def test_drifted_languages_detects_pipeline_drift(tmp_path, monkeypatch) -> None:
+    _make_shipped(tmp_path, monkeypatch, "dog\tdogs\n")
+    _layers(tmp_path, monkeypatch)
+    assert dictionary_builder._drifted_languages(["zz"]) == []
+    _layers(tmp_path, monkeypatch, overrides="hound\tdogs\n")
+    assert dictionary_builder._drifted_languages(["zz"]) == ["zz"]
+
+
+def test_ingest_gate_blocks_a_regression(tmp_path, monkeypatch) -> None:
+    from training import ud_conllu
+
+    _make_shipped(tmp_path, monkeypatch, "dog\tdogs\n")
+    _layers(tmp_path, monkeypatch)
+    splits = tmp_path / "splits"
+    splits.mkdir()
+    (splits / "zz_x-ud-train.conllu").write_text(
+        "1\tcats\tcat\tNOUN\t_\t_\t0\troot\t_\t_\n"
+        "2\tcat\tcat\tNOUN\t_\t_\t0\troot\t_\t_\n\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(ud_conllu, "UD_SPLITS", splits)
+    fresh = tmp_path / "fresh"
+    fresh.mkdir()
+    out = tmp_path / "out.plzma"
+
+    (fresh / "zz.txt").write_text("cat\tcats\n", encoding="utf-8")  # improves
+    wordlist_ingest.ingest("zz", fresh, filepath=str(out), gate=True)
+    assert _fc_decode(out.read_bytes())[b"cats"] == b"cat"
+
+    (fresh / "zz.txt").write_text("dog\tcat\n", encoding="utf-8")  # cat -> dog
+    with pytest.raises(RuntimeError, match="gate FAILED"):
+        wordlist_ingest.ingest(
+            "zz", fresh, filepath=str(tmp_path / "no.plzma"), gate=True
+        )
+    assert not (tmp_path / "no.plzma").exists()

@@ -13,7 +13,7 @@ from functools import lru_cache
 from typing import Any
 from collections.abc import Iterator
 
-from .casing import SentenceCasing, SupportsMembership
+from .casing import MembershipCheck, SentenceCasing
 from .strategies import (
     DEFAULT_DICTIONARY_FACTORY,
     DefaultStrategy,
@@ -28,16 +28,7 @@ from .utils import normalize_token, validate_lang_input
 
 
 def _control_input_type(token: Any) -> None:
-    """Check the type of the input token.
-
-    Args:
-        token: The input token to check.
-
-    Raises:
-        TypeError: If the token is not a string.
-        ValueError: If the token is an empty string.
-    """
-
+    """Raise TypeError for a non-string token, ValueError for an empty one."""
     if not isinstance(token, str):
         raise TypeError(f"Wrong input type, expected string, got {type(token)}")
     if token == "":
@@ -47,13 +38,13 @@ def _control_input_type(token: Any) -> None:
 class Lemmatizer:
     """Lemmatizer class for performing token lemmatization."""
 
-    __slots__ = [
+    __slots__ = (
         "_cached_lemmatize",
         "_fallback_lemmatization_strategy",
         "_lemmatization_strategy",
         "_member",
         "_tokenizer",
-    ]
+    )
 
     def __init__(
         self,
@@ -79,12 +70,10 @@ class Lemmatizer:
         self._tokenizer = tokenizer
         self._lemmatization_strategy = lemmatization_strategy
         self._fallback_lemmatization_strategy = fallback_lemmatization_strategy
-        # A strategy exposing raw membership enables the gated/acronym casing
-        # heuristics; others fall back to base initial-lowering.
-        self._member = (
-            lemmatization_strategy.is_dictionary_member
-            if isinstance(lemmatization_strategy, SupportsMembership)
-            else None
+        # A strategy exposing raw membership (`is_dictionary_member`) enables the
+        # gated/acronym casing heuristics; others get base initial-lowering only.
+        self._member: MembershipCheck | None = getattr(
+            lemmatization_strategy, "is_dictionary_member", None
         )
         self._cached_lemmatize = lru_cache(maxsize=cache_max_size)(self._lemmatize)
 
@@ -110,19 +99,8 @@ class Lemmatizer:
         token: str,
         lang: str | tuple[str, ...],
     ) -> str:
-        """Internal method to lemmatize a token in the specified language(s).
-
-        The token arrives NFC-normalized by ``lemmatize``. Input validation
-        happens here so it only runs on cache misses, keeping hits cheap
-        (exceptions are never cached by ``lru_cache``).
-
-        Args:
-            token: The token to lemmatize.
-            lang: The language or languages for lemmatization.
-
-        Returns:
-            str: The lemmatized form of the token.
-        """
+        """Cache-miss path: validates here so hits stay cheap (the token is
+        already NFC from `lemmatize`; lru_cache never caches exceptions)."""
         _control_input_type(token)
         lang = validate_lang_input(lang)
 
@@ -169,10 +147,6 @@ def _legacy_lemmatizer_for(greedy: bool, low_memory: bool) -> Lemmatizer:
     )
 
 
-_LOOKUP_DEFAULT = DictionaryLookupStrategy(DEFAULT_DICTIONARY_FACTORY)
-_LOOKUP_LOW_MEM = DictionaryLookupStrategy(LOW_MEMORY_DICTIONARY_FACTORY)
-
-
 def is_known(token: str, lang: str | tuple[str, ...], low_memory: bool = False) -> bool:
     """Check if a token is known in the specified language(s).
 
@@ -187,7 +161,9 @@ def is_known(token: str, lang: str | tuple[str, ...], low_memory: bool = False) 
     _control_input_type(token)
     token = normalize_token(token)
     lang = validate_lang_input(lang)
-    lookup = _LOOKUP_LOW_MEM if low_memory else _LOOKUP_DEFAULT
+    lookup = DictionaryLookupStrategy(
+        LOW_MEMORY_DICTIONARY_FACTORY if low_memory else DEFAULT_DICTIONARY_FACTORY
+    )
     return any(lookup.get_lemma(token, code) is not None for code in lang)
 
 

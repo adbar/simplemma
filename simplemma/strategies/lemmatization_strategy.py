@@ -23,6 +23,7 @@ class LemmatizationStrategy(Protocol):
         """
         This method receives a token and a language code and should return the lemma for the token in the specified language.
         If the lemma is not found, it should return `None`.
+        Tokens are expected in `normalize_token` form; `Lemmatizer` folds them, strategies do not.
 
         Args:
             token (str): The input token to lemmatize.
@@ -31,8 +32,4 @@ class LemmatizationStrategy(Protocol):
         Returns:
             str | None: The lemma for the token, or `None` if not found.
 
-        Raises:
-            NotImplementedError: If the method is not implemented by the subclass.
-
         """
-        raise NotImplementedError()

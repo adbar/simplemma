@@ -54,11 +54,7 @@ def _as_list(results: dict[str, float]) -> list[tuple[str, float]]:
 class LanguageDetector:
     """Language detection via dictionary membership probing."""
 
-    __slots__ = [
-        "_lang",
-        "_lemmatization_strategy",
-        "_token_sampler",
-    ]
+    __slots__ = ("_lang", "_lemmatization_strategy", "_token_sampler")
 
     def __init__(
         self,
@@ -79,12 +75,9 @@ class LanguageDetector:
         text: str,
         token_sampler: TokenSampler,
     ) -> dict[str, float]:
-        """Per-language proportions for a given sampler.
-
-        Sampler is an arg (not self's) so the call stays stateless for
-        ``main_language``. Loops languages-outer to load each dictionary once
-        instead of thrashing the cache per token.
-        """
+        """Per-language proportions for `token_sampler` (an argument, so
+        `main_language` can swap samplers). Languages-outer: each dictionary
+        loads once instead of thrashing the cache per token."""
         tokens = [normalize_token(token) for token in token_sampler.sample_text(text)]
 
         total_tokens = len(tokens)
