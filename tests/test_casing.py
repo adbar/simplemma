@@ -13,7 +13,7 @@ from simplemma.casing import (
     is_keepable_allcaps,
     is_sentence_boundary,
 )
-from simplemma.strategies.fallback.to_lowercase import BETTER_LOWER
+from simplemma.lemmatizer import BETTER_LOWER
 
 
 def _member_of(words: set[str]) -> MembershipCheck:

@@ -2,9 +2,9 @@
 
 Each language: a UD-validated prefix list and an optional suffix regex fragment
 (stem-floor lookahead, infinitive-collision guard, or none). DROP_PREFIX_LANGS
-says whether a matched prefix is a separate particle to discard (ar/he
-proclitics + article) or a derivational prefix that stays part of the lemma
-(de/ru/uk). Prefixes are sorted by length so list order carries no meaning.
+says whether a matched prefix is a separate particle to discard (ar/he/fr/it/ca)
+or a derivational prefix that stays part of the lemma (de/ru/uk). Prefixes are
+sorted by length so list order carries no meaning.
 """
 
 import re
@@ -26,6 +26,14 @@ DEFAULT_KNOWN_PREFIXES: dict[str, re.Pattern[str]] = {
     # excluded מ. (?=..) stem floor: >=2 chars must remain, mirroring he's
     # guard against a short token stripping to a single-letter abbreviation key.
     "ar": _prefix_regex("و ب ل ال لل وال بال فال كال", r"(?=..)"),
+    # UD-validated elided proclitics; no stem floor (an apostrophe + 1-3
+    # trailing letters is almost always elision). See
+    # training/data/affix_eval/README.md "Apostrophe/proclitic elision".
+    "ca": _prefix_regex("l' d' s' m' n' t'"),
+    "fr": _prefix_regex(
+        "jusqu' lorsqu' puisqu' quoiqu' presqu' qu' l' d' c' n' s' m' j' t'"
+    ),
+    "it": _prefix_regex("quest' quell' dell' nell' sull' coll' dall' un' l' d' c' s'"),
     # UD-validated (de_gsd/de_hdt): dropped 27 entries that were
     # unreachable under first-match alternation ("herab" shadowed by
     # "her") plus "zu" (fabricated zufolge->zufolgen). (?!zu) blocks
@@ -58,10 +66,11 @@ DEFAULT_KNOWN_PREFIXES: dict[str, re.Pattern[str]] = {
     "uk": _prefix_regex("по за ви на при про роз пере від до під об без"),
 }
 
-# Languages where a matched prefix is a separate grammatical particle, not
-# part of the stem's lemma (ar/he proclitics + article: "بالبيت"/"בבית" ->
-# "بيت"/"בית"); elsewhere the prefix stays attached (the default).
-DROP_PREFIX_LANGS = frozenset({"ar", "he"})
+# A matched prefix is a separate particle, not part of the lemma ("בבית" ->
+# "בית", "l'arbre" -> "arbre"). Particles attach to capitalized hosts too
+# (L'homme): matched case-insensitively, but a capitalized stem behind a
+# capitalized particle is a proper noun (D'Annunzio) and is left alone.
+DROP_PREFIX_LANGS = frozenset({"ar", "he", "ca", "fr", "it"})
 
 
 class PrefixDecompositionStrategy(LemmatizationStrategy):
@@ -86,19 +95,24 @@ class PrefixDecompositionStrategy(LemmatizationStrategy):
         # sits between a fused prefix's letters (بِالْكِتَابِ), so a
         # multi-char prefix can never match the raw token.
         token = canonicalize_token(token, lang)
-        prefix_match = self._known_prefixes[lang].match(token)
-        if not prefix_match or prefix_match[1] == token:
+        drop = lang in DROP_PREFIX_LANGS
+        prefix_match = self._known_prefixes[lang].match(
+            token.lower() if drop else token
+        )
+        if not prefix_match or prefix_match.end() == len(token):
             return None
 
-        prefix = prefix_match[1]
+        stem = token[prefix_match.end() :]
+        if drop and token[:1].isupper() and stem[:1].isupper():
+            return None
 
-        subword = self._dictionary_lookup.get_lemma(token[len(prefix) :], lang)
+        subword = self._dictionary_lookup.get_lemma(stem, lang)
         if not subword:
             return None
 
         # DROP_PREFIX_LANGS: the prefix is its own particle, so the stem's
         # lemma alone is the answer -- see the module comment above.
-        if lang in DROP_PREFIX_LANGS:
+        if drop:
             return subword
 
-        return prefix + subword.lower()
+        return token[: prefix_match.end()] + subword.lower()

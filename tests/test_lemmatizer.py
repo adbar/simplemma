@@ -10,7 +10,6 @@ from simplemma.strategies import (
     DefaultStrategy,
     DictionaryFactory,
     LemmatizationStrategy,
-    RaiseErrorFallbackStrategy,
 )
 
 
@@ -120,10 +119,11 @@ def test_readme() -> None:
     )
     assert lemmatize("スパゲッティ", lang="pt") == "スパゲッティ"
 
+    def _raise_fallback(token: str, lang: str) -> str:
+        raise ValueError(f"Token not found: {token}")
+
     with pytest.raises(ValueError):
-        Lemmatizer(
-            fallback_lemmatization_strategy=RaiseErrorFallbackStrategy()
-        ).lemmatize("スパゲッティ", lang="pt")
+        Lemmatizer(fallback=_raise_fallback).lemmatize("スパゲッティ", lang="pt")
 
 
 def test_nn_fill_full_pipeline() -> None:

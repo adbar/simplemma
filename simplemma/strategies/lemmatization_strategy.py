@@ -1,35 +1,15 @@
-"""
-This file defines the `LemmatizationStrategy` protocol class, which all lemmatization strategies should extend to be usable by the Simplemma library.
-"""
+"""Lemmatization strategy protocol."""
 
 from abc import abstractmethod
 from typing import Protocol
 
 
 class LemmatizationStrategy(Protocol):
-    """
-    This protocol defines the interface for lemmatization strategies. Subclasses implementing this protocol
-    must provide an implementation for the `get_lemma` method.
-
-    Note:
-        This protocol should be implemented by concrete lemmatization strategy classes.
-        Concrete implementations of this protocol should provide a concrete implementation for the `get_lemma` method.
-    """
+    """Interface for lemmatization strategies."""
 
     __slots__ = ()
 
     @abstractmethod
     def get_lemma(self, token: str, lang: str) -> str | None:
-        """
-        This method receives a token and a language code and should return the lemma for the token in the specified language.
-        If the lemma is not found, it should return `None`.
-        Tokens are expected in `normalize_token` form; `Lemmatizer` folds them, strategies do not.
-
-        Args:
-            token (str): The input token to lemmatize.
-            lang (str): The language code for the token's language.
-
-        Returns:
-            str | None: The lemma for the token, or `None` if not found.
-
-        """
+        """Return the lemma for `token` in `lang`, or None.
+        Tokens are expected in `normalize_token` form."""

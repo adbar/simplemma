@@ -1,7 +1,4 @@
-"""
-This module defines the `DefaultStrategy` class, which is a concrete implementation of the `LemmatizationStrategy` protocol.
-It provides lemmatization using a combination of different strategies such as dictionary lookup, apostrophe-boundary splitting, clitic decomposition, hyphen removal, rule-based lemmatization, prefix decomposition, and affix decomposition.
-"""
+"""Default lemmatization strategy: chains all sub-strategies."""
 
 from .affix_decomposition import AffixDecompositionStrategy
 from .clitic_decomposition import CliticDecompositionStrategy
@@ -30,10 +27,8 @@ def _case_key(word: str) -> str:
 
 
 class DefaultStrategy(LemmatizationStrategy):
-    """
-    This class represents a lemmatization strategy that combines different techniques to perform lemmatization.
-    It implements the `LemmatizationStrategy` protocol.
-    """
+    """Pipeline combining dictionary lookup, clitic/hyphen/prefix/affix/morpheme
+    decomposition, and per-language rules."""
 
     __slots__ = (
         "_dictionary_lookup",
@@ -52,21 +47,6 @@ class DefaultStrategy(LemmatizationStrategy):
         dictionary_factory: DictionaryFactory | None = None,
         low_memory: bool = False,
     ):
-        """
-        Initialize the Default Strategy.
-
-        Args:
-            greedy (bool): Whether to use a greedy approach for dictionary lookup. Defaults to `False`.
-            dictionary_factory (DictionaryFactory | None): A factory for creating dictionaries.
-                Defaults to the shared `DEFAULT_DICTIONARY_FACTORY`, or to
-                `LOW_MEMORY_DICTIONARY_FACTORY` if `low_memory` is set.
-            low_memory (bool): Use the memory-frugal dictionary backend. Not allowed
-                together with `dictionary_factory`. Defaults to `False`.
-
-        Raises:
-            ValueError: If both `dictionary_factory` and `low_memory=True` are given.
-
-        """
         if dictionary_factory is None:
             dictionary_factory = (
                 LOW_MEMORY_DICTIONARY_FACTORY
@@ -92,17 +72,6 @@ class DefaultStrategy(LemmatizationStrategy):
         )
 
     def get_lemma(self, token: str, lang: str) -> str | None:
-        """
-        Get the lemma for a given token and language using the combination of different lemmatization techniques.
-
-        Args:
-            token (str): The token to lemmatize.
-            lang (str): The language of the token.
-
-        Returns:
-            str | None: The lemma of the token, or None if no lemma is found.
-
-        """
         if token.isnumeric():
             return token
 

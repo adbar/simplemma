@@ -18,6 +18,7 @@ from tests.conftest import FixedMapping
 
 _LOOKUP = DictionaryLookupStrategy()
 _CLITIC = CliticDecompositionStrategy()
+_PREFIX = PrefixDecompositionStrategy()
 _MORPHEME = MorphemeDecompositionStrategy()
 
 
@@ -145,8 +146,7 @@ def test_clitic_decomposition_skips_diacritic_fold_for_canon_languages() -> None
 
 
 # (token, lang, expected): clitic decomposition through the shared architecture.
-# Enclitics strip to the bare verb/noun lemma (no reattachment); proclitics
-# strip from the front (elision before vowel-initial words).
+# Enclitics strip to the bare verb/noun lemma (no reattachment).
 _CLITIC_CASES = [
     # --- enclitics: pronoun chains strip to the bare verb lemma ---
     pytest.param("transmitiéndose", "es", "transmitir", id="enclitic-es-transmitir"),
@@ -183,23 +183,6 @@ _CLITIC_CASES = [
     # stripping "n't" would leave "ca" (a real, wrong entry) — excluded
     pytest.param("can't", "en", None, id="en-cant-excluded"),
     pytest.param("won't", "en", None, id="en-wont-excluded"),
-    # --- proclitics: elision before a vowel-initial word ---
-    pytest.param("l'arbre", "fr", "arbre", id="proclitic-fr-arbre"),
-    pytest.param("qu'avait", "fr", "avoir", id="proclitic-fr-avoir"),
-    pytest.param("jusqu'alors", "fr", "alors", id="proclitic-fr-alors"),
-    pytest.param("quest'anno", "it", "anno", id="proclitic-it-anno"),
-    pytest.param("nell'aula", "it", "aula", id="proclitic-it-aula"),
-    pytest.param("l'home", "ca", "home", id="proclitic-ca-home"),
-    pytest.param("l'arbre", "de", None, id="proclitic-unsupported-lang"),
-    # PROCLITIC_MIN_STEM_LEN=1: short remainders are structurally always
-    # elision in these orthographies
-    pytest.param("c'est", "fr", "être", id="proclitic-fr-cest"),
-    pytest.param("j'ai", "fr", "avoir", id="proclitic-fr-jai"),
-    pytest.param("qu'il", "fr", "il", id="proclitic-fr-quil"),
-    # --- proclitic guards: capitalized stem = surname, no strip ---
-    pytest.param("L'arbre", "fr", "arbre", id="proclitic-guard-lowercase-stem"),
-    pytest.param("D'Annunzio", "it", None, id="proclitic-guard-capitalized-stem"),
-    pytest.param("aujourd'hui", "fr", None, id="proclitic-guard-no-prefix-match"),
     # --- Arabic enclitic pronouns: same drop-not-reattach shape ---
     pytest.param("كتابه", "ar", "كتاب", id="ar-enclitic-hu"),
     pytest.param("كتابها", "ar", "كتاب", id="ar-enclitic-ha"),
@@ -215,6 +198,33 @@ _CLITIC_CASES = [
 @pytest.mark.parametrize("token, lang, expected", _CLITIC_CASES)
 def test_clitic_decomposition(token: str, lang: str, expected: str | None) -> None:
     assert _CLITIC.get_lemma(token, lang) == expected
+
+
+# fr/it/ca proclitics as drop-prefix languages; de keeps case-sensitive matching.
+_PREFIX_CASES = [
+    pytest.param("Mitbenutzern", "de", None, id="attached-prefix-case-sensitive"),
+    pytest.param("l'arbre", "fr", "arbre", id="proclitic-fr-arbre"),
+    pytest.param("qu'avait", "fr", "avoir", id="proclitic-fr-avoir"),
+    pytest.param("jusqu'alors", "fr", "alors", id="proclitic-fr-alors"),
+    pytest.param("quest'anno", "it", "anno", id="proclitic-it-anno"),
+    pytest.param("nell'aula", "it", "aula", id="proclitic-it-aula"),
+    pytest.param("l'home", "ca", "home", id="proclitic-ca-home"),
+    pytest.param("l'arbre", "de", None, id="proclitic-unsupported-lang"),
+    pytest.param("c'est", "fr", "être", id="proclitic-fr-cest"),
+    pytest.param("j'ai", "fr", "avoir", id="proclitic-fr-jai"),
+    pytest.param("qu'il", "fr", "il", id="proclitic-fr-quil"),
+    # --- proclitic guards: capitalized stem = surname, no strip ---
+    pytest.param("L'arbre", "fr", "arbre", id="proclitic-guard-lowercase-stem"),
+    pytest.param("D'Annunzio", "it", None, id="proclitic-guard-capitalized-stem"),
+    pytest.param("aujourd'hui", "fr", None, id="proclitic-guard-no-prefix-match"),
+]
+
+
+@pytest.mark.parametrize("token, lang, expected", _PREFIX_CASES)
+def test_prefix_decomposition_drop_langs(
+    token: str, lang: str, expected: str | None
+) -> None:
+    assert _PREFIX.get_lemma(token, lang) == expected
 
 
 def test_apostrophe_boundary() -> None:

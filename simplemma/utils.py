@@ -1,14 +1,4 @@
-"""
-Utils module.
-Contains utility functions for language processing.
-
-- [levenshtein_dist][simplemma.utils.levenshtein_dist]: Calculates the Levenshtein distance between two strings.
-- [validate_lang_input][simplemma.utils.validate_lang_input]: Validates the language input and ensures it is a valid tuple.
-- [normalize_token][simplemma.utils.normalize_token]: Normalizes a token to Unicode NFC form.
-- [strip_diacritics][simplemma.utils.strip_diacritics]: Removes combining diacritics from a token.
-- [canonicalize_token][simplemma.utils.canonicalize_token]: Per-language dictionary-matching canonicalization (grc grave->acute, he/ar vocalization-stripping).
-- `CANON_LANGS`: Languages canonicalize_token folds (public membership view of _CANON_TABLES).
-"""
+"""Shared utility functions for language processing."""
 
 import unicodedata
 from collections.abc import Iterable, Mapping
@@ -94,20 +84,7 @@ def canonicalize_token(token: str, lang: str) -> str:
 
 
 def validate_lang_input(lang: str | tuple[str, ...]) -> tuple[str, ...]:
-    """
-    Make sure the lang variable is a valid tuple.
-
-    Args:
-        lang (Any): The language input.
-
-    Returns:
-        tuple[str, ...]: A tuple containing the language code(s).
-
-    Raises:
-        TypeError: If the lang argument is not a tuple or a string.
-        ValueError: If the lang argument is empty.
-
-    """
+    """Normalize `lang` to a tuple, raising on invalid input."""
     # convert string
     if isinstance(lang, str):
         lang = (lang,)
@@ -119,21 +96,7 @@ def validate_lang_input(lang: str | tuple[str, ...]) -> tuple[str, ...]:
 
 
 def levenshtein_dist(str1: str, str2: str) -> int:
-    """
-    Calculate the Levenshtein distance between two strings.
-
-    The Levenshtein distance is a metric for measuring the difference between two strings,
-    defined as the minimum number of single-character edits (insertions, deletions, or substitutions)
-    required to change one string into the other.
-
-    Args:
-        str1 (str): The first string.
-        str2 (str): The second string.
-
-    Returns:
-        int: The Levenshtein distance between the two strings.
-
-    """
+    """Minimum edit distance between two strings."""
     # inspired by this noticeably faster code:
     # https://gist.github.com/p-hash/9e0f9904ce7947c133308fbe48fe032b
     if str1 == str2:

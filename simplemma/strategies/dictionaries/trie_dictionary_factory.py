@@ -47,13 +47,7 @@ class TrieWrapDict(DecodedStrMapping):
 
 
 class TrieDictionaryFactory(CachingDictionaryFactory):
-    """Memory optimized DictionaryFactory backed by MARISA-tries.
-
-    This dictionary factory creates dictionaries, which are backed by a
-    MARISA-trie instead of a dict, to make them consume very little
-    memory compared to the DefaultDictionaryFactory. Trade-offs are that
-    lookup performance isn't as good as with dicts.
-    """
+    """MARISA-trie-backed factory: lowest steady-state memory, slower lookups."""
 
     __slots__ = ("_cache_dir", "_use_disk_cache")
 
@@ -63,17 +57,6 @@ class TrieDictionaryFactory(CachingDictionaryFactory):
         use_disk_cache: bool = True,
         disk_cache_dir: str | None = None,
     ) -> None:
-        """Initialize the TrieDictionaryFactory.
-
-        Args:
-            cache_max_size (int): The maximum number dictionaries to
-                keep in memory. Defaults to `8`.
-            use_disk_cache (bool): Whether to cache the tries on disk to
-                speed up loading time. Defaults to `True`.
-            disk_cache_dir (str | None): Path where the generated
-                tries should be stored in. Defaults to a Simplemma-
-                specific subdirectory of the user's cache directory.
-        """
 
         if not _TRIE_DEPS_AVAILABLE:
             raise ImportError(

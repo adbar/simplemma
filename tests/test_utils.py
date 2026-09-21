@@ -69,13 +69,13 @@ def test_per_language_tables_reference_supported_languages() -> None:
     from simplemma.sentences import _ABBREVS, _STARTERS, _TERMINATORS
     from simplemma.strategies.affix_decomposition import AFFIX_LANGS, GREEDY_EXCLUDE
     from simplemma.strategies.default import APOSTROPHE_BOUNDARY_LANGS
-    from simplemma.strategies.clitic_decomposition import CLITIC_LANGS, PROCLITIC_LANGS
+    from simplemma.strategies.clitic_decomposition import CLITIC_LANGS
     from simplemma.strategies.prefix_decomposition import DEFAULT_KNOWN_PREFIXES
     from simplemma.strategies.defaultrules import RULE_FUNCTIONS
     from simplemma.strategies.dictionaries.dictionary_factory import (
         SUPPORTED_LANGUAGES,
     )
-    from simplemma.strategies.fallback.to_lowercase import BETTER_LOWER
+    from simplemma.lemmatizer import BETTER_LOWER
     from simplemma.strategies.greedy_dictionary_lookup import MIN_LENGTH_OVERRIDES
     from simplemma.strategies.morpheme_decomposition import MORPHEME_LANGS
     from simplemma.utils import CANON_LANGS
@@ -95,7 +95,6 @@ def test_per_language_tables_reference_supported_languages() -> None:
         "GREEDY_EXCLUDE": GREEDY_EXCLUDE,
         "APOSTROPHE_BOUNDARY_LANGS": APOSTROPHE_BOUNDARY_LANGS,
         "CLITIC_LANGS": CLITIC_LANGS,
-        "PROCLITIC_LANGS": PROCLITIC_LANGS,
         "DEFAULT_KNOWN_PREFIXES": DEFAULT_KNOWN_PREFIXES,
         "RULE_FUNCTIONS": RULE_FUNCTIONS,
         "BETTER_LOWER": BETTER_LOWER,

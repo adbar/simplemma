@@ -145,17 +145,7 @@ def _split_block(text: str, code: str) -> Iterator[str]:
 
 
 def split_sentences(text: str, lang: str | tuple[str, ...] | None = None) -> list[str]:
-    """Split `text` into sentences (stripped slices of the input).
-
-    Args:
-        text (str): The text to segment.
-        lang (str | tuple[str, ...] | None): Language code, e.g. "de", or a
-            tuple as the other entry points take it. Defaults to None
-            (generic rules).
-
-    Returns:
-        list[str]: The sentences, in order, without surrounding whitespace.
-    """
+    """Split `text` into sentences (stripped slices of the input)."""
     code = validate_lang_input(lang)[0] if lang is not None else ""
     # blank-line-separated blocks never share a sentence
     return [

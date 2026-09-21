@@ -1,14 +1,12 @@
 """
-This file defines the `CliticDecompositionStrategy` class, which strips a
-clitic from a token and looks the remaining stem up in the dictionary (the
-clitic is not part of the lemma): enclitics at the end (portar-lo -> portar,
-transmitiéndose -> transmitir, don't -> do) and proclitics at the front
-(l'arbre -> arbre, qu'il -> il, jusqu'ici -> ici). Same shape throughout
-(strip the clitic, verify the remaining stem, drop the clitic) -- only which
-end gets stripped differs.
+This file defines the `CliticDecompositionStrategy` class, which strips an
+enclitic from a token and looks the remaining stem up in the dictionary (the
+clitic is not part of the lemma): portar-lo -> portar, transmitiéndose ->
+transmitir, don't -> do. Proclitics (l'arbre -> arbre) are handled by
+`PrefixDecompositionStrategy` as drop-prefix languages.
 """
 
-from ..utils import CANON_LANGS, canonicalize_token, longest_first, strip_diacritics
+from ..utils import CANON_LANGS, canonicalize_token, strip_diacritics
 from .defaultrules.generic import SuffixRules
 from .dictionary_lookup import DictionaryLookupStrategy
 from .lemmatization_strategy import LemmatizationStrategy
@@ -69,44 +67,12 @@ CLITIC_LANGS: dict[str, SuffixRules] = {
     "ar": SuffixRules({"": "هن هم ها ه كم نا"}, min_stem=MIN_STEM_LEN, caps=True),
 }
 
-# UD-validated proclitics (vowel-elision, always apostrophe-marked). Strip the
-# front and look up the remainder; the proclitic's own lemma is never returned.
-# Longest first, so a short proclitic can't shadow a longer one.
-# See training/data/affix_eval/README.md "Apostrophe/proclitic elision".
-PROCLITIC_LANGS: dict[str, tuple[str, ...]] = {
-    "fr": longest_first(
-        "jusqu' lorsqu' puisqu' quoiqu' presqu' qu' l' d' c' n' s' m' j' t'".split()
-    ),
-    "it": longest_first(
-        "quest' quell' dell' nell' sull' coll' dall' un' l' d' c' s'".split()
-    ),
-    "ca": longest_first("l' d' s' m' n' t'".split()),
-}
-# Much lower than the enclitic floor: an apostrophe + 1-3 trailing letters is
-# almost always elision, so the short-stem false-fire risk doesn't apply.
-# UD-validated at 1 -- see README.md "Proclitic floor sweep".
-PROCLITIC_MIN_STEM_LEN = 1
-
-
-def _strip_proclitic(
-    word: str, proclitics: tuple[str, ...], min_stem: int
-) -> str | None:
-    # Lowercase so a sentence-initial L'homme still matches.
-    lowered = word.lower()
-    # Every proclitic ends in an apostrophe, so a token without one can't match.
-    if "'" not in lowered:
-        return None
-    for proclitic in proclitics:
-        if lowered.startswith(proclitic) and len(word) - len(proclitic) >= min_stem:
-            return word[len(proclitic) :]
-    return None
-
 
 class CliticDecompositionStrategy(LemmatizationStrategy):
     """
-    Lemmatization strategy that strips one clitic -- a Romance verb enclitic,
-    an English auxiliary contraction, or a Romance proclitic elision -- and
-    looks up the remaining stem in the dictionary.
+    Lemmatization strategy that strips one enclitic -- a Romance verb enclitic,
+    an English auxiliary contraction, or an Arabic pronoun suffix -- and looks
+    up the remaining stem in the dictionary.
     """
 
     __slots__ = ["_dictionary_lookup"]
@@ -120,7 +86,7 @@ class CliticDecompositionStrategy(LemmatizationStrategy):
     def get_lemma(self, token: str, lang: str) -> str | None:
         # fold before matching, like the other dict-matching strategies
         token = canonicalize_token(token, lang)
-        return self._enclitic_lemma(token, lang) or self._proclitic_lemma(token, lang)
+        return self._enclitic_lemma(token, lang)
 
     def _stem_lookup(self, stem: str, lang: str) -> str | None:
         lemma = self._dictionary_lookup.get_lemma(stem, lang)
@@ -148,16 +114,3 @@ class CliticDecompositionStrategy(LemmatizationStrategy):
             if stem is not None:
                 lemma = self._stem_lookup(stem, lang)
         return lemma
-
-    def _proclitic_lemma(self, token: str, lang: str) -> str | None:
-        proclitics = PROCLITIC_LANGS.get(lang)
-        if proclitics is None:
-            return None
-        stem = _strip_proclitic(token, proclitics, PROCLITIC_MIN_STEM_LEN)
-        if stem is None:
-            return None
-        # Capitalized stem after a capitalized proclitic = proper noun
-        # (D'Annunzio, don't strip); lowercase stem = sentence-initial (L'homme).
-        if token[:1].isupper() and stem[:1].isupper():
-            return None
-        return self._stem_lookup(stem, lang)

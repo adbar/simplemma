@@ -1,30 +1,28 @@
-"""
-Lemmatizer module.
-Provides classes for lemmatizing token and full texts.
+"""Lemmatizer module."""
 
-- [Lemmatizer][simplemma.lemmatizer.Lemmatizer]: Class for performing token and full text lemmatization.
-- [is_known()][simplemma.lemmatizer.is_known]: A legacy function that checks whether a token is present in the language data.
-- [lemmatize()][simplemma.lemmatizer.lemmatize]: A legacy function that wraps the Lemmatizer's [lemmatize()][simplemma.lemmatizer.Lemmatizer.lemmatize] method.
-- [text_lemmatizer()][simplemma.lemmatizer.text_lemmatizer]: A legacy function that wraps the Lemmatizer's [text_lemmatizer()][simplemma.lemmatizer.Lemmatizer.get_lemmas_in_text] method.
-- [lemma_iterator()][simplemma.lemmatizer.lemma_iterator]: A legacy function that wraps the Lemmatizer's [lemma_iterator()][simplemma.lemmatizer.Lemmatizer.get_lemmas_in_text] method.
-"""
-
+from collections.abc import Callable, Iterator
 from functools import lru_cache
 from typing import Any
-from collections.abc import Iterator
 
 from .casing import MembershipCheck, SentenceCasing
 from .strategies import (
     DEFAULT_DICTIONARY_FACTORY,
     DefaultStrategy,
     DictionaryLookupStrategy,
-    LemmatizationFallbackStrategy,
     LemmatizationStrategy,
-    ToLowercaseFallbackStrategy,
 )
 from .strategies.dictionaries import LOW_MEMORY_DICTIONARY_FACTORY
 from .tokenizer import RegexTokenizer, Tokenizer
 from .utils import normalize_token, validate_lang_input
+
+# Only where UD gold lowercases proper nouns; elsewhere identity wins held-out
+# (es +2.8, lv +1.6, uk +1.2, lt +1.1, pt +1.1, hy +0.6pp, 2026-09).
+BETTER_LOWER = frozenset({"bg", "sk"})
+
+
+def _default_fallback(token: str, lang: str) -> str:
+    """Lowercase the token for BETTER_LOWER languages, return it as-is otherwise."""
+    return token.lower() if lang in BETTER_LOWER else token
 
 
 def _control_input_type(token: Any) -> None:
@@ -40,7 +38,7 @@ class Lemmatizer:
 
     __slots__ = (
         "_cached_lemmatize",
-        "_fallback_lemmatization_strategy",
+        "_fallback",
         "_lemmatization_strategy",
         "_member",
         "_tokenizer",
@@ -51,25 +49,11 @@ class Lemmatizer:
         cache_max_size: int = 65536,
         tokenizer: Tokenizer = RegexTokenizer(),
         lemmatization_strategy: LemmatizationStrategy = DefaultStrategy(),
-        fallback_lemmatization_strategy: LemmatizationFallbackStrategy = ToLowercaseFallbackStrategy(),
+        fallback: Callable[[str, str], str] | None = None,
     ) -> None:
-        """
-        Initialize the Lemmatizer.
-
-        Args:
-            cache_max_size (int, optional): The maximum size of the cache for the lemmatization results.
-                Defaults to `65536`.
-            tokenizer (Tokenizer, optional): The tokenizer to use for tokenization.
-                Defaults to `RegexTokenizer()`.
-            lemmatization_strategy (LemmatizationStrategy, optional): The lemmatization strategy to use.
-                Defaults to `DefaultStrategy()`.
-            fallback_lemmatization_strategy (LemmatizationFallbackStrategy, optional): The fallback lemmatization strategy to use.
-                Defaults to `ToLowercaseFallbackStrategy()`.
-
-        """
         self._tokenizer = tokenizer
         self._lemmatization_strategy = lemmatization_strategy
-        self._fallback_lemmatization_strategy = fallback_lemmatization_strategy
+        self._fallback = fallback or _default_fallback
         # A strategy exposing raw membership (`is_dictionary_member`) enables the
         # gated/acronym casing heuristics; others get base initial-lowering only.
         self._member: MembershipCheck | None = getattr(
@@ -82,15 +66,7 @@ class Lemmatizer:
         token: str,
         lang: str | tuple[str, ...],
     ) -> str:
-        """Get the lemmatized form of a given word in the specified language(s).
-
-        Args:
-            token: The token to lemmatize.
-            lang: The language or languages for lemmatization.
-
-        Returns:
-            str: The lemmatized form of the token.
-        """
+        """Return the lemma of `token` in the given language(s)."""
         # NFC before caching: canonical key, matches the NFC dictionaries.
         return self._cached_lemmatize(normalize_token(token), lang)
 
@@ -109,26 +85,14 @@ class Lemmatizer:
             if candidate is not None:
                 return candidate
 
-        return self._fallback_lemmatization_strategy.get_lemma(token, next(iter(lang)))
+        return self._fallback(token, next(iter(lang)))
 
     def get_lemmas_in_text(
         self,
         text: str,
         lang: str | tuple[str, ...],
     ) -> Iterator[str]:
-        """Get an iterator over lemmatized tokens in a text.
-
-        With several languages, the casing heuristics (sentence-initial
-        lowering, acronym keeping) follow the first one; lemma lookup
-        still tries all of them in order.
-
-        Args:
-            text: The text to process.
-            lang: The language or languages for lemmatization.
-
-        Yields:
-            str: The lemmatized tokens in the text.
-        """
+        """Yield lemmatized tokens from `text`."""
         langs = validate_lang_input(lang)
         casing = SentenceCasing(langs[0], self._member)
         for surface, keep in casing.apply(self._tokenizer.split_text(text)):
@@ -148,16 +112,7 @@ def _legacy_lemmatizer_for(greedy: bool, low_memory: bool) -> Lemmatizer:
 
 
 def is_known(token: str, lang: str | tuple[str, ...], low_memory: bool = False) -> bool:
-    """Check if a token is known in the specified language(s).
-
-    Args:
-        token: The token to check.
-        lang: The language or languages to check in.
-        low_memory: Use the memory-frugal dictionary backend (default: False).
-
-    Returns:
-        bool: True if the token is known, False otherwise.
-    """
+    """Check if a token is present in the language data."""
     _control_input_type(token)
     token = normalize_token(token)
     lang = validate_lang_input(lang)
@@ -173,17 +128,7 @@ def lemmatize(
     greedy: bool = False,
     low_memory: bool = False,
 ) -> str:
-    """Lemmatize a token in the specified language(s).
-
-    Args:
-        token: The token to lemmatize.
-        lang: The language or languages for lemmatization.
-        greedy: A flag indicating whether to use greedy lemmatization (default: False).
-        low_memory: Use the memory-frugal dictionary backend (default: False).
-
-    Returns:
-        str: The lemmatized form of the token.
-    """
+    """Return the lemma of `token` in the given language(s)."""
     return _legacy_lemmatizer_for(greedy, low_memory).lemmatize(token, lang)
 
 
@@ -193,18 +138,7 @@ def text_lemmatizer(
     greedy: bool = False,
     low_memory: bool = False,
 ) -> list[str]:
-    """Lemmatize a text in the specified language(s).
-
-    Args:
-        text: The text to lemmatize.
-        lang: The language or languages for lemmatization.
-        greedy: A flag indicating whether to use greedy lemmatization (default: False).
-        low_memory: Use the memory-frugal dictionary backend (default: False).
-
-    Returns:
-        list[str]: The list of lemmatized tokens.
-    """
-
+    """Lemmatize all tokens in `text` and return them as a list."""
     return list(lemma_iterator(text, lang, greedy, low_memory))
 
 
@@ -214,15 +148,5 @@ def lemma_iterator(
     greedy: bool = False,
     low_memory: bool = False,
 ) -> Iterator[str]:
-    """Iterate over lemmatized tokens in a text.
-
-    Args:
-        text: The text to iterate over.
-        lang: The language or languages for lemmatization.
-        greedy: A flag indicating whether to use greedy lemmatization (default: False).
-        low_memory: Use the memory-frugal dictionary backend (default: False).
-
-    Yields:
-        str: The lemmatized tokens in the text.
-    """
+    """Yield lemmatized tokens from `text`."""
     return _legacy_lemmatizer_for(greedy, low_memory).get_lemmas_in_text(text, lang)
