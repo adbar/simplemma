@@ -36,15 +36,10 @@ def _read_varint(data: bytes, pos: int) -> tuple[int, int]:
         shift += 7
 
 
-def _is_frontcoded(data: bytes) -> bool:
-    """True if the (decompressed) `data` starts with the format magic."""
-    return data[: len(_MAGIC)] == _MAGIC
-
-
 def _read_header(data: bytes) -> tuple[bool, int, int]:
     """Parse the magic/flag/count header. Returns (reverse_key, count, pos)
     where pos is the byte offset of the first record."""
-    if not _is_frontcoded(data):
+    if not data.startswith(_MAGIC):
         raise ValueError("not a front-coded stream")
     pos = len(_MAGIC)
     reverse_key = bool(data[pos] & _REVERSE_FLAG)

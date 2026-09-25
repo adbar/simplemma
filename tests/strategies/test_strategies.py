@@ -89,9 +89,6 @@ def test_search() -> None:
         # correctly via dictionary_lookup (locked by
         # test_lemmatizer.py::test_nn_fill_full_pipeline).
         ("nn", False, "underleverandørane", "underleverandørane"),
-        # es re-admitted on UD v2.18 (old es_gsd PROPN-convention artifact fixed)
-        ("es", False, "microrregiones", "microrregión"),
-        ("es", False, "estanquillas", "estanquilla"),
         # lt's entry gate is lowered to 7, admitting these 8-char forms
         ("lt", False, "rengiami", "rengti"),
         ("lt", False, "teikiant", "teikti"),
@@ -99,6 +96,7 @@ def test_search() -> None:
         # laudkonna's stem is now a fill entry; aadelkond is the stable canary instead
         ("et", True, "aadelkond", None),
         ("sw", True, "-changanya", None),  # GREEDY_EXCLUDE: prefixing/mutating
+        ("es", False, "microrregiones", None),  # not in AFFIX_LANGS
         ("pt", True, "supostamente", None),
         ("gl", True, "virtualmente", None),
         ("de", True, "ccc", None),  # nothing decomposes

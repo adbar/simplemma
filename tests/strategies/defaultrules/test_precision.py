@@ -15,16 +15,17 @@ import pytest
 
 from simplemma.strategies.defaultrules import RULE_FUNCTIONS
 from simplemma.strategies.defaultrules.generic import SuffixRules
-from simplemma.strategies.dictionaries.dictionary_factory import (
-    DefaultDictionaryFactory,
+from training.rulebuilder import (
+    _ACCENT_FOLD_LANGS,
+    FACTORY,
+    cell_alts,
+    output_is_lemma,
+    proxy_dictionary,
 )
-from training.build_lang_config import BUILD_NORMALIZATION
-from training.rulebuilder import _ACCENT_FOLD_LANGS, cell_alts, output_is_lemma
 
 RULE_LANGS = sorted(
     RULE_FUNCTIONS
 )  # every registered language, e.g. de en eo et fi lv nl ru
-FACTORY = DefaultDictionaryFactory()
 
 
 def _rules_module(lang: str):
@@ -65,17 +66,6 @@ def test_rule_quality(lang: str) -> None:
     """Single full-dictionary pass: aggregate precision (per-language floor) and
     idempotence for one language's rules."""
     d = FACTORY.get_dictionary(lang)
-    # BUILD_NORMALIZATION alias keys are entries rules never serve at runtime
-    # (dict-lookup precedes rules) whose values keep the ORIGIN spelling
-    # (ru е-key -> ё-value), so they'd systematically mismatch any rule
-    # output -- drop them from the proxy corpus, like fill (see docstring).
-    alias_born: dict[str, str] = {}
-    norm = BUILD_NORMALIZATION.get(lang)
-    if norm is not None and norm.key_alias is not None:
-        for k in d:
-            a = k.translate(norm.key_alias)
-            if a != k:
-                alias_born[a] = d[k]
     fn = RULE_FUNCTIONS[lang]
     mod = _rules_module(lang)
     rules = mod.DEFAULT_RULES if mod is not None else None
@@ -90,9 +80,7 @@ def test_rule_quality(lang: str) -> None:
     verify_skips = not _is_pure_wrapper(fn)
     fired = ok = 0
     escaped: list[str] = []
-    for f, gold in d.items():
-        if alias_born.get(f) == gold:
-            continue
+    for f, gold in proxy_dictionary(lang).items():
         if rules is not None and rules.match(f) is None:
             if fallback is None or fallback.search(f) is None:
                 if verify_skips and fn(f) is not None:

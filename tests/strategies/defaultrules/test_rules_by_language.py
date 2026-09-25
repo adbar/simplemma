@@ -50,11 +50,11 @@ RULE_CASES = [
     ("en", "naturists", "naturist"),
     ("en", "atonements", "atonement"),
     ("en", "nonces", "nonce"),
-    ("en", "hardships", "hardship"),
     ("en", "nations", "nation"),
     ("en", "realized", "realize"),
     ("en", "preserves", "preserve"),
-    # dropped (below the 99% bar): ries/ties (-erie/-tie), esses (finesse), trices
+    # dropped (below the 99% bar): ries/ties (-erie/-tie), esses (finesse), trices, ships
+    ("en", "hardships", None),
     ("en", "nurseries", None),
     ("en", "realities", None),
     ("en", "mistresses", None),

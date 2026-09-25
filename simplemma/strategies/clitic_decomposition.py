@@ -84,9 +84,20 @@ class CliticDecompositionStrategy(LemmatizationStrategy):
         self._dictionary_lookup = dictionary_lookup
 
     def get_lemma(self, token: str, lang: str) -> str | None:
+        rules = CLITIC_LANGS.get(lang)
+        if rules is None:
+            return None
         # fold before matching, like the other dict-matching strategies
-        token = canonicalize_token(token, lang)
-        return self._enclitic_lemma(token, lang)
+        stem = rules.apply(canonicalize_token(token, lang))
+        if stem is None:
+            return None
+        lemma = self._stem_lookup(stem, lang)
+        # hyphen chains (portar-se-la) get one more strip; bare ones don't (UD: diecimila -> dieci)
+        if lemma is None and stem.endswith(("-me", "-te", "-se", "-nos", "-vos")):
+            stem = rules.apply(stem)
+            if stem is not None:
+                lemma = self._stem_lookup(stem, lang)
+        return lemma
 
     def _stem_lookup(self, stem: str, lang: str) -> str | None:
         lemma = self._dictionary_lookup.get_lemma(stem, lang)
@@ -99,18 +110,3 @@ class CliticDecompositionStrategy(LemmatizationStrategy):
         if folded == stem:
             return None
         return self._dictionary_lookup.get_lemma(folded, lang)
-
-    def _enclitic_lemma(self, token: str, lang: str) -> str | None:
-        rules = CLITIC_LANGS.get(lang)
-        if rules is None:
-            return None
-        stem = rules.apply(token)
-        if stem is None:
-            return None
-        lemma = self._stem_lookup(stem, lang)
-        # hyphen chains (portar-se-la) get one more strip; bare ones don't (UD: diecimila -> dieci)
-        if lemma is None and stem.endswith(("-me", "-te", "-se", "-nos", "-vos")):
-            stem = rules.apply(stem)
-            if stem is not None:
-                lemma = self._stem_lookup(stem, lang)
-        return lemma

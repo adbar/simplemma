@@ -1,6 +1,7 @@
 from .generic import SuffixRules
 
-# -ries/-ties dropped: -erie/-tie (brasserie, beastie)
+# -ries/-ties dropped: -erie/-tie (brasserie, beastie). -ships dropped: 96.7%
+# in-dict (amidships, midships)
 DEFAULT_RULES = SuffixRules(
     {
         "cy": "....cies",
@@ -9,7 +10,6 @@ DEFAULT_RULES = SuffixRules(
         "ist": "ists",
         "ment": "ments",
         "nce": "nces",
-        "ship": "ships",
         "tion": "tions",
         "um": "ums",
         "ize": "ized",

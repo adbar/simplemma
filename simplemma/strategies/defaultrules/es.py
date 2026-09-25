@@ -11,7 +11,8 @@ _EXCLUDED = frozenset(
 )
 
 # Spanish verb conjugation and noun/adjective plural endings, mined
-# lemma-first (99.81% in-dict).
+# lemma-first (99.80% in-dict). -té dropped (98.3%: acometé is -er). -gos and
+# -ntos kept under 99%: they fix OOV plurals on UD train.
 DEFAULT_RULES = SuffixRules(
     {
         "ear": (
@@ -29,7 +30,7 @@ DEFAULT_RULES = SuffixRules(
         "tar": (
             "taríamos taríais tasteis tábamos táramos táremos tásemos tarías tabais"
             " tarais tareis tarían taseis taría tases tabas tando tarán taban taron"
-            " tarás tasen taste tare tase taba tará té tó"
+            " tarás tasen taste tare tase taba tará tó"
         ),
         "nar": (
             "naríamos naríais nasteis nábamos náramos náremos násemos nabais narais"

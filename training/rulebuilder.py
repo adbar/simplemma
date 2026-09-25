@@ -31,6 +31,7 @@ from simplemma.strategies.dictionaries.dictionary_factory import (
     DEFAULT_DICTIONARY_FACTORY,
 )
 from simplemma.utils import strip_diacritics
+from training.build_lang_config import BUILD_NORMALIZATION
 
 Cells = dict[tuple[str, str], int]
 Rules = SuffixRules
@@ -93,6 +94,21 @@ def _guarded(token: str) -> bool:
     return len(token) < MIN_LEN_DEFAULT or token[:1].isupper()
 
 
+def proxy_dictionary(lang: str) -> dict[str, str]:
+    """Shipped dict minus BUILD_NORMALIZATION alias keys, whose values keep the
+    origin spelling (ru е-key -> ё-value) and would mismatch every rule output."""
+    d = dict(FACTORY.get_dictionary(lang))
+    norm = BUILD_NORMALIZATION.get(lang)
+    if norm is None or norm.key_alias is None:
+        return d
+    alias_born = {}
+    for key, value in d.items():
+        alias = key.translate(norm.key_alias)
+        if alias != key:
+            alias_born[alias] = value
+    return {f: g for f, g in d.items() if alias_born.get(f) != g}
+
+
 def mine(
     lang: str,
     support_min: int = SUPPORT_MIN_DEFAULT,
@@ -100,7 +116,7 @@ def mine(
 ) -> tuple[Cells, dict[str, str]]:
     "Mine suffix->replacement cells, each individually >=prec_min precise."
     fold = lang in _ACCENT_FOLD_LANGS
-    d = dict(FACTORY.get_dictionary(lang))
+    d = proxy_dictionary(lang)
     candidates: Counter[tuple[str, str]] = Counter()
     for f, lemma in d.items():
         if f == lemma or _guarded(f):

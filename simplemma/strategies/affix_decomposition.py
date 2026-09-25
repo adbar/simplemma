@@ -10,13 +10,12 @@ from .lemmatization_strategy import LemmatizationStrategy
 # Membership and max_affix_len values are UD-validated, not in-dict guesswork
 # (see training/affixbuilder.py + the gitignored gate under
 # training/data/affix_eval/). Many in-dict-positive langs were rejected on UD
-# (pt/ca/nl/en/la/gl/fr/it/ro/de); es flipped to member on v2.18 data.
+# (pt/ca/nl/en/la/gl/fr/it/ro/de), and es (net-negative, 2026-09).
 AFFIX_LANGS = {
     "bg": 2,
     "cs": 2,
     "da": 2,
     "el": 2,
-    "es": 2,
     "et": 3,
     "fi": 5,
     "hu": 5,
