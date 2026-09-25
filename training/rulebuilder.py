@@ -9,38 +9,40 @@ more general alternative -> `evaluate()` for the dictionary report.
 Not a one-command generator: every language needs real judgment calls
 (stoplists, structural guards) on top of this.
 
-`build_rules()` now emits a `(?<=..)` stem floor on every group; modules
-shipped before that (all current ones except la) lack it, so a regenerated
-module will differ from the checked-in one on whole-word matches --
-re-validate rather than assume parity.
+`build_rules()` sets `min_stem=MIN_STEM_CHARS`, `min_len=MIN_LEN_DEFAULT` and
+`caps=True` on every table; shipped modules other than la have no stem floor,
+so a regenerated table will differ from the checked-in one on whole-word
+matches -- re-validate rather than assume parity. Tables are `SuffixRules`
+(`{target: "suffix suffix ..."}`, longest matching suffix wins), the same
+object the runtime modules declare, and its `apply` is the guarded scorer.
 
 `score_cells()` is the one first-match scoring pass everything else is built
 from -- `refine()`'s loop and `evaluate()`'s final report both call it rather
 than each rolling their own dictionary sweep.
 """
 
-import functools
 import os
 import re
 import sys
 from collections import Counter, defaultdict
-from collections.abc import Callable
 
+from simplemma.strategies.defaultrules.generic import SuffixRules
 from simplemma.strategies.dictionaries.dictionary_factory import (
     DEFAULT_DICTIONARY_FACTORY,
 )
 from simplemma.utils import strip_diacritics
+from training.build_lang_config import BUILD_NORMALIZATION
 
 Cells = dict[tuple[str, str], int]
-Rules = dict[re.Pattern[str], str]
+Rules = SuffixRules
 
 FACTORY = DEFAULT_DICTIONARY_FACTORY  # shared process-wide cache
 MIN_LEN_DEFAULT = 6
 SUPPORT_MIN_DEFAULT = 100
 PREC_MIN_DEFAULT = 99.0
 # stem chars required before a suffix match: mine()'s candidate extraction,
-# its scoring pass, and _compile_group()'s `(?<=..)` floor must all agree on
-# this, or the builder's stats stop describing what the compiled rule fires on.
+# its scoring pass, and build_rules()'s `min_stem` must all agree on this, or
+# the builder's stats stop describing what the built table fires on.
 MIN_STEM_CHARS = 2
 
 
@@ -71,71 +73,53 @@ def output_is_lemma(out: str, gold: str, *, fold_accents: bool = False) -> bool:
     return fold_accents and strip_diacritics(out) == strip_diacritics(gold)
 
 
-_MERGED_SHAPE = re.compile(r"\(([^()?][^()]*)\)\(\?:([^()]*)\)\$")
-# flat `(?:a|b)$`, optionally stem-floored `(?<=..)(?:a|b)$`
-_FLAT_SHAPE = re.compile(r"(?:\(\?<=\.\.\))?\(\?:([^()]*)\)\$")
-_STEM_FLOOR_SHAPE = re.compile(r"\(\.\{\d+,\}\)([^()|]+)\$")
-_LITERAL_SHAPE = re.compile(r"[^()\[\]{}|?*+.\\]+\$")
-
 # Regex metacharacters that must never appear in a mined literal suffix -- a
 # dictionary word-ending is plain text, so one here means bad input (e.g. an
-# abbreviation like "etc.") that would emit an over-matching or invalid pattern.
+# abbreviation like "etc.") that would emit an over-matching table entry
+# (a leading "." is the stem-floor notation).
 _META = re.compile(r"[.^$*+?()\[\]{}|\\]")
 
 
-@functools.cache
-def pattern_alts(pattern: re.Pattern[str]) -> list[str]:
-    """Literal suffixes a rule pattern can match. Handles the shipped shapes --
-    flat/stem-floored `(?:a|b)$` or `(?<=..)(?:a|b)$`, merged stem-class
-    `(p|q)(?:a|b)$`, stem-floor `(.{N,})a$`, bare literal `a$` -- and falls back
-    to the whole pattern string otherwise, so attribution lumps rather than crashes."""
-    s = pattern.pattern
-    if merged := _MERGED_SHAPE.fullmatch(s):
-        prefixes, endings = merged.group(1).split("|"), merged.group(2).split("|")
-        return [p + e for p in prefixes for e in endings]
-    if flat := _FLAT_SHAPE.fullmatch(s):
-        return flat.group(1).split("|")
-    if floor := _STEM_FLOOR_SHAPE.fullmatch(s):
-        return [floor.group(1)]
-    if _LITERAL_SHAPE.fullmatch(s):
-        return [s[:-1]]
-    return [s]
+def cell_alts(rules: Rules) -> list[tuple[str, str]]:
+    "(suffix, target) pairs of a table, floor dots stripped."
+    return [
+        (suffix.lstrip("."), target)
+        for target, suffixes in rules.cells.items()
+        for suffix in suffixes.split()
+    ]
 
 
-def _first_match(token: str, rules: Rules) -> tuple[str, str, str] | None:
-    """Like `apply_rules`, but also returns the matched alternative and target."""
-    for pattern, repl in rules.items():
-        match = pattern.search(token)
-        if match is None:
-            continue
-        out = pattern.sub(repl, token)
-        if out == token:
-            continue
-        # attribute the alternative the engine matched, not the longest
-        # endswith candidate: the (?<=..) floor can backtrack past a long
-        # alt and fire a shorter same-target one (Xabitis matches -bitis)
-        alt = max(
-            (a for a in pattern_alts(pattern) if match.group(0).endswith(a)),
-            key=len,
-            default=pattern.pattern,
-        )
-        return out, alt, repl
-    return None
+def _guarded(token: str) -> bool:
+    "The token guards every table built here carries (see _table)."
+    return len(token) < MIN_LEN_DEFAULT or token[:1].isupper()
+
+
+def proxy_dictionary(lang: str) -> dict[str, str]:
+    """Shipped dict minus BUILD_NORMALIZATION alias keys, whose values keep the
+    origin spelling (ru е-key -> ё-value) and would mismatch every rule output."""
+    d = dict(FACTORY.get_dictionary(lang))
+    norm = BUILD_NORMALIZATION.get(lang)
+    if norm is None or norm.key_alias is None:
+        return d
+    alias_born = {}
+    for key, value in d.items():
+        alias = key.translate(norm.key_alias)
+        if alias != key:
+            alias_born[alias] = value
+    return {f: g for f, g in d.items() if alias_born.get(f) != g}
 
 
 def mine(
     lang: str,
-    min_len: int = MIN_LEN_DEFAULT,
     support_min: int = SUPPORT_MIN_DEFAULT,
     prec_min: float = PREC_MIN_DEFAULT,
-    caps_guard: bool = True,
 ) -> tuple[Cells, dict[str, str]]:
     "Mine suffix->replacement cells, each individually >=prec_min precise."
     fold = lang in _ACCENT_FOLD_LANGS
-    d = dict(FACTORY.get_dictionary(lang))
+    d = proxy_dictionary(lang)
     candidates: Counter[tuple[str, str]] = Counter()
     for f, lemma in d.items():
-        if f == lemma or len(f) < min_len or (caps_guard and f[:1].isupper()):
+        if f == lemma or _guarded(f):
             continue
         cp = len(os.path.commonprefix((f, lemma)))
         if cp < MIN_STEM_CHARS or len(f) - cp > 7 or len(lemma) - cp > 7:
@@ -154,7 +138,7 @@ def mine(
 
     stats: dict[tuple[str, str], list[int]] = {}
     for f, lemma in d.items():
-        if len(f) < min_len or (caps_guard and f[:1].isupper()):
+        if _guarded(f):
             continue
         for length in lengths:
             if length > len(f) - MIN_STEM_CHARS:
@@ -181,50 +165,33 @@ def group_by_target(cells: Cells) -> dict[str, list[str]]:
     return dict(by_target)
 
 
-def _compile_group(suffixes: list[str], target: str) -> re.Pattern[str]:
-    """Compile one target's alternation. The `(?<=..)` stem floor mirrors
-    mine()'s candidate support and scoring pass (both gated on MIN_STEM_CHARS)
-    so a whole-word match can't strip to a bare target (e.g. la `abimus`->`o`)
-    and compiled rules fire on exactly the firings mine() scored. Suffixes
-    must be metacharacter-free (they are dictionary word-endings) so the
-    alternation stays literal."""
-    for s in (*suffixes, target):
-        if _META.search(s):
-            raise ValueError(f"non-literal suffix/target {s!r} for target {target!r}")
-    kept = sorted(suffixes, key=len, reverse=True)
-    floor = f"(?<={'.' * MIN_STEM_CHARS})"
-    return re.compile(floor + r"(?:" + "|".join(kept) + r")$")
+def _table(groups: dict[str, list[str]]) -> Rules:
+    """Table floored at MIN_STEM_CHARS (so `abimus` can't strip to `o`),
+    guarded like mine()'s scan. Suffixes must be literal (no metacharacters)."""
+    for target, suffixes in groups.items():
+        for s in (*suffixes, target):
+            if _META.search(s):
+                raise ValueError(f"non-literal suffix/target {s!r} -> {target!r}")
+    return SuffixRules(
+        {t: " ".join(sorted(ss, key=len, reverse=True)) for t, ss in groups.items()},
+        min_stem=MIN_STEM_CHARS,
+        min_len=MIN_LEN_DEFAULT,
+        caps=True,
+    )
 
 
 def build_rules(cells: Cells) -> Rules:
-    """One compiled regex per target, longest alternative first (else a short
-    alt can shadow a longer one) -- confirm with `evaluate()` on the combined set."""
-    rules: Rules = {}
-    for target, suffixes in sorted(
-        group_by_target(cells).items(),
-        key=lambda kv: (
-            -max(len(s) for s in kv[1]),
-            -sum(cells[(s, kv[0])] for s in kv[1]),
-        ),
-    ):
-        rules[_compile_group(suffixes, target)] = target
-    return rules
-
-
-def _make_apply_fn(
-    rules: Rules,
-    min_len: int,
-    caps_guard: bool,
-    extra_guard: Callable[[str], bool] | None,
-) -> Callable[[str], tuple[str, str, str] | None]:
-    def apply_fn(token: str) -> tuple[str, str, str] | None:
-        if len(token) < min_len or (caps_guard and token[0].isupper()):
-            return None
-        if extra_guard is not None and extra_guard(token):
-            return None
-        return _first_match(token, rules)
-
-    return apply_fn
+    "One cell per target, longest/most-supported first (display order only)."
+    groups = dict(
+        sorted(
+            group_by_target(cells).items(),
+            key=lambda kv: (
+                -max(len(s) for s in kv[1]),
+                -sum(cells[(s, kv[0])] for s in kv[1]),
+            ),
+        )
+    )
+    return _table(groups)
 
 
 def _score_cell(
@@ -239,9 +206,6 @@ def _score_cell(
 def score_cells(
     rules: Rules,
     dictionary: dict[str, str],
-    min_len: int = MIN_LEN_DEFAULT,
-    caps_guard: bool = True,
-    extra_guard: Callable[[str], bool] | None = None,
     collect_nonword: bool = False,
     fold_accents: bool = False,
 ) -> tuple[dict[tuple[str, str], list[int]], list[tuple[str, str, str, str, str]]]:
@@ -254,14 +218,13 @@ def score_cells(
     for idempotence chains and precision-failure samples, since the real
     pipeline tries dictionary lookup before rules and would never re-fire a
     rule on a dict-entry output."""
-    apply_fn = _make_apply_fn(rules, min_len, caps_guard, extra_guard)
     cell_stats: dict[tuple[str, str], list[int]] = {}
     nonword: list[tuple[str, str, str, str, str]] = []
     for f, lemma in dictionary.items():
-        match = apply_fn(f)
-        if match is None:
+        p = rules.apply(f)
+        if p is None:
             continue
-        p, alt, repl = match
+        alt, repl = rules.match(f) or ("", "")  # apply fired, so it matches
         good = output_is_lemma(p, lemma, fold_accents=fold_accents)
         _score_cell(cell_stats, alt, repl, good)
         if collect_nonword and p != f and dictionary.get(p) is None:
@@ -286,9 +249,6 @@ def _worst_cells(
 def refine(
     cells: Cells,
     dictionary: dict[str, str],
-    min_len: int = MIN_LEN_DEFAULT,
-    caps_guard: bool = True,
-    extra_guard: Callable[[str], bool] | None = None,
     prec_min: float = PREC_MIN_DEFAULT,
     support_min: int = SUPPORT_MIN_DEFAULT,
     max_iters: int = 8,
@@ -305,14 +265,7 @@ def refine(
     swing it), so it must not be left to fire ungated in the shipped rules."""
     for _ in range(max_iters):
         rules = build_rules(cells)
-        cell_stats, _ = score_cells(
-            rules,
-            dictionary,
-            min_len,
-            caps_guard,
-            extra_guard,
-            fold_accents=fold_accents,
-        )
+        cell_stats, _ = score_cells(rules, dictionary, fold_accents=fold_accents)
         bad = {
             cell
             for cell, (n, ok) in cell_stats.items()
@@ -325,66 +278,38 @@ def refine(
     return rules
 
 
-def subsume(
-    rules: Rules,
-    dictionary: dict[str, str],
-    min_len: int = MIN_LEN_DEFAULT,
-    caps_guard: bool = True,
-    extra_guard: Callable[[str], bool] | None = None,
-) -> Rules:
-    """Drop alternatives that are provably redundant: an earlier group already
-    intercepts them, or a later group produces the identical output for them
-    (a shorter alt whose replacement is itself a suffix of a longer alt's
-    target, e.g. ca's `lades->lada` restating `ades->ada`). `mine()`'s
-    leftward stem extension mass-produces these. Verification is scoped, not
-    sampled: removing alternative `a` can only change first-match for tokens
-    ending in `a`, so checking exactly those tokens is a complete proof of
-    output-equivalence, not a heuristic."""
-    groups = list(rules.items())
-    alts = [(i, a, t) for i, (p, t) in enumerate(groups) for a in pattern_alts(p)]
-    by_alt: dict[str, list[tuple[int, str]]] = defaultdict(list)
-    for j, a2, t2 in alts:
-        by_alt[a2].append((j, t2))
-    # `a` is redundant iff one of its proper suffixes is itself an alternative
-    # that either intercepts it earlier (j < i) or rewrites to the same output.
-    removable = {
-        (i, a)
-        for i, a, t in alts
-        for k in range(1, len(a))
-        for j, t2 in by_alt.get(a[k:], ())
-        if j < i or a[:k] + t2 == t
-    }
+def subsume(rules: Rules, dictionary: dict[str, str]) -> Rules:
+    """Drop suffixes a shorter one already restates (`lades->lada` vs
+    `ades->ada`), which mine()'s stem extension mass-produces. Removing `a` can
+    only change tokens ending in `a`, so checking exactly those is a proof."""
+    alts = cell_alts(rules)
+    target_of = dict(alts)
+    # only the LONGEST remaining suffix fires once `a` is gone, so test that one
+    removable = set()
+    for a, t in alts:
+        rest = next((a[k:] for k in range(1, len(a)) if a[k:] in target_of), None)
+        if rest is not None and a[: len(a) - len(rest)] + target_of[rest] == t:
+            removable.add(a)
     if not removable:
         return rules
-    new_rules: Rules = {}
-    for i, (pattern, target) in enumerate(groups):
-        kept = [a for a in pattern_alts(pattern) if (i, a) not in removable]
-        if kept:
-            new_rules[_compile_group(kept, target)] = target
+    groups = {
+        target: [a for a in suffixes.split() if a.lstrip(".") not in removable]
+        for target, suffixes in rules.cells.items()
+    }
+    new_rules = _table({t: ss for t, ss in groups.items() if ss})
 
-    apply_fn = _make_apply_fn(rules, min_len, caps_guard, extra_guard)
-    new_apply_fn = _make_apply_fn(new_rules, min_len, caps_guard, extra_guard)
-    removed_suffixes = tuple({a for _, a in removable})
+    removed_suffixes = tuple(removable)
     for f in dictionary:
         if not f.endswith(removed_suffixes):
             continue
-        before, after = apply_fn(f), new_apply_fn(f)
-        before_out = before[0] if before is not None else None
-        after_out = after[0] if after is not None else None
-        assert before_out == after_out, (
-            f"subsume changed output for {f!r}: {before_out!r} -> {after_out!r}"
+        before, after = rules.apply(f), new_rules.apply(f)
+        assert before == after, (
+            f"subsume changed output for {f!r}: {before!r} -> {after!r}"
         )
     return new_rules
 
 
-def evaluate(
-    lang: str,
-    rules: Rules,
-    dictionary: dict[str, str],
-    min_len: int = MIN_LEN_DEFAULT,
-    caps_guard: bool = True,
-    extra_guard: Callable[[str], bool] | None = None,
-) -> None:
+def evaluate(lang: str, rules: Rules, dictionary: dict[str, str]) -> None:
     """Precision, idempotence, and coverage of `rules` over the full
     dictionary -- the final human-readable report, built on `score_cells()`.
     Idempotence is skipped when the output is itself a dict entry: the real
@@ -393,15 +318,8 @@ def evaluate(
     lexical collision (stoplist it in the module's _EXCLUDED), a large or
     scattered one means the cell itself needs narrowing or dropping."""
     fold = lang in _ACCENT_FOLD_LANGS
-    apply_fn = _make_apply_fn(rules, min_len, caps_guard, extra_guard)
     cell_stats, nonword = score_cells(
-        rules,
-        dictionary,
-        min_len,
-        caps_guard,
-        extra_guard,
-        collect_nonword=True,
-        fold_accents=fold,
+        rules, dictionary, collect_nonword=True, fold_accents=fold
     )
     fired = sum(n for n, _ in cell_stats.values())
     ok = sum(ok2 for _, ok2 in cell_stats.values())
@@ -415,11 +333,11 @@ def evaluate(
             and len(bad[(alt, repl)]) < 5
         ):
             bad[(alt, repl)].append((f, p, lemma))
-        match2 = apply_fn(p)
-        if match2 is not None and match2[0] != p:
+        p2 = rules.apply(p)
+        if p2 is not None and p2 != p:
             chains += 1
             if len(chain_ex) < 15:
-                chain_ex.append((f, p, match2[0], lemma))
+                chain_ex.append((f, p, p2, lemma))
     # exact per-cell failure counts (n - ok covers even failures whose wrong
     # output is a dict entry, which never enter `nonword` and have no sample)
     fails = {cell: n - ok2 for cell, (n, ok2) in cell_stats.items() if n > ok2}
@@ -427,7 +345,7 @@ def evaluate(
     prec = 100 * ok / fired if fired else 0.0
     coverage = 100 * fired / len(dictionary)
     print(
-        f"{lang}: groups={len(rules)} fired={fired} prec={prec:.2f}% "
+        f"{lang}: cells={len(rules.cells)} fired={fired} prec={prec:.2f}% "
         f"chains={chains} coverage={coverage:.2f}%"
     )
     print("  worst cells (n>=100):")

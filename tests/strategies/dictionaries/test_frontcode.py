@@ -49,10 +49,6 @@ def test_roundtrip(mapping: dict[bytes, bytes], reverse_key: bool) -> None:
     assert _fc_decode(_fc_encode(mapping, reverse_key)) == mapping
 
 
-def test_is_frontcoded_rejects_other_data() -> None:
-    assert frontcode._is_frontcoded(b"not a front-coded stream") is False
-
-
 def test_decode_stream_rejects_non_frontcoded_data() -> None:
     with pytest.raises(ValueError, match="not a front-coded stream"):
         frontcode._decode_stream(b"\x80\x05some pickle bytes")

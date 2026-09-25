@@ -10,13 +10,12 @@ from .lemmatization_strategy import LemmatizationStrategy
 # Membership and max_affix_len values are UD-validated, not in-dict guesswork
 # (see training/affixbuilder.py + the gitignored gate under
 # training/data/affix_eval/). Many in-dict-positive langs were rejected on UD
-# (pt/ca/nl/en/la/gl/fr/it/ro/de); es flipped to member on v2.18 data.
+# (pt/ca/nl/en/la/gl/fr/it/ro/de), and es (net-negative, 2026-09).
 AFFIX_LANGS = {
     "bg": 2,
     "cs": 2,
     "da": 2,
     "el": 2,
-    "es": 2,
     "et": 3,
     "fi": 5,
     "hu": 5,
@@ -36,19 +35,7 @@ AFFIX_LANGS = {
 # (ca/en/gl/it/la/nl/pt), a wash (id), or typologically wrong for suffix
 # stripping (ms/sw/tl). it joined once clitics claimed its verb+enclitic
 # class, leaving affix to over-fire on -ità/-ismo and proper nouns.
-GREEDY_EXCLUDE = {
-    "ca",
-    "en",
-    "gl",
-    "id",
-    "it",
-    "la",
-    "ms",
-    "nl",
-    "pt",
-    "sw",
-    "tl",
-}
+GREEDY_EXCLUDE = frozenset("ca en gl id it la ms nl pt sw tl".split())
 
 AFFIXLEN = 2  # max_affix_len for languages without an AFFIX_LANGS entry (greedy mode)
 MINCOMPLEN = 4
@@ -75,22 +62,16 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
         if excluded or len(token) <= greedy_min_length(lang) or len(token) > MAXLEN:
             return None
 
-        # define parameters
-        max_affix_len = AFFIX_LANGS.get(lang, AFFIXLEN)
         return self._affix_decomposition(
-            token, lang, max_affix_len, MINCOMPLEN
-        ) or self._suffix_decomposition(token, lang, MINCOMPLEN)
+            token, lang, AFFIX_LANGS.get(lang, AFFIXLEN)
+        ) or self._suffix_decomposition(token, lang)
 
     def _affix_decomposition(
-        self,
-        token: str,
-        lang: str,
-        max_affix_len: int = 0,
-        min_complem_len: int = 0,
+        self, token: str, lang: str, max_affix_len: int
     ) -> str | None:
         # Left-to-right languages only. A single pass at the largest affix
         # length is equivalent to looping over smaller ones (first match wins).
-        for count in range(1, len(token) - min_complem_len + 1):
+        for count in range(1, len(token) - MINCOMPLEN + 1):
             part1 = token[:-count]
             lempart1 = self._dictionary_lookup.get_lemma(part1, lang)
             if lempart1 is None:
@@ -110,13 +91,8 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
                 return part1 + lempart2.lower()
         return None
 
-    def _suffix_decomposition(
-        self,
-        token: str,
-        lang: str,
-        min_complem_len: int = 0,
-    ) -> str | None:
-        for count in range(len(token) - min_complem_len, min_complem_len - 1, -1):
+    def _suffix_decomposition(self, token: str, lang: str) -> str | None:
+        for count in range(len(token) - MINCOMPLEN, MINCOMPLEN - 1, -1):
             suffix = self._dictionary_lookup.get_lemma(
                 token[-count:].capitalize(), lang
             )

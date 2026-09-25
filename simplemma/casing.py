@@ -7,22 +7,12 @@ dictionary-membership check; without one, only base initial-lowering applies.
 """
 
 import re
+import unicodedata
 from collections.abc import Callable, Iterator
-from typing import Protocol, runtime_checkable
 
-from .utils import normalize_token
 
 # (token, lang) -> is it a literal dictionary key? (no case/apostrophe fallback)
 MembershipCheck = Callable[[str, str], bool]
-
-
-@runtime_checkable
-class SupportsMembership(Protocol):
-    """A lemmatization strategy exposing a raw dictionary-membership check (no
-    case/apostrophe fallback), which the casing heuristics require."""
-
-    def is_dictionary_member(self, token: str, lang: str) -> bool:
-        """Whether `token` is a literal dictionary key for `lang`."""
 
 
 # Sentence terminators only (narrower than the tokenizer's punctuation class).
@@ -81,7 +71,8 @@ class SentenceCasing:
         verbatim as an acronym instead of lemmatizing. The acronym path buffers
         one sentence at a time (it needs the whole sentence's shouting ratio);
         the default path streams in constant memory."""
-        nfc = (normalize_token(t) for t in tokens)  # NFC once: probes match dicts
+        # NFC once: probes match dicts
+        nfc = (unicodedata.normalize("NFC", t) for t in tokens)
         return self._buffered(nfc) if self._acronym else self._streaming(nfc)
 
     def initial_surface(self, token: str) -> str:
@@ -139,9 +130,8 @@ class SentenceCasing:
                 yield (self.initial_surface(token) if i == initial else token, False)
 
     def _keep_as_acronym(self, token: str, initial: bool, shouting: bool) -> bool:
-        """Yield this ALL-CAPS token verbatim instead of lemmatizing? Initial
-        position also requires neither its Titlecase (e.g. BERLIN) nor
-        lowercase form to be a dictionary entry, else the D' gate runs."""
+        """Keep this ALL-CAPS token verbatim? Sentence-initial also requires
+        neither its Titlecase (BERLIN) nor lowercase form to be a dict entry."""
         if shouting or not is_keepable_allcaps(token):
             return False
         if not initial:

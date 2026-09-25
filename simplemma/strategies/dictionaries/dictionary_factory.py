@@ -1,12 +1,4 @@
-"""
-This module defines the `DictionaryFactory` protocol and the `DefaultDictionaryFactory` class.
-It provides functionality for loading and accessing dictionaries for supported languages.
-
-- [DictionaryFactory][simplemma.strategies.dictionaries.DictionaryFactory]: The Protocol class for all dictionary factories.
-- [DefaultDictionaryFactory][simplemma.strategies.dictionaries.DefaultDictionaryFactory]: Default dictionary factory.
-It loads the dictionaries that are shipped with simplemma and caches them as configured.
-
-"""
+"""Dictionary factory protocol and the default (in-memory) backend."""
 
 from abc import abstractmethod
 from functools import lru_cache
@@ -49,13 +41,7 @@ def _load_dictionary_from_disk(langcode: str) -> dict[bytes, bytes]:
 
 
 class DictionaryFactory(Protocol):
-    """
-    This protocol defines the interface for a dictionary factory, which is responsible for loading and providing access to dictionaries for different languages.
-
-    Note:
-        This protocol should be implemented by concrete dictionary factories.
-        Concrete implementations of this protocol should provide a concrete implementation for the `get_dictionary` method.
-    """
+    """Protocol for loading form-to-lemma dictionaries by language code."""
 
     __slots__ = ()
 
@@ -64,19 +50,7 @@ class DictionaryFactory(Protocol):
         self,
         lang: str,
     ) -> Mapping[str, str]:
-        """
-        Get the dictionary for a specific language.
-
-        Args:
-            lang (str): The language code.
-
-        Returns:
-            Mapping[str, str]: The dictionary for the specified language.
-
-        Raises:
-            ValueError: If the specified language is not supported.
-        """
-        raise NotImplementedError
+        """Return the dictionary for `lang` (raise ValueError if unsupported)."""
 
 
 class DecodedStrMapping(Mapping[str, str]):
@@ -154,12 +128,7 @@ class CachingDictionaryFactory(DictionaryFactory):
 
 
 class DefaultDictionaryFactory(CachingDictionaryFactory):
-    """
-    Default Dictionary Factory.
-
-    This class is a concrete implementation of the `DictionaryFactory` protocol.
-    It provides functionality for loading and caching dictionaries from disk that are included in Simplemma.
-    """
+    """Load the shipped dictionaries into plain dicts, caching up to `cache_max_size` languages."""
 
     __slots__ = ()
 

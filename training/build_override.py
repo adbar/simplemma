@@ -1,19 +1,21 @@
 """Mine a reviewed override lexicon (form -> lemma) for one language from its
-UD train splits, and gate it end-to-end before it can ship.
+UD train splits.
 
 Pool every -ud-train split; keep a form's majority lemma when the pooled
 evidence clears its POS-class bar AND every often-attesting treebank agrees
 (the per-treebank veto removes convention splits: la "esse", fr "se" -> soi).
 Every threshold-clearing form is kept -- the file is a pure function of the
-UD data plus review; already-reproduced entries are only counted in the log.
+UD data plus review.
+
+Not gated: an entry is by construction the per-treebank majority lemma, so a
+train-split gate can only pass (0/40 FAILs measured). eval_gate is for
+dictionary-level changes.
 
 Usage: uv run python -m training.build_override <lang> [--in-place]
 
-The merged candidate file (existing overrides + mined additions) is gated
-with eval_gate on every train treebank; output goes to training/output/
-unless --in-place updates training/overrides/<lang>.tsv. Shipping the effect
-still requires a dictionary rebuild (python -m training.dictionary_builder
---in-place).
+Output goes to training/output/ unless --in-place updates
+training/overrides/<lang>.tsv. Shipping the effect still requires a
+dictionary rebuild (python -m training.dictionary_builder --in-place).
 """
 
 import argparse
@@ -23,22 +25,9 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from simplemma.utils import canonicalize_token, normalize_token
 from training.clean_wordlist import pair_violation, write_pairs
-from training.dictionary_builder import (
-    OVERRIDES_DIR,
-    _compose_base,
-    _compose_from_base,
-    _layer_entries,
-)
-from training.eval_gate import (
-    DEFAULT_EPSILON,
-    discover_treebanks,
-    gate,
-    report_results,
-)
-from training.eval_harness import build_strategy
-from training.ud_conllu import iter_word_tokens
+from training.dictionary_builder import OVERRIDES_DIR, _canon, _layer_entries
+from training.ud_conllu import discover_treebanks, iter_word_tokens
 
 log = logging.getLogger(__name__)
 
@@ -124,8 +113,8 @@ def merge_with_existing(
     added = 0
     merged = dict(existing)
     for form, lemma in candidates.items():
-        cform = normalize_token(canonicalize_token(form, lang))
-        clemma = normalize_token(canonicalize_token(lemma, lang))
+        cform = _canon(form, lang)
+        clemma = _canon(lemma, lang)
         if " " in cform or " " in clemma or pair_violation(clemma, cform):
             continue
         if cform in merged:
@@ -149,10 +138,9 @@ def main() -> None:
     parser.add_argument(
         "--in-place",
         action="store_true",
-        help="On a passing gate, update training/overrides/<lang>.tsv "
+        help="Update training/overrides/<lang>.tsv "
         "(default: write the candidate to training/output/ only).",
     )
-    parser.add_argument("--epsilon", type=float, default=DEFAULT_EPSILON)
     args = parser.parse_args()
     lang = args.lang
 
@@ -160,37 +148,13 @@ def main() -> None:
     if not train_paths:
         sys.exit(f"no -ud-train split found for {lang!r}")
     candidates = resolve_overrides(*collect_candidates(train_paths, lang))
-
-    # Redundancy is reported, never filtered: the committed file stays a pure
-    # function of UD + review. Same composed baseline as the gate below; the
-    # base is composed once, then layered with each override set.
-    base = _compose_base(lang)
-    baseline = _compose_from_base(base, lang)
-    baseline_strategy = build_strategy(baseline)
-    redundant = sum(
-        1
-        for form, lemma in candidates.items()
-        if (baseline_strategy.get_lemma(form, lang) or form) == lemma
-    )
     merged, n_added = merge_with_existing(candidates, lang)
-    log.info(
-        f"{lang}: {n_added} new entries over {len(merged) - n_added} existing; "
-        f"{redundant}/{len(candidates)} mined forms already reproduced by the baseline"
-    )
+    log.info(f"{lang}: {n_added} new entries over {len(merged) - n_added} existing")
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     out_path = OUTPUT_DIR / f"{lang}.tsv"
     write_pairs(((lemma, form) for form, lemma in sorted(merged.items())), out_path)
-    if not n_added:
-        log.info(f"nothing to gate; candidate written to {out_path}")
-        return
-
-    candidate = _compose_from_base(base, lang, overrides_dir=OUTPUT_DIR)
-    if not report_results(
-        gate(lang, baseline, candidate, baseline_strategy=baseline_strategy),
-        args.epsilon,
-    ):
-        sys.exit(f"gate FAILED for {lang}; candidate left in {out_path} for review")
+    log.info(f"candidate written to {out_path}")
     if args.in_place:
         shutil.copy(out_path, OVERRIDES_DIR / f"{lang}.tsv")
         log.info(

@@ -1,6 +1,8 @@
 """Trie-backed `DictionaryFactory`: lowest steady-state memory, needs the
 `marisa-trie` extra and a one-off cached build per language."""
 
+from __future__ import annotations
+
 import logging
 from pathlib import Path
 from collections.abc import Iterator, Mapping
@@ -12,10 +14,6 @@ try:
     _TRIE_DEPS_AVAILABLE = True
 except ImportError:
     _TRIE_DEPS_AVAILABLE = False
-
-    class BytesTrie:  # type: ignore[no-redef]
-        pass
-
 
 from simplemma.__metadata__ import __version__ as SIMPLEMMA_VERSION
 from simplemma.strategies.dictionaries.dictionary_factory import (
@@ -49,13 +47,7 @@ class TrieWrapDict(DecodedStrMapping):
 
 
 class TrieDictionaryFactory(CachingDictionaryFactory):
-    """Memory optimized DictionaryFactory backed by MARISA-tries.
-
-    This dictionary factory creates dictionaries, which are backed by a
-    MARISA-trie instead of a dict, to make them consume very little
-    memory compared to the DefaultDictionaryFactory. Trade-offs are that
-    lookup performance isn't as good as with dicts.
-    """
+    """MARISA-trie-backed factory: lowest steady-state memory, slower lookups."""
 
     __slots__ = ("_cache_dir", "_use_disk_cache")
 
@@ -65,17 +57,6 @@ class TrieDictionaryFactory(CachingDictionaryFactory):
         use_disk_cache: bool = True,
         disk_cache_dir: str | None = None,
     ) -> None:
-        """Initialize the TrieDictionaryFactory.
-
-        Args:
-            cache_max_size (int): The maximum number dictionaries to
-                keep in memory. Defaults to `8`.
-            use_disk_cache (bool): Whether to cache the tries on disk to
-                speed up loading time. Defaults to `True`.
-            disk_cache_dir (str | None): Path where the generated
-                tries should be stored in. Defaults to a Simplemma-
-                specific subdirectory of the user's cache directory.
-        """
 
         if not _TRIE_DEPS_AVAILABLE:
             raise ImportError(
@@ -100,11 +81,7 @@ class TrieDictionaryFactory(CachingDictionaryFactory):
         )
 
     def _write_trie_to_disk(self, lang: str, trie: BytesTrie) -> None:
-        """Persist the trie to disk for later usage.
-
-        The persisted trie can be loaded by subsequent runs to speed up
-        loading times.
-        """
+        """Persist the trie so later runs skip the build."""
         logger.debug("Caching trie on disk. This might take a second.")
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         target = self._cache_dir / f"{lang}.dic"

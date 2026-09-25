@@ -21,8 +21,7 @@ from pathlib import Path
 
 import simplemma.sentences as sentences
 from simplemma.utils import normalize_token
-from training.eval_gate import discover_treebanks
-from training.ud_conllu import UD_SPLITS
+from training.ud_conllu import UD_SPLITS, discover_treebanks
 
 MIN_SUPPORT = 2  # junctions a candidate must fix before it earns an entry
 
@@ -52,7 +51,9 @@ def sentence_ends(gold: list[str], joiner: str) -> set[int]:
 def mine(lang: str, golds: list[list[str]]) -> tuple[Counter[str], Counter[str]]:
     """Per candidate starter: suppressed junctions where gold does put a
     boundary (gain) and where it does not (loss)."""
-    terminators, junction, abbrevs, _ = sentences._profile(lang)
+    key = lang if lang in sentences._TERMINATORS else None
+    terminators, junction = sentences._TERMINATORS[key], sentences._JUNCTIONS[key]
+    abbrevs = sentences._ABBREVS.get(lang, frozenset())
     gain: Counter[str] = Counter()
     loss: Counter[str] = Counter()
     for gold in golds:

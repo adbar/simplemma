@@ -13,8 +13,7 @@ from dataclasses import dataclass
 
 from simplemma.utils import (
     _ARABIC_MARKS,
-    _FOLDED_APOSTROPHES,
-    _STRAIGHT_APOSTROPHE,
+    _APOSTROPHE_GLYPHS,
     normalize_token,
 )
 
@@ -94,11 +93,9 @@ _LT_PITCH_FOLD = _mark_fold_table(
 _LA_LENGTH_FOLD = _mark_fold_table(frozenset({0x0304, 0x0306}))
 
 # grc/el elision: strip so the tokenizer's bare stem aliases to the value.
-# Not ca/fr/it, where the elided form is a single letter (apostrophe_boundary
-# handles those instead).
-_ELISION_FOLD = str.maketrans(
-    "", "", "".join((_STRAIGHT_APOSTROPHE, *_FOLDED_APOSTROPHES, "᾽"))
-)
+# Not ca/fr/it, where the elided form is a single letter (the DefaultStrategy
+# apostrophe path handles those instead).
+_ELISION_FOLD = str.maketrans("", "", "'" + _APOSTROPHE_GLYPHS + "᾽")
 
 # he geresh/gershayim -> the ASCII quotes real text and UD gold use
 _HE_QUOTE_FOLD = str.maketrans("״׳", "\"'")

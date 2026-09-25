@@ -1,12 +1,4 @@
-"""
-Tokenizers module.
-Provides classes for text tokenization.
-
-- [Tokenizer][simplemma.tokenizer.Tokenizer]: The Protocol class for all tokenizers.
-- [RegexTokenizer][simplemma.tokenizer.RegexTokenizer]: A tokenizer based on a regular expression.
-- [simple_tokenizer()][simplemma.tokenizer.simple_tokenizer]: A legacy function that wraps the RegexTokenizer's [split_text][simplemma.tokenizer.RegexTokenizer.split_text] method.
-- [TOKREGEX][simplemma.tokenizer.TOKREGEX]: The regular expression used by default by [RegexTokenizer][simplemma.tokenizer.RegexTokenizer].
-"""
+"""Text tokenization."""
 
 import re
 from abc import abstractmethod
@@ -110,37 +102,17 @@ def _fast_split(text: str) -> Iterator[str]:
 
 
 class Tokenizer(Protocol):
-    """
-    Abstract base class for Tokenizers.
-    Tokenizers are used to split a text into individual tokens.
-    """
+    """Protocol for text tokenizers."""
 
     __slots__ = ()
 
     @abstractmethod
     def split_text(self, text: str) -> Iterator[str]:
-        """
-        Split the input text into tokens.
-
-        Args:
-            text (str): The input text to tokenize.
-
-        Returns:
-            Iterator[str]: An iterator yielding the individual tokens.
-
-        """
-        raise NotImplementedError
+        """Yield tokens from `text`."""
 
 
 class RegexTokenizer(Tokenizer):
-    """
-    Tokenizer that splits a text into tokens using a regex pattern.
-
-    The default pattern is script-aware: in-word joiners and combining marks
-    stay in their word (`l'homme`), same-character punctuation runs stay whole
-    (`...`), numbers keep internal separators (`3,50`), a currency sign splits
-    off a number (`€3.50`) but not a word (`R$`), and emoji/symbols are dropped.
-    """
+    """Tokenizer using a regex pattern (default: `TOKREGEX`)."""
 
     __slots__ = ["_fast", "_splitting_regex"]
 
@@ -153,16 +125,7 @@ class RegexTokenizer(Tokenizer):
         )
 
     def split_text(self, text: str) -> Iterator[str]:
-        """
-        Split the input text using the specified regex pattern.
-
-        Args:
-            text (str): The input text to tokenize.
-
-        Returns:
-            Iterator[str]: An iterator yielding the individual tokens.
-
-        """
+        """Yield tokens from `text`."""
         if self._fast:
             return _fast_split(text)
         # map+itemgetter measures ~5% faster than a genexpr here
@@ -173,17 +136,5 @@ _legacy_tokenizer = RegexTokenizer()
 
 
 def simple_tokenizer(text: str) -> list[str]:
-    """
-    Simple regular expression tokenizer.
-
-    This function takes a string as input and returns a list of tokens.
-    See `RegexTokenizer` for the tokenization rules.
-
-    Args:
-        text (str): The input text to tokenize.
-
-    Returns:
-        list[str]: The list of tokens extracted from the input text.
-
-    """
+    """Tokenize `text` into a list of strings (legacy wrapper)."""
     return list(_legacy_tokenizer.split_text(text))

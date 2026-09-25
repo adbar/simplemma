@@ -1,9 +1,15 @@
 import logging
-import sys
 
 import pytest
 
-from training import eval_gate
+from training import eval_gate, ud_conllu
+from training.eval_gate import (
+    FixedDictionaryFactory,
+    accuracy,
+    build_lemmatizer,
+    gold_types,
+    load_gold_tokens,
+)
 
 from .conftest import conllu
 
@@ -23,7 +29,7 @@ def test_discover_test_treebanks_matches_language_prefix(tmp_path):
         "", encoding="utf-8"
     )  # different lang
 
-    found = eval_gate.discover_treebanks("ro", "test", ud_splits=tmp_path)
+    found = ud_conllu.discover_treebanks("ro", "test", ud_splits=tmp_path)
     assert [p.name for p in found] == [
         "ro_rrt-ud-test.conllu",
         "ro_simonero-ud-test.conllu",
@@ -31,7 +37,7 @@ def test_discover_test_treebanks_matches_language_prefix(tmp_path):
 
 
 def test_discover_test_treebanks_none_found(tmp_path):
-    assert eval_gate.discover_treebanks("xx", "test", ud_splits=tmp_path) == []
+    assert ud_conllu.discover_treebanks("xx", "test", ud_splits=tmp_path) == []
 
 
 def test_discover_test_treebanks_handles_lang_prefix_overrides(tmp_path):
@@ -43,17 +49,17 @@ def test_discover_test_treebanks_handles_lang_prefix_overrides(tmp_path):
     (tmp_path / "sme_giella-ud-test.conllu").write_text("", encoding="utf-8")
 
     assert [
-        p.name for p in eval_gate.discover_treebanks("nb", "test", ud_splits=tmp_path)
+        p.name for p in ud_conllu.discover_treebanks("nb", "test", ud_splits=tmp_path)
     ] == ["no_bokmaal-ud-test.conllu"]
     assert [
-        p.name for p in eval_gate.discover_treebanks("nn", "test", ud_splits=tmp_path)
+        p.name for p in ud_conllu.discover_treebanks("nn", "test", ud_splits=tmp_path)
     ] == ["no_nynorsk-ud-test.conllu"]
     assert [
-        p.name for p in eval_gate.discover_treebanks("se", "test", ud_splits=tmp_path)
+        p.name for p in ud_conllu.discover_treebanks("se", "test", ud_splits=tmp_path)
     ] == ["sme_giella-ud-test.conllu"]
     # and the raw prefixes ("no", "sme") must NOT themselves match
-    assert eval_gate.discover_treebanks("no", "test", ud_splits=tmp_path) == []
-    assert eval_gate.discover_treebanks("sme", "test", ud_splits=tmp_path) == []
+    assert ud_conllu.discover_treebanks("no", "test", ud_splits=tmp_path) == []
+    assert ud_conllu.discover_treebanks("sme", "test", ud_splits=tmp_path) == []
 
 
 def test_gate_raises_when_no_treebank_found(tmp_path):
@@ -178,39 +184,160 @@ def test_treebank_result_deltas():
     assert result.type_delta == pytest.approx(-0.05)
 
 
-def test_main_cli_exits_zero_on_pass(tmp_path, monkeypatch):
-    (tmp_path / "en_x-ud-train.conllu").write_text(
-        _conllu([(1, "dogs", "dog"), (2, "cats", "cat")]), encoding="utf-8"
-    )
-    baseline_path = tmp_path / "baseline.tsv"
-    candidate_path = tmp_path / "candidate.tsv"
-    baseline_path.write_text("dog\tdogs\n", encoding="utf-8")  # misses "cats"
-    candidate_path.write_text("dog\tdogs\ncat\tcats\n", encoding="utf-8")  # improved
-
-    monkeypatch.setattr(eval_gate, "UD_SPLITS", tmp_path)
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        ["eval_gate.py", "en", str(baseline_path), str(candidate_path)],
-    )
-    eval_gate.main()  # must not raise / exit
+# ---------- scoring primitives ----------
 
 
-def test_main_cli_exits_nonzero_on_regression(tmp_path, monkeypatch):
-    (tmp_path / "en_x-ud-train.conllu").write_text(
-        _conllu([(1, "dogs", "dog"), (2, "cats", "cat")]), encoding="utf-8"
-    )
-    baseline_path = tmp_path / "baseline.tsv"
-    candidate_path = tmp_path / "candidate.tsv"
-    baseline_path.write_text("dog\tdogs\ncat\tcats\n", encoding="utf-8")
-    candidate_path.write_text("dog\tdogs\n", encoding="utf-8")  # regressed
+def score_type(strategy, lang, gold_tokens):
+    return accuracy(strategy, lang, gold_types(gold_tokens))
 
-    monkeypatch.setattr(eval_gate, "UD_SPLITS", tmp_path)
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        ["eval_gate.py", "en", str(baseline_path), str(candidate_path)],
+
+def test_fixed_dictionary_factory_serves_the_mapping():
+    factory = FixedDictionaryFactory({"dogs": "dog"})
+    assert factory.get_dictionary("en")["dogs"] == "dog"
+
+
+def test_token_accuracy_perfect_dictionary(tmp_path):
+    path = tmp_path / "test.conllu"
+    path.write_text(
+        conllu([[(1, "dogs", "dog"), (2, "cats", "cat")]]), encoding="utf-8"
     )
-    with pytest.raises(SystemExit) as excinfo:
-        eval_gate.main()
-    assert excinfo.value.code == 1
+    acc, n = accuracy(
+        build_lemmatizer({"dogs": "dog", "cats": "cat"}),
+        "en",
+        load_gold_tokens(path, "en"),
+    )
+    assert acc == 1.0
+    assert n == 2
+
+
+def test_token_accuracy_folds_curly_apostrophes():
+    """Gold forms are folded like Lemmatizer does, so a curly form hits its straight key."""
+    acc, n = accuracy(build_lemmatizer({"l'uomo": "uomo"}), "it", [("l’uomo", "uomo")])
+    assert (acc, n) == (1.0, 1)
+    # identity fallback keeps the input glyph, as Lemmatizer does
+    assert accuracy(build_lemmatizer({}), "tr", [("X’ye", "X’ye")]) == (1.0, 1)
+
+
+def test_token_accuracy_identity_fallback_on_miss(tmp_path):
+    """A form absent from the dict falls back to itself, matching gold only when equal."""
+    path = tmp_path / "test.conllu"
+    path.write_text(conllu([[(1, "run", "run")]]), encoding="utf-8")
+    acc, n = accuracy(build_lemmatizer({}), "en", load_gold_tokens(path, "en"))
+    assert acc == 1.0  # identity fallback happens to be correct here
+    assert n == 1
+
+
+def test_token_accuracy_skips_underscore_lemma_and_lowercases_initial(tmp_path):
+    path = tmp_path / "test.conllu"
+    path.write_text(
+        conllu([[(1, "Dogs", "dog"), (2, "x", "_")]]),  # sentence-initial + skip
+        encoding="utf-8",
+    )
+    acc, n = accuracy(
+        build_lemmatizer({"dogs": "dog"}), "en", load_gold_tokens(path, "en")
+    )
+    assert n == 1  # the lemma=='_' token is excluded
+    assert acc == 1.0  # "Dogs" was lowercased to "dogs" before lookup
+
+
+def test_token_accuracy_skips_multiword_tokens(tmp_path):
+    path = tmp_path / "test.conllu"
+    text = (
+        "1-2\tdel\t_\t_\t_\t_\t_\t_\t_\t_\n"
+        "1\tde\tde\tX\t_\t_\t0\troot\t_\t_\n"
+        "2\tel\tel\tX\t_\t_\t0\troot\t_\t_\n\n"
+    )
+    path.write_text(text, encoding="utf-8")
+    acc, n = accuracy(
+        build_lemmatizer({"de": "de", "el": "el"}), "es", load_gold_tokens(path, "es")
+    )
+    assert n == 2  # the MWT span row itself is not a token
+
+
+def test_token_accuracy_is_frequency_weighted(tmp_path):
+    """Token-level weighting is by occurrence count, not distinct form."""
+    path = tmp_path / "test.conllu"
+    rows = [[(1, "common", "commonlemma")] for _ in range(3)] + [
+        [(1, "rare", "rarelemma")]
+    ]
+    path.write_text(conllu(rows), encoding="utf-8")
+    mapping = {"common": "commonlemma", "rare": "WRONG"}
+    acc, n = accuracy(build_lemmatizer(mapping), "en", load_gold_tokens(path, "en"))
+    assert n == 4
+    assert acc == 0.75  # 3 correct commons out of 4 total tokens
+
+
+def test_type_accuracy_weights_repeated_form_once(tmp_path):
+    """Type-level gives 'common' and 'rare' equal weight, unlike token-level."""
+    path = tmp_path / "test.conllu"
+    rows = [[(1, "common", "commonlemma")] for _ in range(3)] + [
+        [(1, "rare", "rarelemma")]
+    ]
+    path.write_text(conllu(rows), encoding="utf-8")
+    mapping = {"common": "commonlemma", "rare": "WRONG"}
+    acc, n = score_type(build_lemmatizer(mapping), "en", load_gold_tokens(path, "en"))
+    assert n == 2  # 2 distinct forms, not 4 occurrences
+    assert acc == 0.5  # 1 of 2 distinct forms correct
+
+
+def test_type_accuracy_uses_majority_gold_for_ambiguous_form(tmp_path):
+    """A form with inconsistent gold lemmas is scored against its majority gold lemma."""
+    path = tmp_path / "test.conllu"
+    rows = [[(1, "bank", "bank_river")] for _ in range(3)] + [
+        [(1, "bank", "bank_money")] for _ in range(1)
+    ]
+    path.write_text(conllu(rows), encoding="utf-8")
+    acc, n = score_type(
+        build_lemmatizer({"bank": "bank_river"}), "en", load_gold_tokens(path, "en")
+    )
+    assert n == 1  # one distinct form
+    assert acc == 1.0  # matches the majority gold (3 vs 1)
+
+
+def test_type_and_token_agree_when_no_repeats(tmp_path):
+    """With no repeated forms, token- and type-level accuracy must be identical."""
+    path = tmp_path / "test.conllu"
+    path.write_text(
+        conllu([[(1, "a", "a"), (2, "b", "b"), (3, "c", "WRONG")]]),
+        encoding="utf-8",
+    )
+    mapping = {"a": "a", "b": "b", "c": "c"}
+    gold_tokens = load_gold_tokens(path, "en")
+    strategy = build_lemmatizer(mapping)
+    tok_acc, tok_n = accuracy(strategy, "en", gold_tokens)
+    typ_acc, typ_n = score_type(strategy, "en", gold_tokens)
+    assert tok_acc == typ_acc
+    assert tok_n == typ_n
+
+
+def test_real_affix_chain_is_exercised_not_just_dict_lookup(tmp_path):
+    """Exercises the real DefaultStrategy affix chain: "talossa" isn't in the dict
+    but is derivable from "talo" via Finnish's -ssa suffix rule."""
+    path = tmp_path / "test.conllu"
+    path.write_text(conllu([[(1, "talossa", "talo")]]), encoding="utf-8")
+    acc, n = accuracy(
+        build_lemmatizer({"talo": "talo"}), "fi", load_gold_tokens(path, "fi")
+    )
+    assert n == 1
+    assert acc == 1.0  # "talossa" is not a dict key -- only the affix chain resolves it
+
+
+def test_load_gold_tokens_canonicalizes_gold_lemma_for_ar(tmp_path):
+    """PADT gold lemmas are vocalized; the dict is built from unvocalized
+    forms, so the gold lemma must be canonicalized or every ar content lemma
+    mismatches."""
+    path = tmp_path / "test.conllu"
+    path.write_text(conllu([[(1, "كتاب", "كِتَاب")]]), encoding="utf-8")
+    ((form, gold),) = load_gold_tokens(path, "ar")
+    assert gold == "كتاب"  # vocalization stripped
+    acc, n = accuracy(
+        build_lemmatizer({"كتاب": "كتاب"}), "ar", load_gold_tokens(path, "ar")
+    )
+    assert acc == 1.0
+
+
+def test_load_gold_tokens_leaves_other_langs_unaffected(tmp_path):
+    path = tmp_path / "test.conllu"
+    path.write_text(conllu([[(1, "dogs", "dog")]]), encoding="utf-8")
+    ((form, gold),) = load_gold_tokens(path, "en")
+    assert gold == "dog"

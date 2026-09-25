@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from training import dictionary_builder
+from training import wordlist_ingest
 from training.kaikki_to_tsv import extract_pairs, main
 
 
@@ -377,7 +377,7 @@ def test_main_preserves_unicode(tmp_path):
 
 
 def test_output_is_valid_builder_input(tmp_path):
-    """The produced TSV must be directly consumable by dictionary_builder."""
+    """The produced TSV must be directly consumable by wordlist_ingest."""
     input_path = tmp_path / "kaikki.json"
     entries = [
         {"word": "Hunde", "senses": [{"form_of": [{"word": "Hund"}]}]},
@@ -389,6 +389,6 @@ def test_output_is_valid_builder_input(tmp_path):
     list_path = tmp_path / "de.txt"
     main(input_path, list_path)
 
-    result = dictionary_builder._read_dict(list_path, "de")
+    result = wordlist_ingest.read_wordlist(list_path, "de")
     assert result["Hunde"] == "Hund"
     assert result["Katzen"] == "Katze"

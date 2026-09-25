@@ -1,30 +1,23 @@
-"""
-Utils module.
-Contains utility functions for language processing.
-
-- [levenshtein_dist][simplemma.utils.levenshtein_dist]: Calculates the Levenshtein distance between two strings.
-- [validate_lang_input][simplemma.utils.validate_lang_input]: Validates the language input and ensures it is a valid tuple.
-- [normalize_token][simplemma.utils.normalize_token]: Normalizes a token to Unicode NFC form.
-- [strip_diacritics][simplemma.utils.strip_diacritics]: Removes combining diacritics from a token.
-- [canonicalize_token][simplemma.utils.canonicalize_token]: Per-language dictionary-matching canonicalization (grc grave->acute, he/ar vocalization-stripping).
-- `CANON_LANGS`: Languages canonicalize_token folds (public membership view of _CANON_TABLES).
-"""
+"""Shared utility functions for language processing."""
 
 import unicodedata
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
+
+
+# curly U+2019 and modifier-letter U+02BC fold to U+0027 (NFC does not unify them)
+_APOSTROPHE_GLYPHS = "’ʼ"
+_APOSTROPHES = str.maketrans(_APOSTROPHE_GLYPHS, "''")
+
+
+def fold_apostrophes(token: str) -> str:
+    # guard: translate costs 10x NFC, and almost no token carries either glyph
+    return token.translate(_APOSTROPHES) if "’" in token or "ʼ" in token else token
 
 
 def normalize_token(token: str) -> str:
-    """
-    Normalize a token to Unicode NFC, matching the shipped dictionaries.
-
-    Args:
-        token (str): The input token.
-
-    Returns:
-        str: The token in NFC form.
-    """
-    return unicodedata.normalize("NFC", token)
+    """Normalize a token to NFC with straight apostrophes, matching the shipped
+    dictionaries (keys and values go through the same call at build time)."""
+    return fold_apostrophes(unicodedata.normalize("NFC", token))
 
 
 def strip_diacritics(word: str) -> str:
@@ -36,48 +29,14 @@ def strip_diacritics(word: str) -> str:
     )
 
 
-# Apostrophe glyphs folded to straight U+0027 (the form dictionaries key on);
-# NFC does not unify them. Single source of truth for the helpers below.
-_STRAIGHT_APOSTROPHE = "'"
-_FOLDED_APOSTROPHES = ("’", "ʼ")  # curly U+2019, modifier letter U+02BC
-
-
-def normalize_apostrophes(text: str) -> str:
-    """Fold curly and modifier-letter apostrophes to straight (U+0027)."""
-    for glyph in _FOLDED_APOSTROPHES:
-        text = text.replace(glyph, _STRAIGHT_APOSTROPHE)
-    return text
-
-
-def has_apostrophe(text: str) -> bool:
-    """True if the text carries any apostrophe glyph normalize_apostrophes folds.
-    Inline (hot path: gates every OOV lookup); mirror the glyph constants above."""
-    return "'" in text or "’" in text or "ʼ" in text
-
-
-def apostrophe_variants(token: str) -> tuple[str, ...]:
-    """Every apostrophe-glyph form of the token to try in dictionary lookups."""
-    straight = normalize_apostrophes(token)
-    if _STRAIGHT_APOSTROPHE not in straight:
-        return (token,)
-    folded = (straight.replace(_STRAIGHT_APOSTROPHE, g) for g in _FOLDED_APOSTROPHES)
-    return tuple(dict.fromkeys((token, straight, *folded)))
+def longest_first(words: Iterable[str]) -> tuple[str, ...]:
+    """Longest first, so a shorter affix never shadows a longer one it prefixes."""
+    return tuple(sorted(words, key=len, reverse=True))
 
 
 # hy intonation marks (Մի՞թե); NOT a canon table -- some dict keys carry the
 # mark contrastively (ազատի՛ -> ազատել vs ազատի -> ազատ)
 _ARMENIAN_MARKS = "՛՜՞"
-_ARMENIAN_MARKS_TABLE = str.maketrans("", "", _ARMENIAN_MARKS)
-
-
-def has_armenian_marks(text: str) -> bool:
-    """True if the text carries any hy intonation mark (՛ ՜ ՞)."""
-    return "՛" in text or "՜" in text or "՞" in text
-
-
-def strip_armenian_marks(text: str) -> str:
-    """Remove the hy intonation marks (՛ ՜ ՞)."""
-    return text.translate(_ARMENIAN_MARKS_TABLE)
 
 
 # Per-language dictionary-matching canonicalization, applied to BOTH
@@ -121,27 +80,14 @@ CANON_LANGS: frozenset[str] = frozenset(_CANON_TABLES)
 
 
 def canonicalize_token(token: str, lang: str) -> str:
-    """Fold `token` to its dictionary-matching canonical form for `lang`
-    (see `_CANON_TABLES`); returns it unchanged for any other language."""
+    """Fold `token` to its dictionary-matching canonical form for `lang`:
+    straight apostrophes, plus `_CANON_TABLES` for the languages it lists."""
     table = _CANON_TABLES.get(lang)
-    return token.translate(table) if table is not None else token
+    return fold_apostrophes(token.translate(table) if table is not None else token)
 
 
 def validate_lang_input(lang: str | tuple[str, ...]) -> tuple[str, ...]:
-    """
-    Make sure the lang variable is a valid tuple.
-
-    Args:
-        lang (Any): The language input.
-
-    Returns:
-        tuple[str, ...]: A tuple containing the language code(s).
-
-    Raises:
-        TypeError: If the lang argument is not a tuple or a string.
-        ValueError: If the lang argument is empty.
-
-    """
+    """Normalize `lang` to a tuple, raising on invalid input."""
     # convert string
     if isinstance(lang, str):
         lang = (lang,)
@@ -153,21 +99,7 @@ def validate_lang_input(lang: str | tuple[str, ...]) -> tuple[str, ...]:
 
 
 def levenshtein_dist(str1: str, str2: str) -> int:
-    """
-    Calculate the Levenshtein distance between two strings.
-
-    The Levenshtein distance is a metric for measuring the difference between two strings,
-    defined as the minimum number of single-character edits (insertions, deletions, or substitutions)
-    required to change one string into the other.
-
-    Args:
-        str1 (str): The first string.
-        str2 (str): The second string.
-
-    Returns:
-        int: The Levenshtein distance between the two strings.
-
-    """
+    """Minimum edit distance between two strings."""
     # inspired by this noticeably faster code:
     # https://gist.github.com/p-hash/9e0f9904ce7947c133308fbe48fe032b
     if str1 == str2:

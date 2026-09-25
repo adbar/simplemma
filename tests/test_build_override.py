@@ -2,9 +2,8 @@ import logging
 import sys
 from collections import Counter
 
-from simplemma.strategies.dictionaries import dictionary_factory
 from training import build_override as bo
-from training import dictionary_builder, eval_gate
+from training import ud_conllu
 
 from .conftest import conllu as _conllu
 
@@ -116,38 +115,27 @@ def test_resolve_overrides_per_treebank_veto():
     ) == {"esse": "esse"}
 
 
-def test_main_end_to_end_ships_on_pass(tmp_path, monkeypatch, caplog):
-    """main(): mine train splits -> merge with existing -> gate vs the
-    composed baseline -> --in-place promotes the reviewed file."""
-    # shipped zz dict knows corre->correr; corres is the minable delta
-    (tmp_path / "zz.txt").write_text("correr\tcorre\n", encoding="utf-8")
-    dictionary_builder._build_dictionary(
-        "zz", listpath=str(tmp_path), filepath=str(tmp_path / "zz.plzma")
-    )
-    monkeypatch.setattr(dictionary_factory, "DATA_FOLDER", tmp_path)
-    monkeypatch.setattr(dictionary_factory, "SUPPORTED_LANGUAGES", frozenset({"zz"}))
-
+def test_main_end_to_end(tmp_path, monkeypatch, caplog):
+    """main(): mine train splits -> merge with existing -> write the candidate
+    -> --in-place promotes the reviewed file."""
     splits = tmp_path / "splits"
     splits.mkdir()
     train = _conllu([[(1, "corres", "correr", "VERB")]] * 5)  # open class >=5
-    test = _conllu([[(1, "corres", "correr", "VERB"), (2, "corre", "correr", "VERB")]])
     (splits / "zz_x-ud-train.conllu").write_text(train, encoding="utf-8")
-    (splits / "zz_x-ud-test.conllu").write_text(test, encoding="utf-8")
-    monkeypatch.setattr(eval_gate, "UD_SPLITS", splits)
+    monkeypatch.setattr(ud_conllu, "UD_SPLITS", splits)
 
     overrides = tmp_path / "overrides"
     overrides.mkdir()
+    (overrides / "zz.tsv").write_text("correr\tcorre\n", encoding="utf-8")
     monkeypatch.setattr(bo, "OVERRIDES_DIR", overrides)
     monkeypatch.setattr(bo, "OUTPUT_DIR", tmp_path / "output")
-    monkeypatch.setattr(dictionary_builder, "OVERRIDES_DIR", overrides)
     monkeypatch.setattr(sys, "argv", ["build_override", "zz", "--in-place"])
 
     with caplog.at_level(logging.INFO, logger=bo.log.name):
-        bo.main()  # a gate FAIL or missing treebank would sys.exit
+        bo.main()  # a missing treebank would sys.exit
 
-    # the mined 'corres' is the delta, so the baseline reproduces 0/1
-    assert "0/1 mined forms already reproduced" in caplog.text
-    expected = "correr\tcorres\n"
+    assert "1 new entries over 1 existing" in caplog.text
+    expected = "correr\tcorre\ncorrer\tcorres\n"
     assert (tmp_path / "output" / "zz.tsv").read_text(encoding="utf-8") == expected
     assert (overrides / "zz.tsv").read_text(encoding="utf-8") == expected
 

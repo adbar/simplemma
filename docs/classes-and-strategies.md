@@ -29,6 +29,22 @@ to a `Lemmatizer` and/or `LanguageDetector`:
 0.6666666666666666
 ```
 
+When no strategy finds a lemma, `Lemmatizer` calls its `fallback`, a plain
+`(token, lang) -> str` function that gets the first requested language.
+The default returns the token as-is (lowercased for bg and sk). To raise
+on unknown tokens instead:
+
+``` python
+>>> def strict(token, lang):
+...     raise ValueError(f"{token!r} not found for {lang}")
+>>> lemmatizer = Lemmatizer(fallback=strict)
+>>> lemmatizer.lemmatize('doughnuts', lang='en')
+'doughnut'
+>>> lemmatizer.lemmatize('qwxz', lang=('en', 'de'))
+Traceback (most recent call last):
+ValueError: 'qwxz' not found for en
+```
+
 Each strategy and factory has its own API page under
 [Reference](reference/strategies/lemmatization_strategy.md). For the
 low-memory dictionary backends and their memory/speed trade-offs, see

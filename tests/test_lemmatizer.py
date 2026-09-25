@@ -10,7 +10,6 @@ from simplemma.strategies import (
     DefaultStrategy,
     DictionaryFactory,
     LemmatizationStrategy,
-    RaiseErrorFallbackStrategy,
 )
 
 
@@ -120,10 +119,11 @@ def test_readme() -> None:
     )
     assert lemmatize("スパゲッティ", lang="pt") == "スパゲッティ"
 
+    def _raise_fallback(token: str, lang: str) -> str:
+        raise ValueError(f"Token not found: {token}")
+
     with pytest.raises(ValueError):
-        Lemmatizer(
-            fallback_lemmatization_strategy=RaiseErrorFallbackStrategy()
-        ).lemmatize("スパゲッティ", lang="pt")
+        Lemmatizer(fallback=_raise_fallback).lemmatize("スパゲッティ", lang="pt")
 
 
 def test_nn_fill_full_pipeline() -> None:
@@ -199,6 +199,14 @@ def test_apostrophe_variants() -> None:
     assert lemmatize("здоров'я", lang="uk") == "здоров'я"  # straight
     assert lemmatize("здоров’я", lang="uk") == "здоров'я"  # curly U+2019
     assert lemmatize("здоровʼя", lang="uk") == "здоров'я"  # modifier U+02BC
+    # unknown tokens keep their glyph, strategies used directly fold too
+    assert lemmatize("xyz’abc", lang="fr") == "xyz’abc"
+    assert text_lemmatizer("xyz’abc aujourd’hui", lang="fr") == [
+        "xyz’abc",
+        "aujourd'hui",
+    ]
+    assert DefaultStrategy().get_lemma("aujourd’hui", "fr") == "aujourd'hui"
+    assert DefaultStrategy().is_dictionary_member("aujourd’hui", "fr")
 
 
 def test_exceptions() -> None:
@@ -277,6 +285,11 @@ _SUBWORD_CASES = [
     ("de", "zerlemmatisiertes", False, "zerlemmatisiert"),
     ("ru", "фиксированные", False, "фиксированный"),
     ("ru", "зафиксированные", False, "зафиксированный"),
+    ("fr", "l'après-midi", False, "après-midi"),
+    ("it", "l'italo-americano", False, "italo-americano"),
+    ("es", "transmitiéndoselo", False, "transmitir"),
+    ("gl", "remitiráselles", False, "remitir"),
+    ("it", "diecimila", False, "diecimila"),
 ]
 
 

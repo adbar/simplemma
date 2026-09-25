@@ -212,7 +212,7 @@ morphology rather than a data error.
 | `en` | English | 182 | 78 | 0.96 | on UD EN-LinES, alternative: [LemmInflect](https://github.com/bjascob/LemmInflect) |
 | `enm` | Middle English | 43 | 6 |  |  |
 | `eo` | Esperanto | 191 | 18 | 0.95 | on UD EO-PraGo (test-only treebank, no train split) |
-| `es` | Spanish | 824 | 88 | 0.93 | on UD ES-AnCora |
+| `es` | Spanish | 824 | 88 | 0.96 | on UD ES-AnCora |
 | `et` | Estonian | 2,690 | 95 | 0.91 | on UD ET-EWT, low coverage |
 | `fa` | Persian | 47 | 14 | 0.95 | on UD FA-Seraji |
 | `fi` | Finnish | 3,547 | 125 | 0.91 | on UD FI-TDT, see [this benchmark](https://github.com/aajanki/finnish-pos-accuracy) |
@@ -226,15 +226,15 @@ morphology rather than a data error.
 | `he` | Hebrew | 105 | 10 | 0.93 | on UD HE-HTB; real-world (unsegmented) input scores ≈0.82 |
 | `hi` | Hindi | 86 | 19 | 0.95 | on UD HI-HDTB |
 | `hu` | Hungarian | 1,763 | 45 | 0.88 | on UD HU-Szeged |
-| `hy` | Armenian | 467 | 17 | 0.91 | on UD HY-BSUT |
+| `hy` | Armenian | 467 | 17 | 0.92 | on UD HY-BSUT |
 | `id` | Indonesian | 22 | 4 | 0.93 | on UD ID-CSUI |
 | `is` | Icelandic | 210 | 18 | 0.81 | on UD IS-GC |
 | `it` | Italian | 358 | 28 | 0.95 | on UD IT-ISDT |
 | `ka` | Georgian | 448 | 16 | 0.85 | on UD KA-GLC |
 | `la` | Latin | 1,289 | 70 | 0.89 | on UD LA-PROIEL, alternative: [LatinCy](https://spacy.io/universe/project/latincy) |
 | `lb` | Luxembourgish | 306 | 79 |  | only a <1k-token UD treebank available |
-| `lt` | Lithuanian | 365 | 28 | 0.86 | on UD LT-ALKSNIS |
-| `lv` | Latvian | 178 | 15 | 0.83 | on UD LV-LVTB |
+| `lt` | Lithuanian | 365 | 28 | 0.87 | on UD LT-ALKSNIS |
+| `lv` | Latvian | 178 | 15 | 0.84 | on UD LV-LVTB |
 | `mk` | Macedonian | 546 | 41 | 0.92 | on UD MK-MTB (test-only treebank, no train split) |
 | `ml` | Malayalam | 746 | 64 | 0.69 | on UD ML-UFAL (small test-only treebank, no train split), experimental |
 | `ms` | Malay | 18 | 4 |  |  |
@@ -242,7 +242,7 @@ morphology rather than a data error.
 | `nl` | Dutch | 370 | 125 | 0.96 | on UD NL-Alpino, excl. underscore-joined compound lemmas |
 | `nn` | Norwegian (Nynorsk) | 138 | 36 | 0.83 | on UD NO-Nynorsk |
 | `pl` | Polish | 3,670 | 264 | 0.96 | on UD PL-LFG |
-| `pt` | Portuguese | 927 | 95 | 0.94 | on UD PT-GSD |
+| `pt` | Portuguese | 927 | 95 | 0.95 | on UD PT-GSD |
 | `ro` | Romanian | 345 | 37 | 0.94 | on UD RO-RRT |
 | `ru` | Russian | 1,362 | 131 | 0.93 | on UD RU-SynTagRus, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
 | `se` | Northern Sámi | 115 | 7 | 0.97 | on UD SME-Giella |
@@ -253,7 +253,7 @@ morphology rather than a data error.
 | `sw` | Swahili | 4,869 | 4 |  | experimental |
 | `tl` | Tagalog | 78 | 25 | 0.84 | on UD TL-TRG (test-only treebank, no train split) |
 | `tr` | Turkish | 1,236 | 40 | 0.92 | on UD TR-KeNet |
-| `uk` | Ukrainian | 599 | 45 | 0.92 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
+| `uk` | Ukrainian | 599 | 45 | 0.94 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
 
 
 Languages marked as low-coverage may be better served by

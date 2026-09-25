@@ -8,7 +8,7 @@ from typing import Any
 
 from conllu import parse_incr
 
-from simplemma.utils import canonicalize_token
+from simplemma.utils import canonicalize_token, normalize_token
 
 # The splits location every evaluator/miner reads; download_eval_data.py writes it.
 UD_SPLITS = Path(__file__).parent / "data" / "UD" / "splits"
@@ -30,10 +30,17 @@ def dataset_to_lang(dataset_name: str) -> str:
     return DATASET_LANG_OVERRIDES.get(dataset_name, dataset_name.split("_", 1)[0])
 
 
-# Which sub-token of a fused MWT span carries the "real" lemma a user cares
-# about (he/ar proclitics+article fuse onto a NOUN/VERB/etc.; the proclitic
-# itself is a closed-class function word, not what a lemmatizer is judged on).
-CONTENT_POS = frozenset({"NOUN", "VERB", "ADJ", "PROPN", "ADV", "NUM"})
+def discover_treebanks(
+    lang: str, split: str, ud_splits: Path | None = None
+) -> list[Path]:
+    """Every *-ud-<split>.conllu file whose dataset belongs to `lang` (dataset
+    name is `{code}_{treebank}`)."""
+    suffix = f"-ud-{split}.conllu"
+    return sorted(
+        path
+        for path in (ud_splits or UD_SPLITS).glob(f"*{suffix}")
+        if dataset_to_lang(path.name.removesuffix(suffix)) == lang
+    )
 
 
 def _strip_mwt_artifact(value: str) -> str:
@@ -52,9 +59,9 @@ _GOLD_COMPOUND_SEPARATORS = {"fi": "#", "et": "_", "hu": "+"}
 
 def canon_lemma(lemma: str, form: str, lang: str) -> str:
     """The gold-lemma transform every reader shares: strip the MWT artifact
-    and the language's compound-boundary markers, then canonicalize for
-    `lang` (a no-op outside _CANON_TABLES), so gold is compared/mined in the
-    shipped dict's own key space.
+    and the language's compound-boundary markers, then fold like the shipped
+    dict keys (`normalize_token`) and canonicalize for `lang` (a no-op outside
+    _CANON_TABLES), so gold is compared/mined in the shipped dict's key space.
 
     A marker also present in `form` belongs to the token, decided per
     occurrence (see _strip_compound_markers): '#oscarit' keeps gold '#Oscar'.
@@ -63,7 +70,7 @@ def canon_lemma(lemma: str, form: str, lang: str) -> str:
     separator = _GOLD_COMPOUND_SEPARATORS.get(lang)
     if separator and separator in lemma:
         lemma = _strip_compound_markers(lemma, _strip_mwt_artifact(form), separator)
-    return canonicalize_token(lemma, lang)
+    return canonicalize_token(normalize_token(lemma), lang)
 
 
 def _strip_compound_markers(lemma: str, form: str, separator: str) -> str:
@@ -91,16 +98,17 @@ def iter_word_tokens_in_sentences(
     convention: skip MWT/empty-node ids (tuple, not int) and lemma=='_',
     lowercase the sentence-initial (id==1) form.
 
-    Mutates token["form"]/token["lemma"] in place -- MWT-artifact stripped
-    and the LEMMA canonicalized via `canon_lemma`. Centralizing it here means
-    every reader (eval harnesses AND build_override) inherits the same gold
-    key space with no per-caller step to forget."""
+    Mutates token["form"]/token["lemma"] in place: form MWT-stripped and
+    folded with `normalize_token` (the runtime folds only at lookup, so
+    scores are apostrophe-glyph blind), lemma via `canon_lemma`.
+    Every reader (evaluators AND build_override) inherits the same key space
+    with no per-caller step to forget."""
     for tokens in sentences:
         for token in tokens:
             token_id = token["id"]
             if not isinstance(token_id, int) or token["lemma"] == "_":
                 continue
-            token["form"] = _strip_mwt_artifact(token["form"])
+            token["form"] = normalize_token(_strip_mwt_artifact(token["form"]))
             token["lemma"] = canon_lemma(token["lemma"], token["form"], lang)
             form = token["form"].lower() if token_id == 1 else token["form"]
             yield form, token

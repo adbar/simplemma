@@ -1,34 +1,32 @@
-import re
-
-from .generic import apply_rules
-
-# Swedish noun declension, adjective comparison, and verb conjugation,
-# mined lemma-first (99.76% in-dict).
-DEFAULT_RULES = {
-    re.compile(
-        r"(?:barastes|barares|baraste|barasts|barare|barast|bares|baras"
-        r"|barts|bare|bara|bart)$"
-    ): r"bar",
-    re.compile(r"(?:ingarnas|ingarna|ingens|ingars|ingen|ings)$"): r"ing",
-    re.compile(r"(?:heternas|hetens|heten|heter|hets)$"): r"het",
-    re.compile(r"(?:iskares|iskare)$"): r"isk",
-    re.compile(r"(?:ionernas|ionerna|ionens|ioners|ionen|ioner)$"): r"ion",
-    re.compile(
-        r"(?:igastes|igares|igaste|igasts|igare|igast|iges|igts|igs|ige|igt)$"
-    ): r"ig",
-    re.compile(r"(?:skasts|skast|skts|sks|skt)$"): r"sk",
-    re.compile(r"(?:ndenas|ndena)$"): r"nde",
-    re.compile(r"(?:kastes|kaste)$"): r"k",
-    re.compile(r"(?:erande|eras)$"): r"era",
-    re.compile(r"(?:els)$"): r"el",
-}
+from .generic import SuffixRules
 
 # OOV invariants
 _EXCLUDED = frozenset({"enligt", "antingen", "enbart"})
 
+# Swedish noun declension, adjective comparison, and verb conjugation,
+# mined lemma-first (99.76% in-dict).
+DEFAULT_RULES = SuffixRules(
+    {
+        "bar": (
+            "barastes barares baraste barasts barare barast bares baras barts bare"
+            " bara bart"
+        ),
+        "ing": "ingarnas ingarna ingens ingars ingen ings",
+        "het": "heternas hetens heten heter hets",
+        "isk": "iskares iskare",
+        "ion": "ionernas ionerna ionens ioners ionen ioner",
+        "ig": "igastes igares igaste igasts igare igast iges igts igs ige igt",
+        "sk": "skasts skast skts sks skt",
+        "nde": "ndenas ndena",
+        "k": "kastes kaste",
+        "era": "erande eras",
+        "el": "els",
+    },
+    min_len=6,
+    caps=True,
+    hyphen=True,
+    excluded=_EXCLUDED,
+)
 
-def apply_sv(token: str) -> str | None:
-    "Apply pre-defined rules for Swedish."
-    return apply_rules(
-        token, DEFAULT_RULES, min_len=6, caps=True, hyphen=True, excluded=_EXCLUDED
-    )
+
+apply_sv = DEFAULT_RULES.apply

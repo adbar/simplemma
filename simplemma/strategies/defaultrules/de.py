@@ -45,16 +45,10 @@ ENDING_CHARS_DE = {"e", "m", "n", "r", "s"}
 # proper/loan nouns whose citation form IS the surface form (-lingen toponyms
 # vs the -ling cell, Kaufbeuren vs -eur, Ländereien/Départements fixed plurals)
 _NOUN_STOPS_DE = frozenset(
-    {
-        "Reutlingen",
-        "Solingen",
-        "Flözlingen",
-        "Überlingen",
-        "Tuttlingen",
-        "Kaufbeuren",
-        "Ländereien",
-        "Départements",
-    }
+    (
+        "Reutlingen Solingen Flözlingen Überlingen Tuttlingen Kaufbeuren "
+        "Ländereien Départements".split()
+    )
 )
 
 

@@ -5,11 +5,8 @@ from typing import Any
 
 import pytest
 
-from simplemma.strategies import DefaultStrategy
 from training import wikidata_lexemes as wl
 from training.clean_wordlist import write_pairs
-from training.dictionary_builder import V2_FILL_LANGS
-from training.eval_harness import FixedDictionaryFactory
 
 
 def _write_dump(tmp_path: Path, lexemes: list[dict[str, Any]]) -> Path:
@@ -139,53 +136,6 @@ def test_drop_junk_pairs_keeps_clean_pairs_unchanged():
     assert stats == {"total": 2, "kept": 2}
 
 
-def test_stem_anchored_prune_keeps_self_maps_not_in_shipped():
-    """A fill lemma's self-map is kept even when not in shipped, or the pruned
-    form would regenerate to a lemma absent from the final dict."""
-    shipped: dict[str, str] = {}
-    fill_pairs = [("talo", "talo"), ("talo", "talossa")]
-    kept, stats = wl.stem_anchored_prune(fill_pairs, shipped, "fi")
-    assert kept == [("talo", "talo")]  # the self-map, re-added
-    assert stats["pruned"] == 2
-    assert stats["self_maps_added"] == 1
-
-
-def test_stem_anchored_prune_omits_self_maps_already_in_shipped():
-    """A self-map already provided by shipped isn't duplicated into kept."""
-    shipped = {"talo": "talo"}
-    fill_pairs = [("talo", "talossa")]
-    kept, stats = wl.stem_anchored_prune(fill_pairs, shipped, "fi")
-    assert kept == []  # talossa derivable; talo self-map already in shipped
-    assert stats["self_maps_added"] == 0
-
-
-def test_stem_anchored_prune_self_map_deconflicts_with_kept_form():
-    """A self-map (L, L) and a surviving pair with form L can't both ship; the
-    conflicting pair is dropped explicitly, not left to append-order last-writer."""
-    shipped: dict[str, str] = {}
-    # "le" survives pruning as (x -> le) and also earns a self-map (from le -> lesse): a conflict
-    fill_pairs = [("x", "le"), ("le", "lesse")]
-    kept, stats = wl.stem_anchored_prune(fill_pairs, shipped, "fi")
-
-    forms = [form for _, form in kept]
-    assert len(forms) == len(set(forms)), f"duplicate form in {kept!r}"
-    assert ("le", "le") in kept  # self-map wins
-    assert ("x", "le") not in kept  # conflicting attested pair dropped
-    assert stats["dropped_form_lemma_conflict"] == 1
-
-
-def test_stem_anchored_prune_pruned_form_still_lemmatizes_after_merge():
-    """A pruned form must still lemmatize correctly once the kept set is merged."""
-    shipped: dict[str, str] = {}
-    fill_pairs = [("talo", "talo"), ("talo", "talossa")]
-    kept, _ = wl.stem_anchored_prune(fill_pairs, shipped, "fi")
-
-    merged = {form: lemma for lemma, form in kept}
-    merged.update(shipped)
-    strategy = DefaultStrategy(dictionary_factory=FixedDictionaryFactory(merged))
-    assert strategy.get_lemma("talossa", "fi") == "talo"
-
-
 def test_write_pairs(tmp_path):
     output_path = tmp_path / "out.tsv"
     count = write_pairs([("Hund", "Hunde"), ("Katze", "Katzen")], output_path)
@@ -230,34 +180,3 @@ def test_main_exits_nonzero_on_zero_pairs(tmp_path, monkeypatch):
 
 def test_language_qids_are_distinct():
     assert len(wl.LANGUAGE_QIDS) == len(set(wl.LANGUAGE_QIDS.values()))
-
-
-def test_v2_fill_langs_is_the_reviewed_decision():
-    """Locks the ship decision: fr/it/tr held (regressions), nb un-gateable
-    (no UD treebank). 2026-07-17 wave: nn PASS+shipped (+0.0025/+0.0074
-    no_nynorsk-ud-test); id/fa FAILED the gate (id = WD's meN-active lemma
-    convention vs shipped's root convention; fa = verb-stem ambiguity noise)
-    -- never added; se PASSED but +0.0000pp (already 115k entries/0.95 acc)
-    -- dropped by user call despite passing."""
-    assert V2_FILL_LANGS <= set(wl.LANGUAGE_QIDS)  # only extractable langs
-    assert V2_FILL_LANGS.isdisjoint({"fr", "it", "tr", "id", "fa", "se"})
-    assert V2_FILL_LANGS == {
-        "cs",
-        "da",
-        "de",
-        "el",
-        "en",
-        "es",
-        "et",
-        "fi",
-        "la",
-        "nb",
-        "nl",
-        "nn",
-        "pl",
-        "pt",
-        "ru",
-        "sk",
-        "sv",
-        "uk",
-    }

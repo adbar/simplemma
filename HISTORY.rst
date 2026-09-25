@@ -2,6 +2,17 @@
 History
 =======
 
+3.0.0 (unreleased)
+------------------
+
+- Unknown tokens are no longer lowercased for es, hy, lt, lv, pt and uk (proper nouns keep their case), only for bg and sk
+- Rules and affix tables re-checked on UD: es leaves affix decomposition, imprecise en ``-ships`` and es ``-té`` rules removed
+- Breaking: ``fallback_lemmatization_strategy`` replaced by ``fallback``, a plain ``(token, lang) -> str`` callable,
+  and the ``simplemma.strategies.fallback`` subpackage is removed
+- Breaking: ``ApostropheBoundaryStrategy`` removed, folded into ``DefaultStrategy``
+- Breaking: the ``defaultprefixes`` module is merged into ``prefix_decomposition``
+
+
 2.0.0
 -----
 
@@ -14,6 +25,7 @@ History
 - Faster, more precise tokenizer, and new split_sentences() function for sentence splitting (#177, #182)
 - Lower memory usage: shared dictionary cache and new low_memory flag (#178, #181)
 - Language detector fixes (#172)
+- Breaking: dictionaries use a new format, ``.plzma`` files from 1.x cannot be read
 
 
 1.2.0

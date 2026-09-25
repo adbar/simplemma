@@ -1,11 +1,14 @@
-import re
+from .generic import SuffixRules
 
-from .generic import apply_rules
-
-DEFAULT_RULES = {
-    re.compile(r"(?:ости|остью|остей|остям|остями|остях)$"): "ость",
-    re.compile(r"(?:ства|ств|ству|ствам|ством|ствами|стве|ствах)$"): "ство",
-}
+DEFAULT_RULES = SuffixRules(
+    {
+        "ость": "ости остью остей остям остями остях",
+        "ство": "ства ств ству ствам ством ствами стве ствах",
+    },
+    min_len=9,
+    caps=True,
+    hyphen=True,
+)
 
 
 def apply_ru(token: str) -> str | None:
@@ -13,4 +16,4 @@ def apply_ru(token: str) -> str | None:
     if token.endswith("ё"):
         return token.replace("ё", "е")
 
-    return apply_rules(token, DEFAULT_RULES, min_len=9, caps=True, hyphen=True)
+    return DEFAULT_RULES.apply(token)
