@@ -214,8 +214,8 @@ def test_token_accuracy_folds_curly_apostrophes():
     """Gold forms are folded like Lemmatizer does, so a curly form hits its straight key."""
     acc, n = accuracy(build_lemmatizer({"l'uomo": "uomo"}), "it", [("l’uomo", "uomo")])
     assert (acc, n) == (1.0, 1)
-    # identity fallback returns the folded form, as Lemmatizer does
-    assert accuracy(build_lemmatizer({}), "tr", [("X’ye", "X'ye")]) == (1.0, 1)
+    # identity fallback keeps the input glyph, as Lemmatizer does
+    assert accuracy(build_lemmatizer({}), "tr", [("X’ye", "X’ye")]) == (1.0, 1)
 
 
 def test_token_accuracy_identity_fallback_on_miss(tmp_path):

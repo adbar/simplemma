@@ -7,9 +7,9 @@ dictionary-membership check; without one, only base initial-lowering applies.
 """
 
 import re
+import unicodedata
 from collections.abc import Callable, Iterator
 
-from .utils import normalize_token
 
 # (token, lang) -> is it a literal dictionary key? (no case/apostrophe fallback)
 MembershipCheck = Callable[[str, str], bool]
@@ -71,7 +71,8 @@ class SentenceCasing:
         verbatim as an acronym instead of lemmatizing. The acronym path buffers
         one sentence at a time (it needs the whole sentence's shouting ratio);
         the default path streams in constant memory."""
-        nfc = (normalize_token(t) for t in tokens)  # NFC once: probes match dicts
+        # NFC once: probes match dicts
+        nfc = (unicodedata.normalize("NFC", t) for t in tokens)
         return self._buffered(nfc) if self._acronym else self._streaming(nfc)
 
     def initial_surface(self, token: str) -> str:

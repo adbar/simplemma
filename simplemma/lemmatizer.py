@@ -1,5 +1,6 @@
 """Lemmatizer module."""
 
+import unicodedata
 from collections.abc import Callable, Iterator
 from functools import lru_cache
 from typing import Any
@@ -67,8 +68,8 @@ class Lemmatizer:
         lang: str | tuple[str, ...],
     ) -> str:
         """Return the lemma of `token` in the given language(s)."""
-        # NFC before caching: canonical key, matches the NFC dictionaries.
-        return self._cached_lemmatize(normalize_token(token), lang)
+        # NFC only: apostrophes fold at lookup, unknown tokens keep their glyph
+        return self._cached_lemmatize(unicodedata.normalize("NFC", token), lang)
 
     def _lemmatize(
         self,

@@ -9,12 +9,15 @@ _APOSTROPHE_GLYPHS = "’ʼ"
 _APOSTROPHES = str.maketrans(_APOSTROPHE_GLYPHS, "''")
 
 
+def fold_apostrophes(token: str) -> str:
+    # guard: translate costs 10x NFC, and almost no token carries either glyph
+    return token.translate(_APOSTROPHES) if "’" in token or "ʼ" in token else token
+
+
 def normalize_token(token: str) -> str:
     """Normalize a token to NFC with straight apostrophes, matching the shipped
     dictionaries (keys and values go through the same call at build time)."""
-    token = unicodedata.normalize("NFC", token)
-    # guard: translate costs 10x NFC, and almost no token carries either glyph
-    return token.translate(_APOSTROPHES) if "’" in token or "ʼ" in token else token
+    return fold_apostrophes(unicodedata.normalize("NFC", token))
 
 
 def strip_diacritics(word: str) -> str:
@@ -77,10 +80,10 @@ CANON_LANGS: frozenset[str] = frozenset(_CANON_TABLES)
 
 
 def canonicalize_token(token: str, lang: str) -> str:
-    """Fold `token` to its dictionary-matching canonical form for `lang`
-    (see `_CANON_TABLES`); returns it unchanged for any other language."""
+    """Fold `token` to its dictionary-matching canonical form for `lang`:
+    straight apostrophes, plus `_CANON_TABLES` for the languages it lists."""
     table = _CANON_TABLES.get(lang)
-    return token.translate(table) if table is not None else token
+    return fold_apostrophes(token.translate(table) if table is not None else token)
 
 
 def validate_lang_input(lang: str | tuple[str, ...]) -> tuple[str, ...]:

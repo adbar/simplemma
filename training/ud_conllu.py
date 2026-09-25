@@ -59,8 +59,8 @@ _GOLD_COMPOUND_SEPARATORS = {"fi": "#", "et": "_", "hu": "+"}
 
 def canon_lemma(lemma: str, form: str, lang: str) -> str:
     """The gold-lemma transform every reader shares: strip the MWT artifact
-    and the language's compound-boundary markers, then fold like the runtime
-    (`normalize_token`) and canonicalize for `lang` (a no-op outside
+    and the language's compound-boundary markers, then fold like the shipped
+    dict keys (`normalize_token`) and canonicalize for `lang` (a no-op outside
     _CANON_TABLES), so gold is compared/mined in the shipped dict's key space.
 
     A marker also present in `form` belongs to the token, decided per
@@ -99,7 +99,8 @@ def iter_word_tokens_in_sentences(
     lowercase the sentence-initial (id==1) form.
 
     Mutates token["form"]/token["lemma"] in place: form MWT-stripped and
-    folded like the runtime (`normalize_token`), lemma via `canon_lemma`.
+    folded with `normalize_token` (the runtime folds only at lookup, so
+    scores are apostrophe-glyph blind), lemma via `canon_lemma`.
     Every reader (evaluators AND build_override) inherits the same key space
     with no per-caller step to forget."""
     for tokens in sentences:

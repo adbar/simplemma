@@ -12,4 +12,4 @@ class LemmatizationStrategy(Protocol):
     @abstractmethod
     def get_lemma(self, token: str, lang: str) -> str | None:
         """Return the lemma for `token` in `lang`, or None.
-        Tokens are expected in `normalize_token` form."""
+        Tokens are expected in NFC."""

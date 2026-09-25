@@ -68,6 +68,9 @@ CLITIC_LANGS: dict[str, SuffixRules] = {
 }
 
 
+BARE_CHAIN_LANGS = frozenset({"es", "gl"})
+
+
 class CliticDecompositionStrategy(LemmatizationStrategy):
     """
     Lemmatization strategy that strips one enclitic -- a Romance verb enclitic,
@@ -92,8 +95,12 @@ class CliticDecompositionStrategy(LemmatizationStrategy):
         if stem is None:
             return None
         lemma = self._stem_lookup(stem, lang)
-        # hyphen chains (portar-se-la) get one more strip; bare ones don't (UD: diecimila -> dieci)
-        if lemma is None and stem.endswith(("-me", "-te", "-se", "-nos", "-vos")):
+        # second strip: hyphen chains (portar-se-la), bare only in es/gl
+        # (transmitiéndoselo, UD MWT), not it (diecimila -> dieci)
+        if lemma is None and (
+            lang in BARE_CHAIN_LANGS
+            or stem.endswith(("-me", "-te", "-se", "-nos", "-vos"))
+        ):
             stem = rules.apply(stem)
             if stem is not None:
                 lemma = self._stem_lookup(stem, lang)

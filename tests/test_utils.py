@@ -8,6 +8,7 @@ import pytest
 from simplemma import is_known, lemmatize
 from simplemma.utils import (
     canonicalize_token,
+    fold_apostrophes,
     levenshtein_dist,
     normalize_token,
     strip_diacritics,
@@ -119,6 +120,7 @@ def test_normalize_token_folds_apostrophes() -> None:
     # curly U+2019 and modifier U+02BC fold to straight U+0027, alongside NFC
     assert normalize_token("l’a") == normalize_token("lʼa") == "l'a"
     assert normalize_token("la") == "la"
+    assert fold_apostrophes("l’aʼ") == "l'a'"
 
 
 def test_validate_lang_input() -> None:
