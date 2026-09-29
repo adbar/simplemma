@@ -247,8 +247,8 @@ def test_apostrophe_boundary() -> None:
 
 def test_dictionary_lookup_apostrophe_variant() -> None:
     """Every apostrophe glyph (straight ', curly U+2019, modifier-letter U+02BC
-    -- NFC does not unify them) reaches the straight-keyed entry: the
-    Lemmatizer folds them in normalize_token before any strategy runs."""
+    -- NFC does not unify them) reaches the straight-keyed entry: every
+    dictionary lookup folds them via canonicalize_token."""
     for glyph in ("’", "ʼ", "'"):
         assert lemmatize(f"виб{glyph}єш", lang="uk") == "вибити"
         assert lemmatize(f"don{glyph}t", lang="en") == "do"  # enclitic

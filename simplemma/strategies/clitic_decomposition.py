@@ -67,8 +67,17 @@ CLITIC_LANGS: dict[str, SuffixRules] = {
     "ar": SuffixRules({"": "هن هم ها ه كم نا"}, min_stem=MIN_STEM_LEN, caps=True),
 }
 
-
-BARE_CHAIN_LANGS = frozenset({"es", "gl"})
+# Second strip: hyphen chains (portar-se-la), bare only in es/gl
+# (transmitiéndoselo, UD MWT), not it (diecimila -> dieci)
+_HYPHEN_CHAIN = SuffixRules(
+    {"": "-nos -vos -me -te -se"}, min_stem=MIN_STEM_LEN, caps=True
+)
+CLITIC_CHAINS: dict[str, SuffixRules] = {
+    "es": CLITIC_LANGS["es"],
+    "gl": CLITIC_LANGS["gl"],
+    "pt": _HYPHEN_CHAIN,
+    "ca": _HYPHEN_CHAIN,
+}
 
 
 class CliticDecompositionStrategy(LemmatizationStrategy):
@@ -95,13 +104,9 @@ class CliticDecompositionStrategy(LemmatizationStrategy):
         if stem is None:
             return None
         lemma = self._stem_lookup(stem, lang)
-        # second strip: hyphen chains (portar-se-la), bare only in es/gl
-        # (transmitiéndoselo, UD MWT), not it (diecimila -> dieci)
-        if lemma is None and (
-            lang in BARE_CHAIN_LANGS
-            or stem.endswith(("-me", "-te", "-se", "-nos", "-vos"))
-        ):
-            stem = rules.apply(stem)
+        chain = CLITIC_CHAINS.get(lang)
+        if lemma is None and chain is not None:
+            stem = chain.apply(stem)
             if stem is not None:
                 lemma = self._stem_lookup(stem, lang)
         return lemma

@@ -11,7 +11,7 @@ import unicodedata
 from collections.abc import Callable, Iterator
 
 
-# (token, lang) -> is it a literal dictionary key? (no case/apostrophe fallback)
+# (token, lang) -> is it a literal dictionary key? (no case fallback)
 MembershipCheck = Callable[[str, str], bool]
 
 

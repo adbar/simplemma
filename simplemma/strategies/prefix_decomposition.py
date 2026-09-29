@@ -1,7 +1,7 @@
 """Prefix decomposition lemmatization strategy.
 
 Each language: a UD-validated prefix list and an optional suffix regex fragment
-(stem-floor lookahead, infinitive-collision guard, or none). DROP_PREFIX_LANGS
+(stem-floor lookahead or none). DROP_PREFIX_LANGS
 says whether a matched prefix is a separate particle to discard (ar/he/fr/it/ca)
 or a derivational prefix that stays part of the lemma (uk). Prefixes are
 sorted by length so list order carries no meaning.

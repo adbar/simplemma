@@ -6,8 +6,8 @@ Split discipline: train both feeds the override mining AND calibrates the
 eval_gate, so it is the only split a shipping decision is ever made against.
 That leaves dev and test genuinely held out, and both are reported here.
 
-Distinct from `eval_gate`, which scores a bare strategy as a
-dictionary-quality gate -- different protocol, not a duplicate.
+Distinct from `eval_gate`, which scores the `Lemmatizer` over a candidate
+dictionary on train as a regression gate -- different protocol, not a duplicate.
 """
 
 import csv

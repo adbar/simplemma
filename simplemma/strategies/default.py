@@ -116,5 +116,5 @@ class DefaultStrategy(LemmatizationStrategy):
         return head if _case_key(lemma) == _case_key(head) else lemma
 
     def is_dictionary_member(self, token: str, lang: str) -> bool:
-        """Raw dictionary membership for `token` (no case/apostrophe fallback)."""
+        """Raw dictionary membership for `token` (no case fallback)."""
         return self._dictionary_lookup.is_dictionary_member(token, lang)

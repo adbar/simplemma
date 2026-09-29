@@ -14,7 +14,7 @@ from .strategies import (
 )
 from .strategies.dictionaries import LOW_MEMORY_DICTIONARY_FACTORY
 from .tokenizer import RegexTokenizer, Tokenizer
-from .utils import normalize_token, validate_lang_input
+from .utils import validate_lang_input
 
 # Only where UD gold lowercases proper nouns; elsewhere identity wins held-out
 # (es +2.8, lv +1.6, uk +1.2, lt +1.1, pt +1.1, hy +0.6pp, 2026-09).
@@ -50,11 +50,11 @@ class Lemmatizer:
         cache_max_size: int = 65536,
         tokenizer: Tokenizer = RegexTokenizer(),
         lemmatization_strategy: LemmatizationStrategy = DefaultStrategy(),
-        fallback: Callable[[str, str], str] | None = None,
+        fallback: Callable[[str, str], str] = _default_fallback,
     ) -> None:
         self._tokenizer = tokenizer
         self._lemmatization_strategy = lemmatization_strategy
-        self._fallback = fallback or _default_fallback
+        self._fallback = fallback
         # A strategy exposing raw membership (`is_dictionary_member`) enables the
         # gated/acronym casing heuristics; others get base initial-lowering only.
         self._member: MembershipCheck | None = getattr(
@@ -86,7 +86,7 @@ class Lemmatizer:
             if candidate is not None:
                 return candidate
 
-        return self._fallback(token, next(iter(lang)))
+        return self._fallback(token, lang[0])
 
     def get_lemmas_in_text(
         self,
@@ -112,14 +112,16 @@ def _legacy_lemmatizer_for(greedy: bool, low_memory: bool) -> Lemmatizer:
     )
 
 
+_LOOKUP_DEFAULT = DictionaryLookupStrategy(DEFAULT_DICTIONARY_FACTORY)
+_LOOKUP_LOW_MEM = DictionaryLookupStrategy(LOW_MEMORY_DICTIONARY_FACTORY)
+
+
 def is_known(token: str, lang: str | tuple[str, ...], low_memory: bool = False) -> bool:
     """Check if a token is present in the language data."""
     _control_input_type(token)
-    token = normalize_token(token)
+    token = unicodedata.normalize("NFC", token)
     lang = validate_lang_input(lang)
-    lookup = DictionaryLookupStrategy(
-        LOW_MEMORY_DICTIONARY_FACTORY if low_memory else DEFAULT_DICTIONARY_FACTORY
-    )
+    lookup = _LOOKUP_LOW_MEM if low_memory else _LOOKUP_DEFAULT
     return any(lookup.get_lemma(token, code) is not None for code in lang)
 
 

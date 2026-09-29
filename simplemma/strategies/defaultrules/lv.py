@@ -14,14 +14,16 @@ DEFAULT_RULES = SuffixRules(
         "ība": "ības ību ībā ībām ībās",
         "ija": "ijas ijai",
         "šana": "šanas šanai šanu šani",
-    }
+    },
+    min_len=6,
 )
 
 # capitalized tokens decline like nouns (Latvijas -> Latvija); "ums" excluded
 # (feminine surnames end in -a: Straujuma)
 _CAPS_UNSAFE_TARGETS = frozenset({"isks", "īgs", "ums"})
 _PROPER_NOUN_RULES = SuffixRules(
-    {t: s for t, s in DEFAULT_RULES.cells.items() if t not in _CAPS_UNSAFE_TARGETS}
+    {t: s for t, s in DEFAULT_RULES.cells.items() if t not in _CAPS_UNSAFE_TARGETS},
+    min_len=6,
 )
 
 # pluralia tantum colliding with the -ība/-šana singular cells, plus two
@@ -39,7 +41,7 @@ _EXCLUDED = frozenset(
 def apply_lv(token: str) -> str | None:
     "Apply pre-defined rules for Latvian."
     # jā- marks debitive verb forms (infinitive lemma, out of reach here)
-    if len(token) < 6 or token.startswith("jā") or token in _EXCLUDED:
+    if token.startswith("jā") or token in _EXCLUDED:
         return None
 
     rules = _PROPER_NOUN_RULES if token[0].isupper() else DEFAULT_RULES
