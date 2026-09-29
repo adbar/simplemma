@@ -32,15 +32,16 @@ def test_search() -> None:
     # empty token must not crash the case-flip retry
     assert _LOOKUP.get_lemma("", "en") is None
 
-    assert HyphenRemovalStrategy().get_lemma("magni-ficent", "en") == "magnificent"
-    assert HyphenRemovalStrategy().get_lemma("magni-ficents", "en") is None
+    assert HyphenRemovalStrategy().get_lemma("Mail-Clients", "de") == "Mail-Client"
+    assert HyphenRemovalStrategy().get_lemma("-ce", "fr") == "ce"
+    assert HyphenRemovalStrategy().get_lemma("magni-ficent", "en") is None
     assert HyphenRemovalStrategy().get_lemma("magni-", "en") is None
 
     # don't lemmatize numbers
     assert DefaultStrategy().get_lemma("01234", "en") == "01234"
 
     assert DefaultStrategy().get_lemma("Gender-Sternchens", "de") == "Gender-Sternchen"
-    assert DefaultStrategy().get_lemma("vor-bereitetes", "de") == "vorbereitet"
+    assert DefaultStrategy().get_lemma("vor-bereitetes", "de") == "vor-bereitet"
 
     assert (
         GreedyDictionaryLookupStrategy(steps=0, distance=20).get_lemma(
@@ -70,7 +71,7 @@ def test_search() -> None:
     # so a vocalized token resolves even when this strategy runs standalone.
     assert GreedyDictionaryLookupStrategy().get_lemma("آذربايجانَ", "ar") == "أذربيجان"
 
-    assert PrefixDecompositionStrategy().get_lemma("auf", "de") is None
+    assert PrefixDecompositionStrategy().get_lemma("за", "uk") is None
 
 
 @pytest.mark.parametrize(
@@ -84,11 +85,12 @@ def test_search() -> None:
         ("da", False, "drabsdagen", "drabsdag"),
         ("da", False, "menighedsrådsvalget", "menighedsrådsvalg"),
         ("nn", False, "pastasalaten", "pastasalat"),
-        # WD fill added standalone "ane" (a real nn verb), which wins this
-        # word's affix-only split; the full pipeline still resolves it
-        # correctly via dictionary_lookup (locked by
-        # test_lemmatizer.py::test_nn_fill_full_pipeline).
-        ("nn", False, "underleverandørane", "underleverandørane"),
+        ("nn", False, "underleverandørane", "underleverandør"),
+        ("is", False, "guðsríkis", "guðsríki"),
+        ("ro", False, "degenerativă", "degenerativ"),
+        ("sv", False, "kibbutzbarnen", "kibbutzbarn"),
+        # compound splits are greedy-only
+        ("lv", False, "spēlēties", None),
         # lt's entry gate is lowered to 7, admitting these 8-char forms
         ("lt", False, "rengiami", "rengti"),
         ("lt", False, "teikiant", "teikti"),
@@ -198,9 +200,9 @@ def test_clitic_decomposition(token: str, lang: str, expected: str | None) -> No
     assert _CLITIC.get_lemma(token, lang) == expected
 
 
-# fr/it/ca proclitics as drop-prefix languages; de keeps case-sensitive matching.
+# fr/it/ca proclitics as drop-prefix languages; uk keeps case-sensitive matching.
 _PREFIX_CASES = [
-    pytest.param("Mitbenutzern", "de", None, id="attached-prefix-case-sensitive"),
+    pytest.param("Відкликала", "uk", None, id="attached-prefix-case-sensitive"),
     pytest.param("l'arbre", "fr", "arbre", id="proclitic-fr-arbre"),
     pytest.param("qu'avait", "fr", "avoir", id="proclitic-fr-avoir"),
     pytest.param("jusqu'alors", "fr", "alors", id="proclitic-fr-alors"),
@@ -280,7 +282,7 @@ def test_dictionary_lookup_he_niqqud_canon() -> None:
 def test_prefix_decomposition_drops_particle_for_drop_prefix_langs() -> None:
     """he (DROP_PREFIX_LANGS): the matched prefix is its own grammatical
     particle, not part of the stem's lemma, so only the stem's lemma is
-    returned -- unlike de/ru/uk, where the prefix stays attached (see
+    returned -- unlike uk, where the prefix stays attached (see
     test_prefixes_basic.py)."""
     import re
 

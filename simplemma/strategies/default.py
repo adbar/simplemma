@@ -12,7 +12,7 @@ from .greedy_dictionary_lookup import GreedyDictionaryLookupStrategy
 from .hyphen_removal import HyphenRemovalStrategy
 from .lemmatization_strategy import LemmatizationStrategy
 from .morpheme_decomposition import MorphemeDecompositionStrategy
-from .prefix_decomposition import DROP_PREFIX_LANGS, PrefixDecompositionStrategy
+from .prefix_decomposition import PrefixDecompositionStrategy
 from .rules import RulesStrategy
 from ..utils import fold_apostrophes
 
@@ -76,20 +76,17 @@ class DefaultStrategy(LemmatizationStrategy):
         if token.isnumeric():
             return token
 
-        # particles (l'après-midi) before hyphen_search, de/ru/uk prefixes after rules
-        particles_first = lang in DROP_PREFIX_LANGS
         candidate = (
             # before dictionary_lookup: its reverse-case fallback else
             # mangles capitalized proper nouns (Erdoğan'ın -> erdoğan)
             self._apostrophe_lemma(token, lang)
             or self._dictionary_lookup.get_lemma(token, lang)
-            # before hyphen_search: a hyphenated clitic's last part often
-            # self-resolves, so hyphen_search would return the token as-is
+            # before hyphen_search: a hyphenated token's last part often
+            # self-resolves (portar-lo, l'après-midi)
             or self._clitic_search.get_lemma(token, lang)
-            or (self._prefix_search.get_lemma(token, lang) if particles_first else None)
+            or self._prefix_search.get_lemma(token, lang)
             or self._hyphen_search.get_lemma(token, lang)
             or self._rules_search.get_lemma(token, lang)
-            or (None if particles_first else self._prefix_search.get_lemma(token, lang))
             or self._affix_search.get_lemma(token, lang)
             or self._morpheme_search.get_lemma(token, lang)
         )

@@ -127,11 +127,8 @@ def test_readme() -> None:
 
 
 def test_nn_fill_full_pipeline() -> None:
-    """The WD fill added standalone "ane" (a real nn verb), which makes
-    AffixDecompositionStrategy alone mis-split "underleverandørane" (see
-    test_strategies.py's affix_decomposition cases) -- but dictionary_lookup
-    runs first in the full pipeline and hits the fill-added whole-word entry,
-    so the user-facing lemmatize() result is unaffected."""
+    """The WD fill's whole-word entry resolves this compound in the full
+    pipeline, as AffixDecompositionStrategy does alone."""
     assert lemmatize("underleverandørane", lang="nn") == "underleverandør"
 
 
@@ -273,7 +270,7 @@ _SUBWORD_CASES = [
     ("de", "Atomdeals", True, "Atomdeal"),
     ("de", "Anspruchsberechtigten", True, "Anspruchsberechtigte"),
     ("de", "Bürgerschaftsabgeordneter", True, "Bürgerschaftsabgeordnete"),
-    ("de", "Lichtbild-Ausweis", True, "Lichtbildausweis"),
+    ("de", "Lichtbild-Ausweis", True, "Lichtbild-Ausweis"),
     ("de", "Kapuzenpullis", True, "Kapuzenpulli"),
     ("de", "Pharmagrößen", True, "Pharmagröße"),
     ("de", "Funktionärsebene", True, "Funktionärsebene"),
@@ -282,7 +279,6 @@ _SUBWORD_CASES = [
     ("de", "Spargelstangen", True, "Spargelstange"),
     ("de", "Bandmitgliedern", True, "Bandmitglied"),
     ("de", "lemmatisiertes", False, "lemmatisiert"),
-    ("de", "zerlemmatisiertes", False, "zerlemmatisiert"),
     ("ru", "фиксированные", False, "фиксированный"),
     ("ru", "зафиксированные", False, "зафиксированный"),
     ("fr", "l'après-midi", False, "après-midi"),

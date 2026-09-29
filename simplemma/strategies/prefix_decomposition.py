@@ -3,7 +3,7 @@
 Each language: a UD-validated prefix list and an optional suffix regex fragment
 (stem-floor lookahead, infinitive-collision guard, or none). DROP_PREFIX_LANGS
 says whether a matched prefix is a separate particle to discard (ar/he/fr/it/ca)
-or a derivational prefix that stays part of the lemma (de/ru/uk). Prefixes are
+or a derivational prefix that stays part of the lemma (uk). Prefixes are
 sorted by length so list order carries no meaning.
 """
 
@@ -34,17 +34,6 @@ DEFAULT_KNOWN_PREFIXES: dict[str, re.Pattern[str]] = {
         "jusqu' lorsqu' puisqu' quoiqu' presqu' qu' l' d' c' n' s' m' j' t'"
     ),
     "it": _prefix_regex("quest' quell' dell' nell' sull' coll' dall' un' l' d' c' s'"),
-    # UD-validated (de_gsd/de_hdt): dropped 27 entries that were
-    # unreachable under first-match alternation ("herab" shadowed by
-    # "her") plus "zu" (fabricated zufolge->zufolgen). (?!zu) blocks
-    # prefix+zu-infinitive splits (abzuholen must not be read as
-    # ab+zuholen) -- unrelated to the "zu" entry removed above.
-    "de": _prefix_regex(
-        "ab an auf aus be da durch ein ent er gegen heim her hin hinzu innen "
-        "los miss mit nach neben nieder ran raus rein rum runter über um unter "
-        "ver vor weg weiter wieder zer",
-        r"(?!zu)",
-    ),
     # UD-validated (he_htb train): single-letter proclitics attach to a
     # host word with no separator. The 7th proclitic מ is excluded -- 57%
     # fix precision vs 71-88% for these six, and a much worse
@@ -54,13 +43,6 @@ DEFAULT_KNOWN_PREFIXES: dict[str, re.Pattern[str]] = {
     # else a 2-letter token strips to a single letter and hits a
     # one-letter abbreviation key (בצ -> צ -> צפון).
     "he": _prefix_regex("ו ה ב כ ל ש", r"(?=..)"),
-    # UD-validated (ru_gsd/ru_syntagrus): "за"/"при" removed -- net
-    # harmful, fabricating lemmas for lexicalized adverbs
-    # (затем->затема).
-    "ru": _prefix_regex(
-        "гидро контр много микро недо пере под пред про радио раз рас само "
-        "экстра электро"
-    ),
     # UD-validated (uk_iu): clean accept, no harmful entry. See
     # README.md "Slavic prefix wave".
     "uk": _prefix_regex("по за ви на при про роз пере від до під об без"),

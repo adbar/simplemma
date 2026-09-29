@@ -12,10 +12,8 @@ _STRATEGY = PrefixDecompositionStrategy()
 
 # (lang, form, expected-lemma-or-None)
 PREFIX_CASES = [
-    ("de", "zerlemmatisiertes", "zerlemmatisiert"),
-    ("de", "abzugshaube", None),
-    ("ru", "продолжая", "продолжать"),
     ("uk", "відкликала", "відкликати"),
+    ("uk", "позпрщшк", None),  # stem not in the dictionary
 ]
 
 

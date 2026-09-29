@@ -9,7 +9,7 @@ from .lemmatization_strategy import LemmatizationStrategy
 
 # UD-validated per language (see training/data/affix_eval/); shared with
 # the affix entry gate in affix_decomposition.py on purpose.
-MIN_LENGTH_OVERRIDES = {"bg": 6, "et": 6, "fi": 6, "lt": 7, "lv": 6}
+MIN_LENGTH_OVERRIDES = {"bg": 6, "et": 6, "fi": 6, "is": 6, "lt": 7, "lv": 6}
 
 
 def greedy_min_length(lang: str) -> int:

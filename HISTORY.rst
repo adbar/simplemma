@@ -2,11 +2,15 @@
 History
 =======
 
-3.0.0 (unreleased)
+x.x.x (unreleased)
 ------------------
 
 - Unknown tokens are no longer lowercased for es, hy, lt, lv, pt and uk (proper nouns keep their case), only for bg and sk
 - Rules and affix tables re-checked on UD: es leaves affix decomposition, imprecise en ``-ships`` and es ``-té`` rules removed
+- Affix decomposition splits compounds in greedy mode only, now covers hbs, is, ro, sl and sv,
+  and has re-tuned affix lengths for et, fi, hu and ru
+- Hyphenated tokens keep their head (Mail-Clients -> Mail-Client), the joined-form lookup is removed
+- German and Russian prefix lists removed (negligible accuracy impact), Ukrainian kept
 - Breaking: ``fallback_lemmatization_strategy`` replaced by ``fallback``, a plain ``(token, lang) -> str`` callable,
   and the ``simplemma.strategies.fallback`` subpackage is removed
 - Breaking: ``ApostropheBoundaryStrategy`` removed, folded into ``DefaultStrategy``

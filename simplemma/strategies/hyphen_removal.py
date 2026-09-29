@@ -7,8 +7,8 @@ HYPHENS = ("-", "_")
 
 
 class HyphenRemovalStrategy(LemmatizationStrategy):
-    """Remove hyphens and look up the joined form; fall back to decomposing
-    at the last hyphen and looking up the tail."""
+    """Look up the part after the last hyphen and keep the head (Mail-Clients
+    -> Mail-Client); a head made of hyphens only is dropped (-ce -> ce)."""
 
     __slots__ = ["_dictionary_lookup"]
 
@@ -21,19 +21,8 @@ class HyphenRemovalStrategy(LemmatizationStrategy):
         last = max(token.rfind(h) for h in HYPHENS)
         if last < 0 or last == len(token) - 1:
             return None
-
-        # try to find a word form without hyphen
-        candidate = token.lower()
-        for hyphen in HYPHENS:
-            candidate = candidate.replace(hyphen, "")
-        if token[0].isupper():
-            candidate = candidate.capitalize()
-        lemma = self._dictionary_lookup.get_lemma(candidate, lang)
-        if lemma is not None:
-            return lemma
-
-        # decompose at the last hyphen
-        last_part_lemma = self._dictionary_lookup.get_lemma(token[last + 1 :], lang)
-        if last_part_lemma is not None:
-            return token[: last + 1] + last_part_lemma
-        return None
+        lemma = self._dictionary_lookup.get_lemma(token[last + 1 :], lang)
+        if lemma is None:
+            return None
+        head = token[: last + 1]
+        return head + lemma if head.strip("".join(HYPHENS)) else lemma

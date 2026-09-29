@@ -10,23 +10,28 @@ from .lemmatization_strategy import LemmatizationStrategy
 # Membership and max_affix_len values are UD-validated, not in-dict guesswork
 # (see training/affixbuilder.py + the gitignored gate under
 # training/data/affix_eval/). Many in-dict-positive langs were rejected on UD
-# (pt/ca/nl/en/la/gl/fr/it/ro/de), and es (net-negative, 2026-09).
+# (pt/ca/nl/en/la/gl/fr/it/de), and es (net-negative, 2026-09).
 AFFIX_LANGS = {
     "bg": 2,
     "cs": 2,
     "da": 2,
     "el": 2,
-    "et": 3,
-    "fi": 5,
-    "hu": 5,
+    "et": 2,
+    "fi": 4,
+    "hbs": 2,
+    "hu": 4,
     "hy": 2,
+    "is": 2,
     "lt": 5,
     "lv": 2,
     "nb": 2,
     "nn": 2,
     "pl": 2,
-    "ru": 2,
+    "ro": 2,
+    "ru": 3,
     "sk": 2,
+    "sl": 2,
+    "sv": 2,
     "tr": 5,
     "uk": 2,
 }
@@ -69,26 +74,21 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
     def _affix_decomposition(
         self, token: str, lang: str, max_affix_len: int
     ) -> str | None:
-        # Left-to-right languages only. A single pass at the largest affix
-        # length is equivalent to looping over smaller ones (first match wins).
-        for count in range(1, len(token) - MINCOMPLEN + 1):
-            part1 = token[:-count]
-            lempart1 = self._dictionary_lookup.get_lemma(part1, lang)
-            if lempart1 is None:
+        """Strip up to `max_affix_len` final chars; greedy also splits compounds."""
+        last = len(token) - MINCOMPLEN
+        for count in range(1, (last if self._greedy else min(max_affix_len, last)) + 1):
+            lemma = self._dictionary_lookup.get_lemma(token[:-count], lang)
+            if lemma is None:
                 continue
-            # maybe an affix? discard it
             if count <= max_affix_len:
-                return lempart1
-            # account for case before looking for second part
+                return lemma
             part2 = token[-count:]
             if token[0].isupper():
                 part2 = part2.capitalize()
             lempart2 = self._dictionary_lookup.get_lemma(part2, lang)
-            if lempart2 is None:
-                continue
             # accept the dictionary form if not longer than the affix bound
-            if len(lempart2) < len(part2) + max_affix_len:
-                return part1 + lempart2.lower()
+            if lempart2 is not None and len(lempart2) < len(part2) + max_affix_len:
+                return token[:-count] + lempart2.lower()
         return None
 
     def _suffix_decomposition(self, token: str, lang: str) -> str | None:
