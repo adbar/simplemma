@@ -1,15 +1,8 @@
-"""Ingest a raw ``lemma<TAB>form`` wordlist (kaikki_to_tsv / wikidata_lexemes
-output under training/lists/) into a language's dictionary.
+"""Ingest a raw ``lemma<TAB>form`` wordlist into a language's dictionary.
 
-The resolved list is the base (duplicate lines = evidence); for an
-already-shipped language the installed mappings win every shared key, so a
-re-extraction only ADDS. The result then runs through dictionary_builder's
-layer/hygiene/encode pipeline like a routine rebuild.
+Installed mappings win every shared key, so a re-extraction only adds.
 
 Usage: uv run python -m training.wordlist_ingest <lang> [--gate] [--in-place]
-
---gate refuses to write when the ingested dictionary regresses the routine
-rebuild (or identity, for a new language) on any UD train treebank.
 """
 
 import argparse
@@ -34,14 +27,10 @@ LOGGER = logging.getLogger(__name__)
 
 LISTS_DIR = Path(__file__).parent / "lists"
 
-# Headword identity must NOT override an attested form-of mapping here (grc
-# ἀκούσας; removal measured -3.8/-7.8pp). Force-identity stays the default,
-# gate-proven net-positive elsewhere (nl +17pp, bg/uk +6pp).
+# Headword identity must not override an attested form-of mapping here.
 IDENTITY_SOFT_LANGS = frozenset({"grc"})
 
-# Break an attestation TIE by paradigm size before Levenshtein: distance
-# alone lets a rare lexeme win an ultra-frequent form (grc ἦν). Per-language,
-# gated; gl/lt FAILED and the prior loses elsewhere -- never the default.
+# Break attestation ties by paradigm size before Levenshtein. Not a default.
 PARADIGM_PRIOR_LANGS: frozenset[str] = frozenset(
     {"cy", "el", "et", "grc", "hy", "nl", "sk", "sv"}
 )
@@ -50,10 +39,7 @@ PARADIGM_PRIOR_LANGS: frozenset[str] = frozenset(
 def _collect_candidates(
     path: Path, langcode: str
 ) -> tuple[dict[str, Counter[str]], set[str]]:
-    """First pass: filter input lines, counting each (form, lemma) pair as evidence.
-
-    Per-line diagnostics (wrong format, rule mismatch) are DEBUG-gated: the
-    rule check is otherwise skipped for cost."""
+    """Filter input lines, counting each (form, lemma) pair as evidence."""
     diagnose = LOGGER.isEnabledFor(logging.DEBUG)
     candidates: defaultdict[str, Counter[str]] = defaultdict(Counter)
     lemmas: set[str] = set()
@@ -65,15 +51,12 @@ def _collect_candidates(
             if len(columns) != 2 or not columns[0]:
                 LOGGER.debug("wrong format: %s", line.strip())
                 continue
-            # drop fields a tokenizer could never yield as one token, or
-            # carrying mojibake/control chars.
             if not all(_reachable_key(c) for c in columns):
                 continue
             if len(columns[0]) == 1 and len(columns[1]) > 6:
                 continue
             if len(columns[0]) > 6 and len(columns[1]) == 1:
                 continue
-            # diagnose rules disagreeing with the list
             if diagnose and len(columns[1]) > 6 and langcode in RULE_FUNCTIONS:
                 rule = RULE_FUNCTIONS[langcode](columns[1])
                 if rule and rule != columns[0]:
@@ -90,8 +73,7 @@ def _resolve_candidates(
     lemmas: set[str],
     langcode: str,
 ) -> dict[str, str]:
-    """Second pass: pick one lemma per form (most attestations, then paradigm
-    size for PARADIGM_PRIOR_LANGS, then distance)."""
+    """Pick one lemma per form, then add headword identities."""
     diagnose = LOGGER.isEnabledFor(logging.DEBUG)
     paradigm_size: Counter[str] = Counter()
     if langcode in PARADIGM_PRIOR_LANGS:
@@ -122,9 +104,7 @@ def _resolve_candidates(
                 sorted(options.items()),
             )
         mydict[word_form] = best
-    # Force identity: a headword is its own lemma. Soft (setdefault only) for
-    # IDENTITY_SOFT_LANGS and for lemmas attested only by their own line
-    # (forcing those measured -1.3..-2.6pp).
+    # Soft identity for lemmas attested only by their own line.
     soft = langcode in IDENTITY_SOFT_LANGS
     strong = (
         set()
@@ -145,7 +125,7 @@ def _resolve_candidates(
 
 
 def read_wordlist(path: Path, langcode: str) -> dict[str, str]:
-    """Resolve a raw ``lemma<TAB>form`` wordlist at `path` into a form->lemma dict."""
+    """Resolve a raw ``lemma<TAB>form`` wordlist into a form to lemma dict."""
     candidates, lemmas = _collect_candidates(path, langcode)
     mydict = _resolve_candidates(candidates, lemmas, langcode)
     LOGGER.debug("%s: %d entries", langcode, len(mydict))
@@ -159,8 +139,7 @@ def ingest(
     in_place: bool = False,
     gate: bool = False,
 ) -> None:
-    """Build `langcode` from `listdir`/<langcode>.txt; with `gate`, raise
-    instead of writing on a UD regression."""
+    """Build `langcode` from `listdir`/<langcode>.txt, raising on a gated regression."""
     shipped = (
         _compose_base(langcode)
         if langcode in dictionary_factory.SUPPORTED_LANGUAGES

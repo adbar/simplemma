@@ -1,14 +1,6 @@
-"""Extract (lemma, form) pairs for one language from a Wikidata lexeme dump
-(`latest-lexemes.json.gz`, dumps.wikimedia.org/wikidatawiki/entities/), as a
-wordlist for wordlist_ingest: appended to the Wiktionary list of a shipped
-language (its pairs then vote in resolution; installed mappings still win
-shared keys), or as the PRIMARY base wordlist for a language Wiktionary
-covers poorly (ml). Coverage is lexicon-dependent.
+"""Extract (lemma, form) pairs for one language from a Wikidata lexeme dump.
 
-Dump format: a JSON array serialized one object per line (not true JSONL,
-but each line parses once leading/trailing punctuation is stripped).
-
-Per-lexeme schema:
+The dump is a JSON array with one object per line. Per-lexeme schema:
     {"language": "<QID>", "lemmas": {"<lang_code>": {"value": "<lemma>"}},
      "forms": [{"representations": {"<lang_code>": {"value": "<form>"}}}]}
 """
@@ -27,7 +19,6 @@ from training.clean_wordlist import pair_violation, write_pairs
 
 log = logging.getLogger(__name__)
 
-# Languages with a verified Wikidata QID (i.e. everything extractable).
 LANGUAGE_QIDS = {
     "de": "Q188",
     "ru": "Q7737",
@@ -42,7 +33,6 @@ LANGUAGE_QIDS = {
     "nb": "Q25167",
     "cs": "Q9056",
     "nl": "Q7411",
-    # mid-tier by lexeme count; below ~1k lexemes yields ~0 fill pairs
     "fr": "Q150",
     "hu": "Q9067",
     "sk": "Q9058",
@@ -51,12 +41,8 @@ LANGUAGE_QIDS = {
     "pl": "Q809",
     "fi": "Q1412",
     "tr": "Q256",
-    # WD-as-PRIMARY source (3rd-largest lexeme count; Wiktionary ml is ~11k
-    # words): feeds training/lists/ml.txt.
+    # Primary source for ml, which Wiktionary covers poorly.
     "ml": "Q36236",
-    # 2026-07 census; gate-tested as a (since retired) fill layer: shipped
-    # cs da de el en es et fi la nb nl nn pl pt ru sk sv uk, fr it tr id fa
-    # regressed, se +0.0000.
     "nn": "Q25164",
     "id": "Q9240",
     "se": "Q33947",
@@ -67,12 +53,9 @@ LANGUAGE_QIDS = {
 def stream_lexemes(
     path: Path, prefilter: tuple[str, ...] | None = None
 ) -> Iterator[dict[str, Any]]:
-    """Stream lexeme objects out of the gzip-compressed dump without loading it whole.
+    """Stream lexeme objects out of the gzip-compressed dump.
 
-    `prefilter`, if given, is a tuple of literal substrings (e.g.
-    '"language":"Q188"'); a line is skipped without calling json.loads
-    unless it contains one of them -- avoids a full parse of every
-    non-matching line's large `claims` blob."""
+    With `prefilter`, lines lacking all of its substrings are skipped unparsed."""
     with gzip.open(path, "rt", encoding="utf-8") as filehandle:
         for line in filehandle:
             if prefilter is not None and not any(
@@ -109,10 +92,7 @@ def extract_language(
 def drop_ambiguous(
     pairs: Iterable[tuple[str, str]],
 ) -> tuple[list[tuple[str, str]], dict[str, int]]:
-    """Drop pairs where `form` is attested with more than one distinct lemma.
-
-    Unlike dictionary_builder's R2, there's no evidence-count signal here to
-    arbitrate a genuine ambiguity, so the safe choice is to drop it."""
+    """Drop pairs where `form` is attested with more than one distinct lemma."""
     all_pairs = list(pairs)
     lemmas_by_form: defaultdict[str, set[str]] = defaultdict(set)
     for lemma, form in all_pairs:
@@ -132,8 +112,7 @@ def drop_ambiguous(
 def drop_junk_pairs(
     pairs: Iterable[tuple[str, str]],
 ) -> tuple[list[tuple[str, str]], dict[str, int]]:
-    """Drop pairs clean_wordlist.read_pairs would reject (empty, mojibake or
-    control-char field), so the written fill file is strict-readable."""
+    """Drop pairs clean_wordlist.read_pairs would reject."""
     all_pairs = list(pairs)
     kept = [
         (lemma, form) for lemma, form in all_pairs if not pair_violation(lemma, form)
@@ -152,8 +131,7 @@ def main() -> None:
     raw_pairs = list(extract_language(args.dump, LANGUAGE_QIDS[args.lang], args.lang))
     log.info(f"Extracted {len(raw_pairs)} raw pairs")
     if not raw_pairs:
-        # a dump-format change could silently defeat the substring prefilter
-        # -- fail loud instead of shipping an empty fill
+        # A dump-format change can silently defeat the prefilter.
         print(
             f"ERROR: extracted 0 pairs for {args.lang!r} -- wrong QID or "
             f"unexpected dump format ({args.dump})",

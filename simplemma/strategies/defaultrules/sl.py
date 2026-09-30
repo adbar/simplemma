@@ -1,10 +1,7 @@
 from .generic import SuffixRules
 
-# OOV invariants plus one pluralia-tantum conflict
 _EXCLUDED = frozenset({"eventualno", "epiduralno", "totalno", "počitnice"})
 
-# Slovenian adjective declension and a handful of noun/verb suffixes,
-# mined lemma-first (99.73% in-dict).
 DEFAULT_RULES = SuffixRules(
     {
         "nski": "nska",

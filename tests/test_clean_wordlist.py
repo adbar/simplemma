@@ -5,7 +5,7 @@ from training import clean_wordlist
 
 def test_nfc_normalization() -> None:
     decomposed = "é"  # e + combining acute
-    assert clean_wordlist.canonicalize(decomposed) == "é"  # precomposed é
+    assert clean_wordlist.canonicalize(decomposed) == "é"
 
 
 def test_lookalike_canonicalization() -> None:
@@ -22,8 +22,8 @@ def test_check_field_accepts_plain_latin() -> None:
 
 def test_check_field_accepts_any_script() -> None:
     """No script policy: letters of any script pass."""
-    assert clean_wordlist.check_field("догс") is None  # Cyrillic
-    assert clean_wordlist.check_field("犬") is None  # Han
+    assert clean_wordlist.check_field("догс") is None
+    assert clean_wordlist.check_field("犬") is None
 
 
 def test_check_field_rejects_control_char() -> None:
@@ -45,7 +45,7 @@ def test_check_field_allows_marks() -> None:
 
 
 def test_check_field_allows_zwnj_and_zwj() -> None:
-    """ZWNJ/ZWJ are word-internal joiners in Perso-Arabic/Indic scripts; allowed universally."""
+    """ZWNJ and ZWJ are word-internal joiners in Perso-Arabic and Indic scripts."""
     assert clean_wordlist.check_field("mی‌خواهم") is None  # contains ZWNJ
     assert clean_wordlist.check_field("wo‍rd") is None  # contains ZWJ
 

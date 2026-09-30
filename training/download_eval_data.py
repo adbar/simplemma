@@ -1,10 +1,6 @@
-"""
-Fetch the UD treebank archive from LINDAT/CLARIAH-CZ and copy each supported
-language's train/dev/test files to splits/ -- the one on-disk representation
-every evaluator (evaluate_simplemma, eval_gate, miners) reads.
+"""Fetch the pinned UD archive and copy supported languages' splits to splits/.
 
-Pinned by DSpace bitstream URL + md5. New release: take its handle from
-https://universaldependencies.org/#download, then with
+New release: take its handle from https://universaldependencies.org/#download, then with
 API=https://lindat.mff.cuni.cz/repository/server/api
   curl -sI "$API/pid/find?id=hdl:<handle>"        -> Location: .../items/<item>
   curl -s "$API/core/items/<item>/bundles"        -> ORIGINAL bundle uuid
@@ -35,7 +31,7 @@ BITSTREAM_URL = (
 BITSTREAM_MD5 = "e9bfd544a48eac63ea3bb41e80c78813"
 
 CLEAN_DATA_FOLDER = UD_SPLITS.parent
-DATA_FOLDER = CLEAN_DATA_FOLDER / "_download"  # raw tgz + extracted archive
+DATA_FOLDER = CLEAN_DATA_FOLDER / "_download"
 DATA_FILE = DATA_FOLDER / "ud-treebanks.tgz"
 VERSION_FILE = CLEAN_DATA_FOLDER / "UD_VERSION"
 
@@ -109,8 +105,6 @@ def main(keep_download: bool = False) -> None:
         f"version={UD_VERSION}\nhandle={UD_HANDLE}\nmd5={BITSTREAM_MD5}\n"
     )
 
-    # nothing downstream reads the raw download (several GB); kept only on
-    # request -- useful once for hand-recovering a missing treebank
     if not keep_download:
         log.info("Removing raw download folder...")
         shutil.rmtree(DATA_FOLDER)

@@ -1,18 +1,7 @@
-"""Eval release gate: assert a candidate dictionary doesn't regress accuracy
-vs a baseline, on every available UD treebank for the language -- each at its
-most-held-out split (train, else dev, else test) -- using both token-level
-(frequency-weighted) and type-level (unweighted) accuracy.
+"""Release gate: a candidate dictionary must not lower token or type accuracy.
 
-Also hosts the scoring primitives: the full `Lemmatizer` over a candidate
-mapping, the same protocol `evaluate_simplemma` uses for the README numbers.
-
-The gate is model selection, so it reads train, the only unpublished split;
-train gets a delta's SIGN right but overstates its size (~1.22x) -- never
-report or rank from it (sweep in training/README.rst). Type-level matters
-because token-level alone misses gutted tail coverage. `split` is required
-at every call site so none inherits one silently.
-
-Library only: `gate()` + `report_results()` over in-memory dicts.
+Gates on train, the only unpublished split. Train gets a delta's sign right
+but overstates its size, so never report from it.
 """
 
 import logging
@@ -27,7 +16,6 @@ from training.ud_conllu import dataset_name, discover_treebanks, iter_word_token
 
 log = logging.getLogger(__name__)
 
-# Tolerance for measurement noise, not a researched constant.
 DEFAULT_EPSILON = 0.001
 
 
@@ -51,14 +39,12 @@ def build_lemmatizer(mapping: Mapping[str, str]) -> Lemmatizer:
 
 
 def load_gold_tokens(test_path: Path, lang: str) -> list[tuple[str, str]]:
-    """(form, gold_lemma) pairs, parsed once; gold already canonicalized for
-    `lang` by iter_word_tokens."""
+    """(form, gold_lemma) pairs with canonicalized gold."""
     return [(form, token["lemma"]) for form, token in iter_word_tokens(test_path, lang)]
 
 
 def gold_types(gold_tokens: list[tuple[str, str]]) -> list[tuple[str, str]]:
-    """One (form, majority gold) pair per distinct form, for type-level
-    accuracy (catches tail regressions token weighting hides)."""
+    """One (form, majority gold) pair per distinct form."""
     by_form: defaultdict[str, Counter[str]] = defaultdict(Counter)
     for form, gold_lemma in gold_tokens:
         by_form[form][gold_lemma] += 1
@@ -68,8 +54,7 @@ def gold_types(gold_tokens: list[tuple[str, str]]) -> list[tuple[str, str]]:
 def accuracy(
     lemmatizer: Lemmatizer, lang: str, pairs: Iterable[tuple[str, str]]
 ) -> tuple[float, int]:
-    """Fraction of (form, gold_lemma) pairs lemmatized to gold. Token- vs
-    type-level is just which pairs you pass."""
+    """Fraction of (form, gold_lemma) pairs lemmatized to gold, and the count."""
     correct = 0
     total = 0
     for form, gold_lemma in pairs:
@@ -106,11 +91,9 @@ def gate(
     candidate: dict[str, str],
     ud_splits: Path | None = None,
 ) -> list[TreebankResult]:
-    """Token+type accuracy for baseline and candidate on every treebank for
-    `lang`, each at its most-held-out split -- resolved per TREEBANK, so
-    test-only *_pud siblings keep gate coverage. Raises when no treebank is
-    found (a gate that checks nothing must not look passed); a treebank gated
-    on dev/test logs a WARNING (that figure is selected, not held out)."""
+    """Accuracies on every treebank for `lang`, each at train, else dev, else test.
+
+    Raises when no treebank is found."""
     treebanks: dict[str, Path] = {}
     for split in ("train", "dev", "test"):
         for path in discover_treebanks(lang, split, ud_splits=ud_splits):

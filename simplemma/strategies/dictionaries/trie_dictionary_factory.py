@@ -1,5 +1,4 @@
-"""Trie-backed `DictionaryFactory`: lowest steady-state memory, needs the
-`marisa-trie` extra and a one-off cached build per language."""
+"""Trie-backed `DictionaryFactory`, needs the `marisa-trie` extra."""
 
 from __future__ import annotations
 
@@ -35,7 +34,7 @@ class TrieWrapDict(DecodedStrMapping):
         self._trie = trie
 
     def _lookup(self, key: str) -> str | None:
-        # str(): the untyped trie returns Any; mypy needs the concrete type.
+        # str() for mypy: the untyped trie returns Any
         value = self._trie.get(key)
         return str(value[0].decode()) if value else None
 

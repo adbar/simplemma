@@ -1,10 +1,4 @@
-"""Language-independent character hygiene shared by the wordlist readers
-and writers: NFC, lookalike-quote canonicalization, invisible-char stripping,
-and rejecting mojibake/control/unassigned codepoints. Punctuation/length
-filtering stays in dictionary_builder. Per-language script filtering was
-removed (measured ~0% yield on clean languages, wrong drops on messy ones)
--- do not re-add it.
-"""
+"""Language-independent character hygiene for wordlist readers and writers."""
 
 import unicodedata
 from collections.abc import Iterable
@@ -12,13 +6,12 @@ from pathlib import Path
 
 from simplemma.utils import normalize_token
 
-# Stage 1: lookalike canonicalization + invisible-char stripping.
 LOOKALIKE_MAP = {
     "‘": "'",
     "“": '"',
     "”": '"',
 }
-# Named escapes, not literals: invisible in an editor/diff.
+# Named escapes: these are invisible as literals.
 STRIP_CHARS = {
     "\N{ZERO WIDTH NO-BREAK SPACE}",
     "\N{SOFT HYPHEN}",
@@ -27,16 +20,12 @@ STRIP_CHARS = {
     "\N{RIGHT-TO-LEFT MARK}",
 }
 
-# Categories never valid in a word form (Cf included except the two
-# word-internal joiners allowed below).
 _REJECT_CATEGORIES = ("Cc", "Cf", "Cs", "Co", "Cn")
 _ALLOWED_FORMAT = {"\N{ZERO WIDTH NON-JOINER}", "\N{ZERO WIDTH JOINER}"}
 
 
 def canonicalize(text: str) -> str:
-    """Stage 1: fix, don't reject. Beyond utils.normalize_token (NFC, straight
-    apostrophes), this also folds the remaining lookalike quotes and strips
-    invisible characters."""
+    """normalize_token plus lookalike quote folding and invisible-char stripping."""
     return "".join(
         LOOKALIKE_MAP.get(ch, ch)
         for ch in normalize_token(text)
@@ -45,8 +34,7 @@ def canonicalize(text: str) -> str:
 
 
 def check_field(text: str) -> str | None:
-    """Stage 2: reject unambiguous junk (mojibake/control/format/unassigned).
-    Returns a rejection reason or None. No script policy."""
+    """Rejection reason for mojibake or control characters, else None."""
     for ch in text:
         if ch == "�":
             return "replacement_char"
@@ -58,9 +46,7 @@ def check_field(text: str) -> str | None:
 
 
 def pair_violation(lemma: str, form: str) -> str | None:
-    """Shared validity check for layer-file entries: read_pairs raises on it,
-    the mining merge skips on it, so nothing written can crash the load.
-    Fields must arrive pre-folded (NFC + canonicalize)."""
+    """Violation reason for a pre-folded layer-file entry, else None."""
     for name, value in (("lemma", lemma), ("form", form)):
         if not value:
             return f"empty {name}"
@@ -71,12 +57,9 @@ def pair_violation(lemma: str, form: str) -> str | None:
 
 
 def read_pairs(path: Path) -> dict[str, str]:
-    """Strictly load a curated ``lemma<TAB>form`` file into a form->lemma dict.
+    """Strictly load a curated ``lemma<TAB>form`` file into a form to lemma dict.
 
-    For reviewed artifacts (overrides), NOT bulk wordlists: corruption is
-    an ERROR, not a silently-dropped row. Raises ValueError on a malformed
-    row, empty/mojibake field, or a form mapped to two different lemmas.
-    Blank lines and exact-duplicate pairs are harmless and skipped/kept once."""
+    Raises ValueError on a malformed row, a bad field or a conflicting form."""
     mapping: dict[str, str] = {}
     with open(path, encoding="utf-8") as filehandle:
         for line_no, line in enumerate(filehandle, start=1):

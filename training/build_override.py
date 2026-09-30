@@ -1,21 +1,10 @@
-"""Mine a reviewed override lexicon (form -> lemma) for one language from its
-UD train splits.
+"""Mine a form to lemma override lexicon for one language from UD train splits.
 
-Pool every -ud-train split; keep a form's majority lemma when the pooled
-evidence clears its POS-class bar AND every often-attesting treebank agrees
-(the per-treebank veto removes convention splits: la "esse", fr "se" -> soi).
-Every threshold-clearing form is kept -- the file is a pure function of the
-UD data plus review.
-
-Not gated: an entry is by construction the per-treebank majority lemma, so a
-train-split gate can only pass (0/40 FAILs measured). eval_gate is for
-dictionary-level changes.
+A form keeps its majority lemma when the pooled evidence clears its POS-class
+bar and no often-attesting treebank disagrees. Shipping still requires a
+dictionary rebuild.
 
 Usage: uv run python -m training.build_override <lang> [--in-place]
-
-Output goes to training/output/ unless --in-place updates
-training/overrides/<lang>.tsv. Shipping the effect still requires a
-dictionary rebuild (python -m training.dictionary_builder --in-place).
 """
 
 import argparse
@@ -31,12 +20,10 @@ from training.ud_conllu import discover_treebanks, iter_word_tokens
 
 log = logging.getLogger(__name__)
 
-# Closed-class words are convention-stable at lower evidence; anything else
-# needs more occurrences and stricter agreement.
+# Closed-class words are convention-stable at lower evidence.
 CLOSED_CLASS_POS = frozenset({"PRON", "DET", "ADP", "CCONJ", "SCONJ", "AUX", "PART"})
 CLOSED_MIN_COUNT, CLOSED_MIN_AGREEMENT = 3, 0.90
 OPEN_MIN_COUNT, OPEN_MIN_AGREEMENT = 5, 0.95
-# A treebank gets a veto once it has seen the form this often.
 TREEBANK_MIN_COUNT = 3
 
 OUTPUT_DIR = Path(__file__).parent / "output"
@@ -47,9 +34,7 @@ Counts = dict[str, Counter[str]]
 def collect_candidates(
     train_paths: list[Path], lang: str
 ) -> tuple[list[Counts], Counts]:
-    """(form->lemma counts per treebank, form->POS counts), letter-carrying
-    forms only. Lemmas arrive canonicalized for `lang` via iter_word_tokens,
-    so mined entries live in the shipped dict's key space."""
+    """Form to lemma counts per treebank, and form to POS counts."""
     pos: defaultdict[str, Counter[str]] = defaultdict(Counter)
     per_treebank: list[Counts] = []
     for path in train_paths:
@@ -64,11 +49,9 @@ def collect_candidates(
 
 
 def resolve_overrides(per_treebank: list[Counts], pos: Counts) -> dict[str, str]:
-    """One form -> its majority lemma over the pooled treebanks, kept only
-    when the pooled evidence clears the POS-class bar and no sufficiently-
-    attesting treebank disagrees. Ties never depend on insertion order:
-    majority by (count, lemma), a POS tie takes the stricter open-class
-    bar, a veto needs a lemma strictly beating the pooled winner."""
+    """Pooled majority lemma per form, kept if it clears the bar unvetoed.
+
+    Ties are deterministic and a POS tie takes the stricter open-class bar."""
     pooled: defaultdict[str, Counter[str]] = defaultdict(Counter)
     for treebank_counts in per_treebank:
         for form, lemma_counts in treebank_counts.items():
@@ -102,12 +85,9 @@ def resolve_overrides(per_treebank: list[Counts], pos: Counts) -> dict[str, str]
 def merge_with_existing(
     candidates: dict[str, str], lang: str, overrides_dir: Path | None = None
 ) -> tuple[dict[str, str], int]:
-    """Existing reviewed entries win their forms; candidates are folded to
-    the runtime key space (canon + NFC, matching read_pairs) and skipped on
-    any pair_violation or spaced field, so a written candidate file can
-    never fail the read side. Returns (merged, n_added). grc/he/ar
-    candidates can fold to one canonical key: first lemma wins, with a
-    WARNING (_layer_entries raises on this in a hand-edited file)."""
+    """Merge canonicalized candidates under existing entries, return (merged, n_added).
+
+    Candidates that read_pairs would reject are skipped."""
     path = (overrides_dir or OVERRIDES_DIR) / f"{lang}.tsv"
     existing = _layer_entries(path, lang) if path.exists() else {}
     added = 0

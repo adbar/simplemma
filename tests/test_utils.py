@@ -1,5 +1,3 @@
-"""Tests for `simplemma.utils`."""
-
 import unicodedata
 from collections.abc import Iterable
 
@@ -21,8 +19,8 @@ def test_normalize_token() -> None:
     assert nfd != "Häuser"
     assert normalize_token(nfd) == "Häuser"
     assert normalize_token("Häuser") == "Häuser"
-    # NFC, not NFKC: compatibility characters are preserved, not folded
-    assert normalize_token("ﬁ") == "ﬁ"  # ligature stays, would become "fi" under NFKC
+    # NFC, not NFKC: the ligature is preserved
+    assert normalize_token("ﬁ") == "ﬁ"
 
 
 def test_strip_diacritics() -> None:
@@ -32,27 +30,23 @@ def test_strip_diacritics() -> None:
 
 
 def test_canonicalize_token() -> None:
-    # grc: positional grave -> citation acute (letters, breathing combos, iota subscript)
+    # grc: positional grave becomes citation acute
     assert canonicalize_token("ἐγὼ καὶ δὲ", "grc") == "ἐγώ καί δέ"
-    assert canonicalize_token("ἀκούσας", "grc") == "ἀκούσας"  # already acute: no-op
-    # he: niqqud/cantillation points stripped (pedagogical, absent from running text)
+    assert canonicalize_token("ἀκούσας", "grc") == "ἀκούσας"
+    # he: niqqud and cantillation are stripped
     assert canonicalize_token("וְהַבַּיִת", "he") == "והבית"
-    assert canonicalize_token("והבית", "he") == "והבית"  # already unpointed: no-op
-    # ar: tashkeel/dagger-alef/tatweel stripped (same pedagogical-vocalization
-    # mismatch); fa shares the script but must be UNAFFECTED (own table key)
+    assert canonicalize_token("והבית", "he") == "והבית"
+    # ar: tashkeel stripped, fa shares the script but not the table
     assert canonicalize_token("كِتَابٌ", "ar") == "كتاب"
     assert canonicalize_token("كِتَابٌ", "fa") == "كِتَابٌ"
-    # not extended to other languages -- lv macron is orthographic, not positional
+    # lv macron is orthographic, not positional
     assert canonicalize_token("garā", "lv") == "garā"
     assert canonicalize_token("garā", "en") == "garā"
-    assert (
-        canonicalize_token("וְהַבַּיִת", "ar") == "וְהַבַּיִת"
-    )  # he table not applied elsewhere
+    assert canonicalize_token("וְהַבַּיִת", "ar") == "וְהַבַּיִת"
 
 
 def test_canon_langs_disjoint_from_raw_token_strategies() -> None:
-    """Affix/rule/morpheme strategies match the raw token, so canon langs must
-    never join AFFIX_LANGS/RULE_FUNCTIONS/MORPHEME_LANGS (see CANON_LANGS)."""
+    """Affix, rule and morpheme strategies see the raw token, not the canonical one."""
     from simplemma.strategies.affix_decomposition import AFFIX_LANGS
     from simplemma.strategies.defaultrules import RULE_FUNCTIONS
     from simplemma.strategies.morpheme_decomposition import MORPHEME_LANGS
@@ -64,8 +58,7 @@ def test_canon_langs_disjoint_from_raw_token_strategies() -> None:
 
 
 def test_per_language_tables_reference_supported_languages() -> None:
-    """A typo'd language code in a per-language config table fails silently --
-    the mechanism just never fires. Explicit register, not auto-discovery."""
+    """A typo'd language code in a config table would otherwise fail silently."""
     from simplemma.casing import ALLCAPS_KEEP_LANGS, GATED_INITIAL_LOWERING_LANGS
     from simplemma.sentences import _ABBREVS, _STARTERS, _TERMINATORS
     from simplemma.strategies.affix_decomposition import AFFIX_LANGS, GREEDY_EXCLUDE
@@ -117,7 +110,6 @@ def test_per_language_tables_reference_supported_languages() -> None:
 
 
 def test_normalize_token_folds_apostrophes() -> None:
-    # curly U+2019 and modifier U+02BC fold to straight U+0027, alongside NFC
     assert normalize_token("l’a") == normalize_token("lʼa") == "l'a"
     assert normalize_token("la") == "la"
     assert fold_apostrophes("l’aʼ") == "l'a'"
@@ -154,5 +146,4 @@ def test_validate_lang_input() -> None:
 )
 def test_levenshtein_dist(str1: str, str2: str, expected: int) -> None:
     assert levenshtein_dist(str1, str2) == expected
-    # the distance is symmetric
     assert levenshtein_dist(str2, str1) == expected

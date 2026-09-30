@@ -1,7 +1,5 @@
 from .generic import SuffixRules
 
-# Icelandic adjective declension/comparison and definite noun forms, mined
-# lemma-first (99.70% in-dict).
 DEFAULT_RULES = SuffixRules(
     {
         "egur": (

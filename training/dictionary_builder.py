@@ -1,15 +1,7 @@
-"""Rebuild a language's runtime lemmatization dictionary (a form->lemma map).
+"""Rebuild a language's runtime form to lemma dictionary from the installed one.
 
-Pipeline: base -> overrides -> _scrub -> _apply_build_normalization ->
-_ensure_value_selfmaps -> _drop_junk_keys -> frontcode. Plain str dicts
-throughout; bytes only at the two edges.
-
-Base: the installed dictionary itself (pinned artifact, routine rebuilds
-idempotent). New wordlist data enters via wordlist_ingest.py.
-
-Key invariants: _valid_key (universal post-layer guard) vs _reachable_key
-(stricter, machine sources only; overrides exempt for deliberate elisions
-like ro "de-").
+Pipeline: base, overrides, scrub, build normalization, value selfmaps, junk
+filter, frontcode.
 """
 
 import argparse
@@ -32,39 +24,26 @@ from simplemma.utils import canonicalize_token, normalize_token
 from training.build_lang_config import BUILD_NORMALIZATION, JUNK_ENTRY_PREDICATES
 from training.clean_wordlist import canonicalize, check_field, read_pairs
 
-# sw inflection is prefixal (forms share an ending, not a start), so
-# front-coding uses reversed-byte keys here.
+# sw inflection is prefixal, so forms share an ending rather than a start.
 FRONTCODE_REVERSE_KEY_LANGS = {"sw"}
 
-# Reviewed per-language layer, wins every key it names.
 OVERRIDES_DIR = Path(__file__).parent / "overrides"
 
 LOGGER = logging.getLogger(__name__)
 
-# Fields dropped from dictionary entries: punctuation the tokenizer splits on
-# (comma/colon/slash/plus), an edge hyphen (affix fragment), and star/
-# underscore (tokenizer-reachable word-body chars, but Wiktionary artifacts in
-# wordlists; `_`-joined tokens are served by hyphen removal). Hebrew maqaf
-# (U+05BE) is Wiktionary's hyphen for bound-morpheme headwords (ב־).
+# Tokenizer split chars, Wiktionary artifacts (* _) and edge hyphens or maqaf (affixes).
 FIELD_PUNCT = re.compile(r"[,:*/\+_]|.+[-־]$|^[-־].+")
 
 
 def _canon(text: str, langcode: str) -> str:
-    """Runtime key space: per-language canon, then NFC again (canon can
-    strand a stacked combining mark, la 'Boō̈tēs')."""
+    """Runtime key space: canon then NFC, since canon can strand a combining mark."""
     return normalize_token(canonicalize_token(text, langcode))
 
 
 def _layer_entries(path: Path, langcode: str) -> dict[str, str]:
-    """A curated lemma<TAB>form layer file as a form->lemma mapping,
-    canonicalized like the base wordlist (wordlist_ingest) so a reviewed
-    file can't ship an unreachable dead key.
+    """A curated lemma<TAB>form file as a canonicalized form to lemma mapping.
 
-    read_pairs enforces key hygiene and fails loud on corruption. Skipping a
-    spaced field is policy, not corruption: a multi-word form (e.g. Wikidata
-    'top hat') is unreachable -- the tokenizer never yields it as a single
-    token -- and a multi-word lemma (UD 'c.q.' -> 'casu quo') must not ship
-    as lemmatizer output."""
+    Entries with a spaced form or lemma are skipped."""
     pairs = read_pairs(path)
     spaceless = {
         form: lemma
@@ -92,29 +71,22 @@ def _layer_entries(path: Path, langcode: str) -> dict[str, str]:
     return entries
 
 
-# Wiktionary template placeholders that leaked into old dicts as "lemmas".
+# Wiktionary template placeholders.
 _PLACEHOLDER_VALUES = {"prpers"}
 
 
 def _valid_key(key: str) -> bool:
-    """Universal key invariant, checked post-layer: normalize_token-stable (NFC,
-    straight apostrophes -- the exact normalization runtime queries get) and
-    free of control/mojibake chars. Deliberately NOT clean_wordlist.canonicalize
-    (applied to wordlist input only)."""
+    """Key is normalize_token-stable and free of control or mojibake chars."""
     return normalize_token(key) == key and not check_field(key)
 
 
 def _reachable_key(key: str) -> bool:
-    """Stricter invariant for MACHINE sources (wordlists):
-    additionally no space or FIELD_PUNCT (mostly tokenizer reachability, partly
-    policy -- see above). Reviewed overrides are exempt -- they carry
-    deliberate elisions (ro "de-")."""
+    """_valid_key plus no space or FIELD_PUNCT, for machine sources only."""
     return _valid_key(key) and " " not in key and not FIELD_PUNCT.search(key)
 
 
 def _clean_base(base: dict[str, str]) -> dict[str, str]:
-    """Drop unreachable keys from a machine source used as a base or layer.
-    Pre-layer ONLY: overrides are re-applied afterwards, so they're untouched."""
+    """Drop unreachable keys from a machine source, before overrides apply."""
     out = {k: v for k, v in base.items() if _reachable_key(k)}
     if len(out) < len(base):
         LOGGER.info("clean_base: dropped %d unreachable keys", len(base) - len(out))
@@ -122,15 +94,11 @@ def _clean_base(base: dict[str, str]) -> dict[str, str]:
 
 
 def _junk_entry(key: str, value: str) -> bool:
-    """A non-identity entry whose value is an affix fragment (Wiktionary
-    junk, e.g. schaft -> -schaft) or carries no letters, or whose key has
-    none (mined UD noise, e.g. bg ":" -> "на"). Identity entries stay, and
-    the check is deliberately narrow -- commas/underscores appear in legit
-    compound lemmas."""
+    """Non-identity entry with an affix-fragment value or a letterless side."""
     if value == key:
         return False
     return (
-        value.startswith(("-", "־"))  # ASCII hyphen or Hebrew maqaf
+        value.startswith(("-", "־"))  # hyphen or Hebrew maqaf
         or value.endswith(("-", "־"))
         or not any(ch.isalpha() for ch in value)
         or not any(ch.isalpha() for ch in key)
@@ -138,9 +106,7 @@ def _junk_entry(key: str, value: str) -> bool:
 
 
 def _scrub(mydict: dict[str, str]) -> dict[str, str]:
-    """Final post-layer pass: drops keys failing _valid_key (not the stricter
-    _reachable_key, since override elisions must survive) and drops values
-    that are junk/placeholder after canonicalize."""
+    """Drop invalid keys and junk values, canonicalizing the rest."""
     out: dict[str, str] = {}
     dropped_key = fixed_val = dropped_val = 0
     for k, v in mydict.items():
@@ -148,7 +114,6 @@ def _scrub(mydict: dict[str, str]) -> dict[str, str]:
             dropped_key += 1
             continue
         nv = canonicalize(v)
-        # " " in nv: a multi-word lemma must never ship as lemmatizer output
         if (
             not nv
             or " " in nv
@@ -172,8 +137,7 @@ def _scrub(mydict: dict[str, str]) -> dict[str, str]:
 
 @lru_cache(maxsize=None)
 def _char_script(ch: str) -> str | None:
-    """Script name of one alphabetic char, else None. Cached: uncached,
-    unicodedata.name dominated the junk stage (5-8s per large build)."""
+    """Script name of one alphabetic char, else None."""
     if not ch.isalpha():
         return None
     try:
@@ -183,17 +147,12 @@ def _char_script(ch: str) -> str | None:
 
 
 def _script_classes(word: str) -> frozenset[str]:
-    """Every Unicode script name (the part of unicodedata.name before its
-    first space, e.g. "CYRILLIC" from "CYRILLIC SMALL LETTER A") among
-    `word`'s alphabetic characters. Empty for a non-alphabetic string
-    (digits, punctuation) -- callers must not treat that as "foreign"."""
+    """Script names of `word`'s letters. Empty does not mean foreign."""
     return frozenset(s for s in map(_char_script, word) if s is not None)
 
 
 def _drop_junk_keys(mydict: dict[str, str], langcode: str) -> dict[str, str]:
-    """Drop entries matching langcode's JUNK_ENTRY_PREDICATES entry; a
-    no-op for any other language. Each side's script set is computed once
-    here and handed to the predicate."""
+    """Drop entries matching the language's JUNK_ENTRY_PREDICATES entry."""
     predicate = JUNK_ENTRY_PREDICATES.get(langcode)
     if predicate is None:
         return mydict
@@ -215,10 +174,7 @@ _CYRILLIC = re.compile(r"[Ѐ-ӿ]")
 def _fix_value_scripts(
     mydict: dict[str, str], table: Mapping[int, str]
 ) -> dict[str, str]:
-    """Transliterate a Cyrillic VALUE on a Cyrillic-free key per `table`. A
-    value still carrying Cyrillic after transliteration (letters outside the
-    table's alphabet, i.e. a foreign word) is left unchanged rather than
-    half-transliterated; mixed-script keys are never touched."""
+    """Transliterate a Cyrillic value on a Cyrillic-free key, unless partial."""
     out = dict(mydict)
     for key, value in mydict.items():
         if _CYRILLIC.search(value) and not _CYRILLIC.search(key):
@@ -234,18 +190,14 @@ def _add_key_aliases(
     *,
     drop_original: bool = False,
 ) -> dict[str, str]:
-    """Add each entry's folded-key alias per `table`, value unchanged. An
-    existing exact key is never overwritten by an alias or a replacement.
-    `drop_original` REPLACES the folded key instead of keeping both (see
-    BuildNormalization.drop_folded_keys) -- only ever set by a caller that
-    has verified the unfolded spelling is never queried."""
+    """Add a folded-key alias per entry, or replace the key with `drop_original`.
+
+    An existing exact key is never overwritten."""
     out = dict(mydict)
     for key, value in mydict.items():
-        # NFC after translate: this runs post-_scrub, so a stranded combining
-        # mark (la 'Boō̈tēs': ō->o + diaeresis) would ship NFC-invalid.
+        # NFC again: folding can strand a combining mark.
         alias = normalize_token(key.translate(table))
-        # a mark-only key folds to "" (survives _scrub via the identity
-        # exemption in _junk_entry) -- never plant an empty key
+        # A mark-only key folds to "".
         if alias and alias != key:
             out.setdefault(alias, value)
             if drop_original:
@@ -254,10 +206,7 @@ def _add_key_aliases(
 
 
 def _ensure_value_selfmaps(mydict: dict[str, str]) -> dict[str, str]:
-    """Add an identity self-map for every value that isn't itself a key --
-    a lemma must lemmatize to itself, not fall through to the OOV fallbacks
-    (et shipped 24,468 such values). Runs after value normalization; existing
-    keys are never overwritten."""
+    """Add an identity entry for every value that isn't already a key."""
     out = dict(mydict)
     added = 0
     for value in mydict.values():
@@ -274,16 +223,11 @@ def _ensure_value_selfmaps(mydict: dict[str, str]) -> dict[str, str]:
 
 
 def _apply_build_normalization(mydict: dict[str, str], langcode: str) -> dict[str, str]:
-    """Apply BUILD_NORMALIZATION[langcode] in the one order that's safe:
-    value_fold (rewrite values in place) -> value_script_fix (script-
-    consistency on the now-folded values) -> key_alias (copy the corrected
-    value under a folded key twin, or replace it -- see drop_folded_keys).
-    A no-op for any language with no entry."""
+    """Apply BUILD_NORMALIZATION[langcode]: value fold, script fix, key alias."""
     entry = BUILD_NORMALIZATION.get(langcode)
     if entry is None:
         return mydict
     if entry.value_fold is not None:
-        # NFC after translate: folding a stacked diacritic strands its mark
         table = entry.value_fold
         mydict = {k: normalize_token(v.translate(table)) for k, v in mydict.items()}
     if entry.value_script_fix is not None:
@@ -296,8 +240,7 @@ def _apply_build_normalization(mydict: dict[str, str], langcode: str) -> dict[st
 
 
 def _shipped_str_dict(langcode: str) -> dict[str, str]:
-    """The installed shipped dict keyed in the runtime key space (_canon);
-    keys folding together with different values are a data bug."""
+    """The installed dict in the runtime key space, raising on conflicting folds."""
     out: dict[str, str] = {}
     for key, value in _load_dictionary_from_disk(langcode).items():
         ckey, v = _canon(key.decode(), langcode), value.decode()
@@ -310,8 +253,7 @@ def _shipped_str_dict(langcode: str) -> dict[str, str]:
 
 
 def _report_tokenizer_reachability(mydict: Mapping[str, str], langcode: str) -> None:
-    """Warn about keys the tokenizer never yields as one token (reported,
-    not dropped: they still serve lemmatize()/is_known())."""
+    """Report keys the tokenizer never yields as one token."""
     unreachable = [k for k in mydict if simple_tokenizer(k) != [k]]
     if unreachable:
         LOGGER.info(
@@ -324,8 +266,7 @@ def _report_tokenizer_reachability(mydict: Mapping[str, str], langcode: str) -> 
 
 
 def _compose_base(langcode: str) -> dict[str, str]:
-    """The cleaned installed dict (SUPPORTED_LANGUAGES read from the factory
-    at call time so a test's monkeypatch is honored)."""
+    """The cleaned installed dict."""
     if langcode not in dictionary_factory.SUPPORTED_LANGUAGES:
         raise ValueError(
             f"no shipped dictionary for {langcode!r}: ingest a wordlist first "
@@ -337,8 +278,7 @@ def _compose_base(langcode: str) -> dict[str, str]:
 def _compose_from_base(
     base: dict[str, str], langcode: str, overrides_dir: Path | None = None
 ) -> dict[str, str]:
-    """The post-base half of the pipeline: overrides, scrub, normalization,
-    selfmaps, junk filter."""
+    """The pipeline after the base."""
     override_path = (overrides_dir or OVERRIDES_DIR) / f"{langcode}.tsv"
     overrides = (
         _layer_entries(override_path, langcode) if override_path.exists() else {}
@@ -349,12 +289,10 @@ def _compose_from_base(
     mydict = _scrub(mydict)
     mydict = _apply_build_normalization(mydict, langcode)
     mydict = _ensure_value_selfmaps(mydict)
-    # LAST, after selfmaps: planted identity keys for junk values must be
-    # filtered too (needs identity-aware predicates, _foreign_script_entry).
+    # After selfmaps, so identity keys planted for junk values get dropped too.
     kept = _drop_junk_keys(mydict, langcode)
     if len(kept) < len(mydict):
-        # Reviewed overrides outrank the junk predicates (bg "II" ->
-        # "втори" is deliberate); frontcode sorts, so re-adding is stable.
+        # Reviewed overrides outrank the junk predicates.
         casualties = overrides.keys() & (mydict.keys() - kept.keys())
         for key in casualties:
             kept[key] = mydict[key]
@@ -370,12 +308,12 @@ def _compose_from_base(
 
 
 def _compose_dictionary(langcode: str) -> dict[str, str]:
-    """The full routine rebuild (see module docstring) as one in-memory step."""
+    """The full rebuild in memory."""
     return _compose_from_base(_compose_base(langcode), langcode)
 
 
 def _encode_dictionary(mydict: dict[str, str], langcode: str) -> bytes:
-    """Ship encoding: front-coded + lzma; str->bytes only at this edge."""
+    """Front-coded and lzma-compressed bytes."""
     encoded = {k.encode(): v.encode() for k, v in mydict.items()}
     return _frontcode_encode(
         encoded, reverse_key=langcode in FRONTCODE_REVERSE_KEY_LANGS
@@ -388,8 +326,6 @@ def _write_dictionary(
     """Encode and write to `filepath`, else the installed data dir (in_place)
     or training/output/."""
     if filepath is None:
-        # in_place overwrites the shipped data the runtime loads (read at call
-        # time so a test's DATA_FOLDER monkeypatch is honored); else training/output/
         if in_place:
             directory = dictionary_factory.DATA_FOLDER
         else:
@@ -408,9 +344,7 @@ def _build_dictionary(
 
 
 def _drifted_languages(langs: list[str]) -> list[str]:
-    """Languages whose recompose is not byte-identical to the shipped plzma
-    (zero drift is the invariant: a difference means a pipeline change
-    rewrites shipped data)."""
+    """Languages whose rebuild is not byte-identical to the shipped file."""
     drifted = []
     for lang in langs:
         mydict = _compose_dictionary(lang)

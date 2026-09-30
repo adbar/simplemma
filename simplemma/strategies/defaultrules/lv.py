@@ -1,11 +1,6 @@
 from .generic import SuffixRules
 
-# Latvian: indefinite adjectives (-isks/-īgs) and -ums/-ija/-ība/-šana nouns,
-# each cell >=99% precise. Deliberately absent: -iju/-ijā (collides with -ijs
-# masculines), -i adverbs (open class UD lemmatizes as-is), and the whole
-# definite-adjective declension family -- >=99% in-dict but 85-100% wrong on
-# UD real text (OOV firings are participles or indefinite adjectives, never
-# the definite citation form).
+# no definite-adjective cells on purpose: OOV hits are never definite forms
 DEFAULT_RULES = SuffixRules(
     {
         "isks": "iskām iskās iskos iskus iska isku iskā",
@@ -18,16 +13,14 @@ DEFAULT_RULES = SuffixRules(
     min_len=6,
 )
 
-# capitalized tokens decline like nouns (Latvijas -> Latvija); "ums" excluded
-# (feminine surnames end in -a: Straujuma)
+# not for capitalized tokens: feminine surnames end in -a (Straujuma)
 _CAPS_UNSAFE_TARGETS = frozenset({"isks", "īgs", "ums"})
 _PROPER_NOUN_RULES = SuffixRules(
     {t: s for t, s in DEFAULT_RULES.cells.items() if t not in _CAPS_UNSAFE_TARGETS},
     min_len=6,
 )
 
-# pluralia tantum colliding with the -ība/-šana singular cells, plus two
-# lexicalized invariants
+# pluralia tantum and lexicalized invariants
 _EXCLUDED = frozenset(
     (
         "priekšvēlēšanu vēlēšanas vēlēšanu ganības ganību ganībā ganībām ganībās "
@@ -40,7 +33,7 @@ _EXCLUDED = frozenset(
 
 def apply_lv(token: str) -> str | None:
     "Apply pre-defined rules for Latvian."
-    # jā- marks debitive verb forms (infinitive lemma, out of reach here)
+    # jā- marks debitive verb forms
     if token.startswith("jā") or token in _EXCLUDED:
         return None
 

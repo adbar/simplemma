@@ -10,12 +10,11 @@ _TERMINATORS = {None: ".!?…։؟।॥", "el": ".!?…;\u037e"}
 # a lowercase word may still open a sentence after these (el question mark too)
 _STRONG_TERMINATORS = "?!;\u037e"
 _CLOSERS = "\"'”’»)]"
-_EDGE = "(["  # stripped for the abbreviation lookup only; not quotes
+_EDGE = "(["  # stripped for the abbreviation lookup only, not quotes
 _EMPTY: frozenset[str] = frozenset()
 _PARAGRAPH = re.compile(r"\n\s*\n")
 _WORD = re.compile(r"\S+")
 
-# Only languages where the list measurably pays carry one.
 _ABBREVS = {
     "cs": frozenset("dr judr prof".split()),
     "de": frozenset("bzw ca dr fr hr prof st u.a z.b".split()),
@@ -97,8 +96,7 @@ def _dot_verdict(
     word = raw.strip(_EDGE)
     core = normalize_token(word.lower()).rstrip(terminators)
     if not core:
-        # a bare run of one terminator ends a sentence ('...'), but a mixed run
-        # does not, and a bracketed one is an in-sentence elision ('(...)')
+        # a bare run of one terminator ends a sentence, mixed or bracketed runs do not
         return not (word and word == raw == text[pos] * len(word))
     if len(core) == 1 and core.isalpha():
         if word[:1].isupper():

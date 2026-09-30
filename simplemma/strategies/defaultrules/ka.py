@@ -1,8 +1,6 @@
 from .generic import SuffixRules
 
-# invariant words, proper nouns (no letter case to guard on), colliding verb
-# forms, and stem-final -თა nouns; large because the -ას dative cell is worth
-# >1000 correct UD tokens and its collisions proved finite
+# includes proper nouns: Georgian has no letter case to guard on
 _EXCLUDED = frozenset(
     (
         "სანამ მხოლოდ მაგრამ საერთოდ სრულიად მუდამ საკმაოდ წერს გურამ დგას "
@@ -16,10 +14,7 @@ _EXCLUDED = frozenset(
     )
 )
 
-# Georgian nominal declension, anchored on the stem's final cluster (bare
-# case markers are too ambiguous). ედ/ევ/ომ dropped (gold restores the
-# nominative -ი, unreachable by stripping); colliding verbs are stoplisted
-# rather than cells dropped (they would just cascade to broader cells).
+# cells anchor on the stem-final cluster: bare case markers are too ambiguous
 DEFAULT_RULES = SuffixRules(
     {
         "ტი": "ტთა ტმა ტნი ტნო ტს",
@@ -38,7 +33,7 @@ DEFAULT_RULES = SuffixRules(
         "ა": "ათა ამ ას",
         "ნი": "ნთა ნმა ნნი ნნო",
     },
-    # -ისას (genitive + adverbial) is out of reach for the case cells -- abstain
+    # genitive + adverbial -ისას is out of reach for the case cells
     stops="ისას",
     min_len=4,
     excluded=_EXCLUDED,

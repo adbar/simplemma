@@ -1,7 +1,5 @@
 from .generic import SuffixRules
 
-# Czech verb conjugation and adjective declension, mined lemma-first
-# (99.35% in-dict).
 DEFAULT_RULES = SuffixRules(
     {
         "ický": "ického ickou ickém ická",

@@ -16,9 +16,7 @@ from .prefix_decomposition import PrefixDecompositionStrategy
 from .rules import RulesStrategy
 from ..utils import fold_apostrophes
 
-# Apostrophe marks a fixed morpheme boundary ("Istanbul'da"): the head is a
-# proper noun or number, looked up as-is. UD-validated (tr_imst); routing the
-# head through the affix chain measured worse (Güvenpark -> güven).
+# the apostrophe marks a morpheme boundary after a proper noun (Istanbul'da)
 APOSTROPHE_BOUNDARY_LANGS = frozenset({"tr"})
 MIN_HEAD_LEN = 2
 
@@ -28,8 +26,7 @@ def _case_key(word: str) -> str:
 
 
 class DefaultStrategy(LemmatizationStrategy):
-    """Pipeline combining dictionary lookup, clitic/hyphen/prefix/affix/morpheme
-    decomposition, and per-language rules."""
+    """Chain dictionary lookup, decomposition strategies and per-language rules."""
 
     __slots__ = (
         "_dictionary_lookup",
@@ -77,12 +74,10 @@ class DefaultStrategy(LemmatizationStrategy):
             return token
 
         candidate = (
-            # before dictionary_lookup: its reverse-case fallback else
-            # mangles capitalized proper nouns (Erdoğan'ın -> erdoğan)
+            # before the lookup, whose case fallback mangles Erdoğan'ın -> erdoğan
             self._apostrophe_lemma(token, lang)
             or self._dictionary_lookup.get_lemma(token, lang)
-            # before hyphen_search: a hyphenated token's last part often
-            # self-resolves (portar-lo, l'après-midi)
+            # before hyphen_search, which would resolve the last part (portar-lo)
             or self._clitic_search.get_lemma(token, lang)
             or self._prefix_search.get_lemma(token, lang)
             or self._hyphen_search.get_lemma(token, lang)
@@ -101,8 +96,7 @@ class DefaultStrategy(LemmatizationStrategy):
         boundary = fold_apostrophes(token).find("'")
         if boundary < MIN_HEAD_LEN or boundary == len(token) - 1:
             return None
-        # A curated whole-token entry is authoritative over decomposition
-        # (tr "isen'e" -> "isen").
+        # a whole-token entry wins over decomposition
         if self._dictionary_lookup.is_dictionary_member(token, lang):
             return None
         head = token[:boundary]
@@ -111,8 +105,7 @@ class DefaultStrategy(LemmatizationStrategy):
         lemma = self._dictionary_lookup.get_lemma(head, lang)
         if lemma is None:
             return None
-        # A case-only change is just the dict's case-fallback, not a real answer;
-        # keep the head's case. _case_key folds Turkish "İ".lower() (i + dot).
+        # a case-only change is the case fallback, keep the head as-is
         return head if _case_key(lemma) == _case_key(head) else lemma
 
     def is_dictionary_member(self, token: str, lang: str) -> bool:

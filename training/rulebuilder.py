@@ -1,24 +1,8 @@
-"""
-Mining/analysis tool for `simplemma/strategies/defaultrules/` candidate rules.
+"""Mine candidate suffix rules for `simplemma/strategies/defaultrules/`.
 
-Recipe: `mine()` finds candidate cells -> `trim_by_mass()` drops the
-low-frequency tail -> `refine()` builds rules and iterates dropping any cell
-that is imprecise or (once combined with the others) under-supported ->
-`subsume()` removes alternatives whose own group already produces them via a
-more general alternative -> `evaluate()` for the dictionary report.
-Not a one-command generator: every language needs real judgment calls
-(stoplists, structural guards) on top of this.
-
-`build_rules()` sets `min_stem=MIN_STEM_CHARS`, `min_len=MIN_LEN_DEFAULT` and
-`caps=True` on every table; shipped modules other than la have no stem floor,
-so a regenerated table will differ from the checked-in one on whole-word
-matches -- re-validate rather than assume parity. Tables are `SuffixRules`
-(`{target: "suffix suffix ..."}`, longest matching suffix wins), the same
-object the runtime modules declare, and its `apply` is the guarded scorer.
-
-`score_cells()` is the one first-match scoring pass everything else is built
-from -- `refine()`'s loop and `evaluate()`'s final report both call it rather
-than each rolling their own dictionary sweep.
+Recipe: mine, trim_by_mass, refine, subsume, evaluate. The output still needs
+per-language judgment (stoplists, guards). Built tables carry a stem floor
+that most shipped modules lack, so re-validate rather than assume parity.
 """
 
 import os
@@ -36,47 +20,27 @@ from training.build_lang_config import BUILD_NORMALIZATION
 Cells = dict[tuple[str, str], int]
 Rules = SuffixRules
 
-FACTORY = DEFAULT_DICTIONARY_FACTORY  # shared process-wide cache
+FACTORY = DEFAULT_DICTIONARY_FACTORY
 MIN_LEN_DEFAULT = 6
 SUPPORT_MIN_DEFAULT = 100
 PREC_MIN_DEFAULT = 99.0
-# stem chars required before a suffix match: mine()'s candidate extraction,
-# its scoring pass, and build_rules()'s `min_stem` must all agree on this, or
-# the builder's stats stop describing what the built table fires on.
+# Mining, scoring and build_rules' min_stem must all agree on this.
 MIN_STEM_CHARS = 2
 
 
-# Languages whose reference data carries a PEDAGOGICAL diacritic that normal
-# running text omits, so an exact output==gold test spuriously fails and
-# folding is warranted. sl tonal inverted-breve/dot (dẹ̑lati) is verified 0%
-# in UD lemmas but present in the dict, AND survives the build-side fold
-# (BUILD_NORMALIZATION["sl"] leaves ~34.6k keys with combining marks outside
-# its pitch set), so rules still fire on marked keys -> fold still needed.
-# uk (vowel-stress acute) and la (macron) USED to be here too, but
-# BUILD_NORMALIZATION now folds+drops their marked keys at build time
-# (drop_folded_keys), so exact-match already clears their precision floors
-# (uk 99.85%>=99.0, la 95.62%>=95.5) -- the fold became a no-op (+0.01pp)
-# and was removed. Everything else is scored EXACT -- fi ä/ö (18% of UD
-# lemmas), cs/sk long-vowel acute (30%/21%) and es/pt lexical acute are
-# STANDARD orthographic letters, so folding them would hide genuine
-# wrong-letter outputs (aavikoittää != aavikoittaa, bachnuť != bachnúť) --
-# the optimism this set removes. (mk's only U+0301 is inside Ѓ/Ќ, never folded.)
+# sl dict keys keep pedagogical tone marks absent from real text.
+# Elsewhere accents are real letters, so folding would hide wrong outputs.
 _ACCENT_FOLD_LANGS = frozenset({"sl"})
 
 
 def output_is_lemma(out: str, gold: str, *, fold_accents: bool = False) -> bool:
-    """Lemma-first predicate (2026-07 policy): a rule output is correct only if
-    it IS the gold lemma. Exact match by default; `fold_accents` relaxes it to
-    ignore combining accents, and must be set ONLY for `_ACCENT_FOLD_LANGS`."""
+    """True if `out` is the gold lemma, ignoring accents only with `fold_accents`."""
     if out == gold:
         return True
     return fold_accents and strip_diacritics(out) == strip_diacritics(gold)
 
 
-# Regex metacharacters that must never appear in a mined literal suffix -- a
-# dictionary word-ending is plain text, so one here means bad input (e.g. an
-# abbreviation like "etc.") that would emit an over-matching table entry
-# (a leading "." is the stem-floor notation).
+# Mined suffixes are plain text, so any of these signals bad input like "etc.".
 _META = re.compile(r"[.^$*+?()\[\]{}|\\]")
 
 
@@ -90,13 +54,12 @@ def cell_alts(rules: Rules) -> list[tuple[str, str]]:
 
 
 def _guarded(token: str) -> bool:
-    "The token guards every table built here carries (see _table)."
+    "The token guards every table built here carries."
     return len(token) < MIN_LEN_DEFAULT or token[:1].isupper()
 
 
 def proxy_dictionary(lang: str) -> dict[str, str]:
-    """Shipped dict minus BUILD_NORMALIZATION alias keys, whose values keep the
-    origin spelling (ru е-key -> ё-value) and would mismatch every rule output."""
+    """Shipped dict minus build-time alias keys, which keep the original value."""
     d = dict(FACTORY.get_dictionary(lang))
     norm = BUILD_NORMALIZATION.get(lang)
     if norm is None or norm.key_alias is None:
@@ -124,7 +87,7 @@ def mine(
         cp = len(os.path.commonprefix((f, lemma)))
         if cp < MIN_STEM_CHARS or len(f) - cp > 7 or len(lemma) - cp > 7:
             continue
-        for ext in range(4):  # extend leftward through the shared stem
+        for ext in range(4):
             start = cp - ext
             if start < MIN_STEM_CHARS or len(f) - start > 8:
                 continue
@@ -159,8 +122,7 @@ def mine(
 
 
 def _table(groups: dict[str, list[str]]) -> Rules:
-    """Table floored at MIN_STEM_CHARS (so `abimus` can't strip to `o`),
-    guarded like mine()'s scan. Suffixes must be literal (no metacharacters)."""
+    """Guarded table floored at MIN_STEM_CHARS, from literal suffixes only."""
     for target, suffixes in groups.items():
         for s in (*suffixes, target):
             if _META.search(s):
@@ -193,7 +155,7 @@ def build_rules(cells: Cells) -> Rules:
 def _score_cell(
     cell_stats: dict[tuple[str, str], list[int]], alt: str, repl: str, good: bool
 ) -> None:
-    "Update one cell's [fired, ok] counts -- the bookkeeping score_cells() uses."
+    "Update one cell's [fired, ok] counts."
     cell = cell_stats.setdefault((alt, repl), [0, 0])
     cell[0] += 1
     cell[1] += good
@@ -204,22 +166,17 @@ def score_cells(
     dictionary: dict[str, str],
     fold_accents: bool = False,
 ) -> tuple[dict[tuple[str, str], list[int]], list[tuple[str, str, str, str, str]]]:
-    """One first-match pass over `dictionary`: per-(alt, target) [fired, ok]
-    counts, the shared primitive `refine()`'s loop and `evaluate()`'s report
-    both build on. `ok` uses `output_is_lemma` -- lemma-first policy, 2026-07.
+    """Per-(alt, target) [fired, ok] counts over `dictionary`.
 
-    Also returns every (form, output, gold, alt, target)
-    firing whose output is not itself a dictionary entry -- the only candidates
-    for idempotence chains and precision-failure samples, since the real
-    pipeline tries dictionary lookup before rules and would never re-fire a
-    rule on a dict-entry output."""
+    Also returns firings whose output is not a dictionary entry, since the
+    pipeline would look those up before rules."""
     cell_stats: dict[tuple[str, str], list[int]] = {}
     nonword: list[tuple[str, str, str, str, str]] = []
     for f, lemma in dictionary.items():
         p = rules.apply(f)
         if p is None:
             continue
-        alt, repl = rules.match(f) or ("", "")  # apply fired, so it matches
+        alt, repl = rules.match(f) or ("", "")
         good = output_is_lemma(p, lemma, fold_accents=fold_accents)
         _score_cell(cell_stats, alt, repl, good)
         if p != f and dictionary.get(p) is None:
@@ -249,15 +206,9 @@ def refine(
     max_iters: int = 8,
     fold_accents: bool = False,
 ) -> Rules:
-    """Batch drop-bad-cells loop: build rules from `cells`, drop every cell
-    that is either imprecise (<prec_min) or -- once combined with the rest --
-    under-supported (<support_min combined firings, though each cell cleared
-    that bar independently at mine time), repeat until stable. The
-    under-support drop matters because a cell that mine() validated in
-    isolation can be starved by an earlier, more general cell intercepting
-    most of its tokens once every cell is combined -- and an under-supported
-    cell's precision is not a reliable signal (one stray dictionary entry can
-    swing it), so it must not be left to fire ungated in the shipped rules."""
+    """Repeatedly drop cells that are imprecise or under-supported once combined.
+
+    Combined, a general cell can starve a specific one of its tokens."""
     for _ in range(max_iters):
         rules = build_rules(cells)
         cell_stats, _ = score_cells(rules, dictionary, fold_accents=fold_accents)
@@ -274,12 +225,12 @@ def refine(
 
 
 def subsume(rules: Rules, dictionary: dict[str, str]) -> Rules:
-    """Drop suffixes a shorter one already restates (`lades->lada` vs
-    `ades->ada`), which mine()'s stem extension mass-produces. Removing `a` can
-    only change tokens ending in `a`, so checking exactly those is a proof."""
+    """Drop suffixes a shorter one already restates (`lades->lada` vs `ades->ada`).
+
+    Only tokens ending in a removed suffix can change, so checking those proves it."""
     alts = cell_alts(rules)
     target_of = dict(alts)
-    # only the LONGEST remaining suffix fires once `a` is gone, so test that one
+    # Only the longest remaining suffix fires once `a` is gone.
     removable = set()
     for a, t in alts:
         rest = next((a[k:] for k in range(1, len(a)) if a[k:] in target_of), None)
@@ -305,13 +256,7 @@ def subsume(rules: Rules, dictionary: dict[str, str]) -> Rules:
 
 
 def evaluate(lang: str, rules: Rules, dictionary: dict[str, str]) -> None:
-    """Precision, idempotence, and coverage of `rules` over the full
-    dictionary -- the final human-readable report, built on `score_cells()`.
-    Idempotence is skipped when the output is itself a dict entry: the real
-    pipeline tries dictionary lookup first, so a rule never re-fires on it.
-    Failures are grouped per cell: a small coherent word list is a finite
-    lexical collision (stoplist it in the module's _EXCLUDED), a large or
-    scattered one means the cell itself needs narrowing or dropping."""
+    """Print precision, idempotence and coverage of `rules` over the dictionary."""
     fold = lang in _ACCENT_FOLD_LANGS
     cell_stats, nonword = score_cells(rules, dictionary, fold_accents=fold)
     fired = sum(n for n, _ in cell_stats.values())
@@ -331,8 +276,7 @@ def evaluate(lang: str, rules: Rules, dictionary: dict[str, str]) -> None:
             chains += 1
             if len(chain_ex) < 15:
                 chain_ex.append((f, p, p2, lemma))
-    # exact per-cell failure counts (n - ok covers even failures whose wrong
-    # output is a dict entry, which never enter `nonword` and have no sample)
+    # Includes failures outside `nonword`, which have no sample.
     fails = {cell: n - ok2 for cell, (n, ok2) in cell_stats.items() if n > ok2}
 
     prec = 100 * ok / fired if fired else 0.0
@@ -358,9 +302,7 @@ def evaluate(lang: str, rules: Rules, dictionary: dict[str, str]) -> None:
 
 
 def trim_by_mass(cells: Cells, share: float = 0.70) -> Cells:
-    """Keep the highest-firing cells covering `share` of total firing mass,
-    dropping the long low-frequency tail. Safe by construction: only turns
-    fired->unfired, never changes an output."""
+    """Keep the highest-firing cells covering `share` of total firing mass."""
     total = sum(cells.values())
     threshold = share * total
     kept: Cells = {}

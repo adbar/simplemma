@@ -1,13 +1,6 @@
-"""README-facing evaluation: score the full user-facing `Lemmatizer` over the
-held-out UD *dev+test* splits, emitting published accuracy numbers,
-greedy/baseline/ADJ+NOUN breakdowns, and per-dataset error CSVs.
+"""Published evaluation on the held-out UD dev and test splits.
 
-Split discipline: train both feeds the override mining AND calibrates the
-eval_gate, so it is the only split a shipping decision is ever made against.
-That leaves dev and test genuinely held out, and both are reported here.
-
-Distinct from `eval_gate`, which scores the `Lemmatizer` over a candidate
-dictionary on train as a regression gate -- different protocol, not a duplicate.
+Train is excluded because override mining and eval_gate use it.
 """
 
 import csv
@@ -43,7 +36,7 @@ class Tally:
     total: int = 0
     greedy: int = 0
     nongreedy: int = 0
-    baseline: int = 0  # form == lemma ("do nothing")
+    baseline: int = 0  # form == lemma
 
     def add(self, greedy_ok: bool, nongreedy_ok: bool, baseline_ok: bool) -> None:
         self.total += 1
@@ -63,8 +56,7 @@ def evaluate_dataset(
     greedy_lemmatizer: Lemmatizer,
     language: str,
 ) -> tuple[Tally, Tally, list[tuple[str, str, str, str]]]:
-    """(overall tally, ADJ+NOUN focus tally, error rows) over `iter_word_tokens`
-    pairs (form folded, gold canonicalized by the reader)."""
+    """(overall tally, ADJ+NOUN tally, error rows) over `iter_word_tokens` pairs."""
     overall = Tally()
     focus = Tally()
     errors: list[tuple[str, str, str, str]] = []
@@ -75,7 +67,7 @@ def evaluate_dataset(
         greedy_candidate = greedy_lemmatizer.lemmatize(token_form, lang=language)
         greedy_ok = greedy_candidate == lemma
         nongreedy_ok = candidate == lemma
-        # identity baseline in the gold's key space (grc/he/ar canon)
+        # Canonicalized to match the gold's key space.
         baseline_ok = canonicalize_token(token["form"], language) == lemma
 
         overall.add(greedy_ok, nongreedy_ok, baseline_ok)
@@ -96,9 +88,6 @@ def main(
             "It doesn't seem like data was downloaded and processed for evaluation."
         )
 
-    # dev+test chained per dataset in sorted filename order; train excluded
-    # (see the module docstring). dataset_to_lang: UD prefixes aren't always
-    # the ISO code (no_nynorsk -> nn).
     datasets: defaultdict[str, list[Path]] = defaultdict(list)
     for path in sorted(splits_folder.glob("*-ud-*.conllu")):
         if path.name.endswith("-ud-train.conllu"):
@@ -127,7 +116,6 @@ def main(
             )
         )
 
-        # built once: token caches are lang-keyed, so reuse across datasets is safe
         lemmatizer = Lemmatizer(lemmatization_strategy=DefaultStrategy())
         greedy_lemmatizer = Lemmatizer(
             lemmatization_strategy=DefaultStrategy(greedy=True)
@@ -150,8 +138,8 @@ def main(
                         dataset,
                         time.time() - start,
                         overall.total,
-                        *overall.ratios(),  # greedy, non-greedy, baseline
-                        *focus.ratios(),  # ADJ+NOUN greedy, non-greedy, baseline
+                        *overall.ratios(),
+                        *focus.ratios(),
                     )
                 )
 

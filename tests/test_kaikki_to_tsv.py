@@ -23,7 +23,7 @@ def _readme_example_pairs(item):
             if f["form"]:
                 pairs.append((item["word"], f["form"]))
     if not pairs and item.get("word"):
-        pairs.append((item["word"], item["word"]))  # uninflected headword
+        pairs.append((item["word"], item["word"]))
     return pairs
 
 
@@ -53,7 +53,6 @@ def _readme_example_pairs(item):
     ],
 )
 def test_matches_reference_extraction_on_happy_path(entry):
-    """extract_pairs must agree with the reference oracle on well-formed input."""
     assert list(extract_pairs(entry)) == _readme_example_pairs(entry)
 
 
@@ -72,7 +71,7 @@ def test_extract_pairs_top_level_relation_suppresses_forms_fallback():
     entry = {
         "word": "Hunde",
         "form_of": [{"word": "Hund"}],
-        "forms": [{"form": "Hundchen"}],  # would be wrong if used as fallback
+        "forms": [{"form": "Hundchen"}],
     }
     assert list(extract_pairs(entry)) == [("Hund", "Hunde")]
 
@@ -81,7 +80,7 @@ def test_extract_pairs_prefers_senses_over_forms():
     entry = {
         "word": "Hunde",
         "senses": [{"form_of": [{"word": "Hund"}]}],
-        "forms": [{"form": "Hundchen"}],  # ignored: senses already matched
+        "forms": [{"form": "Hundchen"}],
     }
     assert list(extract_pairs(entry)) == [("Hund", "Hunde")]
 
@@ -112,9 +111,7 @@ def test_extract_pairs_skips_placeholder_form():
 
 
 def test_extract_pairs_skips_error_unrecognized_form_for_tagalog():
-    """kaikki tags unparsed inflection-template cells (root, bare affix, trigger
-    labels) as 'error-unrecognized-form' on Tagalog verb pages -- never a
-    verified inflection there. Scoped to tl: see the next test."""
+    """On Tagalog pages 'error-unrecognized-form' marks unparsed template cells."""
     entry = {
         "lang_code": "tl",
         "word": "akuin",
@@ -129,9 +126,7 @@ def test_extract_pairs_skips_error_unrecognized_form_for_tagalog():
 
 
 def test_extract_pairs_keeps_error_unrecognized_form_for_other_langs():
-    """The tag is NOT a reliable junk signal outside Tagalog -- a 27-lang audit
-    found it co-occurring with real inflections (e.g. Welsh mutation, Irish
-    prothesis, Galician participles), so it must not be dropped globally."""
+    """Elsewhere the tag also marks real inflections, like Welsh mutations."""
     entry = {
         "lang_code": "cy",
         "word": "brown",
@@ -153,7 +148,7 @@ def test_extract_pairs_skips_baybayin_forms():
 
 
 def test_extract_pairs_strips_stress_marks_from_forms():
-    """Cyrillic inflection tables mark stress with combining accents; strip them."""
+    """Combining stress accents in Cyrillic inflection tables are stripped."""
     entry = {"word": "указ", "forms": [{"form": "у́кази"}]}
     assert list(extract_pairs(entry)) == [("указ", "укази")]
 
@@ -164,34 +159,29 @@ def test_extract_pairs_strips_stress_marks_from_relations():
 
 
 def test_extract_pairs_folds_grc_length_marks_keeping_accents():
-    """grc (lang_code in the allowlist): pedagogical vowel-length marks are
-    dropped from forms, but accents/breathings survive."""
+    """grc: vowel-length marks are dropped, accents and breathings survive."""
     entry = {
         "lang_code": "grc",
-        "word": "σκύλος",  # lemma: normal orthography (acute), no length mark
+        "word": "σκύλος",
         "forms": [{"form": "σκῠλους"}],  # breve (U+1FE0) length mark on υ
     }
-    assert list(extract_pairs(entry)) == [
-        ("σκύλος", "σκυλους")
-    ]  # breve gone, acute kept
+    assert list(extract_pairs(entry)) == [("σκύλος", "σκυλους")]
 
 
 def test_extract_pairs_does_not_fold_length_marks_for_other_langs():
-    """Latvian macron is orthographic -- length folding must NOT touch non-allowlisted
-    langs, or garā -> gara would corrupt real words."""
+    """Latvian macron is orthographic, so length folding must not touch it."""
     entry = {"lang_code": "lv", "word": "garš", "forms": [{"form": "garā"}]}
-    assert list(extract_pairs(entry)) == [("garš", "garā")]  # macron preserved
+    assert list(extract_pairs(entry)) == [("garš", "garā")]
 
 
 def test_extract_pairs_keeps_polytonic_greek_accents_from_nfd_input():
-    """NFD (decomposed) polytonic Greek must keep its accents: the stress-strip
-    targets only Cyrillic combining marks, not Greek/Latin precomposed accents."""
+    """NFD polytonic Greek keeps its accents: the stress strip targets Cyrillic only."""
     import unicodedata
 
-    word = unicodedata.normalize("NFD", "ἄνθρωπος")  # decomposed accents
+    word = unicodedata.normalize("NFD", "ἄνθρωπος")
     form = unicodedata.normalize("NFD", "ἀνθρώπους")
     entry = {"word": word, "forms": [{"form": form}]}
-    assert list(extract_pairs(entry)) == [("ἄνθρωπος", "ἀνθρώπους")]  # NFC, intact
+    assert list(extract_pairs(entry)) == [("ἄνθρωπος", "ἀνθρώπους")]
 
 
 def test_extract_pairs_skips_romanization_forms():
@@ -227,7 +217,7 @@ def test_extract_pairs_skips_class_forms():
 
 
 def test_extract_pairs_skips_pronoun_cross_reference():
-    """A cross-referenced 'pronoun' row is dropped; the entry's own identity survives."""
+    """A cross-referenced 'pronoun' row is dropped, the identity pair survives."""
     entry = {
         "word": "er",
         "forms": [
@@ -251,8 +241,7 @@ def test_extract_pairs_skips_possessive_cross_reference():
 
 
 def test_extract_pairs_skips_auxiliary_cross_reference():
-    """An 'auxiliary' row names a helper verb, not an inflected form of the entry.
-    With every form dropped, the entry falls back to its identity pair."""
+    """An 'auxiliary' row names a helper verb, so the entry falls back to identity."""
     entry = {"word": "ausgehen", "forms": [{"form": "sein", "tags": ["auxiliary"]}]}
     assert list(extract_pairs(entry)) == [("ausgehen", "ausgehen")]
 
@@ -280,13 +269,12 @@ def test_extract_pairs_skips_targets_missing_word_but_keeps_others():
 
 
 def test_extract_pairs_dedups_repeated_pair_across_senses():
-    """Two senses of the same entry reducing to the same lemma isn't two independent
-    attestations -- R2 treats line count as evidence, so one entry contributes one line."""
+    """Senses repeating a pair are one attestation, so one entry yields one line."""
     entry = {
         "word": "Hunde",
         "senses": [
             {"form_of": [{"word": "Hund"}]},
-            {"form_of": [{"word": "Hund"}]},  # different sense, same relation
+            {"form_of": [{"word": "Hund"}]},
         ],
     }
     assert list(extract_pairs(entry)) == [("Hund", "Hunde")]
@@ -305,7 +293,7 @@ def test_extract_pairs_dedup_preserves_first_seen_order():
 
 
 def test_extract_pairs_dedup_does_not_affect_forms_fallback_duplicates():
-    """Genuinely repeated forms still dedup; fallback only runs with no relation at all."""
+    """Repeated forms in the forms fallback still dedup."""
     entry = {"word": "x", "forms": [{"form": "y"}, {"form": "y"}]}
     assert list(extract_pairs(entry)) == [("x", "y")]
 
@@ -321,14 +309,12 @@ def test_extract_pairs_handles_missing_data():
 
 
 def test_extract_pairs_identity_for_uninflected_headword():
-    """A headword with no forms and no relations (grc μέν) must still enter the
-    dictionary as its own identity pair."""
+    """A headword with no forms and no relations is its own identity pair."""
     assert list(extract_pairs({"word": "μέν"})) == [("μέν", "μέν")]
 
 
 def test_extract_pairs_no_identity_after_junk_form_drop():
-    """An entry whose whole forms table was never-real rows must NOT fall
-    back to identity -- that would resurrect what the drop tags block."""
+    """An entry with only dropped junk forms must not fall back to identity."""
     entry = {"word": "plants", "forms": [{"form": "plánts", "tags": ["romanization"]}]}
     assert list(extract_pairs(entry)) == []
     entry = {"word": "x", "forms": [{"form": "y", "tags": ["table-tags"]}]}
@@ -336,15 +322,13 @@ def test_extract_pairs_no_identity_after_junk_form_drop():
 
 
 def test_extract_pairs_expands_optional_letter_group():
-    """grc movable nu: 'ἦ(ν)' is unreachable as a literal key -- both spellings
-    are emitted. Multi-group or alternative shapes are left alone."""
+    """A single optional group like grc 'ἦ(ν)' expands to both spellings."""
     entry = {"word": "εἰμί", "forms": [{"form": "ἦ(ν)"}]}
     assert list(extract_pairs(entry)) == [("εἰμί", "ἦ"), ("εἰμί", "ἦν")]
 
     entry = {"word": "hoten", "forms": [{"form": "(y)hote"}]}
     assert list(extract_pairs(entry)) == [("hoten", "hote"), ("hoten", "yhote")]
 
-    # alternatives '(α/ε)' and nested/multiple groups are NOT expanded
     entry = {"word": "x", "forms": [{"form": "a(b/c)"}, {"form": "a(b)c(d)"}]}
     assert list(extract_pairs(entry)) == [("x", "a(b/c)"), ("x", "a(b)c(d)")]
 

@@ -6,7 +6,7 @@ RULES = SuffixRules({"x": "ab ..cab", "y": "b"}, stops="zab")
 
 
 def test_longest_suffix_wins() -> None:
-    assert RULES.apply("wab") == "wx"  # "ab" beats "b"
+    assert RULES.apply("wab") == "wx"
     assert RULES.apply("wb") == "wy"
     assert RULES.apply("w") is None
     assert RULES.match("wab") == ("ab", "x")

@@ -1,6 +1,4 @@
-"""Shared conventions for reading the UD treebank files fetched by
-download_eval_data.py: the dataset-name -> simplemma-code override map and
-the one token-iteration convention used by every evaluator/miner."""
+"""Shared conventions for reading the UD treebank files."""
 
 from collections.abc import Iterable, Iterator
 from pathlib import Path
@@ -10,11 +8,8 @@ from conllu import parse_incr
 
 from simplemma.utils import canonicalize_token, normalize_token
 
-# The splits location every evaluator/miner reads; download_eval_data.py writes it.
 UD_SPLITS = Path(__file__).parent / "data" / "UD" / "splits"
 
-# UD's file-prefix isn't always simplemma's ISO code -- both Norwegian sets
-# share "no", North Sami is "sme" -- so key by full dataset name here.
 DATASET_LANG_OVERRIDES = {
     "no_bokmaal": "nb",
     "no_nynorsk": "nn",
@@ -25,8 +20,7 @@ DATASET_LANG_OVERRIDES = {
 
 
 def dataset_to_lang(dataset_name: str) -> str:
-    """Map a UD dataset name (e.g. ``ro_rrt``, ``no_bokmaal``) to simplemma's
-    language code: an explicit override, else the prefix before the first ``_``."""
+    """Map a UD dataset name (e.g. ``ro_rrt``) to simplemma's language code."""
     return DATASET_LANG_OVERRIDES.get(dataset_name, dataset_name.split("_", 1)[0])
 
 
@@ -38,8 +32,7 @@ def dataset_name(path: Path) -> str:
 def discover_treebanks(
     lang: str, split: str, ud_splits: Path | None = None
 ) -> list[Path]:
-    """Every *-ud-<split>.conllu file whose dataset belongs to `lang` (dataset
-    name is `{code}_{treebank}`)."""
+    """Every *-ud-<split>.conllu file whose dataset belongs to `lang`."""
     suffix = f"-ud-{split}.conllu"
     return sorted(
         path
@@ -49,28 +42,16 @@ def discover_treebanks(
 
 
 def _strip_mwt_artifact(value: str) -> str:
-    """Strip the leading/trailing underscore some treebanks (he_htb) use to
-    mark the elided side of an MWT sub-token split (e.g. 'יכולת_', '_של_').
-    A value stripping to nothing (the null '_', et_ewt's underscore-run
-    PUNCT token) is returned unchanged -- never emit an empty form/lemma."""
+    """Strip edge underscores marking MWT parts, unless nothing would remain."""
     return value.strip("_") or value
 
 
-# fi/et/hu gold lemmas mark compound boundaries (yli#opisto, sisse_tulek,
-# el+mond); stripping them fixed 36.8% of fi errors, 42.3% of et. Per-language
-# because '_' is a real convention in e.g. nl Alpino lemmas.
+# Gold compound-boundary markers (yli#opisto), per language as '_' is real elsewhere.
 _GOLD_COMPOUND_SEPARATORS = {"fi": "#", "et": "_", "hu": "+"}
 
 
 def canon_lemma(lemma: str, form: str, lang: str) -> str:
-    """The gold-lemma transform every reader shares: strip the MWT artifact
-    and the language's compound-boundary markers, then fold like the shipped
-    dict keys (`normalize_token`) and canonicalize for `lang` (a no-op outside
-    _CANON_TABLES), so gold is compared/mined in the shipped dict's key space.
-
-    A marker also present in `form` belongs to the token, decided per
-    occurrence (see _strip_compound_markers): '#oscarit' keeps gold '#Oscar'.
-    `form` may arrive already MWT-stripped -- the strip is idempotent."""
+    """Gold lemma cleaned of markers and folded into the shipped dict's key space."""
     lemma = _strip_mwt_artifact(lemma)
     separator = _GOLD_COMPOUND_SEPARATORS.get(lang)
     if separator and separator in lemma:
@@ -79,11 +60,7 @@ def canon_lemma(lemma: str, form: str, lang: str) -> str:
 
 
 def _strip_compound_markers(lemma: str, form: str, separator: str) -> str:
-    """Keep marker occurrences that are token content, strip the rest: an
-    all-marker lemma stays whole (never strip to ""); a marker word-internal
-    in the form means the lemma's markers are real ('MAX_FILE_SIZE', '16+3');
-    otherwise internal markers strip (yli#opisto) and an edge run survives
-    only when the form carries the marker at that edge ('#oscarit')."""
+    """Strip compound markers from `lemma` unless `form` shows them as content."""
     core = lemma.strip(separator)
     if not core or separator in form.strip(separator):
         return lemma
@@ -99,15 +76,9 @@ def _strip_compound_markers(lemma: str, form: str, separator: str) -> str:
 def iter_word_tokens_in_sentences(
     sentences: Iterable[Any], lang: str
 ) -> Iterator[tuple[str, Any]]:
-    """Yield (form, token) for real word tokens, applying the official UD-eval
-    convention: skip MWT/empty-node ids (tuple, not int) and lemma=='_',
-    lowercase the sentence-initial (id==1) form.
+    """Yield (form, token) for word tokens, lowercasing sentence-initial forms.
 
-    Mutates token["form"]/token["lemma"] in place: form MWT-stripped and
-    folded with `normalize_token` (the runtime folds only at lookup, so
-    scores are apostrophe-glyph blind), lemma via `canon_lemma`.
-    Every reader (evaluators AND build_override) inherits the same key space
-    with no per-caller step to forget."""
+    Normalizes token["form"] and token["lemma"] in place."""
     for tokens in sentences:
         for token in tokens:
             token_id = token["id"]

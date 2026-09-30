@@ -8,7 +8,7 @@ from .dictionary_factory import (
 from .stream_dictionary_factory import StreamDictionaryFactory
 from .trie_dictionary_factory import TrieDictionaryFactory
 
-# For steady-state RAM with faster lookups, pass TrieDictionaryFactory() instead.
+# pass TrieDictionaryFactory() instead for low RAM with faster lookups
 LOW_MEMORY_DICTIONARY_FACTORY = StreamDictionaryFactory()
 
 __all__ = [

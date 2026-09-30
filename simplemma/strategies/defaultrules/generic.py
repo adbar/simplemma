@@ -4,11 +4,12 @@ from collections.abc import Container
 
 
 class SuffixRules:
-    """`{target: "suffix suffix ..."}`: the longest suffix found in the table is
-    replaced by its target. Leading dots on a suffix are the stem chars it
-    needs ("..ante": at least 2); `min_stem` floors every suffix at once.
-    `stops` are suffixes that make the rules abstain (no cell fires). The
-    remaining keywords are token guards `apply` checks before matching."""
+    """Table `{target: "suffix suffix ..."}` replacing the longest matching suffix.
+
+    Leading dots give the stem chars a suffix needs ("..ante": at least 2).
+    `min_stem` floors every suffix, and `stops` make the rules abstain.
+    The other keywords are token guards checked by `apply`.
+    """
 
     def __init__(
         self,
@@ -32,8 +33,7 @@ class SuffixRules:
         self._excluded = excluded
 
     def match(self, token: str) -> tuple[str, str] | None:
-        """(suffix, target) of the longest matching suffix; None on a miss or
-        stop. Ignores the token guards."""
+        """(suffix, target) of the longest match, or None, ignoring token guards."""
         for cut in range(len(token)):
             hit = self._table.get(token[cut:])
             if hit is None:

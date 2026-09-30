@@ -1,7 +1,4 @@
-"""Build-time encoder for the front-coded dictionary format.
-
-The decoder lives in simplemma.strategies.dictionaries.frontcode (runtime).
-"""
+"""Build-time encoder for the front-coded dictionary format."""
 
 import lzma
 
@@ -34,11 +31,9 @@ def _common_prefix_len(a: bytes, b: bytes) -> int:
 
 
 def _encode(mapping: dict[bytes, bytes], reverse_key: bool = False) -> bytes:
-    """Encode a bytes->bytes dict into a front-coded, lzma-compressed blob.
+    """Encode a bytes dict into a front-coded, lzma-compressed blob.
 
-    reverse_key front-codes reversed bytes, for prefixing morphology (e.g.
-    Swahili, where forms share a suffix not a prefix).
-    """
+    reverse_key front-codes reversed bytes, for prefixing morphology."""
     items = sorted(
         mapping.items(), key=lambda kv: kv[0][::-1] if reverse_key else kv[0]
     )
@@ -66,7 +61,7 @@ def _encode(mapping: dict[bytes, bytes], reverse_key: bool = False) -> bytes:
             trim = len(stored_key) - prefix_len
             value_suffix = stored_value[prefix_len:]
             if trim >= _SAME_AS_PREV:
-                # trim too big for one byte: store the value whole.
+                # Trim would collide with the marker bytes.
                 stream.append(_LITERAL_VALUE)
                 _write_varint(stream, len(stored_value))
                 stream += stored_value

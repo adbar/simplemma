@@ -1,9 +1,4 @@
-"""Per-language spot-checks of the default rules via ``RulesStrategy``.
-
-``(lang, form, expected)`` cases; ``expected`` is None when the rule
-deliberately doesn't fire. Aggregate/per-cell precision is checked in
-``test_precision.py``.
-"""
+"""Per-language spot-checks of the default rules. None means the rule must not fire."""
 
 from collections.abc import Mapping
 
@@ -14,20 +9,18 @@ from simplemma.strategies import DefaultStrategy, DictionaryFactory, RulesStrate
 
 _RULES = RulesStrategy()
 
-# (lang, form, expected-lemma-or-None)
 RULE_CASES = [
-    # --- German ---
-    ("de", "Whatawordicantbelieveit", None),  # doesn't exist
+    ("de", "Whatawordicantbelieveit", None),
     ("de", "Pfifferling", "Pfifferling"),
     ("de", "Pfifferlinge", "Pfifferling"),
     ("de", "Pfifferlingen", "Pfifferling"),
     ("de", "Heiterkeiten", "Heiterkeit"),
     ("de", "Bürgertums", "Bürgertum"),
     ("de", "Achterls", "Achterl"),
-    # feminine agent plural: only -erinnen is handled (see de.py)
+    # only -erinnen feminine agent plurals are handled
     ("de", "Lehrerinnen", "Lehrerin"),
     ("de", "Inspekteurinnen", None),
-    ("de", "Gerinnen", None),  # -erinnen stop
+    ("de", "Gerinnen", None),  # stoplisted
     ("de", "Kazakhstans", "Kazakhstan"),
     ("de", "Ökonomen", "Ökonom"),
     ("de", "Chauffeusen", "Chauffeuse"),
@@ -42,8 +35,7 @@ RULE_CASES = [
     ("de", "Zuschauer*innen", "Zuschauer:innen"),
     ("de", "Zuschauer_innen", "Zuschauer:innen"),
     ("de", "Zuschauer-innen", "Zuschauer:innen"),
-    # --- English ---
-    ("en", "Whatawordicantbelieveit", None),  # doesn't exist
+    ("en", "Whatawordicantbelieveit", None),
     ("en", "delicacies", "delicacy"),
     ("en", "kingdoms", "kingdom"),
     ("en", "realisms", "realism"),
@@ -53,26 +45,21 @@ RULE_CASES = [
     ("en", "nations", "nation"),
     ("en", "realized", "realize"),
     ("en", "preserves", "preserve"),
-    # dropped (below the 99% bar): ries/ties (-erie/-tie), esses (finesse), trices, ships
+    # these suffix rules fell below the precision bar
     ("en", "hardships", None),
     ("en", "nurseries", None),
     ("en", "realities", None),
     ("en", "mistresses", None),
     ("en", "matrices", None),
-    # --- Finnish ---
-    # -inen possessive cells
     ("fi", "aakkoselliseen", "aakkosellinen"),
     ("fi", "aakkoselliseksi", "aakkosellinen"),
     ("fi", "aakkosellisella", "aakkosellinen"),
-    # -us / -ys nouns
     ("fi", "kirjoituksen", "kirjoitus"),
     ("fi", "ystävyyden", "ystävyys"),
-    # -uus abstract nouns
     ("fi", "kirjallisuuden", "kirjallisuus"),
     ("fi", "kalastuksen", "kalastus"),
     ("fi", "kissa", None),
     ("fi", "Liikenaisen", None),
-    # --- Dutch ---
     ("nl", "achterpagina's", "achterpagina"),
     ("nl", "achterpagina’s", "achterpagina"),
     ("nl", "achterpaginaʼs", "achterpagina"),
@@ -80,88 +67,71 @@ RULE_CASES = [
     ("nl", "boerderijen", "boerderij"),
     ("nl", "hond", None),
     ("nl", "kastelen", None),
-    # -ieven dropped: collides with -ieve adjective plurals (executieven)
+    # -ieven collides with -ieve adjective plurals (executieven)
     ("nl", "brieven", None),
-    # --- Russian ---
     ("ru", "уверенностью", "уверенность"),
     ("ru", "хозяйством", "хозяйство"),
     ("ru", "безгра́мотностью", "безгра́мотность"),
     ("ru", "своё", "свое"),
     ("ru", "кот", None),
     ("ru", "Хозяйством", None),
-    # --- Latvian ---
     ("lv", "risinājumu", "risinājums"),
     ("lv", "iespējamības", "iespējamība"),
     ("lv", "Rīga", None),
     ("lv", "sijas", None),  # min_len=6
-    # definite-adjective declension dropped, see lv.py
+    # definite adjectives are not handled
     ("lv", "labākajiem", None),
     ("lv", "baltajiem", None),
-    # --- Esperanto ---
     ("eo", "domojn", "domo"),
     ("eo", "belajn", "bela"),
     ("eo", "kuras", "kuri"),
     ("eo", "manĝu", "manĝi"),
     ("eo", "kurantojn", "kuranto"),
     ("eo", "hejmen", "hejme"),
-    # --- Estonian ---
     ("et", "tavalised", "tavaline"),
     ("et", "peamisteks", "peamine"),
     ("et", "kunstnikud", "kunstnik"),
     ("et", "keelkondade", "keelkond"),
     ("et", "Läänemere", None),
-    # --- Malay ---
     ("ms", "bukunya", "buku"),
     ("ms", "rumahku", "rumah"),
     ("ms", "baku", None),
-    # --- Georgian ---
     ("ka", "ღვინოთა", "ღვინო"),
     ("ka", "ტურისტმა", "ტურისტი"),
-    # -ისას abstains: the case cells cannot reach the citation form
+    # -ისას: the case cells cannot reach the citation form
     ("ka", "მოძრაობისას", None),
-    # stem-final -ლთა nouns (not a case ending) stoplisted, not -> *კალი
+    # stem-final -ლთა is not a case ending here, so no *კალი
     ("ka", "კალთა", None),
-    # --- Norwegian Nynorsk ---
     ("nn", "akslingane", "aksling"),
     ("nn", "kaptein", None),
-    # --- Ukrainian ---
     ("uk", "близького", "близький"),
     ("uk", "авторського", "авторський"),
-    ("uk", "гірничо-добувних", "гірничо-добувний"),  # rules reach hyphenated tokens
+    ("uk", "гірничо-добувних", "гірничо-добувний"),
     # дехто/ніхто/абихто decline like -кий adjectives but lemmatise to a pronoun
     ("uk", "декого", None),
-    # --- Czech ---
     ("cs", "argumentuju", "argumentovat"),
     ("cs", "domovského", "domovský"),
     ("cs", "vědecko-pedagogičtí", "vědecko-pedagogický"),
-    # --- Latin ---
     ("la", "abalienabant", "abalieno"),
     ("la", "Roma", None),
-    # (?<=..) stem floor: whole-word match must not strip to a bare "o"
+    # the stem floor forbids stripping to a bare "o"
     ("la", "abimus", None),
-    # floor on all groups: 1-char-stem matches must not strip to bare targets
+    # 1-char stems are never stripped
     ("la", "antium", None),
-    # --- Swedish ---
     ("sv", "ackordssättningarna", "ackordssättning"),
     ("sv", "lanterna", None),
-    # --- Portuguese ---
     ("pt", "hegemônicos", "hegemônico"),
     ("pt", "superdegustadores", "superdegustador"),
     ("pt", "tenetehara-guajajara", None),
-    # --- Spanish ---
     ("es", "aplicaciones", "aplicación"),
     ("es", "mientras", None),
-    # --- Icelandic ---
     ("is", "fagurfræðilegu", "fagurfræðilegur"),
     ("is", "vonandi", None),
-    # --- Slovenian ---
     ("sl", "ekonomskega", "ekonomski"),
     ("sl", "totalno", None),
-    # --- Slovak ---
     ("sk", "robotníkoch", "robotník"),
     ("sk", "slovenského", "slovenský"),
     ("sk", "naozaj", None),
-    # --- Romanian ---
     ("ro", "profesorului", "profesor"),
     ("ro", "explica", None),
 ]

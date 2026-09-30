@@ -1,11 +1,4 @@
-"""Prefix decomposition lemmatization strategy.
-
-Each language: a UD-validated prefix list and an optional suffix regex fragment
-(stem-floor lookahead or none). DROP_PREFIX_LANGS
-says whether a matched prefix is a separate particle to discard (ar/he/fr/it/ca)
-or a derivational prefix that stays part of the lemma (uk). Prefixes are
-sorted by length so list order carries no meaning.
-"""
+"""Prefix decomposition lemmatization strategy."""
 
 import re
 
@@ -19,45 +12,24 @@ def _prefix_regex(prefixes: str, suffix: str = "") -> re.Pattern[str]:
 
 
 DEFAULT_KNOWN_PREFIXES: dict[str, re.Pattern[str]] = {
-    # UD-validated (ar_padt train): proclitics و/ب/ل + article ال + fused
-    # stacks (وال/بال/فال, assimilated لل, comparative كال). ف/ك/س + the
-    # other stacks EXCLUDED: 0-32% fix precision, and adding them reduces
-    # net gain (19.9:1 vs 26.0:1 fix:regression) -- same pattern as he's
-    # excluded מ. (?=..) stem floor: >=2 chars must remain, mirroring he's
-    # guard against a short token stripping to a single-letter abbreviation key.
+    # (?=..) keeps a short token from stripping to a one-letter abbreviation key
     "ar": _prefix_regex("و ب ل ال لل وال بال فال كال", r"(?=..)"),
-    # UD-validated elided proclitics; no stem floor (an apostrophe + 1-3
-    # trailing letters is almost always elision). See
-    # training/data/affix_eval/README.md "Apostrophe/proclitic elision".
     "ca": _prefix_regex("l' d' s' m' n' t'"),
     "fr": _prefix_regex(
         "jusqu' lorsqu' puisqu' quoiqu' presqu' qu' l' d' c' n' s' m' j' t'"
     ),
     "it": _prefix_regex("quest' quell' dell' nell' sull' coll' dall' un' l' d' c' s'"),
-    # UD-validated (he_htb train): single-letter proclitics attach to a
-    # host word with no separator. The 7th proclitic מ is excluded -- 57%
-    # fix precision vs 71-88% for these six, and a much worse
-    # fix:regression ratio (8.5:1 vs 47.8:1) end-to-end. 2-letter stacked
-    # combos (וש/ומ/ול/...) also excluded: all under 68% precision.
-    # (?=..) stem floor: at least 2 chars must remain after the prefix,
-    # else a 2-letter token strips to a single letter and hits a
-    # one-letter abbreviation key (בצ -> צ -> צפון).
+    # מ is left out on purpose: too many false splits
     "he": _prefix_regex("ו ה ב כ ל ש", r"(?=..)"),
-    # UD-validated (uk_iu): clean accept, no harmful entry. See
-    # README.md "Slavic prefix wave".
     "uk": _prefix_regex("по за ви на при про роз пере від до під об без"),
 }
 
-# A matched prefix is a separate particle, not part of the lemma ("בבית" ->
-# "בית", "l'arbre" -> "arbre"). Particles attach to capitalized hosts too
-# (L'homme): matched case-insensitively, but a capitalized stem behind a
-# capitalized particle is a proper noun (D'Annunzio) and is left alone.
+# prefix is a dropped particle (l'arbre -> arbre), matched case-insensitively
 DROP_PREFIX_LANGS = frozenset({"ar", "he", "ca", "fr", "it"})
 
 
 class PrefixDecompositionStrategy(LemmatizationStrategy):
-    """Strip a known prefix, look up the remainder; for DROP_PREFIX_LANGS the
-    prefix is a particle (dropped), otherwise it stays attached."""
+    """Strip a known prefix and look up the remainder."""
 
     __slots__ = ["_known_prefixes", "_dictionary_lookup"]
 
@@ -73,9 +45,7 @@ class PrefixDecompositionStrategy(LemmatizationStrategy):
         if lang not in self._known_prefixes:
             return None
 
-        # Fold BEFORE matching (no-op for unregistered langs): ar tashkeel
-        # sits between a fused prefix's letters (بِالْكِتَابِ), so a
-        # multi-char prefix can never match the raw token.
+        # fold first: ar tashkeel sits between the letters of a fused prefix
         token = canonicalize_token(token, lang)
         drop = lang in DROP_PREFIX_LANGS
         prefix_match = self._known_prefixes[lang].match(
@@ -85,6 +55,7 @@ class PrefixDecompositionStrategy(LemmatizationStrategy):
             return None
 
         stem = token[prefix_match.end() :]
+        # capitalized particle and stem is a proper noun (D'Annunzio)
         if drop and token[:1].isupper() and stem[:1].isupper():
             return None
 
@@ -92,8 +63,6 @@ class PrefixDecompositionStrategy(LemmatizationStrategy):
         if not subword:
             return None
 
-        # DROP_PREFIX_LANGS: the prefix is its own particle, so the stem's
-        # lemma alone is the answer -- see the module comment above.
         if drop:
             return subword
 

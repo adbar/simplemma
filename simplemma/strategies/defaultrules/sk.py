@@ -1,7 +1,5 @@
 from .generic import SuffixRules
 
-# invariant words, homographs (správa), and -inou possessives whose lemma is
-# not the -ina noun the cell assumes (matkin)
 _EXCLUDED = frozenset(
     (
         "anonym detail festival gazdinou interval jedinou kabala mamkinou matkinou "
@@ -11,8 +9,6 @@ _EXCLUDED = frozenset(
     )
 )
 
-# Slovak noun/adjective declension and verb conjugation; cells that failed
-# on UD real text despite >=99% in-dict (skej/ckej, áte, tému, rmi) dropped.
 DEFAULT_RULES = SuffixRules(
     {
         "nosť": "nosti ností",

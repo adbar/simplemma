@@ -16,8 +16,7 @@ from .strategies.dictionaries import LOW_MEMORY_DICTIONARY_FACTORY
 from .tokenizer import RegexTokenizer, Tokenizer
 from .utils import validate_lang_input
 
-# Only where UD gold lowercases proper nouns; elsewhere identity wins held-out
-# (es +2.8, lv +1.6, uk +1.2, lt +1.1, pt +1.1, hy +0.6pp, 2026-09).
+# only where the reference lemmas lowercase proper nouns
 BETTER_LOWER = frozenset({"bg", "sk"})
 
 
@@ -55,8 +54,7 @@ class Lemmatizer:
         self._tokenizer = tokenizer
         self._lemmatization_strategy = lemmatization_strategy
         self._fallback = fallback
-        # A strategy exposing raw membership (`is_dictionary_member`) enables the
-        # gated/acronym casing heuristics; others get base initial-lowering only.
+        # optional: enables the dictionary-gated casing heuristics
         self._member: MembershipCheck | None = getattr(
             lemmatization_strategy, "is_dictionary_member", None
         )
@@ -76,8 +74,7 @@ class Lemmatizer:
         token: str,
         lang: str | tuple[str, ...],
     ) -> str:
-        """Cache-miss path: validates here so hits stay cheap (the token is
-        already NFC from `lemmatize`; lru_cache never caches exceptions)."""
+        """Cache-miss path, validating here so cache hits stay cheap."""
         _control_input_type(token)
         lang = validate_lang_input(lang)
 
@@ -104,7 +101,7 @@ class Lemmatizer:
 # Legacy pre-1.0 functions.
 
 
-# Cached to keep each Lemmatizer's token cache alive.
+# cached to keep each Lemmatizer's token cache alive.
 @lru_cache(maxsize=None)
 def _legacy_lemmatizer_for(greedy: bool, low_memory: bool) -> Lemmatizer:
     return Lemmatizer(

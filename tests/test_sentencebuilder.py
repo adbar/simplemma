@@ -71,8 +71,7 @@ def test_as_literal_round_trips_including_hyphenated_entries():
         {"aber", "2-gbyte-wechselplatte", "ähnlich", *(f"wort{n}" for n in range(40))}
     )
     literal = sentencebuilder.as_literal("de", starters)
-    # eval, not literal_eval: the point is that the emitted frozenset(...)
-    # call and its wrapped string chunks are valid, paste-able Python
+    # eval, not literal_eval: the emitted frozenset(...) call must be valid Python
     parsed = eval("{" + literal.rstrip(",") + "}", {"frozenset": frozenset})  # noqa: S307
     assert parsed == {"de": starters}
 
@@ -84,7 +83,7 @@ def _cli(tmp_path, monkeypatch, lang, *flags):
 
 
 def test_main_emits_a_literal_when_the_mined_list_wins(tmp_path, monkeypatch, capsys):
-    # "u. a." suppresses; only the mined starter "Ja" can reopen the boundary
+    # "u. a." suppresses the break, only the mined starter "Ja" reopens it
     pairs = ["Er kauft u. a.", "Ja das stimmt."] * 4
     _treebank(tmp_path / "de_x-ud-train.conllu", pairs)
     _treebank(tmp_path / "de_x-ud-dev.conllu", pairs)
@@ -94,7 +93,7 @@ def test_main_emits_a_literal_when_the_mined_list_wins(tmp_path, monkeypatch, ca
     out = capsys.readouterr().out
     assert '"de": frozenset(' in out
     assert '"ja ' in out
-    assert sentences._STARTERS["de"] != frozenset({"ja"})  # restored
+    assert sentences._STARTERS["de"] != frozenset({"ja"})
 
 
 def test_main_keeps_the_shipped_list_when_mining_does_not_help(
@@ -119,8 +118,7 @@ def test_main_check_only_scores_the_shipped_list(tmp_path, monkeypatch, capsys):
 
 
 def test_main_falls_back_to_test_without_dev(tmp_path, monkeypatch, capsys):
-    """se/gv ship train+test but no dev -- scoring must fall back to test
-    (with a warning) instead of aborting."""
+    """Without a dev treebank, scoring falls back to test with a warning."""
     _treebank(tmp_path / "de_x-ud-test.conllu", ["Ein Satz.", "Noch einer."])
 
     _cli(tmp_path, monkeypatch, "de", "--check")

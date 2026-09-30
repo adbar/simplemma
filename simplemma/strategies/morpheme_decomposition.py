@@ -1,23 +1,7 @@
-"""
-This module defines the `MorphemeDecompositionStrategy` class, for languages
-whose inflectional morphology is COMPOSITIONAL -- several affixes (prefix
-chain, infix, reduplication, suffix) stack on one root, and all of them
-must be discarded together to reach the lemma. Unlike
-`PrefixDecompositionStrategy` (one bounded strip from a fixed list),
-this is a multi-stage search: it generates a bounded set of candidate
-residues (prefix strip x infix strip x reduplication fold x suffix strip)
-and accepts ONE only if it is an independently attested dictionary
-entry -- a false accept needs both a morpheme-shaped affix run AND a
-coincidental dictionary collision on the residue.
+"""Morpheme decomposition for languages that stack affixes on one root (tl, id).
 
-Tagalog is the first target: actor/object/locative/causative focus
-prefixes (`mag-`/`nag-`, `ma-`/`na-`, `maka-`/`naka-`, ...), the
-`-um-`/`-in-` infixes, aspect reduplication (`iwas` -> `maiiwasan`), and
-object-focus suffixes (`-in`/`-an`/`-han`/`-hin`) all attach to ONE root
-that is the lemma itself. Indonesian (prefix + suffix, no infix) is the
-second. Swahili's prefix system is similarly compositional but needs
-iterative multi-morpheme stripping (not attempted here; a flat prefix
-list measured net-negative on sw).
+Candidates combine prefix, infix, reduplication and suffix strips.
+One is accepted only if it is a dictionary entry.
 """
 
 from collections.abc import Iterator
@@ -27,22 +11,13 @@ from ..utils import longest_first
 from .dictionary_lookup import DictionaryLookupStrategy
 from .lemmatization_strategy import LemmatizationStrategy
 
-# Tagalog verbal-focus prefixes. Not exhaustive -- covers the high-frequency
-# actor/object/ability/causative/instrumental/reciprocal/distributive/
-# intensive paradigms; gated on real UD text (tune=nc-dev,
-# confirm=nc-test+trg+ugnayan), not hand-picked.
 _TL_PREFIXES = (
     "magkaka nagkaka makapag nakapag magpaka nagpaka makipag nakipag nagpapa "
     "magpapa magka nagka nakaka makaka ipinag ipinang magsi nagsi ipang ipag ikina "
     "ipina pinag maka naka magpa nagpa maki naki mang nang ika ipa mag nag ma na "
     "pa ka um in i"
 )
-# Object/locative-focus suffixes, plus the linker (ligature) na fused onto
-# its host: vowel-final host + "ng" (maganda -> magandang), n-final host +
-# "g" (ulan -> ulang). Real text never splits the linker off, so the fused
-# form must be decomposed at runtime; dict verification gates the residue
-# (measured +1.1 to +2.9pp real-word on all 4 tl treebanks, at the cost of
-# a -0.1pp per-sub-token dip on newscrawl from unconstrained "g" strips).
+# "ng" and "g" are the fused linker (magandang, ulang)
 _TL_SUFFIXES = "han hin an in ng g"
 
 MIN_STEM_LEN = 3
@@ -56,8 +31,7 @@ class _Morphemes(NamedTuple):
 
 
 def _morphemes(prefixes: str, suffixes: str, infixes: str = "") -> _Morphemes:
-    """Affix inventory from space-separated lists, each sorted longest-first
-    (the candidate search relies on it)."""
+    """Affix inventory from space-separated lists, sorted longest-first."""
     return _Morphemes(
         longest_first(prefixes.split()),
         longest_first(suffixes.split()),
@@ -66,27 +40,16 @@ def _morphemes(prefixes: str, suffixes: str, infixes: str = "") -> _Morphemes:
 
 
 MORPHEME_LANGS: dict[str, _Morphemes] = {
-    # A vowel-alternation stage (gusto+han -> gustuhan, fold u->o back) was
-    # tried and removed: <=0.3pp on one treebank, no verdict changes -- not
-    # worth a config dimension.
     "tl": _morphemes(_TL_PREFIXES, _TL_SUFFIXES, infixes="um in"),
     "id": _morphemes(
-        # Indonesian verbal affixes; conservative on purpose -- short/ambiguous
-        # prefixes (me/ke/se/pe alone, without their consonant-initial variants)
-        # measured net-negative (overfire on unrelated words) in an earlier A/B.
+        # bare me/ke/se/pe left out on purpose: they overfire
         "memper diper meng meny mem men ber ter di",
         "kan i an",
     ),
 }
 
 
-# Every generator below yields its MODIFIED candidate(s) before the untouched
-# stem: trying the most-decomposed residue first avoids a shallow strip
-# landing on an unrelated-but-real dict entry before the true root is tried
-# (measured: "maiiwasan" hit "iiwas"->"umiwas" before the correct "iwas").
-# None of these enforce MIN_STEM_LEN themselves -- every later stage only
-# shortens the string further, so a single floor check on the final
-# candidate (in get_lemma) is equivalent to checking it at each stage.
+# deepest strip first: a shallow one can hit an unrelated entry (maiiwasan -> iiwas)
 
 
 def _strip_prefix_candidates(token: str, prefixes: tuple[str, ...]) -> Iterator[str]:
@@ -127,12 +90,7 @@ def _candidates(working: str, morphemes: "_Morphemes") -> Iterator[str]:
 
 
 class MorphemeDecompositionStrategy(LemmatizationStrategy):
-    """
-    Lemmatization strategy that strips a bounded set of compositional
-    affixes (prefix chain, infix, reduplication, suffix) for languages
-    configured in `MORPHEME_LANGS`, accepting a decomposition only if the
-    residue is a real dictionary entry.
-    """
+    """Strip stacked affixes, keep a residue found in the dictionary."""
 
     __slots__ = ["_dictionary_lookup"]
 
@@ -145,9 +103,7 @@ class MorphemeDecompositionStrategy(LemmatizationStrategy):
         morphemes = MORPHEME_LANGS.get(lang)
         if morphemes is None:
             return None
-        # Lowercase a sentence-initial capital so lowercase affixes match
-        # (interior/all-caps left as-is); verb lemmas are lowercase, so look
-        # the residue up as-is rather than reconstructing casing.
+        # lowercase a sentence-initial capital so the affixes match
         working = token[:1].lower() + token[1:] if token[:1].isupper() else token
 
         seen = {token, working}

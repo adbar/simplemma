@@ -1,8 +1,6 @@
 from .generic import SuffixRules
 
-# genuine collisions only (identity lemmas, participle-vs-noun homographs,
-# vowel-changing plurals, irregulars); UD preferring the infinitive over the
-# dict's participle lemma is a convention difference, not stoplisted
+# genuine collisions only, not lemma convention differences
 _EXCLUDED = frozenset(
     (
         "înspăimânțaseși admirăm rămaseră vreunul țările păsările flăcările destul "
@@ -11,8 +9,6 @@ _EXCLUDED = frozenset(
     )
 )
 
-# Romanian verb conjugation and noun/adjective endings (fused definite
-# articles included), mined lemma-first (99.73% in-dict).
 DEFAULT_RULES = SuffixRules(
     {
         "ta": "tase tai tam tăm tau tez",

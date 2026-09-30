@@ -1,10 +1,7 @@
 from .generic import SuffixRules
 
-# invariant adverbs whose own dictionary lemma is themselves
 _EXCLUDED = frozenset({"повністю", "вручну"})
 
-# Ukrainian verb conjugation and adjective declension, mined lemma-first
-# (99.69% in-dict).
 DEFAULT_RULES = SuffixRules(
     {
         "ати": "аймо айте",

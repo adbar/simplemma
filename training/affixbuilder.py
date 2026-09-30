@@ -1,12 +1,7 @@
-"""
-Measurement harness for `AFFIX_LANGS` / `greedy_min_length` in
-`simplemma/strategies/affix_decomposition.py`.
+"""Measurement harness for `AFFIX_LANGS` and `greedy_min_length`.
 
-Feeds dictionary `form`s to `AffixDecompositionStrategy` (which only looks up
-their parts, so in-dict forms are a fair OOV simulation), restricted to tokens
-the earlier stages (hyphen/rules/prefix, NOT dict lookup) don't already
-resolve. Membership criterion net_full% = (gain - harm) / sample_size, where
-gain = form!=lemma & output==lemma, harm = form==lemma & output!=form.
+Dictionary forms are a fair OOV simulation since the strategy only looks up
+their parts. net_full% = (gain - harm) / sample_size.
 
 Usage: uv run python training/affixbuilder.py [lang ...]  (default: all)
 """
@@ -14,7 +9,6 @@ Usage: uv run python training/affixbuilder.py [lang ...]  (default: all)
 import random
 from typing import cast
 
-# imported, not mirrored: the harness must track the runtime's remainder floor
 from simplemma.strategies.affix_decomposition import (
     AffixDecompositionStrategy,
 )
@@ -32,7 +26,7 @@ Pairs = list[tuple[str, str]]
 SAMPLE_DEFAULT = 4000
 SEED_DEFAULT = 7
 
-FACTORY = DEFAULT_DICTIONARY_FACTORY  # shared process-wide cache
+FACTORY = DEFAULT_DICTIONARY_FACTORY
 _DICT_LOOKUP = DictionaryLookupStrategy(FACTORY)
 _HYPHEN = HyphenRemovalStrategy(_DICT_LOOKUP)
 _RULES = RulesStrategy()
@@ -49,8 +43,7 @@ def sample_pairs(
     sample: int = SAMPLE_DEFAULT,
     seed: int = SEED_DEFAULT,
 ) -> Pairs:
-    """Sample lowercase (form, lemma) pairs (capitalized = proper nouns /
-    compounds, a separate population affix decomposition mishandles)."""
+    """Sample (form, lemma) pairs, skipping capitalized forms."""
     d = FACTORY.get_dictionary(lang)
     pairs = [(f, lemma) for f, lemma in d.items() if not f[:1].isupper()]
     if len(pairs) > sample:
@@ -59,8 +52,7 @@ def sample_pairs(
 
 
 def reaches_affix(token: str, lang: str) -> bool:
-    """True if the earlier stages (hyphen/rules/prefix) leave `token`
-    unresolved -- dict lookup skipped, that IS the OOV simulation."""
+    """True if the hyphen, rules and prefix stages leave `token` unresolved."""
     return (
         _HYPHEN.get_lemma(token, lang) is None
         and _RULES.get_lemma(token, lang) is None
@@ -74,10 +66,9 @@ def measure(
     min_length: int,
     pairs: Pairs,
 ) -> dict[str, object]:
-    """Net benefit for `lang` at (max_affix_len, min_length). Calls the
-    sub-strategies directly so any parameter combo can be swept. net_full_pct
-    divides by the whole sample (gated-out tokens = 0 gain/harm), the fair
-    cross-min_length number."""
+    """Net benefit for `lang` at (max_affix_len, min_length).
+
+    net_full_pct divides by the whole sample so min_length values compare."""
     n_full = len(pairs)
     pairs = [
         (f, lemma)
@@ -107,7 +98,6 @@ def measure(
         "gain": gain,
         "harm": harm,
         "net_full_pct": _pct(gain - harm, n_full),
-        # precision of visible changes (net-neutral, but user-visible garbage)
         "changed": changed,
         "changed_prec_pct": _pct(changed_ok, changed),
     }

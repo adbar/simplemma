@@ -1,7 +1,6 @@
 from .generic import SuffixRules
 
-# invariant words, no-accent variants colliding with the -iar cell, the
-# -eer verb class vs -ear endings, and lowercased proper nouns
+# invariants, -eer verbs vs -ear endings, and lowercased proper nouns
 _EXCLUDED = frozenset(
     (
         "varios alguien vacaciones comité secretaría buenos clases tambien recien "
@@ -10,9 +9,6 @@ _EXCLUDED = frozenset(
     )
 )
 
-# Spanish verb conjugation and noun/adjective plural endings, mined
-# lemma-first (99.80% in-dict). -té dropped (98.3%: acometé is -er). -gos and
-# -ntos kept under 99%: they fix OOV plurals on UD train.
 DEFAULT_RULES = SuffixRules(
     {
         "ear": (

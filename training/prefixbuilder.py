@@ -1,16 +1,7 @@
-"""
-Generates prefix-stripping candidates for `simplemma/strategies/prefix_decomposition.py`
-from the shipped dictionaries -- a hypothesis generator, NEVER evidence
-(in-dict measurement has ~0% hit rate for sign on prefix decisions). A candidate
-must still clear the UD tune/confirm gate as de/ru did (prefix_audit.py in the
-gitignored, archived training/data/affix_eval/ study; the live A/B tool is
-training/local/ud_end_to_end.py) before shipping.
+"""Generate prefix-stripping candidates from the shipped dictionaries.
 
-For each (form, lemma) and prefix length whose remainder (>=4 chars) is itself a
-dict entry, checks lemma(form) == prefix + lemma(remainder); groups by prefix,
-counting hits/misses. A high identity-miss share (gold lemma == form) flags the
-"za"/"zu" case: prefix+remainder is a lexicalized item, not a live derivation --
-the failure mode that made those net-harmful despite decent raw precision.
+Candidates are hypotheses, not evidence, and must pass the UD gate. A high
+identity-miss share flags lexicalized prefixes.
 
 Usage: uv run python training/prefixbuilder.py <lang> [min_len] [support_min]
 """
@@ -18,14 +9,13 @@ Usage: uv run python training/prefixbuilder.py <lang> [min_len] [support_min]
 import sys
 from collections import Counter
 
-# imported, not mirrored: the harness must track the runtime's remainder floor
 from simplemma.strategies.affix_decomposition import MINCOMPLEN
 from simplemma.strategies.dictionaries.dictionary_factory import (
     DEFAULT_DICTIONARY_FACTORY,
 )
 
-FACTORY = DEFAULT_DICTIONARY_FACTORY  # shared process-wide cache
-MIN_LEN_DEFAULT = 6  # shortest word considered for a prefix split
+FACTORY = DEFAULT_DICTIONARY_FACTORY
+MIN_LEN_DEFAULT = 6
 SUPPORT_MIN_DEFAULT = 30
 PREFIX_LENS = range(2, 7)
 
@@ -62,7 +52,7 @@ def report(
     min_len: int = MIN_LEN_DEFAULT,
     support_min: int = SUPPORT_MIN_DEFAULT,
 ) -> None:
-    """Print the ranked candidate table (prefixes with >= support_min hits+misses)."""
+    """Print the ranked candidate table for prefixes with enough support."""
     hits, misses, identity_misses = mine(lang, min_len)
     prefixes = sorted(
         set(hits) | set(misses),

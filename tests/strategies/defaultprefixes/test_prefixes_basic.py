@@ -1,8 +1,4 @@
-"""Basic per-language spot-checks of PrefixDecompositionStrategy, for
-languages with no distinguishing edge case beyond "does the configured
-prefix list strip correctly" (see test_prefixes_ar.py/test_prefixes_he.py
-for languages with real per-case nuance -- canonicalization order,
-stem-floor guards -- that stays in dedicated, documented functions)."""
+"""Basic per-language spot-checks of PrefixDecompositionStrategy."""
 
 import pytest
 
@@ -10,10 +6,9 @@ from simplemma.strategies import PrefixDecompositionStrategy
 
 _STRATEGY = PrefixDecompositionStrategy()
 
-# (lang, form, expected-lemma-or-None)
 PREFIX_CASES = [
     ("uk", "відкликала", "відкликати"),
-    ("uk", "позпрщшк", None),  # stem not in the dictionary
+    ("uk", "позпрщшк", None),
 ]
 
 

@@ -1,13 +1,11 @@
 from .generic import SuffixRules
 
-# idempotence chains (centēsimō -> centēsimo -> *centēsimus) plus one invariant
+# idempotence chains (centēsimō -> centēsimo -> *centēsimus)
 _EXCLUDED = frozenset(
     "centēsimō cinnabarim dēcantō mūsimō trānsplantō tūtissimō fortasse".split()
 )
 
-# Latin verb conjugation and noun/adjective declension, mined lemma-first
-# (99.69% in-dict). min_stem=2 keeps whole-word or 1-char-stem matches from
-# stripping to a bare target (abimus -> *o, antium -> *ans).
+# min_stem=2 blocks stripping to a bare target (abimus -> *o)
 DEFAULT_RULES = SuffixRules(
     {
         "tio": "tionis tione",

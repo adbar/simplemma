@@ -1,14 +1,8 @@
 """Front-coded byte-stream decoder for `dict[bytes, bytes]` dictionaries.
 
-Keys are sorted and front-coded (each stores only the bytes not shared with the
-previous key's prefix); values are suffix-edited against their own key. The flat
-stream compresses far better under lzma than a pickled dict.
-
-`_decode_stream` is the runtime path. The build-time encoder lives in
-``training/frontcode_encode.py``.
-
-`_read_header`/`_iter_records` expose the format at record granularity for
-partial/resumable reads.
+Keys are sorted and store only the bytes not shared with the previous key.
+Values are suffix-edited against their own key.
+The encoder lives in ``training/frontcode_encode.py``.
 """
 
 from collections.abc import Iterator
@@ -16,11 +10,11 @@ from collections.abc import Iterator
 _MAGIC = b"SMFC1"
 _REVERSE_FLAG = 0x01
 
-# Trim-byte sentinels (a real trim is small, so 254/255 are free).
+# trim-byte sentinels, free because a real trim is small
 _SAME_AS_PREV = 254
 _LITERAL_VALUE = 255
 
-# Shared by _decode_stream and StreamMap; tests match on it too.
+# tests pin this message
 _CORRUPT_STREAM_MSG = "truncated or corrupt front-coded stream"
 
 
@@ -37,8 +31,7 @@ def _read_varint(data: bytes, pos: int) -> tuple[int, int]:
 
 
 def _read_header(data: bytes) -> tuple[bool, int, int]:
-    """Parse the magic/flag/count header. Returns (reverse_key, count, pos)
-    where pos is the byte offset of the first record."""
+    """Parse the header into (reverse_key, count, offset of the first record)."""
     if not data.startswith(_MAGIC):
         raise ValueError("not a front-coded stream")
     pos = len(_MAGIC)
@@ -51,13 +44,12 @@ def _read_header(data: bytes) -> tuple[bool, int, int]:
 def _iter_records(
     data: bytes, pos: int, prev_key: bytes = b"", prev_value: bytes = b""
 ) -> Iterator[tuple[int, bytes, bytes]]:
-    """Yield (record_start, stored_key, stored_value) from `pos` onward, resuming
-    from the given seed; on-disk form (not un-reversed). ValueError on overrun.
-    Single-byte varints are read inline (1.5x over `_read_varint` throughout)."""
+    """Yield on-disk (record_start, key, value) from `pos`, resuming from the seed."""
     n = len(data)
     try:
         while pos < n:
             record_start = pos
+            # single-byte varints are read inline for speed
             byte = data[pos]
             if byte < 0x80:
                 shared, pos = byte, pos + 1

@@ -13,7 +13,7 @@ _STRIP_ARMENIAN_MARKS = str.maketrans("", "", _ARMENIAN_MARKS)
 
 
 def _probe(dictionary: Mapping[str, str], token: str) -> str | None:
-    """Look `token` up as typed, then in reverse case (token[:1] is empty-safe)."""
+    """Look `token` up as typed, then in reverse case."""
     if (result := dictionary.get(token)) is not None:
         return result
     return dictionary.get(token.lower() if token[:1].isupper() else token.capitalize())
@@ -32,11 +32,9 @@ class DictionaryLookupStrategy(LemmatizationStrategy):
     def get_lemma(self, token: str, lang: str) -> str | None:
         """Return the lemma for `token` in `lang`, or None."""
         dictionary = self._dictionary_factory.get_dictionary(lang)
-        # matches the canonicalization dictionary_builder applies to keys
         token = canonicalize_token(token, lang)
         if (result := _probe(dictionary, token)) is not None:
             return result
-        # hy: fall back to the intonation-mark-stripped form
         if lang == "hy" and any(mark in token for mark in _ARMENIAN_MARKS):
             return _probe(dictionary, token.translate(_STRIP_ARMENIAN_MARKS))
         return None

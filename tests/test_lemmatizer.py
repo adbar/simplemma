@@ -32,7 +32,6 @@ def test_custom_dictionary_factory() -> None:
 
 
 def test_readme() -> None:
-    """Test function to verify readme examples."""
     myword = "masks"
     assert (
         Lemmatizer().lemmatize(myword, lang="en")
@@ -46,7 +45,6 @@ def test_readme() -> None:
         "Vaccines",
         ".",
     ]
-    # greediness
     assert (
         Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=False)).lemmatize(
             "ausgezeichneten", lang="de"
@@ -61,7 +59,6 @@ def test_readme() -> None:
         == lemmatize("ausgezeichneten", lang="de", greedy=True)
         == "auszeichnen"
     )
-    # chaining
     assert [lemmatize(t, lang=("de", "en")) for t in mytokens] == [
         "hier",
         "sein",
@@ -113,7 +110,6 @@ def test_readme() -> None:
         "fazer",
         ".",
     ]
-    # error
     assert Lemmatizer().lemmatize("スパゲッティ", lang="pt") == lemmatize(
         "スパゲッティ", lang="pt"
     )
@@ -127,36 +123,25 @@ def test_readme() -> None:
 
 
 def test_nn_fill_full_pipeline() -> None:
-    """The WD fill's whole-word entry resolves this compound in the full
-    pipeline, as AffixDecompositionStrategy does alone."""
+    """A whole-word fill entry resolves this compound in the full pipeline."""
     assert lemmatize("underleverandørane", lang="nn") == "underleverandør"
 
 
 def test_hbs_closed_class_override() -> None:
-    """The mined hbs override fixes two shipped-dict defects: a Latin
-    closed-class word must not lemmatize to its Cyrillic spelling (was
-    na->на), and a high-frequency homograph must resolve to its real lemma
-    (je is 3sg of biti, not the pronoun ju)."""
-    assert lemmatize("na", lang="hbs") == "na"  # was "на" (cross-script bug)
-    assert lemmatize("je", lang="hbs") == "biti"  # was "ju" (homograph clash)
-    # pitch-fold alias: the dict's marked key Afganìstān gains a plain twin
+    """hbs: no Cyrillic values for Latin words, je -> biti, marked keys gain aliases."""
+    assert lemmatize("na", lang="hbs") == "na"
+    assert lemmatize("je", lang="hbs") == "biti"
+    # plain alias of the marked key Afganìstān
     assert lemmatize("Afganistan", lang="hbs") == "Afganistan"
-    # script-consistency: a Latin key's Cyrillic value is transliterated
-    assert lemmatize("Milorad", lang="hbs") == "Milorad"  # was "Милорад"
-    # ś/ź (Montenegrin letters) survive the pitch fold's keep= guard
+    assert lemmatize("Milorad", lang="hbs") == "Milorad"
     assert lemmatize("dośetka", lang="hbs") == "dośetka"
     assert lemmatize("źenica", lang="hbs") == "źenica"
-    assert lemmatize("doseci", lang="hbs") == "doseci"  # no longer -> dosetka
+    assert lemmatize("doseci", lang="hbs") == "doseci"  # not dosetka
 
 
 def test_stress_mark_fold_aliases() -> None:
-    """Same BUILD_NORMALIZATION mechanism, four more languages: a dictionary-
-    only stress/pitch/length-marked key (Wiktionary headword convention,
-    never typed in real text) gains a plain-spelled alias twin. bg/uk
-    examples are Cyrillic-scripted (Latin-scripted marked keys are academic
-    romanization noise, dropped by _drop_junk_keys instead -- see
-    test_foreign_script_key_drop below)."""
-    assert lemmatize("Авакуме", lang="bg") == "Авакум"  # was unreachable
+    """A stress-marked dictionary key gains a plain alias in bg, uk, lt, sl, la."""
+    assert lemmatize("Авакуме", lang="bg") == "Авакум"
     assert lemmatize("Єзуча", lang="uk") == "Єзуч"
     assert lemmatize("Abadauskai", lang="lt") == "Abadauskas"
     assert lemmatize("Afganistanom", lang="sl") == "Afganistan"
@@ -164,20 +149,14 @@ def test_stress_mark_fold_aliases() -> None:
 
 
 def test_foreign_script_key_drop() -> None:
-    """Wiktionary academic-transliteration/IPA rows that leaked in as if
-    they were real word forms are unreachable (identity fallback), not
-    resolved to the wrong-script lemma: ar IPA transcriptions, grc Beta-code
-    romanization, bg/uk BGN/PCGN-style transliteration, hi Perso-Arabic
-    (Urdu-script) leaks. ms is asymmetric: a Jawi query correctly resolves
-    to its Rumi citation lemma (kept), but a Rumi query must never resolve
-    to a Jawi lemma (dropped)."""
-    assert lemmatize("rádost", lang="bg") == "rádost"  # was "радост"
-    assert lemmatize("zanos", lang="uk") == "zanos"  # was "занос"
-    assert lemmatize("hubrisin", lang="grc") == "hubrisin"  # was "ὑβρίς"
-    assert lemmatize("uð.ðu.ki.ruː", lang="ar") == "uð.ðu.ki.ruː"  # was "اذكروا"
-    assert lemmatize("سفید", lang="hi") == "سفید"  # was "सफ़ेद"
-    assert lemmatize("جون", lang="ms") == "Jun"  # Jawi->Rumi: still correct
-    assert lemmatize("pintu", lang="ms") == "pintu"  # Rumi->Jawi: was "ڤينتو"
+    """Transliteration and IPA rows stay unreachable, but ms Jawi still maps to Rumi."""
+    assert lemmatize("rádost", lang="bg") == "rádost"
+    assert lemmatize("zanos", lang="uk") == "zanos"
+    assert lemmatize("hubrisin", lang="grc") == "hubrisin"
+    assert lemmatize("uð.ðu.ki.ruː", lang="ar") == "uð.ðu.ki.ruː"
+    assert lemmatize("سفید", lang="hi") == "سفید"
+    assert lemmatize("جون", lang="ms") == "Jun"
+    assert lemmatize("pintu", lang="ms") == "pintu"
 
 
 def test_armenian_intonation_marks() -> None:
@@ -191,12 +170,11 @@ def test_armenian_intonation_marks() -> None:
 
 
 def test_apostrophe_variants() -> None:
-    """All three apostrophe glyphs fold to the same lemma, including the
-    modifier-letter U+02BC common in Ukrainian text (dict keys use U+0027)."""
-    assert lemmatize("здоров'я", lang="uk") == "здоров'я"  # straight
+    """All apostrophe glyphs fold to the U+0027 dictionary keys."""
+    assert lemmatize("здоров'я", lang="uk") == "здоров'я"
     assert lemmatize("здоров’я", lang="uk") == "здоров'я"  # curly U+2019
     assert lemmatize("здоровʼя", lang="uk") == "здоров'я"  # modifier U+02BC
-    # unknown tokens keep their glyph, strategies used directly fold too
+    # unknown tokens keep their glyph, direct strategy calls fold too
     assert lemmatize("xyz’abc", lang="fr") == "xyz’abc"
     assert text_lemmatizer("xyz’abc aujourd’hui", lang="fr") == [
         "xyz’abc",
@@ -207,14 +185,11 @@ def test_apostrophe_variants() -> None:
 
 
 def test_exceptions() -> None:
-    """Test if certain code parts correspond to the intended logic."""
-    # missing languages or faulty language codes
     with pytest.raises(TypeError):
         Lemmatizer().lemmatize("test", lang=["test"])  # type: ignore[arg-type]
     with pytest.raises(TypeError):
         lemmatize("test", lang=["test"])  # type: ignore[arg-type]
 
-    # searches
     with pytest.raises(TypeError):
         assert Lemmatizer().lemmatize(None, lang="en") is None  # type: ignore
     with pytest.raises(TypeError):
@@ -225,9 +200,6 @@ def test_exceptions() -> None:
         assert Lemmatizer().lemmatize("", lang="en") is None
 
 
-# (lang, word, greedy, expected) -- subword/compound handling through the
-# full pipeline; the API-parity contract (class vs module-level function)
-# is covered once in test_class_and_function_api_agree, not per case.
 _SUBWORD_CASES = [
     ("de", "OBI", True, "OBI"),
     ("de", "mRNA-Impfstoffe", False, "mRNA-Impfstoff"),
@@ -291,13 +263,11 @@ _SUBWORD_CASES = [
 
 @pytest.mark.parametrize("lang, word, greedy, expected", _SUBWORD_CASES)
 def test_subwords(lang: str, word: str, greedy: bool, expected: str) -> None:
-    """Recognition and conversion of subword units."""
     assert lemmatize(word, lang=lang, greedy=greedy) == expected
 
 
 def test_class_and_function_api_agree() -> None:
-    """Lemmatizer-class and module-level APIs are the same code path; the
-    contract is asserted once here instead of on every _SUBWORD_CASES row."""
+    """Class and module APIs share a code path, so parity is checked once here."""
     for lang, word, greedy, _ in (
         _SUBWORD_CASES[0],
         _SUBWORD_CASES[1],
@@ -316,12 +286,10 @@ def test_numeric_tokens() -> None:
         == "2024"
     )
     assert lemmatize("123", lang=("de", "en")) == "123"
-    # unicode numerals also count as numeric: the short-circuit returns the
-    # token verbatim instead of lowercasing it (which would yield "ⅻ")
+    # Unicode numerals return verbatim, lowercasing would give ⅻ
     assert "Ⅻ".isnumeric()
     assert lemmatize("Ⅻ", lang="en") == "Ⅻ"
-    # near-misses are NOT numeric: the strategy falls through to a normal
-    # lookup (returning None here) rather than short-circuiting on the token
+    # 12.5 is not numeric, so it falls through to a lookup
     assert DefaultStrategy().get_lemma("2024", "en") == "2024"
     assert DefaultStrategy().get_lemma("12.5", "en") is None
 
@@ -340,9 +308,6 @@ def test_is_known() -> None:
     assert is_known("aujourd’hui", lang="fr")  # curly apostrophe folds at lookup
 
 
-# (lang, greedy, text, expected lemmas) -- full-text lemmatization through
-# the tokenizer + pipeline; API parity (get_lemmas_in_text / lemma_iterator /
-# text_lemmatizer) is covered once in test_text_api_parity, not per case.
 _TEXT_CASES = [
     (
         "fr",
@@ -411,8 +376,7 @@ def test_get_lemmas_in_text(
 
 
 def test_text_api_parity() -> None:
-    """The three text-level APIs are the same code path; asserted once here
-    instead of on every _TEXT_CASES row."""
+    """The three text APIs share a code path, so parity is checked once here."""
     lang, greedy, text, expected = _TEXT_CASES[0]
     lem = Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=greedy))
     assert (
@@ -442,19 +406,16 @@ def test_text_lemmatizer_apostrophe_boundaries() -> None:
     assert "do" in text_lemmatizer("They don't sing.", lang="en")
 
 
-# (lang, text, expected first lemma): sentence-initial casing policy per
-# language. Gated languages (da/de/en) keep probable proper nouns; all-caps
-# initials are lowered (and may be recovered by lookup); non-gated languages
-# lower unconditionally as before.
+# Gated languages (da, de, en) keep probable proper nouns.
 _INITIAL_CASING_CASES = [
-    ("en", "Iran is large.", "Iran"),  # proper noun kept
-    ("en", "The cat sleeps.", "the"),  # common word lowered
+    ("en", "Iran is large.", "Iran"),
+    ("en", "The cat sleeps.", "the"),
     ("de", "BERLIN meldet Erfolg.", "Berlin"),  # all-caps recovered
-    ("de", "Schöne Tage kommen.", "schön"),  # adjective lowered
-    ("de", "Häuser stehen dort.", "Haus"),  # noun kept
+    ("de", "Schöne Tage kommen.", "schön"),
+    ("de", "Häuser stehen dort.", "Haus"),
     ("da", "MED venlig hilsen.", "med"),  # da: all-caps still lowered
     ("es", "Pepa baila.", "pepa"),  # non-gated lang: unchanged
-    ("de", "DENIC verwaltet die Domains.", "DENIC"),  # initial acronym kept
+    ("de", "DENIC verwaltet die Domains.", "DENIC"),
     ("de", "MIT dem Auto fahren.", "mit"),  # dateline homograph defers to D' gate
 ]
 
@@ -465,33 +426,31 @@ def test_sentence_initial_casing(lang: str, text: str, first: str) -> None:
     assert next(lem.get_lemmas_in_text(text, lang)) == first
 
 
-# (lang, text, kept, dropped): tokens that must / must not survive verbatim.
 _ACRONYM_CASES = [
-    ("de", "Die Firma heißt MIT und ist bekannt.", ["MIT"], []),  # kept mid-sentence
+    ("de", "Die Firma heißt MIT und ist bekannt.", ["MIT"], []),
     ("uk", "Колишній Радянський Союз, або СССР, розпався.", ["СССР"], []),
     ("lv", "Viņš dzīvo ASV jau daudzus gadus.", ["ASV"], []),
     ("lt", "Šiaurės Amerikoje esanti JAV yra didelė valstybė.", ["JAV"], []),
-    # es/pt/ca: acronym kept instead of collapsing to a verb homograph
+    # acronym, not the verb homograph
     ("es", "El PSOE negocia el IVA con la UE.", ["IVA"], []),
     ("pt", "O IBGE informou que os EUA assinaram.", ["IBGE"], []),
     ("ca", "La FEDER i la USA financen el projecte.", ["USA"], []),
     ("de", "Das steht in Kapitel XII.", ["XII"], []),  # Roman numeral, not an acronym
-    # 2-char Roman-numeral lookalikes stay keepable as acronyms
+    # 2-char Roman-numeral lookalikes stay keepable
     ("es", "El disco CD es popular hoy.", ["CD"], []),
-    # MM now lowercases: v2.0 fill adds 'mm' as a known de word; DC has no such homograph
+    # MM lowercases because 'mm' is a known de word
     ("de", "MM und DC sind hier bekannt.", ["DC"], ["MM"]),
-    ("uk", "Це СБУ.", ["СБУ"], []),  # lone acronym isn't "shouting" (leave-one-out)
+    ("uk", "Це СБУ.", ["СБУ"], []),  # a lone acronym is not shouting
     # an opening quote shifts neither the initial slot nor the flush
     ("de", "„MIT dem Auto fahren.“", ["mit"], ["MIT"]),
-    # hy: the Armenian full stop isolates the shouted heading from sentence 2
+    # the Armenian full stop isolates the shouted heading
     (
         "hy",
         "ՎՏԱՆԳ ԱՅՍՏԵՂ։ Կառավարությունը հրապարակեց, որ ՀՀ ստորագրեց փաստաթուղթը։",
         ["ՀՀ"],
         ["ԱՅՍՏԵՂ"],
     ),
-    # punctuation runs ('!!!', '...') end the sentence: the shouted headline
-    # stays isolated from the next sentence
+    # '!!!' and '...' end the sentence, isolating the shouted headline
     (
         "uk",
         "УВАГА НЕБЕЗПЕКА!!! Це звичайне речення про природу.",
@@ -504,7 +463,7 @@ _ACRONYM_CASES = [
         ["небезпека"],
         ["НЕБЕЗПЕКА"],
     ),
-    # non-allowlisted language: acronym still lowered as before
+    # non-allowlisted language: acronym lowered
     ("fr", "Ils ont vu un OVNI hier soir.", ["ovni"], ["OVNI"]),
 ]
 
@@ -513,8 +472,7 @@ _ACRONYM_CASES = [
 def test_allcaps_acronym_keeping(
     lang: str, text: str, kept: list[str], dropped: list[str]
 ) -> None:
-    """ALL-CAPS tokens are kept verbatim as likely acronyms in the allowlisted
-    languages, unless the sentence is shouted or the token is a Roman numeral."""
+    """Allowlisted languages keep ALL-CAPS acronyms unless the sentence is shouted."""
     lem = Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=False))
     out = list(lem.get_lemmas_in_text(text, lang))
     for token in kept:
@@ -524,31 +482,29 @@ def test_allcaps_acronym_keeping(
 
 
 def test_shouted_sentence_defers_to_gate() -> None:
-    """A fully shouted sentence turns acronym-keep off; the initial D' gate
-    still lowers the first word."""
+    """A shouted sentence disables acronym-keep, the initial gate still applies."""
     lem = Lemmatizer(lemmatization_strategy=DefaultStrategy(greedy=False))
     out = list(lem.get_lemmas_in_text("WARNUNG VOR DEM HUNDE", "de"))
     assert out == ["Warnung", "vor", "der", "HUNDE"]
 
 
 def test_casing_heuristics_off_without_membership() -> None:
-    """Both casing heuristics need a dictionary-membership check; a strategy
-    without one falls back to unconditional initial-lowering."""
+    """Without a membership check, the sentence initial is always lowered."""
 
     class _LowerStrategy(LemmatizationStrategy):
         def get_lemma(self, token: str, lang: str) -> str | None:
             return token.lower()
 
     custom = Lemmatizer(lemmatization_strategy=_LowerStrategy())
-    # en gate off: initial proper noun lowered
+    # en gate off: proper noun lowered
     assert next(custom.get_lemmas_in_text("Iran is large.", "en")) == "iran"
-    # de acronym-keep off: all-caps token lowered as before
+    # de acronym-keep off: all-caps lowered
     out = list(custom.get_lemmas_in_text("Die Firma heißt MIT und.", "de"))
     assert "mit" in out and "MIT" not in out
 
 
 def test_lang_tuple_casing_follows_first_language() -> None:
-    """Documented semantics: the first language owns the casing policy."""
+    """The first language owns the casing policy."""
     lem = Lemmatizer(lemmatization_strategy=DefaultStrategy())
     text = "Ils ont vu un OVNI hier soir."
     assert "OVNI" in list(lem.get_lemmas_in_text(text, ("de", "fr")))
@@ -556,8 +512,7 @@ def test_lang_tuple_casing_follows_first_language() -> None:
 
 
 def test_gate_probes_nfc_normalized() -> None:
-    """The casing gate must find NFD tokenizer output in the NFC dictionaries
-    (unit-level coverage lives in test_casing.py)."""
+    """The casing gate finds NFD tokens in the NFC dictionaries."""
 
     class _NFDTokenizer:
         def split_text(self, text: str) -> Iterator[str]:
@@ -566,7 +521,6 @@ def test_gate_probes_nfc_normalized() -> None:
     lem = Lemmatizer(
         tokenizer=_NFDTokenizer(), lemmatization_strategy=DefaultStrategy()
     )
-    # the NFD initial token is still found in the dict and lowered
     assert list(lem.get_lemmas_in_text("Schöne Tage kommen .", "de"))[0] == "schön"
 
 
@@ -575,14 +529,13 @@ def test_nfc_normalization() -> None:
     nfd = unicodedata.normalize("NFD", "Häuser")
     assert lemmatize(nfd, lang="de") == lemmatize("Häuser", lang="de") == "Haus"
     assert is_known(nfd, lang="de") == is_known("Häuser", lang="de") is True
-    # output is always NFC, even when the input was decomposed
     out = lemmatize(unicodedata.normalize("NFD", "café"), lang="fr")
     assert out == unicodedata.normalize("NFC", out)
 
 
 def test_long_token_does_not_hang() -> None:
     """A pathologically long token must return quickly, not trigger O(n²) decomposition."""
-    assert lemmatize("a" * 50000, lang="fi") == "a" * 50000  # was minutes, now instant
+    assert lemmatize("a" * 50000, lang="fi") == "a" * 50000
     assert lemmatize("a" * 101, lang="fi") == "a" * 101
     assert lemmatize("masks", lang="en") == "mask"
 

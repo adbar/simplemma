@@ -115,22 +115,19 @@ def test_main_raises_on_checksum_mismatch(tmp_path, monkeypatch):
 
 
 def test_get_relevant_language_data_folders(tmp_path):
-    # supported language
     de_folder = tmp_path / "UD_German-GSD"
     de_folder.mkdir()
     (de_folder / "de_gsd-ud-train.conllu").write_text("")
 
-    # unsupported language code
     xx_folder = tmp_path / "UD_Fake-Test"
     xx_folder.mkdir()
     (xx_folder / "xx_fake-ud-train.conllu").write_text("")
 
-    # dataset name doesn't map to the ISO code directly -> override table
+    # no_nynorsk maps to nn through the override table
     nn_folder = tmp_path / "UD_Norwegian-Nynorsk"
     nn_folder.mkdir()
     (nn_folder / "no_nynorsk-ud-train.conllu").write_text("")
 
-    # no conllu files at all -> skipped, not a crash
     empty_folder = tmp_path / "UD_Empty-Test"
     empty_folder.mkdir()
 

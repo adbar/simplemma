@@ -10,7 +10,7 @@ from training.clean_wordlist import write_pairs
 
 
 def _write_dump(tmp_path: Path, lexemes: list[dict[str, Any]]) -> Path:
-    """Mirrors the real dump's byte format: `[`, one compact JSON object per line, `]`."""
+    """Mirrors the real dump: `[`, one compact JSON object per line, `]`."""
     path = tmp_path / "lexemes.json.gz"
     with gzip.open(path, "wt", encoding="utf-8") as filehandle:
         filehandle.write("[\n")
@@ -42,7 +42,7 @@ def test_stream_lexemes_parses_real_dump_shape(tmp_path):
 
 
 def test_stream_lexemes_single_entry(tmp_path):
-    """Trailing-comma stripping must also work with exactly one entry (no comma at all)."""
+    """Trailing-comma stripping also works with a single entry."""
     path = _write_dump(tmp_path, [_lexeme("Q188", "de", "Hund", ["Hunde"])])
     assert list(wl.stream_lexemes(path)) == [_lexeme("Q188", "de", "Hund", ["Hunde"])]
 
@@ -57,14 +57,14 @@ def test_extract_pairs():
 
 def test_extract_pairs_missing_lemma_in_target_language():
     lexeme = _lexeme("Q188", "de", "Hund", ["Hunde"])
-    assert list(wl.extract_pairs(lexeme, "fr")) == []  # no French lemma on this lexeme
+    assert list(wl.extract_pairs(lexeme, "fr")) == []
 
 
 def test_extract_pairs_form_missing_representation():
     lexeme = {
         "language": "Q188",
         "lemmas": {"de": {"value": "Hund"}},
-        "forms": [{"representations": {"fr": {"value": "chien"}}}],  # no "de" here
+        "forms": [{"representations": {"fr": {"value": "chien"}}}],
     }
     assert list(wl.extract_pairs(lexeme, "de")) == []
 
@@ -80,7 +80,7 @@ def test_stream_lexemes_prefilter_skips_non_matching_lines(tmp_path):
 
 
 def test_stream_lexemes_prefilter_exact_qid_not_a_prefix_match(tmp_path):
-    """A QID prefilter must not match a longer QID sharing its digits (Q188 vs Q1880)."""
+    """A QID prefilter must not match a longer QID (Q188 vs Q1880)."""
     lexemes = [_lexeme("Q1880", "xx", "foo", ["bar"])]
     path = _write_dump(tmp_path, lexemes)
     result = list(wl.stream_lexemes(path, prefilter=('"language":"Q188"',)))
@@ -106,7 +106,7 @@ def test_drop_ambiguous_keeps_unambiguous_forms():
 
 
 def test_drop_ambiguous_drops_conflicting_forms():
-    """Two lemmas attested for the same form: unresolvable without an evidence-count signal."""
+    """A form attested with two lemmas is unresolvable and dropped."""
     pairs = [("bank1", "banks"), ("bank2", "banks"), ("run", "running")]
     kept, stats = wl.drop_ambiguous(pairs)
     assert kept == [("run", "running")]
@@ -122,7 +122,7 @@ def test_drop_ambiguous_same_pair_repeated_is_not_ambiguous():
 
 
 def test_drop_junk_pairs_removes_control_and_mojibake():
-    """A control-char/mojibake/empty pair is dropped, so the fill file stays strict-readable."""
+    """Pairs with control chars, mojibake or empty fields are dropped."""
     pairs = [("cat", "cats"), ("bad", "ba\x01d"), ("w�rd", "words"), ("dog", "")]
     kept, stats = wl.drop_junk_pairs(pairs)
     assert kept == [("cat", "cats")]
@@ -145,9 +145,9 @@ def test_write_pairs(tmp_path):
 
 def test_main_end_to_end(tmp_path, monkeypatch):
     lexemes = [
-        _lexeme("Q188", "de", "Hund", ["Hunde", "Hund"]),  # self-identity form
+        _lexeme("Q188", "de", "Hund", ["Hunde", "Hund"]),
         _lexeme("Q188", "de", "Katze", ["Katzen"]),
-        _lexeme("Q1860", "en", "cat", ["cats"]),  # different language: excluded
+        _lexeme("Q1860", "en", "cat", ["cats"]),
     ]
     dump_path = _write_dump(tmp_path, lexemes)
     output_path = tmp_path / "de_wikidata.tsv"
@@ -170,7 +170,7 @@ def test_main_exits_nonzero_on_zero_pairs(tmp_path, monkeypatch):
     output_path = tmp_path / "de_wikidata.tsv"
     monkeypatch.setattr(
         "sys.argv",
-        ["wikidata_lexemes.py", "de", str(dump_path), str(output_path)],  # no Q188
+        ["wikidata_lexemes.py", "de", str(dump_path), str(output_path)],
     )
     with pytest.raises(SystemExit) as excinfo:
         wl.main()

@@ -1,7 +1,6 @@
 from .generic import SuffixRules
 
-# -ries/-ties dropped: -erie/-tie (brasserie, beastie). -ships dropped: 96.7%
-# in-dict (amidships, midships)
+# no -ries, -ties or -ships cells on purpose (brasserie, beastie, amidships)
 DEFAULT_RULES = SuffixRules(
     {
         "cy": "....cies",

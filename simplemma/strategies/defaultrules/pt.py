@@ -1,7 +1,5 @@
 from .generic import SuffixRules
 
-# invariant words, feminine agent nouns kept as their own lemma,
-# stem-extending verb forms, and lowercased proper nouns
 _EXCLUDED = frozenset(
     (
         "quando vários classe comando rarará contraste software arredores hectare "
@@ -11,8 +9,6 @@ _EXCLUDED = frozenset(
     )
 )
 
-# Portuguese verb conjugation and noun/adjective endings, mined lemma-first
-# (99.72% in-dict).
 DEFAULT_RULES = SuffixRules(
     {
         "tar": "tara tá",

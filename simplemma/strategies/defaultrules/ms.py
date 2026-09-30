@@ -1,7 +1,6 @@
 from .generic import SuffixRules
 
-# Malay possessive/pronominal enclitics: -ku, -mu, -nya.
-# short roots (baku, kamu, ...) collide with the clitics
+# min_len: short roots (baku, kamu) collide with the clitics
 DEFAULT_RULES = SuffixRules(
     {
         "": "nya ku mu",

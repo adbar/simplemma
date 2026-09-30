@@ -9,11 +9,7 @@ _EXCLUDED = frozenset(
     )
 )
 
-# Finnish nominal/verbal suffix classes, mined lemma-first (99.72% in-dict).
-# Only harmony-determinate cells survive (a suffix's own vowels fix -taa vs
-# -tää); TU/VA-participle oblique cells were dropped (UD wants the verb
-# infinitive, not the bare participle). min_len=10: shorter tokens are
-# dominated by hyphen-elliptic/compound collisions.
+# no participle oblique cells on purpose: their lemma is the verb infinitive
 DEFAULT_RULES = SuffixRules(
     {
         "minen": (
@@ -163,8 +159,6 @@ DEFAULT_RULES = SuffixRules(
         "nti": "ntimme ntinne ntinsa ntini ntisi",
         "kko": "kkoon",
         "tto": "ttomme ttonne ttonsa ttona ttoni ttosi ttoa",
-        # avaan/avana/avasi/avaa (-> ava) dropped: participle obliques want the
-        # verb infinitive on UD (huomautettavaa -> huomauttaa)
         "smi": "smimme sminne sminsa smini smisi smit",
         "sti": "stinne stinsa stini stisi steja",
         "ika": "ikanne ikojen ikoja",
@@ -178,10 +172,8 @@ DEFAULT_RULES = SuffixRules(
         "jä": "jäksi jälle jällä jältä jässä jästä jämme jänsä jänä jäni jää jän",
         "ia": "iamme iansa ianne iani iasi",
         "ko": "komme konne konsa kosi",
-        # vansa/vani dropped (same participle gap: joutuvansa -> joutua); vamme kept
         "va": "vamme",
         "tö": "töön",
-        # tujen/tuna dropped (puhdistettuna -> puhdistaa); tunsa/tuni/tusi kept
         "tu": "tunsa tuni tusi",
         "yö": "yöhön yöllä yöltä yössä yöstä yöttä",
         "pu": "pujen pumme punne punsa puni pusi",
@@ -197,7 +189,6 @@ DEFAULT_RULES = SuffixRules(
         "rinen": "risin",
         "ö": "ömme önsä önne ösi önä öni ötä öä",
         "to": "toon",
-        # yjen/vänä/vää dropped (same participle gap: käärittyjen -> kääriä)
         "lo": "loon",
         "su": "suun",
         "ikko": "ikot",

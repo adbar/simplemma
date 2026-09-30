@@ -2,15 +2,10 @@
 
 from .dictionary_lookup import DictionaryLookupStrategy
 
-# Shared with GreedyDictionaryLookupStrategy's gate on purpose -- retuning
-# it retunes both strategies.
+# shared with GreedyDictionaryLookupStrategy on purpose
 from .greedy_dictionary_lookup import greedy_min_length
 from .lemmatization_strategy import LemmatizationStrategy
 
-# Membership and max_affix_len values are UD-validated, not in-dict guesswork
-# (see training/affixbuilder.py + the gitignored gate under
-# training/data/affix_eval/). Many in-dict-positive langs were rejected on UD
-# (pt/ca/nl/en/la/gl/fr/it/de), and es (net-negative, 2026-09).
 AFFIX_LANGS = {
     "bg": 2,
     "cs": 2,
@@ -36,21 +31,16 @@ AFFIX_LANGS = {
     "uk": 2,
 }
 
-# Excluded from greedy-mode decomposition: UD-measured harmful
-# (ca/en/gl/it/la/nl/pt), a wash (id), or typologically wrong for suffix
-# stripping (ms/sw/tl). it joined once clitics claimed its verb+enclitic
-# class, leaving affix to over-fire on -ità/-ismo and proper nouns.
 GREEDY_EXCLUDE = frozenset("ca en gl id it la ms nl pt sw tl".split())
 
 AFFIXLEN = 2  # max_affix_len for languages without an AFFIX_LANGS entry (greedy mode)
 MINCOMPLEN = 4
-# Decomposition is ~O(len²); cap long tokens (longest real form is 86 chars).
+# decomposition is quadratic in token length
 MAXLEN = 100
 
 
 class AffixDecompositionStrategy(LemmatizationStrategy):
-    """Affix decomposition: split a token into affix + complement and look up
-    the complement in the dictionary; falls back to suffix decomposition."""
+    """Split off an affix and look up the rest, else try suffix decomposition."""
 
     __slots__ = ["_greedy", "_dictionary_lookup"]
 
@@ -86,7 +76,6 @@ class AffixDecompositionStrategy(LemmatizationStrategy):
             if token[0].isupper():
                 part2 = part2.capitalize()
             lempart2 = self._dictionary_lookup.get_lemma(part2, lang)
-            # accept the dictionary form if not longer than the affix bound
             if lempart2 is not None and len(lempart2) < len(part2) + max_affix_len:
                 return token[:-count] + lempart2.lower()
         return None

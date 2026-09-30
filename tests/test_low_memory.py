@@ -80,8 +80,7 @@ def test_langdetect_low_memory_matches_default() -> None:
 
 
 def test_both_backends_expose_the_same_mapping_interface() -> None:
-    """A consumer written against one factory must work with the other: both
-    dictionaries are Mappings whose items() is a sized, re-iterable view."""
+    """Both backends expose items() as a sized, re-iterable view."""
     for factory in (DEFAULT_DICTIONARY_FACTORY, LOW_MEMORY_DICTIONARY_FACTORY):
         items = factory.get_dictionary("en").items()
         assert len(items) == len(list(items)) == len(list(items))

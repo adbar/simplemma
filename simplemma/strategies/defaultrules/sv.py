@@ -1,10 +1,7 @@
 from .generic import SuffixRules
 
-# OOV invariants
 _EXCLUDED = frozenset({"enligt", "antingen", "enbart"})
 
-# Swedish noun declension, adjective comparison, and verb conjugation,
-# mined lemma-first (99.76% in-dict).
 DEFAULT_RULES = SuffixRules(
     {
         "bar": (
