@@ -55,15 +55,6 @@ def _canon(text: str, langcode: str) -> str:
     return normalize_token(canonicalize_token(text, langcode))
 
 
-def _is_single_token(text: str) -> bool:
-    """True if `text` is acceptable as ONE dictionary token: no space and no
-    FIELD_PUNCT (mostly tokenizer reachability, partly policy -- see above).
-    The orthogonal 'not mojibake/control' check is check_field; both callers
-    (wordlist_ingest on raw columns, _reachable_key via _valid_key) pair
-    this with it."""
-    return " " not in text and not FIELD_PUNCT.search(text)
-
-
 def _layer_entries(path: Path, langcode: str) -> dict[str, str]:
     """A curated lemma<TAB>form layer file as a form->lemma mapping,
     canonicalized like the base wordlist (wordlist_ingest) so a reviewed
@@ -115,9 +106,10 @@ def _valid_key(key: str) -> bool:
 
 def _reachable_key(key: str) -> bool:
     """Stricter invariant for MACHINE sources (wordlists):
-    additionally no space or punctuation a tokenizer never yields as one token.
-    Reviewed overrides are exempt -- they carry deliberate elisions (ro "de-")."""
-    return _valid_key(key) and _is_single_token(key)
+    additionally no space or FIELD_PUNCT (mostly tokenizer reachability, partly
+    policy -- see above). Reviewed overrides are exempt -- they carry
+    deliberate elisions (ro "de-")."""
+    return _valid_key(key) and " " not in key and not FIELD_PUNCT.search(key)
 
 
 def _clean_base(base: dict[str, str]) -> dict[str, str]:
@@ -217,15 +209,6 @@ def _drop_junk_keys(mydict: dict[str, str], langcode: str) -> dict[str, str]:
     return out
 
 
-def _fold_values(
-    mydict: dict[str, str], table: Mapping[int, int | str | None]
-) -> dict[str, str]:
-    """Rewrite each entry's VALUE per `table`. Keys are untouched, so this can
-    never create a collision -- unlike a symmetric fold or a key alias.
-    NFC after translate: folding a stacked diacritic strands its mark."""
-    return {k: normalize_token(v.translate(table)) for k, v in mydict.items()}
-
-
 _CYRILLIC = re.compile(r"[Ѐ-ӿ]")
 
 
@@ -300,7 +283,9 @@ def _apply_build_normalization(mydict: dict[str, str], langcode: str) -> dict[st
     if entry is None:
         return mydict
     if entry.value_fold is not None:
-        mydict = _fold_values(mydict, entry.value_fold)
+        # NFC after translate: folding a stacked diacritic strands its mark
+        table = entry.value_fold
+        mydict = {k: normalize_token(v.translate(table)) for k, v in mydict.items()}
     if entry.value_script_fix is not None:
         mydict = _fix_value_scripts(mydict, entry.value_script_fix)
     if entry.key_alias is not None:

@@ -158,13 +158,6 @@ def mine(
     return cells, d
 
 
-def group_by_target(cells: Cells) -> dict[str, list[str]]:
-    by_target: dict[str, list[str]] = defaultdict(list)
-    for sf, st in cells:
-        by_target[st].append(sf)
-    return dict(by_target)
-
-
 def _table(groups: dict[str, list[str]]) -> Rules:
     """Table floored at MIN_STEM_CHARS (so `abimus` can't strip to `o`),
     guarded like mine()'s scan. Suffixes must be literal (no metacharacters)."""
@@ -182,9 +175,12 @@ def _table(groups: dict[str, list[str]]) -> Rules:
 
 def build_rules(cells: Cells) -> Rules:
     "One cell per target, longest/most-supported first (display order only)."
+    by_target: dict[str, list[str]] = defaultdict(list)
+    for sf, st in cells:
+        by_target[st].append(sf)
     groups = dict(
         sorted(
-            group_by_target(cells).items(),
+            by_target.items(),
             key=lambda kv: (
                 -max(len(s) for s in kv[1]),
                 -sum(cells[(s, kv[0])] for s in kv[1]),
@@ -206,14 +202,13 @@ def _score_cell(
 def score_cells(
     rules: Rules,
     dictionary: dict[str, str],
-    collect_nonword: bool = False,
     fold_accents: bool = False,
 ) -> tuple[dict[tuple[str, str], list[int]], list[tuple[str, str, str, str, str]]]:
     """One first-match pass over `dictionary`: per-(alt, target) [fired, ok]
     counts, the shared primitive `refine()`'s loop and `evaluate()`'s report
     both build on. `ok` uses `output_is_lemma` -- lemma-first policy, 2026-07.
 
-    When `collect_nonword`, also returns every (form, output, gold, alt, target)
+    Also returns every (form, output, gold, alt, target)
     firing whose output is not itself a dictionary entry -- the only candidates
     for idempotence chains and precision-failure samples, since the real
     pipeline tries dictionary lookup before rules and would never re-fire a
@@ -227,7 +222,7 @@ def score_cells(
         alt, repl = rules.match(f) or ("", "")  # apply fired, so it matches
         good = output_is_lemma(p, lemma, fold_accents=fold_accents)
         _score_cell(cell_stats, alt, repl, good)
-        if collect_nonword and p != f and dictionary.get(p) is None:
+        if p != f and dictionary.get(p) is None:
             nonword.append((f, p, lemma, alt, repl))
     return cell_stats, nonword
 
@@ -318,9 +313,7 @@ def evaluate(lang: str, rules: Rules, dictionary: dict[str, str]) -> None:
     lexical collision (stoplist it in the module's _EXCLUDED), a large or
     scattered one means the cell itself needs narrowing or dropping."""
     fold = lang in _ACCENT_FOLD_LANGS
-    cell_stats, nonword = score_cells(
-        rules, dictionary, collect_nonword=True, fold_accents=fold
-    )
+    cell_stats, nonword = score_cells(rules, dictionary, fold_accents=fold)
     fired = sum(n for n, _ in cell_stats.values())
     ok = sum(ok2 for _, ok2 in cell_stats.values())
 
@@ -364,7 +357,7 @@ def evaluate(lang: str, rules: Rules, dictionary: dict[str, str]) -> None:
             print(f"    {f} -> {p} -> {p2}  (gold {lemma})")
 
 
-def trim_by_mass(cells: Cells, share: float = 0.90) -> Cells:
+def trim_by_mass(cells: Cells, share: float = 0.70) -> Cells:
     """Keep the highest-firing cells covering `share` of total firing mass,
     dropping the long low-frequency tail. Safe by construction: only turns
     fired->unfired, never changes an output."""
@@ -383,7 +376,7 @@ def trim_by_mass(cells: Cells, share: float = 0.90) -> Cells:
 if __name__ == "__main__":
     for language in sys.argv[1:]:
         mined_cells, mined_dict = mine(language)
-        trimmed = trim_by_mass(mined_cells, 0.70)
+        trimmed = trim_by_mass(mined_cells)
         rules = refine(trimmed, mined_dict, fold_accents=language in _ACCENT_FOLD_LANGS)
         rules = subsume(rules, mined_dict)
         evaluate(language, rules, mined_dict)

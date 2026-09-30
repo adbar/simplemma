@@ -52,12 +52,6 @@ _PLACEHOLDER_FORM = "-"  # marks a form that doesn't exist for this word
 _STRESS_MARKS_TABLE = str.maketrans("", "", "̀́")
 
 
-def _strip_stress_marks(text: str) -> str:
-    # NFC first: precomposes Greek/Latin accents (kept) so only genuinely
-    # combining stress marks are dropped, whatever form the dump arrives in.
-    return unicodedata.normalize("NFC", text).translate(_STRESS_MARKS_TABLE)
-
-
 # Languages whose Wiktionary forms carry pedagogical vowel-LENGTH marks
 # (macron/breve) that normal orthography and UD omit -- 67% of grc forms, 0% in
 # UD grc. NOT global: macron is orthographic in e.g. Latvian (garā), so folding
@@ -76,7 +70,9 @@ def _fold_length_marks(text: str) -> str:
 
 def _normalize(text: str, fold: bool) -> str:
     """Stress-strip always; length-fold for grc-like langs (`fold`)."""
-    text = _strip_stress_marks(text)
+    # NFC first: precomposes Greek/Latin accents (kept) so only genuinely
+    # combining stress marks are dropped, whatever form the dump arrives in.
+    text = unicodedata.normalize("NFC", text).translate(_STRESS_MARKS_TABLE)
     return _fold_length_marks(text) if fold else text
 
 

@@ -13,7 +13,6 @@ _EXCLUDED = frozenset(
 # Norwegian Nynorsk noun/adjective declension. "-arar" dropped (collides with
 # the open class of -a verb presents); "-aren"/"-arane" kept, their finite
 # -are noun collisions stoplisted below.
-# hyphenated compounds are mostly proper-noun heads -- skip
 DEFAULT_RULES = SuffixRules(
     {
         "ing": "ingane ingar ingen inga",
@@ -27,7 +26,6 @@ DEFAULT_RULES = SuffixRules(
     },
     min_len=6,
     caps=True,
-    hyphen=True,
     excluded=_EXCLUDED,
 )
 

@@ -41,7 +41,6 @@ DEFAULT_RULES = SuffixRules(
     # -ისას (genitive + adverbial) is out of reach for the case cells -- abstain
     stops="ისას",
     min_len=4,
-    hyphen=True,
     excluded=_EXCLUDED,
 )
 

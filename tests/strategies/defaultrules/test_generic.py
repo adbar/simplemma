@@ -26,7 +26,6 @@ def test_min_stem_and_guards() -> None:
     assert SuffixRules({"x": "ab"}, min_stem=2).apply("wwab") == "wwx"
     assert SuffixRules({"x": "ab"}, caps=True).apply("Wab") is None
     assert SuffixRules({"x": "ab"}, min_len=5).apply("wwab") is None
-    assert SuffixRules({"x": "ab"}, hyphen=True).apply("w-ab") is None
     guarded = SuffixRules({"x": "ab"}, excluded={"wab"})
     assert guarded.apply("wab") is None
     assert guarded.match("wab") == ("ab", "x")  # match ignores the guards

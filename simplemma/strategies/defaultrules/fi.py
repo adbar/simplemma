@@ -14,7 +14,6 @@ _EXCLUDED = frozenset(
 # -tää); TU/VA-participle oblique cells were dropped (UD wants the verb
 # infinitive, not the bare participle). min_len=10: shorter tokens are
 # dominated by hyphen-elliptic/compound collisions.
-# hyphen-elliptic compound lemmas are unreachable by suffix rules
 DEFAULT_RULES = SuffixRules(
     {
         "minen": (
@@ -207,7 +206,6 @@ DEFAULT_RULES = SuffixRules(
     },
     min_len=10,
     caps=True,
-    hyphen=True,
     excluded=_EXCLUDED,
 )
 

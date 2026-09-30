@@ -23,7 +23,7 @@ from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
-from training.clean_wordlist import check_field, write_pairs
+from training.clean_wordlist import pair_violation, write_pairs
 
 log = logging.getLogger(__name__)
 
@@ -132,14 +132,11 @@ def drop_ambiguous(
 def drop_junk_pairs(
     pairs: Iterable[tuple[str, str]],
 ) -> tuple[list[tuple[str, str]], dict[str, int]]:
-    """Drop pairs with a mojibake/control-char lemma or form, so the written
-    fill file is strict-readable by clean_wordlist.read_pairs. Shares
-    check_field, so producer and consumer agree on what counts as junk."""
+    """Drop pairs clean_wordlist.read_pairs would reject (empty, mojibake or
+    control-char field), so the written fill file is strict-readable."""
     all_pairs = list(pairs)
     kept = [
-        (lemma, form)
-        for lemma, form in all_pairs
-        if not check_field(lemma) and not check_field(form)
+        (lemma, form) for lemma, form in all_pairs if not pair_violation(lemma, form)
     ]
     return kept, {"total": len(all_pairs), "kept": len(kept)}
 

@@ -7,7 +7,6 @@ DEFAULT_RULES = SuffixRules(
     },
     min_len=9,
     caps=True,
-    hyphen=True,
 )
 
 

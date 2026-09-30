@@ -8,8 +8,7 @@ _EXCLUDED = frozenset({"tamen", "neniu", "konstanta"})
 # clear the 99% bar reduce to the infinitive; the rest (colliding with
 # lexicalized words like Esperanto) fall through to the generic cells. The
 # stem floors keep unmeasured 4-5 char tokens out (monte -> *mi).
-# hyphen: acronym compounds (KOVIM-19-on); caps: foreign proper nouns
-# collide with the endings (London -> *Londo)
+# caps: foreign proper nouns collide with the endings (London -> *Londo)
 DEFAULT_RULES = SuffixRules(
     {
         # verbs -as/-is/-os/-us/-u; participles need a 2-3 char stem
@@ -23,7 +22,6 @@ DEFAULT_RULES = SuffixRules(
     },
     min_len=4,
     caps=True,
-    hyphen=True,
     excluded=_EXCLUDED,
 )
 

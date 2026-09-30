@@ -122,11 +122,11 @@ def test_drop_ambiguous_same_pair_repeated_is_not_ambiguous():
 
 
 def test_drop_junk_pairs_removes_control_and_mojibake():
-    """A control-char/mojibake pair is dropped, so the fill file stays strict-readable."""
-    pairs = [("cat", "cats"), ("bad", "ba\x01d"), ("w�rd", "words")]
+    """A control-char/mojibake/empty pair is dropped, so the fill file stays strict-readable."""
+    pairs = [("cat", "cats"), ("bad", "ba\x01d"), ("w�rd", "words"), ("dog", "")]
     kept, stats = wl.drop_junk_pairs(pairs)
     assert kept == [("cat", "cats")]
-    assert stats == {"total": 3, "kept": 1}
+    assert stats == {"total": 4, "kept": 1}
 
 
 def test_drop_junk_pairs_keeps_clean_pairs_unchanged():

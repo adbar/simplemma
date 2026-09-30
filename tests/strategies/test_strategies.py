@@ -33,6 +33,7 @@ def test_search() -> None:
     assert _LOOKUP.get_lemma("", "en") is None
 
     assert HyphenRemovalStrategy().get_lemma("Mail-Clients", "de") == "Mail-Client"
+    assert HyphenRemovalStrategy().get_lemma("Mail_Clients", "de") == "Mail_Client"
     assert HyphenRemovalStrategy().get_lemma("-ce", "fr") == "ce"
     assert HyphenRemovalStrategy().get_lemma("magni-ficent", "en") is None
     assert HyphenRemovalStrategy().get_lemma("magni-", "en") is None

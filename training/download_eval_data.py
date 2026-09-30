@@ -15,7 +15,6 @@ update the constants, delete training/data/UD/, re-run the evaluation.
 import argparse
 import hashlib
 import logging
-import re
 import shutil
 import tarfile
 import urllib.request
@@ -23,7 +22,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
-from training.ud_conllu import UD_SPLITS, dataset_to_lang
+from training.ud_conllu import UD_SPLITS, dataset_name, dataset_to_lang
 
 log = logging.getLogger(__name__)
 
@@ -58,11 +57,9 @@ def get_relevant_language_data_folders(
         conllu_files = list(lang_data_folder.glob("*.conllu"))
         if not conllu_files:
             continue
-        matches_files = re.search(r"^(.+)-ud", conllu_files[0].name)
-        if matches_files is not None:
-            lang = dataset_to_lang(matches_files.groups()[0])
-            if lang in SUPPORTED_LANGUAGES:
-                yield (lang, lang_data_folder)
+        lang = dataset_to_lang(dataset_name(conllu_files[0]))
+        if lang in SUPPORTED_LANGUAGES:
+            yield (lang, lang_data_folder)
 
 
 def _safe_extract(tar: tarfile.TarFile, dest: Path) -> None:

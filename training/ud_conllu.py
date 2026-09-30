@@ -30,6 +30,11 @@ def dataset_to_lang(dataset_name: str) -> str:
     return DATASET_LANG_OVERRIDES.get(dataset_name, dataset_name.split("_", 1)[0])
 
 
+def dataset_name(path: Path) -> str:
+    """Dataset name of a ``{dataset}-ud-{split}.conllu`` file (``ro_rrt``)."""
+    return path.name.split("-ud-", 1)[0]
+
+
 def discover_treebanks(
     lang: str, split: str, ud_splits: Path | None = None
 ) -> list[Path]:
@@ -39,7 +44,7 @@ def discover_treebanks(
     return sorted(
         path
         for path in (ud_splits or UD_SPLITS).glob(f"*{suffix}")
-        if dataset_to_lang(path.name.removesuffix(suffix)) == lang
+        if dataset_to_lang(dataset_name(path)) == lang
     )
 
 

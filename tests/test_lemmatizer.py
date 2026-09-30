@@ -337,6 +337,7 @@ def test_is_known() -> None:
 
     assert is_known("espejos", lang=("es", "de"))
     assert is_known("espejos", lang=("de", "es"))
+    assert is_known("aujourd’hui", lang="fr")  # curly apostrophe folds at lookup
 
 
 # (lang, greedy, text, expected lemmas) -- full-text lemmatization through

@@ -23,7 +23,7 @@ from pathlib import Path
 
 from simplemma import Lemmatizer
 from simplemma.strategies import DefaultStrategy, DictionaryFactory
-from training.ud_conllu import discover_treebanks, iter_word_tokens
+from training.ud_conllu import dataset_name, discover_treebanks, iter_word_tokens
 
 log = logging.getLogger(__name__)
 
@@ -114,7 +114,7 @@ def gate(
     treebanks: dict[str, Path] = {}
     for split in ("train", "dev", "test"):
         for path in discover_treebanks(lang, split, ud_splits=ud_splits):
-            dataset = path.name.split("-ud-", 1)[0]
+            dataset = dataset_name(path)
             if dataset in treebanks:
                 continue
             treebanks[dataset] = path
@@ -153,12 +153,10 @@ def gate(
     return results
 
 
-def report_results(
-    results: list[TreebankResult], epsilon: float = DEFAULT_EPSILON
-) -> bool:
+def report_results(results: list[TreebankResult]) -> bool:
     """Log one PASS/FAIL line per treebank; True when every treebank passed."""
     for result in results:
-        status = "PASS" if result.passed(epsilon) else "FAIL"
+        status = "PASS" if result.passed() else "FAIL"
         log.info(
             f"[{status}] {result.treebank}: "
             f"token {result.baseline_token:.4f}->{result.candidate_token:.4f} "
@@ -166,4 +164,4 @@ def report_results(
             f"type {result.baseline_type:.4f}->{result.candidate_type:.4f} "
             f"({result.type_delta:+.4f}, n={result.n_types})"
         )
-    return all(result.passed(epsilon) for result in results)
+    return all(result.passed() for result in results)

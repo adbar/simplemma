@@ -20,12 +20,12 @@ from pathlib import Path
 from simplemma.strategies.defaultrules import RULE_FUNCTIONS
 from simplemma.strategies.dictionaries import dictionary_factory
 from simplemma.utils import levenshtein_dist
-from training.clean_wordlist import canonicalize, check_field
+from training.clean_wordlist import canonicalize
 from training.dictionary_builder import (
     _canon,
     _compose_base,
     _compose_from_base,
-    _is_single_token,
+    _reachable_key,
     _write_dictionary,
 )
 from training.eval_gate import gate as eval_gate, report_results
@@ -67,7 +67,7 @@ def _collect_candidates(
                 continue
             # drop fields a tokenizer could never yield as one token, or
             # carrying mojibake/control chars.
-            if any(not _is_single_token(c) or check_field(c) for c in columns):
+            if not all(_reachable_key(c) for c in columns):
                 continue
             if len(columns[0]) == 1 and len(columns[1]) > 6:
                 continue
@@ -154,16 +154,13 @@ def read_wordlist(path: Path, langcode: str) -> dict[str, str]:
 
 def ingest(
     langcode: str,
-    listpath: str | Path = LISTS_DIR,
+    listdir: Path = LISTS_DIR,
     filepath: str | None = None,
     in_place: bool = False,
     gate: bool = False,
 ) -> None:
-    """Build `langcode` from `listpath`/<langcode>.txt; with `gate`, raise
+    """Build `langcode` from `listdir`/<langcode>.txt; with `gate`, raise
     instead of writing on a UD regression."""
-    listdir = Path(listpath)
-    if not listdir.is_absolute():
-        listdir = Path(__file__).parent / listdir
     shipped = (
         _compose_base(langcode)
         if langcode in dictionary_factory.SUPPORTED_LANGUAGES

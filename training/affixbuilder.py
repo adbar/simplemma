@@ -68,27 +68,22 @@ def reaches_affix(token: str, lang: str) -> bool:
     )
 
 
-def _filter_reachable(pairs: Pairs, lang: str, min_length: int) -> Pairs:
-    return [
-        (f, lemma)
-        for f, lemma in pairs
-        if len(f) > min_length and reaches_affix(f, lang)
-    ]
-
-
 def measure(
     lang: str,
     max_affix_len: int,
     min_length: int,
-    pairs: Pairs | None = None,
+    pairs: Pairs,
 ) -> dict[str, object]:
     """Net benefit for `lang` at (max_affix_len, min_length). Calls the
     sub-strategies directly so any parameter combo can be swept. net_full_pct
     divides by the whole sample (gated-out tokens = 0 gain/harm), the fair
     cross-min_length number."""
-    pairs = pairs if pairs is not None else sample_pairs(lang)
     n_full = len(pairs)
-    pairs = _filter_reachable(pairs, lang, min_length)
+    pairs = [
+        (f, lemma)
+        for f, lemma in pairs
+        if len(f) > min_length and reaches_affix(f, lang)
+    ]
     n = len(pairs)
     fired = gain = harm = changed = changed_ok = 0
     for f, lemma in pairs:
@@ -122,13 +117,12 @@ def sweep(
     lang: str,
     affix_lens: tuple[int, ...] = (2, 3, 4, 5, 6),
     min_lengths: tuple[int, ...] = (5, 6, 7, 8),
-    pairs: Pairs | None = None,
 ) -> list[dict[str, object]]:
     "All (max_affix_len, min_length) combinations for `lang`, best net_full% first."
-    pairs = pairs if pairs is not None else sample_pairs(lang)
+    pairs = sample_pairs(lang)
     rows = [
         {
-            **measure(lang, affix_len, min_len, pairs=pairs),
+            **measure(lang, affix_len, min_len, pairs),
             "max_affix_len": affix_len,
             "min_length": min_len,
         }

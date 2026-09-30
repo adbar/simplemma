@@ -2,7 +2,6 @@ from .generic import SuffixRules
 
 # Czech verb conjugation and adjective declension, mined lemma-first
 # (99.35% in-dict).
-# hyphenated-compound gold is out of reach for suffix rules -- skip
 DEFAULT_RULES = SuffixRules(
     {
         "ický": "ického ickou ickém ická",
@@ -17,7 +16,6 @@ DEFAULT_RULES = SuffixRules(
     },
     min_len=6,
     caps=True,
-    hyphen=True,
 )
 
 

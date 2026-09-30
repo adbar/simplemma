@@ -18,7 +18,6 @@ class SuffixRules:
         stops: str = "",
         min_len: int = 1,
         caps: bool = False,
-        hyphen: bool = False,
         excluded: Container[str] = frozenset(),
     ) -> None:
         self.cells = cells
@@ -29,7 +28,7 @@ class SuffixRules:
                 self._table[bare] = (target, max(min_stem, len(suffix) - len(bare)))
         for suffix in stops.split():
             self._table[suffix] = (None, 0)
-        self._min_len, self._caps, self._hyphen = min_len, caps, hyphen
+        self._min_len, self._caps = min_len, caps
         self._excluded = excluded
 
     def match(self, token: str) -> tuple[str, str] | None:
@@ -51,7 +50,6 @@ class SuffixRules:
         if (
             len(token) < self._min_len
             or (self._caps and token[:1].isupper())
-            or (self._hyphen and "-" in token)
             or token.lower() in self._excluded
         ):
             return None

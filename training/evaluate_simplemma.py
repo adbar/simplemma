@@ -24,7 +24,12 @@ from typing import Any
 from simplemma import Lemmatizer
 from simplemma.strategies.default import DefaultStrategy
 from simplemma.utils import canonicalize_token
-from training.ud_conllu import UD_SPLITS, dataset_to_lang, iter_word_tokens
+from training.ud_conllu import (
+    UD_SPLITS,
+    dataset_name,
+    dataset_to_lang,
+    iter_word_tokens,
+)
 
 log = logging.getLogger(__name__)
 
@@ -98,7 +103,7 @@ def main(
     for path in sorted(splits_folder.glob("*-ud-*.conllu")):
         if path.name.endswith("-ud-train.conllu"):
             continue
-        datasets[path.name.split("-ud-", 1)[0]].append(path)
+        datasets[dataset_name(path)].append(path)
 
     if results_folder.exists():
         shutil.rmtree(results_folder)
@@ -128,10 +133,10 @@ def main(
             lemmatization_strategy=DefaultStrategy(greedy=True)
         )
 
-        for dataset_name, paths in datasets.items():
+        for dataset, paths in datasets.items():
             start = time.time()
-            log.info(f"Evaluating dataset: {dataset_name}")
-            language = dataset_to_lang(dataset_name)
+            log.info(f"Evaluating dataset: {dataset}")
+            language = dataset_to_lang(dataset)
             overall, focus, errors = evaluate_dataset(
                 chain.from_iterable(iter_word_tokens(p, language) for p in paths),
                 lemmatizer,
@@ -142,7 +147,7 @@ def main(
             if overall.total > 0:
                 csv_results_file_writer.writerow(
                     (
-                        dataset_name,
+                        dataset,
                         time.time() - start,
                         overall.total,
                         *overall.ratios(),  # greedy, non-greedy, baseline
@@ -151,7 +156,7 @@ def main(
                 )
 
             with open(
-                results_folder / f"{dataset_name}.csv",
+                results_folder / f"{dataset}.csv",
                 "w",
                 newline="",
                 encoding="utf-8",

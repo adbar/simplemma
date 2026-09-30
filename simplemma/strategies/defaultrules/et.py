@@ -2,8 +2,6 @@ from .generic import SuffixRules
 
 # Pruned to the cells that hold >=99%: short elative/illative forms collide
 # with plain nouns and the -dus paradigm with -dune adjectives.
-
-# hyphenated-compound gold uses morpheme markers suffix rules can't reproduce
 DEFAULT_RULES = SuffixRules(
     {
         # adjectives -line https://en.wiktionary.org/wiki/-line
@@ -33,7 +31,6 @@ DEFAULT_RULES = SuffixRules(
     },
     min_len=8,
     caps=True,
-    hyphen=True,
 )
 
 

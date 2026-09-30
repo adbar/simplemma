@@ -92,7 +92,7 @@ def validate_lang_input(lang: str | tuple[str, ...]) -> tuple[str, ...]:
     if isinstance(lang, str):
         lang = (lang,)
     if not isinstance(lang, tuple):
-        raise TypeError("lang argument must be a two-letter language code")
+        raise TypeError("lang argument must be a language code or a tuple of codes")
     if not lang:
         raise ValueError("lang argument is empty: provide at least one language code")
     return lang

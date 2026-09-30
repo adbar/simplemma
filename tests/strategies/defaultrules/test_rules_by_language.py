@@ -74,6 +74,8 @@ RULE_CASES = [
     ("fi", "Liikenaisen", None),
     # --- Dutch ---
     ("nl", "achterpagina's", "achterpagina"),
+    ("nl", "achterpagina’s", "achterpagina"),
+    ("nl", "achterpaginaʼs", "achterpagina"),
     ("nl", "mogelijkheden", "mogelijkheid"),
     ("nl", "boerderijen", "boerderij"),
     ("nl", "hond", None),
@@ -91,6 +93,7 @@ RULE_CASES = [
     ("lv", "risinājumu", "risinājums"),
     ("lv", "iespējamības", "iespējamība"),
     ("lv", "Rīga", None),
+    ("lv", "sijas", None),  # min_len=6
     # definite-adjective declension dropped, see lv.py
     ("lv", "labākajiem", None),
     ("lv", "baltajiem", None),
@@ -124,11 +127,13 @@ RULE_CASES = [
     # --- Ukrainian ---
     ("uk", "близького", "близький"),
     ("uk", "авторського", "авторський"),
+    ("uk", "гірничо-добувних", "гірничо-добувний"),  # rules reach hyphenated tokens
     # дехто/ніхто/абихто decline like -кий adjectives but lemmatise to a pronoun
     ("uk", "декого", None),
     # --- Czech ---
     ("cs", "argumentuju", "argumentovat"),
     ("cs", "domovského", "domovský"),
+    ("cs", "vědecko-pedagogičtí", "vědecko-pedagogický"),
     # --- Latin ---
     ("la", "abalienabant", "abalieno"),
     ("la", "Roma", None),

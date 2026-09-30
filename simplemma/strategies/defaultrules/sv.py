@@ -24,7 +24,6 @@ DEFAULT_RULES = SuffixRules(
     },
     min_len=6,
     caps=True,
-    hyphen=True,
     excluded=_EXCLUDED,
 )
 

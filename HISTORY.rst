@@ -10,6 +10,7 @@ x.x.x (unreleased)
 - Affix decomposition splits compounds in greedy mode only, now covers hbs, is, ro, sl and sv,
   and has re-tuned affix lengths for et, fi, hu and ru
 - Hyphenated tokens keep their head (Mail-Clients -> Mail-Client), the joined-form lookup is removed
+- Suffix rules also apply to hyphenated tokens (gramaticko-lexikálních -> gramaticko-lexikální)
 - German and Russian prefix lists removed (negligible accuracy impact), Ukrainian kept
 - Breaking: ``fallback_lemmatization_strategy`` replaced by ``fallback``, a plain ``(token, lang) -> str`` callable,
   and the ``simplemma.strategies.fallback`` subpackage is removed
