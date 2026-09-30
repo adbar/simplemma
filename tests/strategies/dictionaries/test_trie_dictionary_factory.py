@@ -47,7 +47,6 @@ def test_import_error_without_deps(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_exceptions() -> None:
-    # missing languages or faulty language codes
     dictionary_factory = TrieDictionaryFactory(use_disk_cache=False)
     with pytest.raises(ValueError, match="Unsupported language"):
         dictionary_factory.get_dictionary("abc")
@@ -99,7 +98,6 @@ def test_disk_cache(tmp_path: Path) -> None:
     with _spy_trie_io(dictionaries) as (create_trie_mock, write_trie_mock):
         assert sorted(tmp_path.iterdir()) == []
 
-        # Initial cached trie files should be generated.
         en_dictionary = dictionaries.get_dictionary("en")
         fr_dictionary = dictionaries.get_dictionary("fr")
 
@@ -118,7 +116,6 @@ def test_disk_cache(tmp_path: Path) -> None:
             tmp_path / "fr.dic",
         ]
 
-        # LRU cache should result in not checking for cached tries.
         dictionaries.get_dictionary("en")
         dictionaries.get_dictionary("fr")
 
@@ -127,8 +124,6 @@ def test_disk_cache(tmp_path: Path) -> None:
 
         dictionaries._get_dictionary.cache_clear()
 
-        # Cached trie files should be checked, but not regenerated,
-        # as LRU cached got emptied.
         dictionaries.get_dictionary("en")
         dictionaries.get_dictionary("fr")
 
@@ -147,7 +142,6 @@ def test_corrupted_disk_cache(tmp_path: Path) -> None:
     with _spy_trie_io(dictionaries) as (create_trie_mock, write_trie_mock):
         assert sorted(tmp_path.iterdir()) == []
 
-        # Initial cached trie file should be generated.
         en_dictionary = dictionaries.get_dictionary("en")
 
         create_trie_mock.assert_has_calls([call("en")])
@@ -167,7 +161,6 @@ def test_corrupted_disk_cache(tmp_path: Path) -> None:
             f.write(b"corrupted trie dictionary")
         dictionaries._get_dictionary.cache_clear()
 
-        # Loading a corrupted file should regenerate it.
         dictionaries.get_dictionary("en")
 
         create_trie_mock.assert_called_once_with("en")
@@ -197,7 +190,6 @@ def test_write_failure_still_returns_dictionary(tmp_path: Path) -> None:
 
 
 def test_disabled_disk_cache_ignores_existing_file(tmp_path: Path) -> None:
-    # Pre-populate a cache file with a disk-cache-enabled factory.
     TrieDictionaryFactory(disk_cache_dir=str(tmp_path)).get_dictionary("en")
 
     dictionaries = TrieDictionaryFactory(
@@ -209,7 +201,6 @@ def test_disabled_disk_cache_ignores_existing_file(tmp_path: Path) -> None:
         wraps=dictionaries._build_trie,
     ) as create_trie_mock:
         dictionaries.get_dictionary("en")
-    # use_disk_cache=False must rebuild, not load the existing file.
     create_trie_mock.assert_called_once_with("en")
 
 
@@ -251,7 +242,6 @@ def test_trie_wrap_dict():
     assert isinstance(wrapped_trie.items(), ItemsView)
     assert len(wrapped_trie) == 3
 
-    # read-only Mapping: assignment/deletion unsupported
     with pytest.raises(TypeError):
         wrapped_trie["houses"] = "teapot"
     with pytest.raises(TypeError):

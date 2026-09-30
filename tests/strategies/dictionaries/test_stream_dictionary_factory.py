@@ -11,10 +11,9 @@ from simplemma.strategies.dictionaries.stream_dictionary_factory import (
     StreamMap,
 )
 
-# sw is reverse-coded (prefixal morphology); de/en are not.
+# sw is reverse-coded
 LANGS = ["de", "en", "sw"]
 
-# Cache per lang: both builders are O(n) full-stream passes.
 _reference = lru_cache(maxsize=None)(
     lambda lang: dict(DefaultDictionaryFactory().get_dictionary(lang))
 )
@@ -59,7 +58,7 @@ _SAMPLE_SIZE = 3000
 
 @pytest.mark.parametrize("lang", LANGS)
 def test_get_parity_sampled_sweep(lang: str) -> None:
-    """Stride-sampled; a full sw sweep is too slow for routine runs."""
+    """Stride-sampled, as a full sw sweep is too slow for routine runs."""
     reference = _reference(lang)
     stream = _stream(lang)
 
@@ -71,7 +70,6 @@ def test_get_parity_sampled_sweep(lang: str) -> None:
         assert stream.get(key) == value
         assert stream[key] == value
         assert key in stream
-    # first/last keys exercise the first and last seed blocks
     for key in (keys[0], keys[-1]):
         assert stream.get(key) == reference[key]
 
@@ -159,7 +157,7 @@ def test_trailing_garbage_raises(tmp_path, monkeypatch: pytest.MonkeyPatch) -> N
 
 
 def test_synthetic_literal_value(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
-    # forces the rare _LITERAL_VALUE branch (no shipped key is this long)
+    # hits _LITERAL_VALUE, which no shipped key reaches
     key = "a" * 300
     reference = {key.encode(): b"lemma"}
     stream = _streammap_from_bytes(_fc_encode(reference), tmp_path, monkeypatch)

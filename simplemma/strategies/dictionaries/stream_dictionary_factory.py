@@ -1,9 +1,6 @@
-"""Memory-frugal `DictionaryFactory` that reads `.plzma` front-coded streams
-directly instead of building a full `dict[bytes, bytes]` in RAM.
+"""Memory-frugal `DictionaryFactory` reading front-coded streams without a full dict.
 
-Front-coding is sequential, so random access needs restart points: one pass
-builds a sparse per-block seed index, then each lookup bisects to a block and
-decodes only its few records. Trades RAM for lookup speed; see README.
+A sparse per-block index lets each lookup decode only one block of records.
 """
 
 from bisect import bisect_right
@@ -22,8 +19,8 @@ _BLOCK_SIZE = 32
 class StreamMap(DecodedStrMapping):
     """Read-only str->str view over a front-coded stream, decoded on demand.
 
-    `_firsts` holds each block's first key (for bisect); `_blocks` its
-    (offset, prev_key, prev_value) resume seed.
+    `_firsts` holds each block's first key.
+    `_blocks` holds its (offset, prev_key, prev_value) resume seed.
     """
 
     __slots__ = ("_data", "_pos", "_rev", "_count", "_firsts", "_blocks")

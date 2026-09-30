@@ -1,48 +1,31 @@
-"""
-Sentence-initial casing and ALL-CAPS acronym heuristics for full-text
-lemmatization (GH#93). Two per-language policies keyed on the first language:
-sentence-initial lowering (gated for GATED_INITIAL_LOWERING_LANGS to spare
-proper nouns) and ALL-CAPS acronym keeping (ALLCAPS_KEEP_LANGS). Both need a
-dictionary-membership check; without one, only base initial-lowering applies.
+"""Sentence-initial casing and ALL-CAPS acronym heuristics for full-text lemmatization.
+
+Both policies are keyed on the first language and need a dictionary membership check.
 """
 
 import re
+import unicodedata
 from collections.abc import Callable, Iterator
-from typing import Protocol, runtime_checkable
 
-from .utils import normalize_token
 
-# (token, lang) -> is it a literal dictionary key? (no case/apostrophe fallback)
+# (token, lang) -> is it a literal dictionary key, no case fallback
 MembershipCheck = Callable[[str, str], bool]
 
 
-@runtime_checkable
-class SupportsMembership(Protocol):
-    """A lemmatization strategy exposing a raw dictionary-membership check (no
-    case/apostrophe fallback), which the casing heuristics require."""
-
-    def is_dictionary_member(self, token: str, lang: str) -> bool:
-        """Whether `token` is a literal dictionary key for `lang`."""
-
-
-# Sentence terminators only (narrower than the tokenizer's punctuation class).
 PUNCTUATION = frozenset({".", "?", "!", "…", "¿", "¡", "։"})  # ։ = Armenian full stop
 GATED_INITIAL_LOWERING_LANGS = frozenset({"da", "de", "en"})
 ALLCAPS_KEEP_LANGS = frozenset({"ca", "de", "es", "hy", "lt", "lv", "pt", "uk"})
 SHOUTING_THRESHOLD = 0.5
 SENTENCE_BUFFER_CAP = 512  # flush ceiling so punctuation-free input still streams
 
-# 3+ char Roman numerals (XII, MCM) are numerals, not acronyms; 2-char CD/DC/MM
-# stay keepable. Lookahead rejects the empty match the all-optional body accepts.
+# the lookahead rejects the empty match of the all-optional body
 _ROMAN_NUMERAL = re.compile(
     r"(?=[MDCLXVI])M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})"
 )
 
 
 def is_sentence_boundary(token: str) -> bool:
-    """Whether the next token starts a sentence (buffered path only). First
-    char, so collapsed runs ('...') match; alnum-final tokens (".270") don't.
-    The streaming path uses a stricter rule on purpose -- see `_streaming`."""
+    """Whether the next token starts a sentence, on the buffered path."""
     return token[:1] in PUNCTUATION and not token[-1:].isalnum()
 
 
@@ -62,10 +45,10 @@ def is_keepable_allcaps(token: str) -> bool:
 
 
 class SentenceCasing:
-    """Makes the casing decisions for one request over a token stream; the
-    caller lemmatizes. `member` is the raw dictionary membership check; None
-    (strategy has no dictionary) disables the gated and acronym heuristics,
-    leaving only base initial-lowering."""
+    """Casing decisions over a token stream.
+
+    With `member` set to None only plain sentence-initial lowering applies.
+    """
 
     __slots__ = ("_lang0", "_member", "_gated", "_acronym")
 
@@ -76,17 +59,12 @@ class SentenceCasing:
         self._acronym = member is not None and lang0 in ALLCAPS_KEEP_LANGS
 
     def apply(self, tokens: Iterator[str]) -> Iterator[tuple[str, bool]]:
-        """Casing decisions for raw tokenizer `tokens`: (surface, keep) pairs
-        where surface is NFC (safe to look up as-is) and keep means yield it
-        verbatim as an acronym instead of lemmatizing. The acronym path buffers
-        one sentence at a time (it needs the whole sentence's shouting ratio);
-        the default path streams in constant memory."""
-        nfc = (normalize_token(t) for t in tokens)  # NFC once: probes match dicts
+        """Yield (NFC surface, keep verbatim as acronym) pairs for `tokens`."""
+        nfc = (unicodedata.normalize("NFC", t) for t in tokens)
         return self._buffered(nfc) if self._acronym else self._streaming(nfc)
 
     def initial_surface(self, token: str) -> str:
-        """Surface form for a sentence-initial (NFC) token: lowered, unless a
-        gated language flags it as a probable proper noun (kept as-is)."""
+        """Lowered sentence-initial token, unless gated as a probable proper noun."""
         lowered = token.lower()
         if not self._gated:
             return lowered
@@ -139,9 +117,7 @@ class SentenceCasing:
                 yield (self.initial_surface(token) if i == initial else token, False)
 
     def _keep_as_acronym(self, token: str, initial: bool, shouting: bool) -> bool:
-        """Yield this ALL-CAPS token verbatim instead of lemmatizing? Initial
-        position also requires neither its Titlecase (e.g. BERLIN) nor
-        lowercase form to be a dictionary entry, else the D' gate runs."""
+        """Whether to keep this ALL-CAPS token verbatim."""
         if shouting or not is_keepable_allcaps(token):
             return False
         if not initial:

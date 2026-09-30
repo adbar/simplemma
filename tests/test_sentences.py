@@ -13,7 +13,6 @@ def test_basic_and_tail() -> None:
         "Erster Satz.",
         "Zweiter Satz!",
     ]
-    # a final sentence without terminator is still returned
     assert split_sentences("Ende gut. alles gut", "de") == ["Ende gut. alles gut"]
     assert split_sentences("", "de") == []
     assert split_sentences("   \n ", "de") == []
@@ -103,7 +102,7 @@ def test_ellipsis_and_closers() -> None:
 def test_lowercase_next() -> None:
     # '.' before a lowercase word is no boundary...
     assert split_sentences("The end. or was it?", "en") == ["The end. or was it?"]
-    # ...but a bare '?'/'!' is (informal text, measured safe)
+    # ...but a bare '?' or '!' is
     assert split_sentences("where did you grow up? india?", "en") == [
         "where did you grow up?",
         "india?",
@@ -146,7 +145,7 @@ def test_quote_final_word_is_not_read_as_an_ordinal() -> None:
     assert split_sentences(
         'expositions like "Revolution number 9". At the same time it grew.', "en"
     ) == ['expositions like "Revolution number 9".', "At the same time it grew."]
-    # the price: a quoted abbreviation now ends a sentence (26 UD cases)
+    # trade-off: a quoted abbreviation ends a sentence
     assert split_sentences('"Dr." Meier kam an.', "de") == ['"Dr."', "Meier kam an."]
 
 
@@ -179,8 +178,7 @@ def test_greek_question_mark() -> None:
     assert split_sentences("Ήρθες; Ναι, ήρθα.", "el") == ["Ήρθες;", "Ναι, ήρθα."]
     # a bare ';' gets the same informal-lowercase exception as '?'
     assert split_sentences("ήρθες; ναι ήρθα;", "el") == ["ήρθες;", "ναι ήρθα;"]
-    # U+037E, the legacy spelling of the same mark (NFC folds it to ';'), in
-    # both paths: as a terminator and under the bare-question exception
+    # U+037E is the legacy form of ';', checked in both paths
     assert split_sentences("Ήρθες\u037e Ναι.", "el") == ["Ήρθες\u037e", "Ναι."]
     assert split_sentences("ήρθες\u037e ναι ήρθα\u037e", "el") == [
         "ήρθες\u037e",
@@ -227,7 +225,6 @@ def test_language_tuple_selects_the_profile() -> None:
 
 
 def test_new_language_profiles() -> None:
-    # cs/nl/pt lists gated 2026-07-25 (cs formal registers +0.05 F1)
     for text, lang, expected in (
         (
             "Zkouška je např. velmi dobrá. Nový odstavec začíná.",

@@ -1,11 +1,4 @@
-"""
-Convert a kaikki.org JSONL Wiktionary dump into a lemma-form TSV word list
-suitable as input for `dictionary_builder.py` (see training/README.rst for
-the full data-preparation pipeline this script is one step of).
-
-Input format: one JSON object per line, as downloaded from kaikki.org.
-Output format: lemma, tab, word form, newline.
-"""
+"""Convert a kaikki.org JSONL Wiktionary dump into a lemma<TAB>form word list."""
 
 import argparse
 import json
@@ -20,7 +13,6 @@ from training.clean_wordlist import write_pairs
 
 log = logging.getLogger(__name__)
 
-# Tags marking rows that are never real inflected forms.
 _UNCONDITIONAL_DROP_TAGS = frozenset(
     {
         "table-tags",
@@ -28,61 +20,41 @@ _UNCONDITIONAL_DROP_TAGS = frozenset(
         "class",
         "romanization",
         "transliteration",
-        # tl Baybayin display-variant rows; verified inert on every other dump.
         "Baybayin",
     }
 )
 
-# Cross-reference rows (e.g. a pronoun's page listing other pronouns);
-# dropped only when the form differs from the entry's own word, so a
-# genuine self-mapping keeps its vote in dictionary_builder's resolution.
+# Cross-reference rows, dropped only when the form differs from the entry's word.
 _CROSS_REFERENCE_TAGS = frozenset({"pronoun", "possessive", "auxiliary"})
 
 
-# error-unrecognized-form is NOT a reliable junk signal: a 27-lang audit
-# found it on real forms (cy mutation, ga prothesis). On tl verb pages it
-# marks header-cell junk, worth +1pp+ -- dropped there only ("sole tag"
-# variant measured WORSE).
+# Junk only on tl verb pages, it tags real forms elsewhere (cy mutation).
 _DROP_UNRECOGNIZED_FORM_LANGS = frozenset({"tl"})
 
 _PLACEHOLDER_FORM = "-"  # marks a form that doesn't exist for this word
 
-# Only the combining grave/acute (Cyrillic stress marking); NOT decomposition,
-# which would expose precomposed Latin/Greek accents to stripping too.
+# Combining grave/acute only, precomposed Latin/Greek accents are kept.
 _STRESS_MARKS_TABLE = str.maketrans("", "", "̀́")
 
 
-def _strip_stress_marks(text: str) -> str:
-    # NFC first: precomposes Greek/Latin accents (kept) so only genuinely
-    # combining stress marks are dropped, whatever form the dump arrives in.
-    return unicodedata.normalize("NFC", text).translate(_STRESS_MARKS_TABLE)
-
-
-# Languages whose Wiktionary forms carry pedagogical vowel-LENGTH marks
-# (macron/breve) that normal orthography and UD omit -- 67% of grc forms, 0% in
-# UD grc. NOT global: macron is orthographic in e.g. Latvian (garā), so folding
-# it there would corrupt real words.
+# Not global: macron is orthographic in e.g. Latvian.
 _LENGTH_MARK_LANGS = {"grc"}
 _LENGTH_MARKS_TABLE = str.maketrans("", "", "̄̆")  # combining macron, breve
 
 
 def _fold_length_marks(text: str) -> str:
-    # Decompose so precomposed length letters (e.g. ῠ U+1FE0) expose their mark,
-    # drop macron/breve only, recompose -- accents/breathings are other
-    # codepoints and survive.
     decomposed = unicodedata.normalize("NFD", text).translate(_LENGTH_MARKS_TABLE)
     return unicodedata.normalize("NFC", decomposed)
 
 
 def _normalize(text: str, fold: bool) -> str:
-    """Stress-strip always; length-fold for grc-like langs (`fold`)."""
-    text = _strip_stress_marks(text)
+    """Strip stress marks, and length marks too if `fold`."""
+    # NFC first so precomposed accents are not stripped.
+    text = unicodedata.normalize("NFC", text).translate(_STRESS_MARKS_TABLE)
     return _fold_length_marks(text) if fold else text
 
 
-# A form with one parenthesized optional letter group (grc movable nu "ἦ(ν)")
-# is unreachable as a literal key: expand to both spellings. Multi-group or
-# alternative shapes are annotation leakage and stay untouched.
+# One optional letter group like grc "ἦ(ν)" expands to both spellings.
 _OPTIONAL_GROUP = re.compile(r"^([^()]*)\(([^()/]{1,3})\)([^()]*)$")
 
 
@@ -95,10 +67,7 @@ def _expand_optional_group(form: str) -> list[str]:
 
 
 def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
-    """Yield (lemma, word_form) pairs, preferring form_of/alt_of over forms.
-    May repeat a pair across senses of the same entry -- extract_pairs dedups.
-    An entry left with no pairs yields its own identity pair: uninflected
-    headwords (grc μέν) would otherwise never enter the dictionary."""
+    """Yield possibly repeated (lemma, word_form) pairs, see extract_pairs."""
     word = entry.get("word")
     if not word:
         return
@@ -137,19 +106,15 @@ def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
         for variant in _expand_optional_group(word_form):
             yield (norm_word, _normalize(variant, fold))
         yielded_form = True
-    # Identity fallback for uninflected headwords (grc μέν) -- but never after
-    # a junk-tag drop, which must not resurrect as an identity key. The
-    # fallback also votes in resolution ties; the per-language gates cover it.
+    # Identity for uninflected headwords, but not after a junk drop.
     if not yielded_form and not dropped_junk:
         yield (norm_word, norm_word)
 
 
 def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
-    """Yield (lemma, word_form) pairs, preferring form_of/alt_of over forms.
+    """Yield unique (lemma, word_form) pairs, preferring form_of/alt_of over forms.
 
-    Dedups pairs repeated across senses of the same entry -- dictionary_builder's
-    R2 resolution treats line count as evidence, so a repeat must not count
-    as a second attestation."""
+    Duplicates must not count as extra attestations downstream."""
     yield from dict.fromkeys(_extract_pairs_raw(entry))
 
 

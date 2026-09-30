@@ -1,6 +1,4 @@
-"""Tests for the casing decision layer (`simplemma.casing`), exercised without
-dictionaries: membership is a plain set probe, decisions are (surface, keep)
-pairs. End-to-end coverage through the Lemmatizer lives in test_lemmatizer.py."""
+"""Casing decisions tested without dictionaries: membership is a set probe."""
 
 import unicodedata
 from collections.abc import Iterator
@@ -13,7 +11,7 @@ from simplemma.casing import (
     is_keepable_allcaps,
     is_sentence_boundary,
 )
-from simplemma.strategies.fallback.to_lowercase import BETTER_LOWER
+from simplemma.lemmatizer import BETTER_LOWER
 
 
 def _member_of(words: set[str]) -> MembershipCheck:
@@ -21,15 +19,13 @@ def _member_of(words: set[str]) -> MembershipCheck:
 
 
 def test_gated_langs_disjoint_from_fallback_lowering() -> None:
-    """A language the fallback already lowercases must not also be gated:
-    the two per-language casing policies would conflict."""
+    """A language the fallback already lowercases must not also be gated."""
 
     assert GATED_INITIAL_LOWERING_LANGS.isdisjoint(BETTER_LOWER)
 
 
 def test_sentence_boundary_detects_collapsed_runs() -> None:
-    """Buffered-path boundary: first char, so collapsed runs ('...', '!!')
-    match but alnum-final tokens ('.270') don't."""
+    """Collapsed runs like '...' are boundaries, alnum-final tokens like '.270' not."""
 
     for term in [".", "?", "!", "…", "։", "...", "!!", "??", "?!"]:
         assert is_sentence_boundary(term), term
@@ -38,8 +34,7 @@ def test_sentence_boundary_detects_collapsed_runs() -> None:
 
 
 def test_keepable_allcaps_excludes_long_roman_numerals() -> None:
-    """The Roman-numeral exclusion applies only to 3+ char numerals; 2-char
-    tokens (CD/DC/MM/XL) stay keepable as acronyms."""
+    """Only numerals of 3 chars or more are excluded, 2-char acronyms stay keepable."""
 
     for acronym in ["CD", "DC", "MM", "MI", "MC", "XL", "XX", "USB", "SQL"]:
         assert is_keepable_allcaps(acronym), acronym
@@ -48,28 +43,24 @@ def test_keepable_allcaps_excludes_long_roman_numerals() -> None:
 
 
 def test_streaming_path_keeps_legacy_boundary() -> None:
-    """Streaming path must NOT reset after collapsed runs ('...') -- widening it
-    is UD-measured harmful; guards the revert (see casing._streaming)."""
+    """The streaming path must not reset after collapsed runs like '...'."""
 
     casing = SentenceCasing("fr", None)
-    # 'Fin' initial -> lowered; '...' does not reset; 'Alain' stays capitalized
     surfaces = [s for s, _keep in casing.apply(iter(["Fin", "...", "Alain"]))]
     assert surfaces == ["fin", "...", "Alain"]
 
 
 def test_gated_initial_surface() -> None:
-    """Gated initial-lowering: dictionary members and all-caps forms are
-    lowered, unknown capitalized words (probable proper nouns) are kept."""
+    """Members and all-caps forms are lowered, unknown capitalized words are kept."""
 
     casing = SentenceCasing("en", _member_of({"the"}))
-    assert casing.initial_surface("The") == "the"  # dict member -> lowered
-    assert casing.initial_surface("Iran") == "Iran"  # not a member -> kept
-    assert casing.initial_surface("NASA") == "nasa"  # all-caps: lookup recovers
+    assert casing.initial_surface("The") == "the"
+    assert casing.initial_surface("Iran") == "Iran"
+    assert casing.initial_surface("NASA") == "nasa"
 
 
 def test_acronym_keep_decisions() -> None:
-    """Mid-sentence ALL-CAPS kept verbatim; sentence-initial ALL-CAPS defers
-    to the D' gate when its lowercase form is a dictionary entry."""
+    """Mid-sentence all-caps are kept, sentence-initial ones defer to the D' gate."""
 
     casing = SentenceCasing("de", _member_of({"mit"}))
     out = list(casing.apply(iter(["Die", "Firma", "MIT", "."])))
@@ -79,8 +70,7 @@ def test_acronym_keep_decisions() -> None:
 
 
 def test_shouting_ratio_leave_one_out() -> None:
-    """A lone acronym isn't 'shouting'; a majority-shouted sentence turns
-    acronym-keep off entirely."""
+    """A lone acronym is kept, a mostly shouted sentence disables acronym-keep."""
 
     casing = SentenceCasing("uk", _member_of(set()))
     out = list(casing.apply(iter(["Це", "СБУ", "."])))
@@ -90,17 +80,15 @@ def test_shouting_ratio_leave_one_out() -> None:
 
 
 def test_probes_are_nfc_normalized() -> None:
-    """apply() must NFC-normalize before the gate probe: an NFD token still
-    matches its NFC dictionary key."""
+    """An NFD token still matches its NFC dictionary key."""
 
-    casing = SentenceCasing("de", _member_of({"schöne"}))  # NFC key
+    casing = SentenceCasing("de", _member_of({"schöne"}))
     out = list(casing.apply(iter([unicodedata.normalize("NFD", "Schöne")])))
     assert out[0] == ("schöne", False)
 
 
 def test_buffer_cap_keeps_streaming() -> None:
-    """Punctuation-free input must flush at the cap, not buffer until EOF:
-    the first decision arrives after at most SENTENCE_BUFFER_CAP tokens."""
+    """Punctuation-free input flushes at the cap instead of buffering until EOF."""
 
     consumed = 0
 
@@ -116,7 +104,7 @@ def test_buffer_cap_keeps_streaming() -> None:
 
 
 def test_boundary_guard_suppresses_initials() -> None:
-    """'J. Schmidt' is not a boundary; '1. Deze' is."""
+    """'J. Schmidt' is not a boundary, '1. Deze' is."""
 
     casing = SentenceCasing("nl", None)  # ungated: initial tokens lower
     surfaces = [s for s, _ in casing.apply(iter(["J", ".", "Schmidt", "kwam"]))]

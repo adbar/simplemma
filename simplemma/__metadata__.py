@@ -1,14 +1,4 @@
-"""
-Package Metadata
-
-This module contains metadata information for the simplemma package.
-
-Attributes:
-    __title__ (str): The title of the package.
-    __author__ (str): The authors of the package.
-    __license__ (str): The license under which the package is distributed.
-    __version__ (str): The current version of the package.
-"""
+"""Package metadata."""
 
 __title__ = "simplemma"
 __author__ = "Adrien Barbaresi, Juanjo Diaz and contributors"

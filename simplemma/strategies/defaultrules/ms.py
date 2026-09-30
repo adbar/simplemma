@@ -1,15 +1,12 @@
-import re
+from .generic import SuffixRules
 
-from .generic import apply_rules
+# min_len: short roots (baku, kamu) collide with the clitics
+DEFAULT_RULES = SuffixRules(
+    {
+        "": "nya ku mu",
+    },
+    min_len=7,
+)
 
-# Malay possessive/pronominal enclitics: -ku, -mu, -nya.
-DEFAULT_RULES = {
-    re.compile(r"(?:nya|ku|mu)$"): "",
-}
 
-
-def apply_ms(token: str) -> str | None:
-    "Apply pre-defined rules for Malay."
-    # short roots (baku, kamu, ...) collide with the clitics; a hyphen
-    # marks a reduplicated plural (buku-buku)
-    return apply_rules(token, DEFAULT_RULES, min_len=7, hyphen=True)
+apply_ms = DEFAULT_RULES.apply

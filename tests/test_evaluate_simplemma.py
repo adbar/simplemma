@@ -8,6 +8,7 @@ from simplemma.strategies.default import DefaultStrategy
 from simplemma.strategies.dictionaries import DefaultDictionaryFactory
 from training import evaluate_simplemma
 from training.evaluate_simplemma import evaluate_dataset
+from training.ud_conllu import iter_word_tokens_in_sentences
 
 from .conftest import FixedMapping
 
@@ -47,7 +48,10 @@ def lemmatizers() -> tuple[Lemmatizer, Lemmatizer]:
 def test_evaluate_dataset(lemmatizers):
     lemmatizer, greedy_lemmatizer = lemmatizers
     overall, focus, _ = evaluate_dataset(
-        parse(CONLLU), lemmatizer, greedy_lemmatizer, "en"
+        iter_word_tokens_in_sentences(parse(CONLLU), "en"),
+        lemmatizer,
+        greedy_lemmatizer,
+        "en",
     )
 
     assert overall.total == 3
@@ -59,7 +63,10 @@ def test_evaluate_dataset(lemmatizers):
 def test_evaluate_dataset_errors_and_skip(lemmatizers):
     lemmatizer, greedy_lemmatizer = lemmatizers
     overall, _, errors = evaluate_dataset(
-        parse(CONLLU_ERRORS), lemmatizer, greedy_lemmatizer, "en"
+        iter_word_tokens_in_sentences(parse(CONLLU_ERRORS), "en"),
+        lemmatizer,
+        greedy_lemmatizer,
+        "en",
     )
 
     assert overall.total == 1
@@ -69,24 +76,23 @@ def test_evaluate_dataset_errors_and_skip(lemmatizers):
 
 
 def test_evaluate_dataset_canonicalizes_ar_gold_lemma():
-    """PADT gold lemmas are vocalized; the dict is built from unvocalized
-    forms, so the gold lemma must be canonicalized before comparison or
-    every ar content lemma mismatches."""
+    """Vocalized ar gold lemmas are canonicalized before comparison."""
 
-    mapping = {"كتاب": "كتاب"}  # unvocalized key/value
+    mapping = {"كتاب": "كتاب"}
     lemmatizer = Lemmatizer(
         lemmatization_strategy=DefaultStrategy(dictionary_factory=FixedMapping(mapping))
     )
-    conllu = "1\tكتاب\tكِتَاب\tNOUN\t_\t_\t0\troot\t_\t_\n\n"  # vocalized gold
-    overall, _, errors = evaluate_dataset(parse(conllu), lemmatizer, lemmatizer, "ar")
+    conllu = "1\tكتاب\tكِتَاب\tNOUN\t_\t_\t0\troot\t_\t_\n\n"
+    overall, _, errors = evaluate_dataset(
+        iter_word_tokens_in_sentences(parse(conllu), "ar"), lemmatizer, lemmatizer, "ar"
+    )
     assert overall.total == 1
-    assert overall.nongreedy == 1  # matches only because gold was canonicalized
+    assert overall.nongreedy == 1
     assert not errors
 
 
 def test_main_writes_results(tmp_path):
-    """A dataset is scored over its held-out splits chained (dev+test); train
-    is excluded -- it feeds the override mining AND calibrates the gate."""
+    """Dev and test splits are scored, train is excluded."""
     splits = tmp_path / "splits"
     splits.mkdir()
     (splits / "en_test-ud-train.conllu").write_text(CONLLU, encoding="utf-8")
@@ -94,14 +100,14 @@ def test_main_writes_results(tmp_path):
     (splits / "en_test-ud-test.conllu").write_text(CONLLU, encoding="utf-8")
     results = tmp_path / "results"
 
-    # run twice: the second call exercises the results-folder reset branch
+    # the second run exercises the results-folder reset
     evaluate_simplemma.main(splits, results)
     evaluate_simplemma.main(splits, results)
 
     with open(results / "results_summary.csv", newline="", encoding="utf-8") as fh:
         rows = {row[0]: row for row in csv.reader(fh)}
-    assert "dataset" in rows  # header
-    assert rows["en_test"][2] == "6"  # dev+test counted, train's 3 tokens not
+    assert "dataset" in rows
+    assert rows["en_test"][2] == "6"  # dev and test only
     assert (results / "en_test.csv").exists()
 
 
@@ -122,11 +128,11 @@ def test_main_requires_data(tmp_path):
 
 
 def test_main_maps_dataset_name_to_lang(tmp_path):
-    """A UD prefix that isn't the ISO code (no_nynorsk) must go through dataset_to_lang."""
+    """A UD prefix that is not an ISO code (no_nynorsk) goes through dataset_to_lang."""
     splits = tmp_path / "splits"
     splits.mkdir()
     (splits / "no_nynorsk-ud-test.conllu").write_text(CONLLU, encoding="utf-8")
     results = tmp_path / "results"
 
-    evaluate_simplemma.main(splits, results)  # would raise ValueError('no') pre-fix
+    evaluate_simplemma.main(splits, results)
     assert "no_nynorsk" in (results / "results_summary.csv").read_text()

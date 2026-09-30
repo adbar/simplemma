@@ -24,16 +24,15 @@ def test_token_sampler() -> None:
 
 
 def test_sample_tokens_empty_token() -> None:
-    # an empty string in the iterable must not crash the capitalization filter
     sampler = MostCommonTokenSampler()
     assert sampler.sample_tokens(["hello", "", "World", "hello"]) == ["hello", ""]
 
 
 def test_capitalized_threshold() -> None:
-    sampler = MostCommonTokenSampler()  # default capitalized_threshold=0.8
-    # capitalized tokens are a minority (2 of 3 < 0.8 * 3) -> they are removed
+    sampler = MostCommonTokenSampler()
+    # 2 of 3 capitalized is under the 0.8 threshold, so they are removed
     assert sampler.sample_text("ABCD Efgh ijkl mn") == ["ijkl"]
-    # capitalized tokens dominate (4 of 4 >= 0.8 * 4) -> they are kept
+    # 4 of 4 capitalized meets the threshold, so they are kept
     assert sorted(sampler.sample_text("Abcd Efgh Ijkl Mnop")) == [
         "Abcd",
         "Efgh",

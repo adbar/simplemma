@@ -1,12 +1,13 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "simplemma"
 description = "Fast and zero-dependency lemmatization, tokenization and sentence splitting for 54 languages."
 readme = "README.md"
-license = { text = "MIT License" }
+license = "MIT"
+license-files = ["LICENSE", "licenses/*"]
 dynamic = ["version"]
 requires-python = ">=3.10"
 authors = [
@@ -33,7 +34,6 @@ classifiers = [
     "Intended Audience :: Education",
     "Intended Audience :: Information Technology",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Natural Language :: Arabic",
     "Natural Language :: Armenian",
     "Natural Language :: Bosnian",
@@ -94,8 +94,8 @@ classifiers = [
 dependencies = []
 
 # https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html
-[tool.setuptools]
-packages = ["simplemma"]
+[tool.setuptools.packages.find]
+include = ["simplemma*"]
 
 [tool.setuptools.package-data]
 simplemma = ["strategies/dictionaries/data/*.plzma"]

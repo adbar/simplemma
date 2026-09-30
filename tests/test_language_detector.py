@@ -1,5 +1,3 @@
-"""Tests for Simplemma's language detection utilities."""
-
 import pytest
 
 from simplemma import LanguageDetector, in_target_language, langdetect
@@ -10,7 +8,6 @@ from .conftest import CustomTokenSampler
 
 
 def test_langdetect_no_samplers() -> None:
-    # no samplers means no results, not an UnboundLocalError
     assert langdetect("Dies ist ein Test.", lang=("de", "en"), token_samplers=[]) == []
 
 
@@ -24,7 +21,6 @@ _TEXTS = (
 
 
 def _reference_each(detector: LanguageDetector, text: str) -> dict[str, float]:
-    # tokens-outer reference: the pre-refactor algorithm the langs-outer scan replaces
     tokens = [
         normalize_token(token) for token in detector._token_sampler.sample_text(text)
     ]
@@ -47,7 +43,6 @@ def _reference_each(detector: LanguageDetector, text: str) -> dict[str, float]:
 
 
 def test_langs_outer_matches_tokens_outer() -> None:
-    # the languages-outer refactor must be bit-identical to the tokens-outer scan
     detector = LanguageDetector(lang=_LANGS)
     for text in (*_TEXTS, ""):
         assert detector.proportion_in_each_language(text) == _reference_each(
@@ -56,7 +51,6 @@ def test_langs_outer_matches_tokens_outer() -> None:
 
 
 def test_target_agrees_with_each_language() -> None:
-    # the two un-shared loops must agree: target == non-unknown share
     detector = LanguageDetector(lang=_LANGS)
     for text in (
         *_TEXTS,
@@ -162,13 +156,13 @@ def test_in_target_language() -> None:
     assert (
         LanguageDetector(lang=(lang,)).proportion_in_target_languages(text)
         == in_target_language(text, lang=(lang,))
-        == 2 / 3  # la fill raised coverage of this text from 0.5
+        == 2 / 3
     )
 
     assert (
         LanguageDetector(lang=lang).proportion_in_target_languages(text)
         == in_target_language(text, lang=lang)
-        == 2 / 3  # la fill raised coverage of this text from 0.5
+        == 2 / 3
     )
 
     lang = "en"
@@ -211,8 +205,6 @@ def test_main_language_unknown() -> None:
     """When no language wins across any sampler, "unk" is returned."""
     detector = LanguageDetector(lang=("de", "en"))
     original_sampler = detector._token_sampler
-    # no recognizable tokens: proportion_in_each_language yields {"unk": 1}
-    # for every sampler, so no language ever wins
     assert detector.main_language("aa bb cc") == "unk"
     # main_language passes samplers as arguments, never mutating the instance
     assert detector._token_sampler is original_sampler
@@ -222,9 +214,7 @@ def test_main_language_tie() -> None:
     """A genuine tie between two supported languages also yields "unk"."""
     detector = LanguageDetector(lang=("de", "en"))
     original_sampler = detector._token_sampler
-    # "test" is a valid lemma in both German and English, so de and en stay
-    # tied at 1.0 across both the default and the relaxed sampler: there is
-    # never a single winner, so the fallback returns "unk"
+    # "test" is a lemma in both languages under every sampler
     assert detector.proportion_in_each_language("Test test") == {
         "de": 1.0,
         "en": 1.0,

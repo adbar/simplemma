@@ -39,7 +39,6 @@ def langdetect(
             lang, token_sampler, DefaultStrategy(greedy, low_memory=low_memory)
         ).proportion_in_each_language(text)
 
-        # post-processing
         list_results = _as_list(results)
         if len(list_results) == 1 or list_results[0][1] != list_results[1][1]:
             return list_results
@@ -54,11 +53,7 @@ def _as_list(results: dict[str, float]) -> list[tuple[str, float]]:
 class LanguageDetector:
     """Language detection via dictionary membership probing."""
 
-    __slots__ = [
-        "_lang",
-        "_lemmatization_strategy",
-        "_token_sampler",
-    ]
+    __slots__ = ("_lang", "_lemmatization_strategy", "_token_sampler")
 
     def __init__(
         self,
@@ -79,12 +74,7 @@ class LanguageDetector:
         text: str,
         token_sampler: TokenSampler,
     ) -> dict[str, float]:
-        """Per-language proportions for a given sampler.
-
-        Sampler is an arg (not self's) so the call stays stateless for
-        ``main_language``. Loops languages-outer to load each dictionary once
-        instead of thrashing the cache per token.
-        """
+        """Per-language proportions, looping languages outermost to load each once."""
         tokens = [normalize_token(token) for token in token_sampler.sample_text(text)]
 
         total_tokens = len(tokens)
@@ -110,7 +100,6 @@ class LanguageDetector:
         if len(tokens) == 0:
             return 0
 
-        # only "recognized by any language" matters, so break on first match
         in_target = 0
         for token in tokens:
             token = normalize_token(token)

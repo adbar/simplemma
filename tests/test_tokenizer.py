@@ -9,7 +9,6 @@ from simplemma import RegexTokenizer, simple_tokenizer
 from simplemma.tokenizer import _BLOCK, _PUNCT, _TRAILING_PUNCT, TOKREGEX, _fast_split
 
 _TOKENIZATION_CASES = [
-    # tokenization and chaining
     (
         "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
         [
@@ -83,7 +82,6 @@ _TOKENIZATION_CASES = [
             "Test",
             "4:1-Auswärtssieg",
             # a currency sign next to a number is its own token, either side
-            # (UD gold splits it even where the text glues it)
             "2,5",
             "€",
             "€",
@@ -100,12 +98,12 @@ _TOKENIZATION_CASES = [
             "-1.4",
         ],
     ),
-    # mixed punctuation splits; same-char runs stay whole
+    # mixed punctuation splits, same-char runs stay whole
     (
         'Er sagte: "Gut." Wirklich... ja?!',
         ["Er", "sagte", ":", '"', "Gut", ".", '"', "Wirklich", "...", "ja", "?", "!"],
     ),
-    # standalone hyphens are tokens; hyphenated words stay whole
+    # standalone hyphens are tokens, hyphenated words stay whole
     (
         "Berlin - die Hauptstadt -- und mehr",
         ["Berlin", "-", "die", "Hauptstadt", "--", "und", "mehr"],
@@ -124,41 +122,36 @@ _TOKENIZATION_CASES = [
     ),
     # Armenian full stop is a token of its own
     ("Նա ապրում է Երևանում։", ["Նա", "ապրում", "է", "Երևանում", "։"]),
-    # Hebrew: niqqud/cantillation marks stay inside the word (pointed text
-    # must not shatter into single letters)
+    # Hebrew: niqqud and cantillation marks stay inside the word
     ("וְהַבַּיִת הַגָּדוֹל", ["וְהַבַּיִת", "הַגָּדוֹל"]),
-    # Hebrew: maqaf joins a compound like an ASCII hyphen (stays one token);
-    # standalone/leading maqaf still becomes its own punctuation token
+    # Hebrew: maqaf joins a compound like a hyphen, a standalone maqaf is a token
     ("הוא לומד בבית־ספר גדול.", ["הוא", "לומד", "בבית־ספר", "גדול", "."]),
     ("א ־ ב", ["א", "־", "ב"]),
-    # Malayalam: vowel signs/virama stay inside the word (alphasyllabic text
-    # must not shatter at every vowel sign)
+    # Malayalam: vowel signs and virama stay inside the word
     ("മലയാളം കേരളത്തിലെ ഭാഷ.", ["മലയാളം", "കേരളത്തിലെ", "ഭാഷ", "."]),
-    # problem here: WDR5-„Morgenecho“
+    # known quirk: the hyphen stays on WDR5-
     ("WDR5-„Morgenecho“", ["WDR5-", "„", "Morgenecho", "“"]),
-    # word-internal apostrophes stay; quotes and edge apostrophes split
+    # word-internal apostrophes stay, quotes and edge apostrophes split
     ("L'homme n'est qu'un roseau.", ["L'homme", "n'est", "qu'un", "roseau", "."]),
     # ca elides articles before numerals: the join must not eat the numeral
     ("l'11 de setembre", ["l", "'", "11", "de", "setembre"]),
     # tr suffix on a numeric form: the apostrophe joins (digit BEFORE it)
     ("2020'de", ["2020'de"]),
-    # ca interpunct is word-internal (ela geminada); edge interpunct splits
+    # ca interpunct is word-internal (ela geminada), an edge interpunct splits
     ("els col·legis nous", ["els", "col·legis", "nous"]),
     ("mig · mig", ["mig", "·", "mig"]),
-    # he geresh/gershayim join inside acronyms/loanwords; quote-like edges split
+    # he geresh and gershayim join inside acronyms, quote-like edges split
     ("ש״ח", ["ש״ח"]),
-    # ASCII-quote spelling of the same acronyms (what real text types)
+    # ASCII-quote spelling of the same acronyms
     ('שילם ש"ח היום', ["שילם", 'ש"ח', "היום"]),
     ('he said "yes"', ["he", "said", '"', "yes", '"']),
     ("צ׳יפס", ["צ׳יפס"]),
     # at a token edge they are punctuation, like the ASCII quote
     ("״שלום״", ["״", "שלום", "״"]),
-    # hy intonation marks are word-internal (՞ on the stressed vowel);
-    # a word-final or bare mark is punctuation
+    # hy intonation marks are word-internal, a word-final or bare mark is punctuation
     ("Մի՞թե այդպիսի", ["Մի՞թե", "այդպիսի"]),
     ("ասա՛ նրան", ["ասա", "՛", "նրան"]),
-    # a sign priced against a number is a token of its own on either side,
-    # even where the text glues it; only a sign on a word stays glued (pt R$)
+    # only a sign glued to a word stays glued (pt R$)
     ("Es kostet 5 €.", ["Es", "kostet", "5", "€", "."]),
     ("R$ 659 e US$ 200", ["R$", "659", "e", "US$", "200"]),
     ("€3,50 und 50€", ["€", "3,50", "und", "50", "€"]),
@@ -166,7 +159,7 @@ _TOKENIZATION_CASES = [
     # every symbol behaves alike, and both yen widths are punctuation only
     ("50€ 50$ 50£", ["50", "€", "50", "$", "50", "£"]),
     ("￥100 ¥100", ["￥", "100", "¥", "100"]),
-    # punctuation-only currency: emitted, never glued (these were dropped)
+    # punctuation-only currency signs are emitted, never glued
     ("Ціна 100 ₴ сьогодні", ["Ціна", "100", "₴", "сьогодні"]),
     ("שילם 50 ₪", ["שילם", "50", "₪"]),
     ("стоит 500₽", ["стоит", "500", "₽"]),
@@ -208,7 +201,7 @@ def test_simple_tokenizer_wraps_regex_tokenizer() -> None:
 def test_fast_path_matches_raw_regex() -> None:
     text = (
         'Dr. Meier zahlt 3,50 € für "das" Buch – l\'homme, ש"ח und\n'
-        "https://x.org/a?b=1  fertig.\tEnde"  # \n \t and a double space
+        "https://x.org/a?b=1  fertig.\tEnde"
     )
     assert simple_tokenizer(text) == _raw(text)
 
@@ -276,6 +269,5 @@ def test_block_boundaries_match_raw_regex() -> None:
     for length in (_BLOCK - 2, _BLOCK - 1, _BLOCK, _BLOCK + 1, _BLOCK + 2):
         chunk = text[:length]
         assert simple_tokenizer(chunk) == _raw(chunk)
-    # a token straddling the boundary stays whole
     straddle = "a" * (_BLOCK - 3) + " übergreifendes Wort"
     assert simple_tokenizer(straddle) == _raw(straddle)

@@ -71,15 +71,7 @@ def test_main_downloads_extracts_and_writes_splits(tmp_path, monkeypatch):
     train_content = b"# a German treebank line\nHunde\tHund\n"
     dev_content = b"# a German treebank line\nKatzen\tKatze\n"
 
-    monkeypatch.setattr(download_eval_data, "resolve_item_uuid", lambda handle: "uuid")
-    monkeypatch.setattr(
-        download_eval_data,
-        "find_treebanks_bitstream",
-        lambda item_uuid, filename: (
-            "https://example.invalid/archive.tgz",
-            "sentinel-md5",
-        ),
-    )
+    monkeypatch.setattr(download_eval_data, "BITSTREAM_MD5", "sentinel-md5")
     monkeypatch.setattr(download_eval_data, "_md5", lambda path: "sentinel-md5")
 
     def fake_urlretrieve(url, filename):
@@ -112,15 +104,7 @@ def test_main_raises_on_checksum_mismatch(tmp_path, monkeypatch):
     monkeypatch.setattr(download_eval_data, "UD_SPLITS", clean_folder / "splits")
     monkeypatch.setattr(download_eval_data, "VERSION_FILE", clean_folder / "UD_VERSION")
 
-    monkeypatch.setattr(download_eval_data, "resolve_item_uuid", lambda handle: "uuid")
-    monkeypatch.setattr(
-        download_eval_data,
-        "find_treebanks_bitstream",
-        lambda item_uuid, filename: (
-            "https://example.invalid/archive.tgz",
-            "expected-md5",
-        ),
-    )
+    monkeypatch.setattr(download_eval_data, "BITSTREAM_MD5", "expected-md5")
     monkeypatch.setattr(
         "urllib.request.urlretrieve",
         lambda url, filename: filename.write_bytes(b"not the real archive"),
@@ -131,22 +115,19 @@ def test_main_raises_on_checksum_mismatch(tmp_path, monkeypatch):
 
 
 def test_get_relevant_language_data_folders(tmp_path):
-    # supported language
     de_folder = tmp_path / "UD_German-GSD"
     de_folder.mkdir()
     (de_folder / "de_gsd-ud-train.conllu").write_text("")
 
-    # unsupported language code
     xx_folder = tmp_path / "UD_Fake-Test"
     xx_folder.mkdir()
     (xx_folder / "xx_fake-ud-train.conllu").write_text("")
 
-    # dataset name doesn't map to the ISO code directly -> override table
+    # no_nynorsk maps to nn through the override table
     nn_folder = tmp_path / "UD_Norwegian-Nynorsk"
     nn_folder.mkdir()
     (nn_folder / "no_nynorsk-ud-train.conllu").write_text("")
 
-    # no conllu files at all -> skipped, not a crash
     empty_folder = tmp_path / "UD_Empty-Test"
     empty_folder.mkdir()
 

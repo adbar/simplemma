@@ -1,6 +1,6 @@
 ---
 title: "CliticDecompositionStrategy: strip clitics"
-description: "API reference for CliticDecompositionStrategy, which strips enclitic and proclitic chains and looks up the remaining stem."
+description: "API reference for CliticDecompositionStrategy, which strips enclitic chains and looks up the remaining stem."
 ---
 
 # Clitic Decomposition Strategy

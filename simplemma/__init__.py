@@ -1,15 +1,4 @@
-"""Top-level package for Simplemma.
-
-This package provides simple and lightweight tools for language detection and lemmatization.
-
-Modules:
-    language_detector: Module for language detection functionality.
-    lemmatizer: Module for lemmatization functionality.
-    sentences: Module for sentence splitting functionality.
-    tokenizer: Module for tokenization functionality.
-    token_sampler: Module for token sampling functionality.
-
-"""
+"""Simplemma: fast, dependency-free lemmatization for 54 languages."""
 
 from .__metadata__ import __title__, __author__, __license__, __version__
 from .language_detector import LanguageDetector, in_target_language, langdetect

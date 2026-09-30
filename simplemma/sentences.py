@@ -10,12 +10,11 @@ _TERMINATORS = {None: ".!?…։؟।॥", "el": ".!?…;\u037e"}
 # a lowercase word may still open a sentence after these (el question mark too)
 _STRONG_TERMINATORS = "?!;\u037e"
 _CLOSERS = "\"'”’»)]"
-_EDGE = "(["  # stripped for the abbreviation lookup only; not quotes
+_EDGE = "(["  # stripped for the abbreviation lookup only, not quotes
 _EMPTY: frozenset[str] = frozenset()
 _PARAGRAPH = re.compile(r"\n\s*\n")
 _WORD = re.compile(r"\S+")
 
-# Only languages where the list measurably pays carry one.
 _ABBREVS = {
     "cs": frozenset("dr judr prof".split()),
     "de": frozenset("bzw ca dr fr hr prof st u.a z.b".split()),
@@ -97,8 +96,7 @@ def _dot_verdict(
     word = raw.strip(_EDGE)
     core = normalize_token(word.lower()).rstrip(terminators)
     if not core:
-        # a bare run of one terminator ends a sentence ('...'), but a mixed run
-        # does not, and a bracketed one is an in-sentence elision ('(...)')
+        # a bare run of one terminator ends a sentence, mixed or bracketed runs do not
         return not (word and word == raw == text[pos] * len(word))
     if len(core) == 1 and core.isalpha():
         if word[:1].isupper():
@@ -119,26 +117,10 @@ def _starter_follows(text: str, after: int, starters: frozenset[str]) -> bool:
     )
 
 
-def _profile(
-    code: str,
-) -> tuple[str, "re.Pattern[str]", frozenset[str], frozenset[str]]:
-    """Terminators, junction pattern, abbreviations and starters for `code`."""
+def _split_block(text: str, code: str) -> Iterator[str]:
     key = code if code in _TERMINATORS else None
-    return (
-        _TERMINATORS[key],
-        _JUNCTIONS[key],
-        _ABBREVS.get(code, _EMPTY),
-        _STARTERS.get(code, _EMPTY),
-    )
-
-
-def _split_block(
-    text: str,
-    junction: "re.Pattern[str]",
-    terminators: str,
-    abbrevs: frozenset[str],
-    starters: frozenset[str],
-) -> Iterator[str]:
+    terminators, junction = _TERMINATORS[key], _JUNCTIONS[key]
+    abbrevs, starters = _ABBREVS.get(code, _EMPTY), _STARTERS.get(code, _EMPTY)
     start = 0
     for match in junction.finditer(text):
         pos, after = match.span()
@@ -160,31 +142,12 @@ def _split_block(
         yield tail
 
 
-def _blocks(text: str) -> Iterator[str]:
-    """Blank-line-separated blocks, one at a time."""
-    start = 0
-    for gap in _PARAGRAPH.finditer(text):
-        yield text[start : gap.start()]
-        start = gap.end()
-    yield text[start:]
-
-
 def split_sentences(text: str, lang: str | tuple[str, ...] | None = None) -> list[str]:
-    """Split `text` into sentences (stripped slices of the input).
-
-    Args:
-        text (str): The text to segment.
-        lang (str | tuple[str, ...] | None): Language code, e.g. "de", or a
-            tuple as the other entry points take it. Defaults to None
-            (generic rules).
-
-    Returns:
-        list[str]: The sentences, in order, without surrounding whitespace.
-    """
+    """Split `text` into sentences (stripped slices of the input)."""
     code = validate_lang_input(lang)[0] if lang is not None else ""
-    terminators, junction, abbrevs, starters = _profile(code)
+    # blank-line-separated blocks never share a sentence
     return [
         sentence
-        for block in _blocks(text)
-        for sentence in _split_block(block, junction, terminators, abbrevs, starters)
+        for block in _PARAGRAPH.split(text)
+        for sentence in _split_block(block, code)
     ]

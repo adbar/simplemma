@@ -1,12 +1,4 @@
-"""
-This module defines the `DictionaryFactory` protocol and the `DefaultDictionaryFactory` class.
-It provides functionality for loading and accessing dictionaries for supported languages.
-
-- [DictionaryFactory][simplemma.strategies.dictionaries.DictionaryFactory]: The Protocol class for all dictionary factories.
-- [DefaultDictionaryFactory][simplemma.strategies.dictionaries.DefaultDictionaryFactory]: Default dictionary factory.
-It loads the dictionaries that are shipped with simplemma and caches them as configured.
-
-"""
+"""Dictionary factory protocol and the default (in-memory) backend."""
 
 from abc import abstractmethod
 from functools import lru_cache
@@ -30,13 +22,12 @@ from . import frontcode
 _T = TypeVar("_T")
 
 DATA_FOLDER = Path(__file__).parent / "data"
-# frozenset: O(1) membership checks.
 SUPPORTED_LANGUAGES = frozenset(f.stem for f in DATA_FOLDER.glob("*.plzma"))
 
 
 def _read_decompressed(langcode: str) -> bytes:
     """Read and lzma-decompress the shipped `data/{langcode}.plzma`."""
-    # single validation point; also excludes path traversal
+    # single validation point, also blocks path traversal
     if langcode not in SUPPORTED_LANGUAGES:
         raise ValueError(f"Unsupported language: {langcode}")
     with lzma.open(DATA_FOLDER / f"{langcode}.plzma", "rb") as filehandle:
@@ -49,13 +40,7 @@ def _load_dictionary_from_disk(langcode: str) -> dict[bytes, bytes]:
 
 
 class DictionaryFactory(Protocol):
-    """
-    This protocol defines the interface for a dictionary factory, which is responsible for loading and providing access to dictionaries for different languages.
-
-    Note:
-        This protocol should be implemented by concrete dictionary factories.
-        Concrete implementations of this protocol should provide a concrete implementation for the `get_dictionary` method.
-    """
+    """Protocol for loading form-to-lemma dictionaries by language code."""
 
     __slots__ = ()
 
@@ -64,26 +49,14 @@ class DictionaryFactory(Protocol):
         self,
         lang: str,
     ) -> Mapping[str, str]:
-        """
-        Get the dictionary for a specific language.
-
-        Args:
-            lang (str): The language code.
-
-        Returns:
-            Mapping[str, str]: The dictionary for the specified language.
-
-        Raises:
-            ValueError: If the specified language is not supported.
-        """
-        raise NotImplementedError
+        """Return the dictionary for `lang` (raise ValueError if unsupported)."""
 
 
 class DecodedStrMapping(Mapping[str, str]):
     """Read-only str->str view over a bytes-backed store, decoding on access.
 
-    Subclasses implement `_lookup` (None on a miss), `__iter__`, `__len__`; the
-    shared `__getitem__`/`get` (miss-cheap, avoiding Mapping.get's EAFP) is here.
+    Subclasses implement `_lookup`, `__iter__` and `__len__`.
+    `get` avoids the KeyError that `Mapping.get` pays on a miss.
     """
 
     __slots__ = ()
@@ -129,8 +102,7 @@ class MappingStrToByteString(DecodedStrMapping):
 
 
 class CachingDictionaryFactory(DictionaryFactory):
-    """Base wiring an lru cache (size `cache_max_size`) around the subclass's
-    `_get_dictionary_uncached`; caches the built value, not the raw data."""
+    """Base class caching the result of `_get_dictionary_uncached`."""
 
     __slots__ = ("_get_dictionary",)
 
@@ -141,25 +113,19 @@ class CachingDictionaryFactory(DictionaryFactory):
 
     @abstractmethod
     def _get_dictionary_uncached(self, lang: str) -> Mapping[str, str]:
-        """Build the dictionary for `lang` without caching (raise ValueError if
-        the language is unsupported)."""
+        """Build the dictionary for `lang` (raise ValueError if unsupported)."""
         raise NotImplementedError
 
     def get_dictionary(
         self,
         lang: str,
     ) -> Mapping[str, str]:
-        """The cached dictionary for `lang` (see the `DictionaryFactory` protocol)."""
+        """The cached dictionary for `lang`."""
         return self._get_dictionary(lang)
 
 
 class DefaultDictionaryFactory(CachingDictionaryFactory):
-    """
-    Default Dictionary Factory.
-
-    This class is a concrete implementation of the `DictionaryFactory` protocol.
-    It provides functionality for loading and caching dictionaries from disk that are included in Simplemma.
-    """
+    """Load the shipped dictionaries into plain dicts, caching up to `cache_max_size` languages."""
 
     __slots__ = ()
 
@@ -167,6 +133,5 @@ class DefaultDictionaryFactory(CachingDictionaryFactory):
         return MappingStrToByteString(_load_dictionary_from_disk(lang))
 
 
-# Process-wide default: the strategy defaults and the legacy helpers all share
-# this one instance, so the shipped dictionaries are cached once, not per site.
+# shared process-wide so dictionaries are cached once
 DEFAULT_DICTIONARY_FACTORY = DefaultDictionaryFactory()

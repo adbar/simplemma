@@ -1,5 +1,4 @@
-"""Format/integrity guard for the shipped override lexicons in training/overrides/{lang}.tsv:
-these are reviewed artifacts, so a corrupting hand-edit must fail CI, not silently ship."""
+"""Integrity guard for the shipped override lexicons in training/overrides."""
 
 from pathlib import Path
 
@@ -17,5 +16,5 @@ def test_at_least_one_override_shipped():
 
 @pytest.mark.parametrize("path", OVERRIDE_FILES, ids=lambda p: p.stem)
 def test_override_file_reads_cleanly(path):
-    """read_pairs enforces well-formedness, NFC, no empty/junk field, no conflicting form."""
+    """read_pairs enforces well-formed, NFC, junk-free and conflict-free rows."""
     assert read_pairs(path), f"{path} is empty"
