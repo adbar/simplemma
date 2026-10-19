@@ -542,3 +542,37 @@ def test_long_token_does_not_hang() -> None:
 
 def test_he_acronyms_survive_tokenization() -> None:
     assert text_lemmatizer('שילם ש"ח היום.', lang="he")[1] == 'ש"ח'
+
+
+# Inflections whose dictionary entry used to point at a non-word
+# (playing -> playe, cancelled -> cancell, determining -> determin).
+_EN_INFLECTION_CASES = [
+    ("playing", "play"),
+    ("assailed", "assail"),
+    ("determining", "determine"),
+    ("budging", "budge"),
+    ("adjudging", "adjudge"),
+    ("cancelled", "cancel"),
+    ("cancelling", "cancel"),
+    ("labelled", "label"),
+    ("labelling", "label"),
+    ("modelled", "model"),
+    ("modelling", "model"),
+    ("signalled", "signal"),
+    ("signalling", "signal"),
+    ("travelling", "travel"),
+    ("dispelled", "dispel"),
+    ("dispelling", "dispel"),
+    ("envied", "envy"),
+    ("envies", "envy"),
+    ("envying", "envy"),
+    ("exemplified", "exemplify"),
+    ("exemplifies", "exemplify"),
+    ("exemplifying", "exemplify"),
+    ("curries", "curry"),
+]
+
+
+@pytest.mark.parametrize("form, lemma", _EN_INFLECTION_CASES)
+def test_en_inflection_lemmas(form: str, lemma: str) -> None:
+    assert lemmatize(form, lang="en") == lemma
