@@ -75,7 +75,7 @@ def main(keep_download: bool = False) -> None:
             "Data folder seems to be already present. Delete it before creating new data."
         )
 
-    CLEAN_DATA_FOLDER.mkdir()
+    CLEAN_DATA_FOLDER.mkdir(parents=True)
     DATA_FOLDER.mkdir()
     UD_SPLITS.mkdir()
 
