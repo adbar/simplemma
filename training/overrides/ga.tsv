@@ -171,6 +171,7 @@ glactha	glactha
 gluaiseacht	gluaiseacht
 gníomh	gníomhartha
 gníomhú	gníomhú
+is	gur
 is	gurb
 is	gurbh
 airteagal	hAirteagal
@@ -184,6 +185,7 @@ i	im
 i	ina
 iniúchadh	iniúchadh
 i	insa
+is	is
 it	it
 laghdú	laghdú
 leagtha	leagtha
@@ -213,7 +215,9 @@ an	na
 duine	ndaoine
 déan	ndearna
 neartú	neartú
+nár	nár
 is	nárbh
+níor	níor
 is	níorbh
 nó	nó
 ó	o
@@ -229,6 +233,7 @@ rialú	rialú
 déan	rinne
 RT	rt
 i	sa
+i	san
 sé	se
 is	sea
 seasta	seasta

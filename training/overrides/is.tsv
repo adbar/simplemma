@@ -149,7 +149,7 @@ eiríkur	Eiríki
 eiríksson	Eiríksson
 eiríkur	Eiríkur
 einn	Eitt
-ekkert	Ekki
+ekki	Ekki
 ektor	Ektor
 ektor	Ektors
 emanúel	Emanúel
@@ -929,7 +929,7 @@ eira	eirði
 einhver	eitthvört
 eiður	eiða
 ég	ek
-ekkert	ekki
+ekki	ekki
 ella	ella
 ellegar	ellegar
 elska	elskar
@@ -1002,6 +1002,7 @@ fjúka	fjúki
 flatur	flatt
 margur	fleiru
 margur	fleirum
+margur	flest
 flestallur	flestallt
 fleygja	fleygir
 fljótt	fljótt
@@ -1189,6 +1190,7 @@ helga	helgandi
 helga	helguð
 hellir	hellirnum
 hellur	hellisins
+heldur	helst
 hella	helt
 hendur	hendur
 henta	hentar
@@ -1595,7 +1597,7 @@ munu	munið
 munnur	munninn
 munu	munt
 munu	munuð
-munu	mynda
+mynda	mynda
 mynda	myndaðist
 munu	myndir
 munu	myni
@@ -1619,6 +1621,7 @@ mega	mættu
 mega	mættum
 mæa	mæðist
 mæða	mæðu
+minn	mín
 mótgangur	mótgang
 mótgangur	mótgangi
 móti	móti
@@ -1706,6 +1709,7 @@ oft	opt
 orka	orkar
 orrusta	orrosta
 orrusta	orrostu
+verða	orðið
 orð	orðum
 ég	oss
 ponta	pontu
@@ -1821,7 +1825,7 @@ sinn	sinna
 sitja	sit
 sitja	sitji
 sitja	sitjum
-sá	sjá
+sjá	sjá
 sjá	sjáandi
 sjálfur	sjálfa
 sjálfur	sjálfs
@@ -1957,7 +1961,7 @@ stúfur	stúfur
 stýrimaður	stýrimanni
 stýra	stýrir
 sumur	suma
-sumur	sumar
+sumar	sumar
 sumur	sumir
 sumur	sumra
 sumur	sums
@@ -2174,6 +2178,7 @@ vitrast	vitraðist
 vitsmunir	vitsmuni
 vita	vitu
 vita	vitum
+við	við
 viðskiftamaður	viðskiftamenn
 viðtaka	viðtöku
 vonska	vonsku
@@ -2427,11 +2432,15 @@ arfur	örfum
 þakka	þakkar
 þar	þar
 þarkoma	þarkomu
+það	þau
 það	þaug
+það	það
 þegar	þegar
+það	þeim
 hann	þeir
 hann	þeira
 hann	þeirr
+hann	þeirra
 þekkja	þekki
 þekkja	þekkir
 þekkja	þekkið
@@ -2440,6 +2449,7 @@ hann	þeirr
 þekkja	þekktist
 þekkja	þekti
 þekkja	þektu
+það	þess
 þú	þig
 þiggja	þiggur
 þú	þið
@@ -2478,6 +2488,8 @@ hann	þeirr
 þykjast	þykjumst
 þurfa	þyrfti
 þurfa	þyrftu
+þá	þá
+hún	þær
 þénari	þénara
 þénari	þénarar
 þénari	þénurum

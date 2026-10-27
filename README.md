@@ -15,7 +15,7 @@ Pure Python, no models to download, works offline.
   included, over 100 MB/s sentence splitting, milliseconds to first lemma
 - **Tunable RAM footprint**: ~175 MB, ~50 MB with `low_memory=True`, or ~30 MB per
   language with tries
-- **0.91 to 0.97 accuracy** for 34 languages, German at 0.97 and English at
+- **0.91 to 0.97 accuracy** for 35 languages, German at 0.97 and English at
   0.96, and 0.85 to 0.90 for morphologically richer ones such as Hungarian,
   Latin and Ancient Greek: a few points behind trained neural pipelines,
   hundreds of times faster
@@ -205,7 +205,7 @@ morphology rather than a data error.
 | `bg` | Bulgarian | 226 | 26 | 0.89 | on UD BG-BTB |
 | `ca` | Catalan | 641 | 64 | 0.95 | on UD CA-AnCora |
 | `cs` | Czech | 363 | 47 | 0.95 | on UD CS-FicTree |
-| `cy` | Welsh | 402 | 21 | 0.94 | on UD CY-CCG |
+| `cy` | Welsh | 402 | 21 | 0.95 | on UD CY-CCG |
 | `da` | Danish | 788 | 117 | 0.95 | on UD DA-DDT, alternative: [lemmy](https://github.com/sorenlind/lemmy) |
 | `de` | German | 1,116 | 334 | 0.97 | on UD DE-GSD, see also [German-NLP list](https://github.com/adbar/German-NLP#Lemmatization) |
 | `el` | Greek | 250 | 28 | 0.93 | on UD EL-GDT |
@@ -217,8 +217,8 @@ morphology rather than a data error.
 | `fa` | Persian | 47 | 14 | 0.95 | on UD FA-Seraji |
 | `fi` | Finnish | 3,547 | 125 | 0.91 | on UD FI-TDT, see [this benchmark](https://github.com/aajanki/finnish-pos-accuracy) |
 | `fr` | French | 250 | 37 | 0.96 | on UD FR-Sequoia |
-| `ga` | Irish | 444 | 48 | 0.92 | on UD GA-IDT |
-| `gd` | Gaelic | 73 | 16 | 0.89 | on UD GD-ARCOSG |
+| `ga` | Irish | 444 | 48 | 0.93 | on UD GA-IDT |
+| `gd` | Gaelic | 73 | 16 | 0.91 | on UD GD-ARCOSG |
 | `gl` | Galician | 426 | 43 | 0.92 | on UD GL-CTG |
 | `grc` | Ancient Greek | 852 | 22 | 0.86 | on UD GRC-PROIEL (best available; no general-register grc treebank exists), alternative: [odyCy](https://github.com/centre-for-humanities-computing/odyCy) |
 | `gv` | Manx | 77 | 14 | 0.92 | on UD GV-Cadhan |
@@ -228,7 +228,7 @@ morphology rather than a data error.
 | `hu` | Hungarian | 1,763 | 45 | 0.88 | on UD HU-Szeged |
 | `hy` | Armenian | 467 | 17 | 0.92 | on UD HY-BSUT |
 | `id` | Indonesian | 22 | 4 | 0.93 | on UD ID-CSUI |
-| `is` | Icelandic | 210 | 18 | 0.82 | on UD IS-GC |
+| `is` | Icelandic | 210 | 18 | 0.85 | on UD IS-GC |
 | `it` | Italian | 358 | 28 | 0.95 | on UD IT-ISDT |
 | `ka` | Georgian | 448 | 16 | 0.85 | on UD KA-GLC |
 | `la` | Latin | 1,289 | 70 | 0.89 | on UD LA-PROIEL, alternative: [LatinCy](https://spacy.io/universe/project/latincy) |
@@ -242,7 +242,7 @@ morphology rather than a data error.
 | `nl` | Dutch | 370 | 125 | 0.96 | on UD NL-Alpino, excl. underscore-joined compound lemmas |
 | `nn` | Norwegian (Nynorsk) | 138 | 36 | 0.83 | on UD NO-Nynorsk |
 | `pl` | Polish | 3,670 | 264 | 0.96 | on UD PL-LFG |
-| `pt` | Portuguese | 927 | 95 | 0.95 | on UD PT-GSD |
+| `pt` | Portuguese | 927 | 95 | 0.96 | on UD PT-GSD |
 | `ro` | Romanian | 345 | 37 | 0.94 | on UD RO-RRT |
 | `ru` | Russian | 1,362 | 131 | 0.94 | on UD RU-SynTagRus, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
 | `se` | Northern Sámi | 115 | 7 | 0.97 | on UD SME-Giella |
