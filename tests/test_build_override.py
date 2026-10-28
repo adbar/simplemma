@@ -90,6 +90,20 @@ def test_resolve_overrides_drops_case_only_change():
     assert _resolve({"Roma": {"roma": 9}}, pos, lambda form: form) == {}
 
 
+def test_resolve_overrides_skips_cased_lemma_of_lowercase_form():
+    pos = {"baron": Counter({"NOUN": 1})}
+    assert _resolve({"baron": {"Baron": 9}}, pos) == {}
+
+
+def test_resolve_overrides_veto_counts_lemma_up_to_case():
+    per_tb = [
+        {"es": Counter({"ser": 10})},
+        {"es": Counter({"ser": 1, "Ser": 2, "estar": 2})},
+    ]
+    pos = {"es": Counter({"AUX": 1})}
+    assert bo.resolve_overrides(per_tb, pos, lambda form: "estar") == {"es": "ser"}
+
+
 def test_resolve_overrides_drops_low_count():
     assert _resolve({"rare": {"rare": 2}}) == {}
 
@@ -97,6 +111,19 @@ def test_resolve_overrides_drops_low_count():
 def test_resolve_overrides_skips_underscore_lemmas():
     assert _resolve({"keerde": {"terug_keren": 9}}) == {}
     assert _resolve({"a_b": {"a_b": 9}}) == {"a_b": "a_b"}
+
+
+def test_resolve_overrides_skips_letterless_lemmas():
+    assert _resolve({"1ste": {"1": 9}}) == {}
+
+
+def test_resolve_overrides_counts_output_up_to_case():
+    counts = {"se": {"se": 3, "el": 2}}
+    assert _resolve(counts, current=lambda form: "El") == {}
+    agreeing = {"se": Counter({"se": 6})}
+    dissenting = {"se": Counter({"se": 1, "el": 3})}
+    pos = {"se": Counter({"PRON": 1})}
+    assert bo.resolve_overrides([agreeing, dissenting], pos, lambda f: "El") == {}
 
 
 def test_resolve_overrides_agreement_floor():
@@ -264,17 +291,23 @@ def test_collect_candidates_tags_participles(tmp_path):
 
 
 def test_report_contradictions_warns(tmp_path, caplog):
-    (tmp_path / "es.tsv").write_text("ser\tes\nel\tel\nRoma\tRoma\n", encoding="utf-8")
+    (tmp_path / "es.tsv").write_text(
+        "ser\tes\nel\tel\nRoma\tRoma\nJuan\tJuan\n", encoding="utf-8"
+    )
     counts = {
         "es": Counter({"estar": 5}),
         "el": Counter({"el": 5}),
         "Roma": Counter({"roma": 5}),
+        "Juan": Counter({"Juanito": 5}),
     }
+    pos = {form: Counter({"NOUN": 5}) for form in counts}
+    pos["Juan"] = Counter({"PROPN": 5})
     with caplog.at_level(logging.WARNING, logger=bo.log.name):
-        bo.report_contradictions([counts], "es", tmp_path)
+        bo.report_contradictions([counts], pos, "es", tmp_path)
     assert "'estar' over existing 'ser' for 'es'" in caplog.text
     assert "for 'el'" not in caplog.text
     assert "for 'Roma'" not in caplog.text  # case-only, left to the runtime
+    assert "for 'Juan'" not in caplog.text  # skipped tag, as in mining
 
 
 def test_merge_with_existing_warns_on_candidate_collision(tmp_path, caplog):

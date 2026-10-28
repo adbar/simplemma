@@ -137,8 +137,9 @@ excluded treebanks. A form qualifies with
 majority lemma. The lemma must beat the current output by 2 tokens, and
 lose tokens in no treebank with 3 or more occurrences. Proper nouns,
 adpositions, participles, underscore-joined lemmas and case-only changes are
-skipped as treebank conventions. Existing rows that UD contradicts are
-logged, not changed.
+skipped as treebank conventions. Letterless lemmas are skipped as junk.
+A lowercase form with a cased lemma is skipped as a sentence-initial artifact.
+Existing rows that UD contradicts are logged, not changed.
 Output goes to ``training/output/`` unless ``--in-place`` rewrites
 ``training/overrides/<code>.tsv``. Shipping still requires a rebuild.
 

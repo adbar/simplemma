@@ -10,14 +10,12 @@ de	's
 19	19de
 19	19e
 1	1e
-1	1ste
 20	20e
 20	20ste
 21_jarig	21-jarige
 21	21ste
 23_jarig	23-jarige
 2	2de
-2	2e
 30	30e
 3	3e
 43	43e
@@ -365,7 +363,8 @@ baksteen	bakstenen
 band	banden
 bank_biljet	bankbiljetten
 BARCLAY	barclay
-Baron	baron
+baron	baron
+barones	barones
 bedevaart_oord	bedevaartsoord
 bedrijven	bedreven
 begraaf_plaats	begraafplaats

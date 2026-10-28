@@ -23,7 +23,7 @@ from training.ud_conllu import dataset_name, discover_treebanks, iter_word_token
 log = logging.getLogger(__name__)
 
 # Closed-class words are convention-stable at lower evidence.
-CLOSED_CLASS_POS = frozenset({"PRON", "DET", "ADP", "CCONJ", "SCONJ", "AUX", "PART"})
+CLOSED_CLASS_POS = frozenset({"PRON", "DET", "CCONJ", "SCONJ", "AUX", "PART"})
 CLOSED_MIN_COUNT, OPEN_MIN_COUNT = 3, 5
 MIN_AGREEMENT = 0.6
 MIN_GAIN = 2
@@ -72,33 +72,54 @@ def majority(counts: Counter[str]) -> tuple[str, float]:
     return lemma, top / sum(counts.values())
 
 
+def votes(counts: Counter[str], lemma: str) -> int:
+    """Count of `lemma` up to case."""
+    return sum(n for lem, n in counts.items() if lem.lower() == lemma.lower())
+
+
+def top_tags(pos_counts: Counter[str]) -> set[str]:
+    top = max(pos_counts.values())
+    return {tag for tag, n in pos_counts.items() if n == top}
+
+
+def skipped(form: str, lemma: str, tags: set[str]) -> bool:
+    """Excluded tag, sentence-initial artifact, multiword or letterless lemma."""
+    return bool(
+        tags & EXCLUDED_TAGS
+        or (form == form.lower() and lemma != lemma.lower())
+        or ("_" in lemma and "_" not in form)
+        or not any(ch.isalpha() for ch in lemma)
+    )
+
+
 def resolve_overrides(
     per_treebank: list[Counts], pos: Counts, current: Callable[[str], str]
 ) -> dict[str, str]:
     """Pooled majority lemma per form, kept if it clears the bar and beats `current`.
 
-    A POS tie takes the stricter open-class bar and is excluded on any excluded
-    tag. Case-only changes are left to the runtime, and underscore-joined
-    multiword lemmas are skipped."""
+    A POS tie takes the stricter open-class bar and is skipped on any excluded
+    tag. Lemma and output count up to case, and case-only changes are left to
+    the runtime."""
     overrides = {}
     for form, counts in pool(per_treebank).items():
         lemma, share = majority(counts)
-        top_pos = max(pos[form].values())
-        top_tags = {tag for tag, n in pos[form].items() if n == top_pos}
-        min_count = CLOSED_MIN_COUNT if top_tags <= CLOSED_CLASS_POS else OPEN_MIN_COUNT
+        tags = top_tags(pos[form])
+        min_count = CLOSED_MIN_COUNT if tags <= CLOSED_CLASS_POS else OPEN_MIN_COUNT
         if (
             sum(counts.values()) < min_count
             or share < MIN_AGREEMENT
-            or top_tags & EXCLUDED_TAGS
-            or ("_" in lemma and "_" not in form)
+            or skipped(form, lemma, tags)
         ):
             continue
         output = current(form)
-        if lemma.lower() == output.lower() or counts[lemma] - counts[output] < MIN_GAIN:
+        if (
+            lemma.lower() == output.lower()
+            or votes(counts, lemma) - votes(counts, output) < MIN_GAIN
+        ):
             continue
         if any(
             sum(tb[form].values()) >= TREEBANK_MIN_COUNT
-            and tb[form][lemma] < tb[form][output]
+            and votes(tb[form], lemma) < votes(tb[form], output)
             for tb in per_treebank
             if form in tb
         ):
@@ -108,9 +129,12 @@ def resolve_overrides(
 
 
 def report_contradictions(
-    per_treebank: list[Counts], lang: str, overrides_dir: Path | None = None
+    per_treebank: list[Counts],
+    pos: Counts,
+    lang: str,
+    overrides_dir: Path | None = None,
 ) -> None:
-    """Warn on existing entries whose form has another clear UD majority."""
+    """Warn on existing entries whose form has another clear, unskipped UD majority."""
     path = (overrides_dir or OVERRIDES_DIR) / f"{lang}.tsv"
     existing = _layer_entries(path, lang) if path.exists() else {}
     for form, counts in sorted(pool(per_treebank).items()):
@@ -119,7 +143,11 @@ def report_contradictions(
         if line is None or total < OPEN_MIN_COUNT:
             continue
         lemma, share = majority(counts)
-        if share >= MIN_AGREEMENT and _canon(lemma, lang).lower() != line.lower():
+        if (
+            share >= MIN_AGREEMENT
+            and _canon(lemma, lang).lower() != line.lower()
+            and not skipped(form, lemma, top_tags(pos[form]))
+        ):
             log.warning(
                 "%s: UD prefers %r over existing %r for %r (%d%% of %d)",
                 lang,
@@ -190,7 +218,7 @@ def main() -> None:
     if not train_paths:
         sys.exit(f"all -ud-train splits excluded for {lang!r}")
     per_treebank, pos = collect_candidates(train_paths, lang)
-    report_contradictions(per_treebank, lang)
+    report_contradictions(per_treebank, pos, lang)
     candidates = resolve_overrides(
         per_treebank, pos, lambda form: lemmatize(form, lang)
     )
