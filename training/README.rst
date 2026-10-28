@@ -44,7 +44,8 @@ error CSV per dataset.
 
 Each split has one role. **train** is used to mine overrides and sentence
 starters and to gate changes. It is never scored. **dev** and **test** are
-scored and never used for any decision. Train shows whether a change helps
+scored and gate nothing, except sentence-starter adoption on dev (see
+``sentencebuilder`` below). Train shows whether a change helps
 or hurts, but overstates by how much (up to 2x), so never report from it
 or rank candidates with it. A language without a train split is gated on
 dev, else test, with a WARNING. ``sw`` has no UD data at all.
@@ -129,23 +130,39 @@ base list when Wiktionary is thin (``ml`` Malayalam).
 Override lexicons
 ^^^^^^^^^^^^^^^^^
 
-``python3 -m training.build_override <code> [--in-place]`` mines an override
-lexicon from all of the language's UD train splits. A form qualifies with
-3 occurrences and 90% agreement (closed class) or 5 and 95% (open class),
-and is rejected if any single treebank with 3 or more occurrences prefers
-another lemma. Output goes to ``training/output/`` unless ``--in-place``
-rewrites ``training/overrides/<code>.tsv``. Shipping still requires a
-rebuild.
+``python3 -m training.build_override <code> [--exclude TREEBANK ...] [--in-place]``
+mines an override lexicon from the language's UD train splits, minus the
+excluded treebanks. A form qualifies with
+3 occurrences (closed class) or 5 (open class) and 60% agreement on its
+majority lemma. The lemma must beat the current output by 2 tokens, and
+lose tokens in no treebank with 3 or more occurrences. Proper nouns,
+adpositions, participles, underscore-joined lemmas and case-only changes are
+skipped as treebank conventions. Letterless lemmas are skipped as junk.
+A lowercase form with a cased lemma is skipped as a sentence-initial artifact.
+Existing rows that UD contradicts are logged, not changed.
+Output goes to ``training/output/`` unless ``--in-place`` rewrites
+``training/overrides/<code>.tsv``. Shipping still requires a rebuild.
 
-The committed files are the reviewed source of truth: derived from UD data
-plus review, never from the current dictionary. Rows the pipeline already
-reproduces are kept, so a re-mine after a UD bump merges cleanly. The miner
-is not gated: an override is the majority lemma of its form, so train
-accuracy can only rise.
+The committed files are the reviewed source of truth. Their lemmas come from
+UD data plus review. The current output only decides which forms need a row.
+Rows the pipeline already reproduces are kept, so a re-mine after a UD bump
+merges cleanly.
 
-``--in-place`` is deliberately lossy: multi-word forms are dropped and
-``grc``/``he``/``ar`` entries are rewritten into the canonical key space.
-Prefer the default run and diff it by hand.
+New rows can change the output of other forms, for instance a capitalized
+form that falls back to a new lowercase row. After the rebuild, mine again
+until nothing is added. Candidates rejected in review come back on every
+run. Removing a row needs a rebuild from the committed
+``.plzma``: a rebuild starts from the shipped file, so the key would stay.
+
+Only re-mine languages whose treebanks agree: rows mined from the other
+treebanks must improve each held-out one. As of 2026-10, this holds for
+``cs``, ``es``, ``et``, ``is``, ``it``, ``nl``, ``pl``, ``ru``, ``sl``,
+``sv`` and ``uk``, and for ``fr`` with ``--exclude fr_alts`` (Middle French).
+It fails for ``de``, ``fi``, ``la``, ``lt``, ``pt`` and ``ro``.
+
+``--in-place`` is deliberately lossy: multi-word forms are dropped, curly
+apostrophes are folded, and ``grc``/``he``/``ar`` entries are rewritten into
+the canonical key space. Prefer the default run and diff it by hand.
 
 
 Suffix rules
@@ -165,8 +182,8 @@ capitalized), ``hyphen=`` (skip hyphenated, ``HyphenRemovalStrategy``
 handles them earlier), ``excluded=`` (stoplist). lv picks between two tables
 by capitalization, de is hand-written, ru normalizes ё ahead of its table.
 
-``python3 -m training.rulebuilder <code>`` runs four functions and prints
-the precision/coverage report. Run them by hand for the judgment calls in
+``python3 -m training.rulebuilder <code>`` runs four functions, then
+``evaluate`` prints the precision/coverage report. Run them by hand for the judgment calls in
 between:
 
 1. ``mine(lang)``: candidate ``(suffix, target)`` pairs, each above the
