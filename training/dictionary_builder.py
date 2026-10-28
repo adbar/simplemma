@@ -9,20 +9,19 @@ import logging
 import re
 import sys
 import unicodedata
-from collections.abc import Mapping
+from collections.abc import Mapping, Set
 from functools import lru_cache
 from pathlib import Path
 
-from simplemma.tokenizer import simple_tokenizer
 from simplemma.strategies.dictionaries import dictionary_factory
-from training.frontcode_encode import _encode as _frontcode_encode
 from simplemma.strategies.dictionaries.dictionary_factory import (
-    SUPPORTED_LANGUAGES,
     _load_dictionary_from_disk,
 )
+from simplemma.tokenizer import simple_tokenizer
 from simplemma.utils import canonicalize_token, normalize_token
 from training.build_lang_config import BUILD_NORMALIZATION, JUNK_ENTRY_PREDICATES
 from training.clean_wordlist import canonicalize, check_field, read_pairs
+from training.frontcode_encode import _encode as _frontcode_encode
 
 # sw inflection is prefixal, so forms share an ending rather than a start.
 FRONTCODE_REVERSE_KEY_LANGS = {"sw"}
@@ -151,15 +150,17 @@ def _script_classes(word: str) -> frozenset[str]:
     return frozenset(s for s in map(_char_script, word) if s is not None)
 
 
-def _drop_junk_keys(mydict: dict[str, str], langcode: str) -> dict[str, str]:
-    """Drop entries matching the language's JUNK_ENTRY_PREDICATES entry."""
+def _drop_junk_keys(
+    mydict: dict[str, str], langcode: str, keep: Set[str] = frozenset()
+) -> dict[str, str]:
+    """Drop entries matching JUNK_ENTRY_PREDICATES[langcode], except `keep`."""
     predicate = JUNK_ENTRY_PREDICATES.get(langcode)
     if predicate is None:
         return mydict
     out = {
         k: v
         for k, v in mydict.items()
-        if not predicate(k, _script_classes(k), _script_classes(v))
+        if k in keep or not predicate(k, _script_classes(k), _script_classes(v))
     }
     if len(out) < len(mydict):
         LOGGER.info(
@@ -290,21 +291,8 @@ def _compose_from_base(
     mydict = _apply_build_normalization(mydict, langcode)
     mydict = _ensure_value_selfmaps(mydict)
     # After selfmaps, so identity keys planted for junk values get dropped too.
-    kept = _drop_junk_keys(mydict, langcode)
-    if len(kept) < len(mydict):
-        # Reviewed overrides outrank the junk predicates.
-        casualties = overrides.keys() & (mydict.keys() - kept.keys())
-        for key in casualties:
-            kept[key] = mydict[key]
-        if casualties:
-            LOGGER.info(
-                "%s: restored %d reviewed override entries the junk "
-                "filter had dropped: %s",
-                langcode,
-                len(casualties),
-                sorted(casualties)[:5],
-            )
-    return kept
+    # Reviewed overrides outrank the junk predicates.
+    return _drop_junk_keys(mydict, langcode, keep=overrides.keys())
 
 
 def _compose_dictionary(langcode: str) -> dict[str, str]:
@@ -377,7 +365,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
-    codes = args.langs or sorted(SUPPORTED_LANGUAGES)
+    codes = args.langs or sorted(dictionary_factory.SUPPORTED_LANGUAGES)
     if args.check:
         drifted = _drifted_languages(codes)
         if drifted:

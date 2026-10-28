@@ -2,6 +2,8 @@ import logging
 import sys
 from collections import Counter
 
+import pytest
+
 from training import build_override as bo
 from training import ud_conllu
 
@@ -68,24 +70,44 @@ def test_collect_candidates_skips_multiword_tokens(tmp_path):
     assert per_tb == [{"de": {"de": 1}, "el": {"el": 1}}]
 
 
-def _resolve(counts, pos=None):
+def _resolve(counts, pos=None, current=lambda form: "?"):
     counts = {f: Counter(c) for f, c in counts.items()}
     if pos is None:
         pos = {f: Counter({"PRON": 1}) for f in counts}
-    return bo.resolve_overrides([counts], pos)
+    return bo.resolve_overrides([counts], pos, current)
 
 
-def test_resolve_overrides_keeps_strong_majority():
+def test_resolve_overrides_keeps_majority_beating_output():
     assert _resolve({"el": {"el": 9, "ella": 1}}) == {"el": "el"}
+
+
+def test_resolve_overrides_drops_when_output_is_majority():
+    assert _resolve({"el": {"el": 9}}, current=lambda form: "el") == {}
+
+
+def test_resolve_overrides_drops_case_only_change():
+    pos = {"Roma": Counter({"NOUN": 1})}
+    assert _resolve({"Roma": {"roma": 9}}, pos, lambda form: form) == {}
 
 
 def test_resolve_overrides_drops_low_count():
     assert _resolve({"rare": {"rare": 2}}) == {}
 
 
-def test_resolve_overrides_drops_low_agreement():
-    # 60% agreement is below the closed-class 90% bar
-    assert _resolve({"se": {"se": 6, "el": 4}}) == {}
+def test_resolve_overrides_skips_underscore_lemmas():
+    assert _resolve({"keerde": {"terug_keren": 9}}) == {}
+    assert _resolve({"a_b": {"a_b": 9}}) == {"a_b": "a_b"}
+
+
+def test_resolve_overrides_agreement_floor():
+    assert _resolve({"se": {"se": 5, "el": 4}}) == {}  # 56%
+    assert _resolve({"se": {"se": 6, "el": 4}}) == {"se": "se"}  # 60%
+
+
+def test_resolve_overrides_needs_gain_over_output():
+    counts = {"se": {"se": 3, "el": 2}}
+    assert _resolve(counts, current=lambda form: "el") == {}
+    assert _resolve(counts) == {"se": "se"}
 
 
 def test_resolve_overrides_open_class_needs_more_evidence():
@@ -96,19 +118,26 @@ def test_resolve_overrides_open_class_needs_more_evidence():
     assert _resolve(pooled, pos=pos) == {"corre": "correr"}
 
 
+def test_resolve_overrides_skips_excluded_tags():
+    for tag in ("PROPN", "ADP", bo.PARTICIPLE):
+        assert _resolve({"dicho": {"decir": 9}}, {"dicho": Counter({tag: 9})}) == {}
+
+
 def test_resolve_overrides_per_treebank_veto():
-    """A treebank with >=3 attestations and another majority vetoes the pooled winner."""
+    """A treebank with >=3 attestations where the output beats the winner vetoes it."""
     agreeing = {"esse": Counter({"esse": 30})}
-    dissenting = {"esse": Counter({"sum": 3})}  # pooled: 91% agreement
-    assert (
-        bo.resolve_overrides([agreeing, dissenting], {"esse": Counter({"AUX": 1})})
-        == {}
-    )
+    dissenting = {"esse": Counter({"sum": 3})}
+    pos = {"esse": Counter({"AUX": 1})}
+    assert bo.resolve_overrides([agreeing, dissenting], pos, lambda f: "sum") == {}
+    # a dissent that the output does not share is no loss
+    assert bo.resolve_overrides([agreeing, dissenting], pos, lambda f: "?") == {
+        "esse": "esse"
+    }
     # under the veto threshold, the dissent does not count
     dissenting_weak = {"esse": Counter({"sum": 2})}
-    assert bo.resolve_overrides(
-        [agreeing, dissenting_weak], {"esse": Counter({"AUX": 1})}
-    ) == {"esse": "esse"}
+    assert bo.resolve_overrides([agreeing, dissenting_weak], pos, lambda f: "sum") == {
+        "esse": "esse"
+    }
 
 
 def test_main_end_to_end(tmp_path, monkeypatch, caplog):
@@ -124,6 +153,7 @@ def test_main_end_to_end(tmp_path, monkeypatch, caplog):
     (overrides / "zz.tsv").write_text("correr\tcorre\n", encoding="utf-8")
     monkeypatch.setattr(bo, "OVERRIDES_DIR", overrides)
     monkeypatch.setattr(bo, "OUTPUT_DIR", tmp_path / "output")
+    monkeypatch.setattr(bo, "lemmatize", lambda token, lang: token)
     monkeypatch.setattr(sys, "argv", ["build_override", "zz", "--in-place"])
 
     with caplog.at_level(logging.INFO, logger=bo.log.name):
@@ -133,6 +163,54 @@ def test_main_end_to_end(tmp_path, monkeypatch, caplog):
     expected = "correr\tcorre\ncorrer\tcorres\n"
     assert (tmp_path / "output" / "zz.tsv").read_text(encoding="utf-8") == expected
     assert (overrides / "zz.tsv").read_text(encoding="utf-8") == expected
+
+
+def test_main_excludes_treebanks(tmp_path, monkeypatch):
+    splits = tmp_path / "splits"
+    splits.mkdir()
+    kept = _conllu([[(1, "corres", "correr", "VERB")]] * 5)
+    vetoing = _conllu([[(1, "corres", "corres", "VERB")]] * 5)
+    (splits / "zz_x-ud-train.conllu").write_text(kept, encoding="utf-8")
+    (splits / "zz_y-ud-train.conllu").write_text(vetoing, encoding="utf-8")
+    monkeypatch.setattr(ud_conllu, "UD_SPLITS", splits)
+    monkeypatch.setattr(bo, "OVERRIDES_DIR", tmp_path)
+    monkeypatch.setattr(bo, "OUTPUT_DIR", tmp_path / "output")
+    monkeypatch.setattr(bo, "lemmatize", lambda token, lang: token)
+    monkeypatch.setattr(sys, "argv", ["build_override", "zz", "--exclude", "zz_y"])
+    bo.main()
+    assert (tmp_path / "output" / "zz.tsv").read_text(encoding="utf-8") == (
+        "correr\tcorres\n"
+    )
+
+
+def test_main_passes_lang_to_lemmatize(tmp_path, monkeypatch):
+    splits = tmp_path / "splits"
+    splits.mkdir()
+    train = _conllu([[(1, "corres", "correr", "VERB")]] * 5)
+    (splits / "zz_x-ud-train.conllu").write_text(train, encoding="utf-8")
+    monkeypatch.setattr(ud_conllu, "UD_SPLITS", splits)
+    monkeypatch.setattr(bo, "OVERRIDES_DIR", tmp_path)
+    monkeypatch.setattr(bo, "OUTPUT_DIR", tmp_path / "output")
+    calls = []
+    monkeypatch.setattr(
+        bo, "lemmatize", lambda token, lang: calls.append((token, lang)) or token
+    )
+    monkeypatch.setattr(sys, "argv", ["build_override", "zz"])
+    bo.main()
+    assert calls == [("corres", "zz")]
+
+
+def test_main_rejects_unknown_or_all_excluded(tmp_path, monkeypatch):
+    splits = tmp_path / "splits"
+    splits.mkdir()
+    (splits / "zz_x-ud-train.conllu").write_text(_conllu([]), encoding="utf-8")
+    monkeypatch.setattr(ud_conllu, "UD_SPLITS", splits)
+    for excluded, message in (("zz_typo", "unknown treebanks"), ("zz_x", "all")):
+        monkeypatch.setattr(
+            sys, "argv", ["build_override", "zz", "--exclude", excluded]
+        )
+        with pytest.raises(SystemExit, match=message):
+            bo.main()
 
 
 def test_merge_with_existing_keeps_reviewed_entries(tmp_path):
@@ -169,14 +247,34 @@ def test_resolve_overrides_ties_are_insertion_order_independent():
     for pos_counts in ({"AUX": 3, "VERB": 3}, {"VERB": 3, "AUX": 3}):
         pooled = {"es": Counter({"ser": 4})}
         pos = {"es": Counter(pos_counts)}
-        assert bo.resolve_overrides([pooled], pos) == {}  # open bar needs >=5
-    # an evenly split treebank is ambivalent, not dissenting: no veto
+        assert bo.resolve_overrides([pooled], pos, lambda f: "?") == {}
+    # an evenly split treebank loses nothing: no veto
     agreeing = {"esse": Counter({"esse": 30})}
     for split_counts in ({"esse": 3, "sum": 3}, {"sum": 3, "esse": 3}):
         split_tb = {"esse": Counter(split_counts)}
         assert bo.resolve_overrides(
-            [agreeing, split_tb], {"esse": Counter({"AUX": 1})}
+            [agreeing, split_tb], {"esse": Counter({"AUX": 1})}, lambda f: "sum"
         ) == {"esse": "esse"}
+
+
+def test_collect_candidates_tags_participles(tmp_path):
+    text = "1\tdicho\tdecir\tADJ\t_\tVerbForm=Part\t0\troot\t_\t_\n\n"
+    _, pos = _collect(tmp_path, "es", [text])
+    assert pos["dicho"] == {bo.PARTICIPLE: 1}
+
+
+def test_report_contradictions_warns(tmp_path, caplog):
+    (tmp_path / "es.tsv").write_text("ser\tes\nel\tel\nRoma\tRoma\n", encoding="utf-8")
+    counts = {
+        "es": Counter({"estar": 5}),
+        "el": Counter({"el": 5}),
+        "Roma": Counter({"roma": 5}),
+    }
+    with caplog.at_level(logging.WARNING, logger=bo.log.name):
+        bo.report_contradictions([counts], "es", tmp_path)
+    assert "'estar' over existing 'ser' for 'es'" in caplog.text
+    assert "for 'el'" not in caplog.text
+    assert "for 'Roma'" not in caplog.text  # case-only, left to the runtime
 
 
 def test_merge_with_existing_warns_on_candidate_collision(tmp_path, caplog):

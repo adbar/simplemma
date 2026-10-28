@@ -12,6 +12,7 @@ x.x.x (unreleased)
 - Hyphenated tokens keep their head (Mail-Clients -> Mail-Client), the joined-form lookup is removed
 - Suffix rules also apply to hyphenated tokens (gramaticko-lexikálních -> gramaticko-lexikální)
 - German and Russian prefix lists removed (negligible accuracy impact), Ukrainian kept
+- Correction lists fixed and extended for 25 languages, largest gains for is, gd and ru
 - Breaking: ``fallback_lemmatization_strategy`` replaced by ``fallback``, a plain ``(token, lang) -> str`` callable,
   and the ``simplemma.strategies.fallback`` subpackage is removed
 - Breaking: ``ApostropheBoundaryStrategy`` removed, folded into ``DefaultStrategy``

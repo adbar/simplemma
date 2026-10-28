@@ -15,7 +15,7 @@ from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
 
-from training.clean_wordlist import pair_violation, write_pairs
+from training.clean_wordlist import write_pairs
 
 log = logging.getLogger(__name__)
 
@@ -109,17 +109,6 @@ def drop_ambiguous(
     return kept, stats
 
 
-def drop_junk_pairs(
-    pairs: Iterable[tuple[str, str]],
-) -> tuple[list[tuple[str, str]], dict[str, int]]:
-    """Drop pairs clean_wordlist.read_pairs would reject."""
-    all_pairs = list(pairs)
-    kept = [
-        (lemma, form) for lemma, form in all_pairs if not pair_violation(lemma, form)
-    ]
-    return kept, {"total": len(all_pairs), "kept": len(kept)}
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("lang", choices=sorted(LANGUAGE_QIDS))
@@ -141,9 +130,6 @@ def main() -> None:
 
     kept_pairs, ambiguity_stats = drop_ambiguous(raw_pairs)
     log.info(f"Ambiguity filter: {ambiguity_stats}")
-
-    kept_pairs, junk_stats = drop_junk_pairs(kept_pairs)
-    log.info(f"Junk filter: {junk_stats}")
 
     count = write_pairs(kept_pairs, args.output)
     log.info(f"Wrote {count} pairs to {args.output}")

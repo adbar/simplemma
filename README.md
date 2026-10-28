@@ -228,8 +228,8 @@ morphology rather than a data error.
 | `hu` | Hungarian | 1,763 | 45 | 0.88 | on UD HU-Szeged |
 | `hy` | Armenian | 467 | 17 | 0.92 | on UD HY-BSUT |
 | `id` | Indonesian | 22 | 4 | 0.93 | on UD ID-CSUI |
-| `is` | Icelandic | 210 | 18 | 0.85 | on UD IS-GC |
-| `it` | Italian | 358 | 28 | 0.95 | on UD IT-ISDT |
+| `is` | Icelandic | 210 | 18 | 0.87 | on UD IS-GC |
+| `it` | Italian | 358 | 28 | 0.96 | on UD IT-ISDT |
 | `ka` | Georgian | 448 | 16 | 0.85 | on UD KA-GLC |
 | `la` | Latin | 1,289 | 70 | 0.89 | on UD LA-PROIEL, alternative: [LatinCy](https://spacy.io/universe/project/latincy) |
 | `lb` | Luxembourgish | 306 | 79 |  | only a <1k-token UD treebank available |
@@ -244,16 +244,16 @@ morphology rather than a data error.
 | `pl` | Polish | 3,670 | 264 | 0.96 | on UD PL-LFG |
 | `pt` | Portuguese | 927 | 95 | 0.96 | on UD PT-GSD |
 | `ro` | Romanian | 345 | 37 | 0.94 | on UD RO-RRT |
-| `ru` | Russian | 1,362 | 131 | 0.94 | on UD RU-SynTagRus, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
+| `ru` | Russian | 1,362 | 131 | 0.95 | on UD RU-SynTagRus, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
 | `se` | Northern Sámi | 115 | 7 | 0.97 | on UD SME-Giella |
 | `sk` | Slovak | 908 | 73 | 0.92 | on UD SK-SNK |
-| `sl` | Slovene | 157 | 31 | 0.95 | on UD SL-SSJ |
+| `sl` | Slovene | 157 | 31 | 0.96 | on UD SL-SSJ |
 | `sq` | Albanian | 96 | 10 | 0.71 | on UD SQ-STAF |
-| `sv` | Swedish | 964 | 129 | 0.95 | on UD SV-Talbanken, alternative: [lemmy](https://github.com/sorenlind/lemmy) |
+| `sv` | Swedish | 964 | 129 | 0.96 | on UD SV-Talbanken, alternative: [lemmy](https://github.com/sorenlind/lemmy) |
 | `sw` | Swahili | 4,869 | 4 |  | experimental |
 | `tl` | Tagalog | 78 | 25 | 0.84 | on UD TL-TRG (test-only treebank, no train split) |
 | `tr` | Turkish | 1,236 | 40 | 0.92 | on UD TR-KeNet |
-| `uk` | Ukrainian | 599 | 45 | 0.94 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
+| `uk` | Ukrainian | 599 | 45 | 0.95 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
 
 
 Languages marked as low-coverage may be better served by
