@@ -95,6 +95,31 @@ def test_resolve_overrides_skips_cased_lemma_of_lowercase_form():
     assert _resolve({"baron": {"Baron": 9}}, pos) == {}
 
 
+def test_majority_merges_case_variants():
+    assert bo.majority(Counter({"der": 4, "Der": 3, "das": 2})) == ("der", 7 / 9)
+
+
+def test_resolve_overrides_skips_lowercase_lemma_contradicted_by_lowercase_form():
+    counts = {"Premios": {"premios": 9}, "premios": {"premio": 9}}
+    pos = {f: Counter({"NOUN": 1}) for f in counts}
+    assert _resolve(counts, pos, lambda form: "x") == {"premios": "premio"}
+
+
+def test_resolve_overrides_keeps_cased_selfmap_despite_lowercase_form():
+    counts = {"OS": {"OS": 9}, "os": {"osa": 9}}
+    pos = {f: Counter({"NOUN": 1}) for f in counts}
+    assert _resolve(counts, pos, lambda form: "x") == {"OS": "OS", "os": "osa"}
+
+
+def test_resolve_overrides_keeps_lowercase_lemma_with_other_pos_reading():
+    counts = {"Stato": {"stato": 9}, "stato": {"essere": 9}}
+    pos = {"Stato": Counter({"NOUN": 1}), "stato": Counter({"AUX": 1})}
+    assert _resolve(counts, pos, lambda form: "x") == {
+        "Stato": "stato",
+        "stato": "essere",
+    }
+
+
 def test_resolve_overrides_veto_counts_lemma_up_to_case():
     per_tb = [
         {"es": Counter({"ser": 10})},
@@ -203,7 +228,7 @@ def test_main_excludes_treebanks(tmp_path, monkeypatch):
     monkeypatch.setattr(bo, "OVERRIDES_DIR", tmp_path)
     monkeypatch.setattr(bo, "OUTPUT_DIR", tmp_path / "output")
     monkeypatch.setattr(bo, "lemmatize", lambda token, lang: token)
-    monkeypatch.setattr(sys, "argv", ["build_override", "zz", "--exclude", "zz_y"])
+    monkeypatch.setattr(sys, "argv", ["build_override", "--exclude", "zz_y", "zz"])
     bo.main()
     assert (tmp_path / "output" / "zz.tsv").read_text(encoding="utf-8") == (
         "correr\tcorres\n"
@@ -308,6 +333,16 @@ def test_report_contradictions_warns(tmp_path, caplog):
     assert "for 'el'" not in caplog.text
     assert "for 'Roma'" not in caplog.text  # case-only, left to the runtime
     assert "for 'Juan'" not in caplog.text  # skipped tag, as in mining
+
+
+def test_report_contradictions_once_per_key_with_closed_class_bar(tmp_path, caplog):
+    """Raw spellings folding to one key warn once, closed classes at their own bar."""
+    (tmp_path / "he.tsv").write_text("לום\tשלום\n", encoding="utf-8")
+    counts = {"שָׁלוֹם": Counter({"אחר": 3}), "שלום": Counter({"אחר": 3})}
+    pos = {form: Counter({"PRON": 3}) for form in counts}
+    with caplog.at_level(logging.WARNING, logger=bo.log.name):
+        bo.report_contradictions([counts], pos, "he", tmp_path)
+    assert caplog.text.count("over existing 'לום'") == 1
 
 
 def test_merge_with_existing_warns_on_candidate_collision(tmp_path, caplog):

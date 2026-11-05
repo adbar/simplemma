@@ -4,7 +4,7 @@ A form gets its majority lemma when the pooled evidence clears its POS-class
 bar and the lemma beats the current output, overall and in every
 often-attesting treebank. Shipping still requires a dictionary rebuild.
 
-Usage: uv run python -m training.build_override <lang> [--exclude TREEBANK ...] [--in-place]
+Usage: uv run python -m training.build_override <lang> [--exclude TREEBANK]... [--in-place]
 """
 
 import argparse
@@ -29,7 +29,7 @@ MIN_AGREEMENT = 0.6
 MIN_GAIN = 2
 TREEBANK_MIN_COUNT = 3
 # Left to runtime casing and treebank conventions.
-PARTICIPLE = "Part"
+PARTICIPLE = "VerbForm=Part"
 EXCLUDED_TAGS = frozenset({"PROPN", "ADP", PARTICIPLE})
 
 OUTPUT_DIR = Path(__file__).parent / "output"
@@ -67,8 +67,12 @@ def pool(per_treebank: list[Counts]) -> Counts:
 
 
 def majority(counts: Counter[str]) -> tuple[str, float]:
-    """Majority lemma and its share, ties broken deterministically."""
-    top, lemma = max((n, lem) for lem, n in counts.items())
+    """Majority lemma up to case, in its most frequent casing, and its share."""
+    folded: Counter[str] = Counter()
+    for lem, n in counts.items():
+        folded[lem.lower()] += n
+    top, key = max((n, k) for k, n in folded.items())
+    _, lemma = max((n, lem) for lem, n in counts.items() if lem.lower() == key)
     return lemma, top / sum(counts.values())
 
 
@@ -92,6 +96,23 @@ def skipped(form: str, lemma: str, tags: set[str]) -> bool:
     )
 
 
+def min_count(tags: set[str]) -> int:
+    return CLOSED_MIN_COUNT if tags <= CLOSED_CLASS_POS else OPEN_MIN_COUNT
+
+
+def contradicts_lowercase(
+    form: str, lemma: str, tags: set[str], pooled: Counts, pos: Counts
+) -> bool:
+    """Lemma is the lowercased form, but that form has another majority lemma."""
+    lower = form.lower()
+    return (
+        lemma == lower
+        and lower in pooled
+        and bool(top_tags(pos[lower]) & tags)
+        and majority(pooled[lower])[0].lower() != lower
+    )
+
+
 def resolve_overrides(
     per_treebank: list[Counts], pos: Counts, current: Callable[[str], str]
 ) -> dict[str, str]:
@@ -101,14 +122,15 @@ def resolve_overrides(
     tag. Lemma and output count up to case, and case-only changes are left to
     the runtime."""
     overrides = {}
-    for form, counts in pool(per_treebank).items():
+    pooled = pool(per_treebank)
+    for form, counts in pooled.items():
         lemma, share = majority(counts)
         tags = top_tags(pos[form])
-        min_count = CLOSED_MIN_COUNT if tags <= CLOSED_CLASS_POS else OPEN_MIN_COUNT
         if (
-            sum(counts.values()) < min_count
+            sum(counts.values()) < min_count(tags)
             or share < MIN_AGREEMENT
             or skipped(form, lemma, tags)
+            or contradicts_lowercase(form, lemma, tags, pooled, pos)
         ):
             continue
         output = current(form)
@@ -137,22 +159,26 @@ def report_contradictions(
     """Warn on existing entries whose form has another clear, unskipped UD majority."""
     path = (overrides_dir or OVERRIDES_DIR) / f"{lang}.tsv"
     existing = _layer_entries(path, lang) if path.exists() else {}
+    reported = set()
     for form, counts in sorted(pool(per_treebank).items()):
-        line = existing.get(_canon(form, lang))
+        key = _canon(form, lang)
+        existing_lemma = existing.get(key)
         total = sum(counts.values())
-        if line is None or total < OPEN_MIN_COUNT:
+        tags = top_tags(pos[form])
+        if existing_lemma is None or key in reported or total < min_count(tags):
             continue
         lemma, share = majority(counts)
         if (
             share >= MIN_AGREEMENT
-            and _canon(lemma, lang).lower() != line.lower()
-            and not skipped(form, lemma, top_tags(pos[form]))
+            and _canon(lemma, lang).lower() != existing_lemma.lower()
+            and not skipped(form, lemma, tags)
         ):
+            reported.add(key)
             log.warning(
                 "%s: UD prefers %r over existing %r for %r (%d%% of %d)",
                 lang,
                 lemma,
-                line,
+                existing_lemma,
                 form,
                 round(100 * share),
                 total,
@@ -200,10 +226,10 @@ def main() -> None:
     )
     parser.add_argument(
         "--exclude",
-        nargs="+",
+        action="append",
         default=[],
         metavar="TREEBANK",
-        help="Treebanks to leave out, e.g. fr_alts.",
+        help="Treebank to leave out, e.g. fr_alts. Repeatable.",
     )
     args = parser.parse_args()
     lang = args.lang
