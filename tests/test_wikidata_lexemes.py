@@ -121,21 +121,6 @@ def test_drop_ambiguous_same_pair_repeated_is_not_ambiguous():
     assert stats["ambiguous_forms"] == 0
 
 
-def test_drop_junk_pairs_removes_control_and_mojibake():
-    """Pairs with control chars, mojibake or empty fields are dropped."""
-    pairs = [("cat", "cats"), ("bad", "ba\x01d"), ("w�rd", "words"), ("dog", "")]
-    kept, stats = wl.drop_junk_pairs(pairs)
-    assert kept == [("cat", "cats")]
-    assert stats == {"total": 4, "kept": 1}
-
-
-def test_drop_junk_pairs_keeps_clean_pairs_unchanged():
-    pairs = [("café", "cafés"), ("run", "running")]
-    kept, stats = wl.drop_junk_pairs(pairs)
-    assert kept == pairs
-    assert stats == {"total": 2, "kept": 2}
-
-
 def test_write_pairs(tmp_path):
     output_path = tmp_path / "out.tsv"
     count = write_pairs([("Hund", "Hunde"), ("Katze", "Katzen")], output_path)

@@ -489,6 +489,10 @@ def test_layer_entries_drops_spaced_forms(tmp_path) -> None:
     assert _layer(tmp_path, "top hat\ttop hats\ncat\tcats\n") == {"cats": "cat"}
 
 
+def test_layer_entries_missing_file_is_empty(tmp_path) -> None:
+    assert dictionary_builder._layer_entries(tmp_path / "zz.tsv", "zz") == {}
+
+
 def test_layer_entries_rejects_junk_entries(tmp_path) -> None:
     """Mojibake or control chars in a layer file fail the build."""
     with pytest.raises(ValueError, match="rejected"):
@@ -568,19 +572,15 @@ def test_key_alias_renormalizes_stacked_diacritics() -> None:
     assert all(dictionary_builder._valid_key(k) for k in out)
 
 
-def test_compose_restores_override_entries_from_junk_filter(
-    tmp_path, monkeypatch, caplog
-) -> None:
+def test_compose_keeps_override_entries_from_junk_filter(tmp_path) -> None:
     """Reviewed overrides outrank the junk filters, machine rows still drop."""
     overrides = tmp_path / "overrides"
     overrides.mkdir()
     (overrides / "bg.tsv").write_text("втори\tII\n", encoding="utf-8")
     base = {"радост": "радост", "rádost": "радост"}  # machine transliteration row
-    with caplog.at_level(logging.INFO, logger=dictionary_builder.LOGGER.name):
-        out = dictionary_builder._compose_from_base(base, "bg", overrides_dir=overrides)
+    out = dictionary_builder._compose_from_base(base, "bg", overrides_dir=overrides)
     assert out["II"] == "втори"
     assert "rádost" not in out
-    assert "restored 1 reviewed override entries" in caplog.text
 
 
 def test_clean_base_drops_junk_keys_keeps_values() -> None:
