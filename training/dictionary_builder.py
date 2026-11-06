@@ -42,7 +42,9 @@ def _canon(text: str, langcode: str) -> str:
 def _layer_entries(path: Path, langcode: str) -> dict[str, str]:
     """A curated lemma<TAB>form file as a canonicalized form to lemma mapping.
 
-    Entries with a spaced form or lemma are skipped."""
+    Entries with a spaced form or lemma are skipped. A missing file is empty."""
+    if not path.exists():
+        return {}
     pairs = read_pairs(path)
     spaceless = {
         form: lemma
@@ -281,9 +283,7 @@ def _compose_from_base(
 ) -> dict[str, str]:
     """The pipeline after the base."""
     override_path = (overrides_dir or OVERRIDES_DIR) / f"{langcode}.tsv"
-    overrides = (
-        _layer_entries(override_path, langcode) if override_path.exists() else {}
-    )
+    overrides = _layer_entries(override_path, langcode)
     mydict = {**base, **overrides}
     if overrides:
         LOGGER.info("%s: override layer applied -> %s entries", langcode, len(mydict))

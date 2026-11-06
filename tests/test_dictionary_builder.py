@@ -489,6 +489,10 @@ def test_layer_entries_drops_spaced_forms(tmp_path) -> None:
     assert _layer(tmp_path, "top hat\ttop hats\ncat\tcats\n") == {"cats": "cat"}
 
 
+def test_layer_entries_missing_file_is_empty(tmp_path) -> None:
+    assert dictionary_builder._layer_entries(tmp_path / "zz.tsv", "zz") == {}
+
+
 def test_layer_entries_rejects_junk_entries(tmp_path) -> None:
     """Mojibake or control chars in a layer file fail the build."""
     with pytest.raises(ValueError, match="rejected"):

@@ -35,12 +35,16 @@ EXCLUDED_TAGS = frozenset({"PROPN", "ADP", PARTICIPLE})
 OUTPUT_DIR = Path(__file__).parent / "output"
 
 Counts = dict[str, Counter[str]]
+Tags = dict[str, set[str]]
 
 
-def collect_candidates(
-    train_paths: list[Path], lang: str
-) -> tuple[list[Counts], Counts]:
-    """Form to lemma counts per treebank, and form to POS counts.
+def top_tags(pos_counts: Counter[str]) -> set[str]:
+    top = max(pos_counts.values())
+    return {tag for tag, n in pos_counts.items() if n == top}
+
+
+def collect_candidates(train_paths: list[Path], lang: str) -> tuple[list[Counts], Tags]:
+    """Form to lemma counts per treebank, and form to top POS tags, in key space.
 
     Participles count under PARTICIPLE instead of their UPOS."""
     pos: defaultdict[str, Counter[str]] = defaultdict(Counter)
@@ -50,12 +54,13 @@ def collect_candidates(
         for form, token in iter_word_tokens(path, lang):
             if not any(ch.isalpha() for ch in form):
                 continue
-            counts[form][token["lemma"]] += 1
+            form = _canon(form, lang)
+            counts[form][_canon(token["lemma"], lang)] += 1
             feats = token["feats"] or {}
             tag = PARTICIPLE if feats.get("VerbForm") == "Part" else token["upos"]
             pos[form][tag] += 1
         per_treebank.append(dict(counts))
-    return per_treebank, dict(pos)
+    return per_treebank, {form: top_tags(counts) for form, counts in pos.items()}
 
 
 def pool(per_treebank: list[Counts]) -> Counts:
@@ -81,18 +86,15 @@ def votes(counts: Counter[str], lemma: str) -> int:
     return sum(n for lem, n in counts.items() if lem.lower() == lemma.lower())
 
 
-def top_tags(pos_counts: Counter[str]) -> set[str]:
-    top = max(pos_counts.values())
-    return {tag for tag, n in pos_counts.items() if n == top}
-
-
 def skipped(form: str, lemma: str, tags: set[str]) -> bool:
-    """Excluded tag, sentence-initial artifact, multiword or letterless lemma."""
+    """Excluded tag, sentence-initial artifact, multiword, letterless or unshippable."""
     return bool(
         tags & EXCLUDED_TAGS
         or (form == form.lower() and lemma != lemma.lower())
         or ("_" in lemma and "_" not in form)
         or not any(ch.isalpha() for ch in lemma)
+        or " " in form + lemma
+        or pair_violation(lemma, form)
     )
 
 
@@ -100,21 +102,33 @@ def min_count(tags: set[str]) -> int:
     return CLOSED_MIN_COUNT if tags <= CLOSED_CLASS_POS else OPEN_MIN_COUNT
 
 
+def clear_majority(form: str, counts: Counter[str], tags: set[str]) -> str | None:
+    """Majority lemma if it clears the bars and is not skipped, else None."""
+    lemma, share = majority(counts)
+    if (
+        sum(counts.values()) < min_count(tags)
+        or share < MIN_AGREEMENT
+        or skipped(form, lemma, tags)
+    ):
+        return None
+    return lemma
+
+
 def contradicts_lowercase(
-    form: str, lemma: str, tags: set[str], pooled: Counts, pos: Counts
+    form: str, lemma: str, tags: set[str], pooled: Counts, form_tags: Tags
 ) -> bool:
     """Lemma is the lowercased form, but that form has another majority lemma."""
     lower = form.lower()
     return (
         lemma == lower
         and lower in pooled
-        and bool(top_tags(pos[lower]) & tags)
+        and bool(form_tags[lower] & tags)
         and majority(pooled[lower])[0].lower() != lower
     )
 
 
 def resolve_overrides(
-    per_treebank: list[Counts], pos: Counts, current: Callable[[str], str]
+    per_treebank: list[Counts], form_tags: Tags, current: Callable[[str], str]
 ) -> dict[str, str]:
     """Pooled majority lemma per form, kept if it clears the bar and beats `current`.
 
@@ -124,26 +138,19 @@ def resolve_overrides(
     overrides = {}
     pooled = pool(per_treebank)
     for form, counts in pooled.items():
-        lemma, share = majority(counts)
-        tags = top_tags(pos[form])
-        if (
-            sum(counts.values()) < min_count(tags)
-            or share < MIN_AGREEMENT
-            or skipped(form, lemma, tags)
-            or contradicts_lowercase(form, lemma, tags, pooled, pos)
-        ):
+        tags = form_tags[form]
+        lemma = clear_majority(form, counts, tags)
+        if lemma is None or contradicts_lowercase(form, lemma, tags, pooled, form_tags):
             continue
         output = current(form)
-        if (
-            lemma.lower() == output.lower()
-            or votes(counts, lemma) - votes(counts, output) < MIN_GAIN
-        ):
-            continue
-        if any(
-            sum(tb[form].values()) >= TREEBANK_MIN_COUNT
-            and votes(tb[form], lemma) < votes(tb[form], output)
+
+        def gain(c: Counter[str]) -> int:
+            return votes(c, lemma) - votes(c, output)
+
+        if gain(counts) < MIN_GAIN or any(
+            sum(c.values()) >= TREEBANK_MIN_COUNT and gain(c) < 0
             for tb in per_treebank
-            if form in tb
+            if (c := tb.get(form))
         ):
             continue
         overrides[form] = lemma
@@ -151,68 +158,22 @@ def resolve_overrides(
 
 
 def report_contradictions(
-    per_treebank: list[Counts],
-    pos: Counts,
-    lang: str,
-    overrides_dir: Path | None = None,
+    pooled: Counts, form_tags: Tags, existing: dict[str, str], lang: str
 ) -> None:
-    """Warn on existing entries whose form has another clear, unskipped UD majority."""
-    path = (overrides_dir or OVERRIDES_DIR) / f"{lang}.tsv"
-    existing = _layer_entries(path, lang) if path.exists() else {}
-    reported = set()
-    for form, counts in sorted(pool(per_treebank).items()):
-        key = _canon(form, lang)
-        existing_lemma = existing.get(key)
-        total = sum(counts.values())
-        tags = top_tags(pos[form])
-        if existing_lemma is None or key in reported or total < min_count(tags):
-            continue
-        lemma, share = majority(counts)
-        if (
-            share >= MIN_AGREEMENT
-            and _canon(lemma, lang).lower() != existing_lemma.lower()
-            and not skipped(form, lemma, tags)
-        ):
-            reported.add(key)
+    """Warn on existing entries whose form has another clear UD majority."""
+    for form in sorted(existing.keys() & pooled.keys()):
+        counts = pooled[form]
+        lemma = clear_majority(form, counts, form_tags[form])
+        if lemma is not None and lemma.lower() != existing[form].lower():
             log.warning(
                 "%s: UD prefers %r over existing %r for %r (%d%% of %d)",
                 lang,
                 lemma,
-                existing_lemma,
+                existing[form],
                 form,
-                round(100 * share),
-                total,
+                round(100 * majority(counts)[1]),
+                sum(counts.values()),
             )
-
-
-def merge_with_existing(
-    candidates: dict[str, str], lang: str, overrides_dir: Path | None = None
-) -> tuple[dict[str, str], int]:
-    """Merge canonicalized candidates under existing entries, return (merged, n_added).
-
-    Candidates that read_pairs would reject are skipped."""
-    path = (overrides_dir or OVERRIDES_DIR) / f"{lang}.tsv"
-    existing = _layer_entries(path, lang) if path.exists() else {}
-    added = 0
-    merged = dict(existing)
-    for form, lemma in candidates.items():
-        cform = _canon(form, lang)
-        clemma = _canon(lemma, lang)
-        if " " in cform or " " in clemma or pair_violation(clemma, cform):
-            continue
-        if cform in merged:
-            if cform not in existing and merged[cform] != clemma:
-                log.warning(
-                    "%s: candidates collide on canonical key %r: kept %r, dropped %r",
-                    lang,
-                    cform,
-                    merged[cform],
-                    clemma,
-                )
-            continue
-        merged[cform] = clemma
-        added += 1
-    return merged, added
 
 
 def main() -> None:
@@ -241,25 +202,24 @@ def main() -> None:
     if unknown:
         sys.exit(f"unknown treebanks for {lang!r}: {', '.join(sorted(unknown))}")
     train_paths = [path for path in all_paths if dataset_name(path) not in args.exclude]
-    if not train_paths:
-        sys.exit(f"all -ud-train splits excluded for {lang!r}")
-    per_treebank, pos = collect_candidates(train_paths, lang)
-    report_contradictions(per_treebank, pos, lang)
+    per_treebank, form_tags = collect_candidates(train_paths, lang)
+    path = OVERRIDES_DIR / f"{lang}.tsv"
+    existing = _layer_entries(path, lang)
+    report_contradictions(pool(per_treebank), form_tags, existing, lang)
     candidates = resolve_overrides(
-        per_treebank, pos, lambda form: lemmatize(form, lang)
+        per_treebank, form_tags, lambda form: lemmatize(form, lang)
     )
-    merged, n_added = merge_with_existing(candidates, lang)
-    log.info(f"{lang}: {n_added} new entries over {len(merged) - n_added} existing")
+    merged = candidates | existing
+    n_added = len(merged) - len(existing)
+    log.info(f"{lang}: {n_added} new entries over {len(existing)} existing")
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     out_path = OUTPUT_DIR / f"{lang}.tsv"
     write_pairs(((lemma, form) for form, lemma in sorted(merged.items())), out_path)
     log.info(f"candidate written to {out_path}")
     if args.in_place:
-        shutil.copy(out_path, OVERRIDES_DIR / f"{lang}.tsv")
-        log.info(
-            f"updated {OVERRIDES_DIR / f'{lang}.tsv'} -- rebuild the dictionary to ship"
-        )
+        shutil.copy(out_path, path)
+        log.info(f"updated {path} -- rebuild the dictionary to ship")
 
 
 if __name__ == "__main__":

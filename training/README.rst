@@ -132,16 +132,16 @@ Override lexicons
 
 ``python3 -m training.build_override <code> [--exclude TREEBANK ...] [--in-place]``
 mines an override lexicon from the language's UD train splits, minus the
-excluded treebanks. A form qualifies with
-3 occurrences (closed class) or 5 (open class) and 60% agreement on its
-majority lemma. The lemma must beat the current output by 2 tokens, and
-lose tokens in no treebank with 3 or more occurrences. Proper nouns,
-adpositions, participles, underscore-joined lemmas and case-only changes are
-skipped as treebank conventions. Letterless lemmas are skipped as junk.
-A lowercase form with a cased lemma is skipped as a sentence-initial artifact.
-Existing rows that UD contradicts are logged, not changed.
-Output goes to ``training/output/`` unless ``--in-place`` rewrites
-``training/overrides/<code>.tsv``. Shipping still requires a rebuild.
+excluded treebanks. A form qualifies with 3 occurrences (closed class) or 5
+(open class) and 60% agreement on its majority lemma. The lemma must beat
+the current output by 2 tokens, and lose tokens in no treebank with 3 or
+more occurrences. Proper nouns, adpositions, participles, underscore-joined
+lemmas and case-only changes are skipped as treebank conventions. Letterless
+lemmas are skipped as junk. A lowercase form with a cased lemma is skipped
+as a sentence-initial artifact. Existing rows that UD contradicts are
+logged, not changed. Output goes to ``training/output/`` unless
+``--in-place`` rewrites ``training/overrides/<code>.tsv``. Shipping still
+requires a rebuild.
 
 The committed files are the reviewed source of truth. Their lemmas come from
 UD data plus review. The current output only decides which forms need a row.
@@ -183,8 +183,8 @@ handles them earlier), ``excluded=`` (stoplist). lv picks between two tables
 by capitalization, de is hand-written, ru normalizes ё ahead of its table.
 
 ``python3 -m training.rulebuilder <code>`` runs four functions, then
-``evaluate`` prints the precision/coverage report. Run them by hand for the judgment calls in
-between:
+``evaluate`` prints the precision/coverage report. Run them by hand for the
+judgment calls in between:
 
 1. ``mine(lang)``: candidate ``(suffix, target)`` pairs, each above the
    precision and support bar.
