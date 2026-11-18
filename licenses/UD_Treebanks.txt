@@ -2,8 +2,9 @@ Universal Dependencies treebanks, release 2.19 (https://universaldependencies.or
 
 The correction lists in training/overrides/ and the sentence starters in
 simplemma/sentences.py (cs, de, fr, nl, pt) are mined from the train splits
-listed below, under their own licenses. Only CC BY and CC BY-SA treebanks are
-used, except for Ancient Greek (grc) and Latin (la), where CC BY-NC-SA
+listed below, under their own licenses. Only CC BY, CC BY-SA, CC0 and
+public-domain treebanks are used, except for Ancient Greek (grc) and Latin
+(la), where CC BY-NC-SA
 treebanks are also used. Data derived from them is restricted to
 non-commercial use under the terms of that license. For commercial use,
 delete grc.plzma and la.plzma from simplemma/strategies/dictionaries/data/,

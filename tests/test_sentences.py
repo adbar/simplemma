@@ -61,6 +61,11 @@ def test_abbreviations_and_starter_arbitration() -> None:
         "Er kauft die Firma u. a.",
         "Die Preise steigen.",
     ]
+    # trailing punctuation does not hide the starter
+    assert split_sentences("Er kauft die Firma u. a. Aber, sie zahlt.", "de") == [
+        "Er kauft die Firma u. a.",
+        "Aber, sie zahlt.",
+    ]
 
 
 def test_no_arbitration_after_initials() -> None:

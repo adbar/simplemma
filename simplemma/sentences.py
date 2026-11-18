@@ -11,6 +11,7 @@ _TERMINATORS = {None: ".!?…։؟।॥", "el": ".!?…;\u037e"}
 _STRONG_TERMINATORS = "?!;\u037e"
 _CLOSERS = "\"'”’»)]"
 _EDGE = "(["  # stripped for the abbreviation lookup only, not quotes
+_STARTER_TRAIL = ",:;.-"  # stripped for the starter lookup
 _EMPTY: frozenset[str] = frozenset()
 _PARAGRAPH = re.compile(r"\n\s*\n")
 _WORD = re.compile(r"\S+")
@@ -33,21 +34,21 @@ _ABBREVS = {
 _STARTERS = {
     "cs": frozenset(
         "a admitanční ale aproximační automobil automobily byl byla bylo "
-        "během celkový další dalším dalšími dnes do dodáno dosadíme- dosud "
-        "druhou dále funkce fázový generální horní i impedanční je je- jeho "
-        "jejich její jen jenže ještě jiný jsou jízda k když klad, koncem "
-        "kontrolu kromě křivka letošní lze minimalizace mnoho můžeme na "
-        "naproti naše nechť nejvyšší největší není nové nyní nákupní o oba od "
-        "odměny pak peníze plnění plán po podle podobně pokud počet pracovní "
-        "praha praha. prakticky prkna pro proto protože provedou průměrná "
-        "předpokladem přehled přezkoušeli při přitom případ příprava "
-        "přítomni: s samozřejmě soudruh soutěž současně stal stavba střední "
-        "takové také tam tato tehdy tento termín to topidla toto tyto tím "
-        "tímto těžké třetí u ukládá v ve vedení vedle vedoucí velikost velmi "
-        "vidíme, vodárna vraťme vzhledem váha výroba výsledky výsledná "
-        "výstavba větší všechny vždyť z za zajistí zapsal zbývá zde znamená "
-        "zodpovídá zodpovídá: zpráva základem základní zápis závislost "
-        "částice řidič žádáme ".split()
+        "během celkový další dalším dalšími dnes do dodáno dosadíme dosud "
+        "druhou dále elektron funkce fázový generální horní i impedanční je "
+        "jeho jejich její jen jenže ještě jiný jistě jsou jízda k každý když "
+        "klad koncem kontrolu kromě křivka letošní lze minimalizace mnoho "
+        "můžeme na naopak naproti naše nechť nejvyšší největší není nové nyní "
+        "nákupní o oba od odměny pak peníze plnění plán po podle podobně "
+        "pokud počet pracovní praha prakticky prkna pro proto protože "
+        "provedou průměrná předpokladem přehled přezkoušeli při přitom případ "
+        "příprava přítomni s samozřejmě soudruh soutěž současně stal stavba "
+        "střední takové také tam tato tedy tehdy tento termín to topidla toto "
+        "tyto tím tímto těžké třetí u ukládá v ve vedení vedle vedoucí "
+        "velikost velmi vidíme vodárna vraťme vzhledem váha výroba výsledky "
+        "výsledná výstavba větší všechny vždyť z za zajistí zapsal zbývá zde "
+        "znamená zodpovídá zpráva základem základní zápis závislost částice "
+        "řidič žádáme ".split()
     ),
     "de": frozenset(
         "aber abgesehen allerdings am anders auch bei beide da dabei dafür damit "
@@ -67,11 +68,11 @@ _STARTERS = {
         "wie wij ze zij zo".split()
     ),
     "pt": frozenset(
-        "a acima aliás, além as associado com deixou-se durante e ela ele em "
-        "esse esta estas este figura foi fonte: foram gráfico isto já "
-        "localização mais mas mesmo na nas nem no não o observa-se "
-        "observou-se onde: os outras para portanto, quem segundo tabela "
-        "também um us é ".split()
+        "a acima aliás além as associado com deixou-se durante e ela ele em "
+        "esse esta estas este figura foi fonte foram gráfico isto já "
+        "localização mais mas mesmo na nas nem neste no não o observa-se "
+        "observou-se onde os outras para portanto quem segundo tabela também "
+        "um us é ".split()
     ),
 }
 
@@ -121,9 +122,12 @@ def _starter_follows(text: str, after: int, starters: frozenset[str]) -> bool:
     if not starters:
         return False
     nxt_word = _WORD.match(text, after, after + 30)
-    return (
-        nxt_word is not None and normalize_token(nxt_word.group().lower()) in starters
-    )
+    return nxt_word is not None and _starter_key(nxt_word.group()) in starters
+
+
+def _starter_key(word: str) -> str:
+    """Lookup form of a word in `_STARTERS`: lowercased, trailing punctuation off."""
+    return normalize_token(word.lower()).rstrip(_STARTER_TRAIL)
 
 
 def _split_block(text: str, code: str) -> Iterator[str]:

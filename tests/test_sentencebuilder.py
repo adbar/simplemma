@@ -33,11 +33,11 @@ def test_sentence_ends_offsets_match_the_joined_text():
 def test_mine_scores_a_starter_by_gold_boundaries(tmp_path):
     # "u. a." suppresses the junction: gold breaks before "Ja", never before "nein"
     path = tmp_path / "de_x-ud-train.conllu"
-    _treebank(
-        path, ["Er kauft u. a.", "Ja das stimmt.", "Es gilt u. a. nein doch nicht."] * 2
-    )
+    sents = ["Er kauft u. a.", "Ja das stimmt.", "Es gilt u. a. nein doch nicht."]
+    _treebank(path, sents * 2 + ["Er kauft u. a.", "Ja, das stimmt."])
     gain, loss = sentencebuilder.mine("de", [sentencebuilder.gold_sentences(path)])
-    assert gain["ja"] == 2
+    # "Ja," and "Ja" pool under one key
+    assert gain["ja"] == 3
     assert loss["nein"] == 2
     assert "ja" not in loss
 

@@ -16,7 +16,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import simplemma.sentences as sentences
-from simplemma.utils import normalize_token
 from training.ud_conllu import UD_SPLITS, discover_treebanks, licensed_treebanks
 
 MIN_SUPPORT = 2
@@ -74,7 +73,7 @@ def mine(lang: str, golds: list[list[str]]) -> tuple[Counter[str], Counter[str]]
             token = word.group()
             if token[:1].isalpha():
                 counts = gain if after in starts else loss
-                counts[normalize_token(token.lower())] += 1
+                counts[sentences._starter_key(token)] += 1
     return gain, loss
 
 
