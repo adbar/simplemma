@@ -32,10 +32,22 @@ _ABBREVS = {
 
 _STARTERS = {
     "cs": frozenset(
-        "ale bohužel dnes dokud hlavní jak jde jelikož jenže jestliže já kdyby "
-        "když kromě musíme my myslím navíc oba po podle pokud praha proto přesto "
-        "přitom snad ta tato ten tento ti to toto v vyplývá vždyť zatímco zdá "
-        "zároveň".split()
+        "a admitanční ale aproximační automobil automobily byl byla bylo "
+        "během celkový další dalším dalšími dnes do dodáno dosadíme- dosud "
+        "druhou dále funkce fázový generální horní i impedanční je je- jeho "
+        "jejich její jen jenže ještě jiný jsou jízda k když klad, koncem "
+        "kontrolu kromě křivka letošní lze minimalizace mnoho můžeme na "
+        "naproti naše nechť nejvyšší největší není nové nyní nákupní o oba od "
+        "odměny pak peníze plnění plán po podle podobně pokud počet pracovní "
+        "praha praha. prakticky prkna pro proto protože provedou průměrná "
+        "předpokladem přehled přezkoušeli při přitom případ příprava "
+        "přítomni: s samozřejmě soudruh soutěž současně stal stavba střední "
+        "takové také tam tato tehdy tento termín to topidla toto tyto tím "
+        "tímto těžké třetí u ukládá v ve vedení vedle vedoucí velikost velmi "
+        "vidíme, vodárna vraťme vzhledem váha výroba výsledky výsledná "
+        "výstavba větší všechny vždyť z za zajistí zapsal zbývá zde znamená "
+        "zodpovídá zodpovídá: zpráva základem základní zápis závislost "
+        "částice řidič žádáme ".split()
     ),
     "de": frozenset(
         "aber abgesehen allerdings am anders auch bei beide da dabei dafür damit "
@@ -47,12 +59,7 @@ _STARTERS = {
         "umgekehrt unter vielmehr warum was wenn wer wie wir wo während zudem "
         "zwar zweitens".split()
     ),
-    "fr": frozenset(
-        "a ainsi alors après c car ce cela cependant certains certes ces cet "
-        "cette comment dans depuis dès elle elles en enfin il ils je l la le les "
-        "mais malgré mr nous né on or pour pourtant puis quand quant selon si "
-        "tout un une voilà".split()
-    ),
+    "fr": frozenset("cette elle en il la le ".split()),
     "nl": frozenset(
         "alleen als behalve bovendien daar daarbij daardoor daarmee daarna "
         "daarnaast daarom dat de dit er het hij hoewel ik in maar na naast nee "
@@ -60,9 +67,11 @@ _STARTERS = {
         "wie wij ze zij zo".split()
     ),
     "pt": frozenset(
-        "a afinal agora aliás além apesar as assim colaborou daí depois ela elas "
-        "ele eles embora erramos essa essas esse esses este eu fhc folha há isso "
-        "mas na no não o os outra outro quando quem segundo talvez é".split()
+        "a acima aliás, além as associado com deixou-se durante e ela ele em "
+        "esse esta estas este figura foi fonte: foram gráfico isto já "
+        "localização mais mas mesmo na nas nem no não o observa-se "
+        "observou-se onde: os outras para portanto, quem segundo tabela "
+        "também um us é ".split()
     ),
 }
 

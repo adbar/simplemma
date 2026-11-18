@@ -1,9 +1,16 @@
+import logging
+
+import pytest
 from conllu import parse
 
+from training import ud_conllu
 from training.ud_conllu import (
+    allowed_license,
     canon_lemma,
     dataset_to_lang,
     iter_word_tokens_in_sentences,
+    licensed_treebanks,
+    read_licenses,
 )
 
 # 3.1 is an empty node with a real lemma and 1-2 an MWT span, both skipped
@@ -74,6 +81,72 @@ def test_iter_word_tokens_underscore_run_form_survives():
     conllu = "1\t____\t____\tPUNCT\t_\t_\t0\tpunct\t_\t_\n\n"
     (form, token), *_ = iter_word_tokens_in_sentences(parse(conllu), "et")
     assert form == "____" and token["lemma"] == "____"
+
+
+def test_iter_word_tokens_skips_null_form():
+    """ar_nyuad ships '_' forms with real lemmas."""
+    conllu = "1\t_\tكتاب\tNOUN\t_\t_\t0\troot\t_\t_\n\n"
+    assert list(iter_word_tokens_in_sentences(parse(conllu), "ar")) == []
+
+
+def test_read_licenses(tmp_path):
+    path = tmp_path / "licenses.tsv"
+    path.write_text("de_gsd\tCC BY-SA 4.0\n\nla_ittb\tCC BY-NC-SA 3.0\n")
+    assert read_licenses(path) == {
+        "de_gsd": "CC BY-SA 4.0",
+        "la_ittb": "CC BY-NC-SA 3.0",
+    }
+
+
+@pytest.mark.parametrize(
+    ("content", "message"),
+    [
+        (None, "re-run training.download_eval_data"),
+        ("", "is empty"),
+        ("\n\n", "is empty"),
+        ("de_gsd CC BY 4.0\n", "licenses.tsv:1: expected"),
+    ],
+)
+def test_read_licenses_exits_on_bad_file(tmp_path, content, message):
+    path = tmp_path / "licenses.tsv"
+    if content is not None:
+        path.write_text(content)
+    with pytest.raises(SystemExit, match=message):
+        read_licenses(path)
+
+
+@pytest.mark.parametrize(
+    ("license", "lang", "allowed"),
+    [
+        ("CC BY 4.0", "zz", True),
+        ("CC BY-SA 3.0", "zz", True),
+        ("CC0 1.0", "zz", True),
+        ("CC0", "zz", True),
+        ("Public Domain", "zz", True),
+        ("CC BY-NC-SA 4.0", "zz", False),
+        ("CC BY-NC-SA 2.5", "la", True),
+        ("CC BY-NC-SA 4.0", "grc", True),
+        ("CC BY-NC-ND 4.0", "la", False),
+        ("GNU GPL 3.0", "zz", False),
+        ("LGPL-LR", "zz", False),
+        (None, "la", False),
+    ],
+)
+def test_allowed_license(license, lang, allowed):
+    assert allowed_license(license, lang) is allowed
+
+
+def test_licensed_treebanks(tmp_path, monkeypatch, caplog):
+    path = tmp_path / "licenses.tsv"
+    path.write_text("zz_x\tCC BY 4.0\nzz_y\tCC BY-NC-SA 4.0\n")
+    monkeypatch.setattr(ud_conllu, "UD_LICENSES", path)
+    paths = [tmp_path / f"zz_{t}-ud-train.conllu" for t in "xyz"]
+    with caplog.at_level(logging.WARNING, logger=ud_conllu.log.name):
+        assert licensed_treebanks(paths, "zz") == paths[:1]
+    assert "zz: skipping zz_y (CC BY-NC-SA 4.0)" in caplog.text
+    assert "zz: skipping zz_z (no license)" in caplog.text
+    with pytest.raises(SystemExit, match="allowed license"):
+        licensed_treebanks(paths[1:], "zz")
 
 
 def test_canon_lemma_strips_compound_separators():

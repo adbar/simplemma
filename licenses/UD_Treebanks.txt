@@ -1,0 +1,61 @@
+Universal Dependencies treebanks, release 2.19 (https://universaldependencies.org/)
+
+The correction lists in training/overrides/ and the sentence starters in
+simplemma/sentences.py (cs, de, fr, nl, pt) are mined from the train splits
+listed below, under their own licenses. Only CC BY and CC BY-SA treebanks are
+used, except for Ancient Greek (grc) and Latin (la), where CC BY-NC-SA
+treebanks are also used. Data derived from them is restricted to
+non-commercial use under the terms of that license. For commercial use,
+delete grc.plzma and la.plzma from simplemma/strategies/dictionaries/data/,
+which removes both languages.
+
+Rows whose pair none of these treebanks contains are attested by Wiktionary
+(Kaikki) or were reviewed by hand.
+
+ar: none
+bg: none
+ca: ca_ancora (CC BY 4.0)
+cs: cs_cac (CC BY-SA 4.0), cs_cltt (CC BY-SA 4.0)
+cy: cy_ccg (CC BY-SA 4.0)
+da: da_ddt (CC BY-SA 4.0)
+de: de_gsd (CC BY-SA 4.0), de_hdt (CC BY-SA 4.0)
+el: el_cretan (CC BY-SA 4.0), el_gud (CC BY-SA 4.0), el_messinian (CC BY-SA 4.0)
+en: en_atis (CC BY-SA 4.0), en_childes (CC BY-SA 4.0), en_ewt (CC BY-SA 4.0)
+es: es_ancora (CC BY 4.0), es_gsd (CC BY-SA 4.0)
+et: none
+fa: fa_perdt (CC BY-SA 4.0), fa_seraji (CC BY-SA 4.0)
+fi: fi_ftb (CC BY 4.0), fi_tdt (CC BY-SA 4.0)
+fr: fr_alts (CC BY-SA 4.0), fr_gsd (CC BY-SA 4.0), fr_parisstories (CC BY-SA 4.0), fr_rhapsodie (CC BY-SA 4.0)
+ga: ga_idt (CC BY-SA 3.0), ga_twittirish (CC BY-SA 4.0)
+gd: gd_arcosg (CC BY-SA 4.0)
+gl: none
+grc: grc_perseus (CC BY-NC-SA 2.5), grc_proiel (CC BY-NC-SA 3.0), grc_ptnk (CC BY-SA 4.0)
+gv: gv_cadhan (CC BY-SA 4.0)
+hbs: hr_set (CC BY-SA 4.0), sr_set (CC BY-SA 4.0)
+he: he_iahltknesset (CC BY-SA 4.0), he_iahltwiki (CC BY-SA 4.0)
+hi: none
+hu: none
+hy: hy_armtdp (CC BY-SA 4.0), hy_bsut (CC BY-SA 4.0)
+id: id_csui (CC BY-SA 4.0), id_gsd (CC BY-SA 4.0)
+is: is_gc (CC BY-SA 4.0), is_icepahc (CC BY-SA 4.0), is_modern (CC BY-SA 4.0)
+it: it_markit (CC BY 4.0), it_old (CC BY-SA 4.0), it_parlamint (CC BY-SA 4.0), it_twittiro (CC BY-SA 4.0)
+ka: ka_glc (CC BY-SA 4.0), ka_gnc (CC BY-SA 4.0)
+la: la_circse (CC BY-SA 4.0), la_ittb (CC BY-NC-SA 3.0), la_llct (CC BY-SA 4.0), la_perseus (CC BY-NC-SA 2.5), la_proiel (CC BY-NC-SA 3.0), la_udante (CC BY-NC-SA 3.0)
+lt: lt_alksnis (CC BY-SA 4.0), lt_hse (CC BY-SA 4.0)
+lv: lv_lvtb (CC BY-SA 4.0)
+nb: no_bokmaal (CC BY-SA 4.0)
+nl: nl_alpino (CC BY-SA 4.0), nl_lassysmall (CC BY-SA 4.0)
+nn: no_nynorsk (CC BY-SA 4.0)
+pl: pl_mpdt (CC BY-SA 4.0)
+pt: pt_alienista (CC BY-SA 4.0), pt_bosque (CC BY-SA 4.0), pt_dantestocks (CC BY 4.0), pt_gsd (CC BY-SA 4.0), pt_petrogold (CC BY-SA 4.0), pt_portjur (CC BY-SA 4.0), pt_porttinari (CC BY 4.0)
+ro: ro_nonstandard (CC BY-SA 4.0), ro_rrt (CC BY-SA 4.0), ro_simonero (CC BY-SA 4.0)
+ru: ru_gsd (CC BY-SA 4.0), ru_poetry (CC BY-SA 4.0), ru_taiga (CC BY-SA 4.0)
+se: sme_giella (CC BY-SA 4.0)
+sk: sk_snk (CC BY-SA 4.0)
+sl: sl_ssj (CC BY-SA 4.0), sl_sst (CC BY-SA 4.0)
+sq: sq_staf (CC BY-SA 4.0)
+sv: sv_talbanken (CC BY-SA 4.0)
+sw: none
+tl: none
+tr: tr_atis (CC BY-SA 4.0), tr_boun (CC BY-SA 4.0), tr_framenet (CC BY-SA 4.0), tr_kenet (CC BY-SA 4.0), tr_penn (CC BY-SA 4.0), tr_tourism (CC BY-SA 4.0)
+uk: uk_parlamint (CC BY-SA 4.0)

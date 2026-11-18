@@ -125,9 +125,9 @@ def test_word_window_stops_at_any_whitespace() -> None:
 
 
 def test_spaced_punctuation_register() -> None:
-    assert split_sentences("Le prix est bas . Les clients sont contents .", "fr") == [
+    assert split_sentences("Le prix est bas . Il est content .", "fr") == [
         "Le prix est bas .",
-        "Les clients sont contents .",
+        "Il est content .",
     ]
 
 

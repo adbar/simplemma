@@ -217,6 +217,12 @@ def test_resolve_overrides_per_treebank_veto():
     }
 
 
+def _licenses(monkeypatch, tmp_path, **licenses):
+    path = tmp_path / "licenses.tsv"
+    path.write_text("".join(f"{k}\t{v}\n" for k, v in licenses.items()))
+    monkeypatch.setattr(ud_conllu, "UD_LICENSES", path)
+
+
 def test_main_end_to_end(tmp_path, monkeypatch, caplog):
     """main() mines train splits, merges, writes, and promotes with --in-place."""
     splits = tmp_path / "splits"
@@ -225,6 +231,7 @@ def test_main_end_to_end(tmp_path, monkeypatch, caplog):
     train += _conllu([[(1, "corre", "otro", "VERB")]] * 5)  # contradicts a reviewed row
     (splits / "zz_x-ud-train.conllu").write_text(train, encoding="utf-8")
     monkeypatch.setattr(ud_conllu, "UD_SPLITS", splits)
+    _licenses(monkeypatch, tmp_path, zz_x="CC BY-SA 4.0")
 
     overrides = tmp_path / "overrides"
     overrides.mkdir()
@@ -256,6 +263,7 @@ def test_main_excludes_treebanks(tmp_path, monkeypatch):
     (splits / "zz_x-ud-train.conllu").write_text(kept, encoding="utf-8")
     (splits / "zz_y-ud-train.conllu").write_text(vetoing, encoding="utf-8")
     monkeypatch.setattr(ud_conllu, "UD_SPLITS", splits)
+    _licenses(monkeypatch, tmp_path, zz_x="CC BY 4.0", zz_y="CC BY 4.0")
     monkeypatch.setattr(bo, "OVERRIDES_DIR", tmp_path)
     monkeypatch.setattr(bo, "OUTPUT_DIR", tmp_path / "output")
     monkeypatch.setattr(bo, "lemmatize", lambda token, lang: token)
@@ -264,6 +272,40 @@ def test_main_excludes_treebanks(tmp_path, monkeypatch):
     assert (tmp_path / "output" / "zz.tsv").read_text(encoding="utf-8") == (
         "correr\tcorres\n"
     )
+
+
+def test_main_skips_disallowed_licenses(tmp_path, monkeypatch, caplog):
+    splits = tmp_path / "splits"
+    splits.mkdir()
+    kept = _conllu([[(1, "corres", "correr", "VERB")]] * 5)
+    vetoing = _conllu([[(1, "corres", "corres", "VERB")]] * 5)
+    (splits / "zz_x-ud-train.conllu").write_text(kept, encoding="utf-8")
+    (splits / "zz_y-ud-train.conllu").write_text(vetoing, encoding="utf-8")
+    (splits / "zz_z-ud-train.conllu").write_text(vetoing, encoding="utf-8")
+    monkeypatch.setattr(ud_conllu, "UD_SPLITS", splits)
+    _licenses(monkeypatch, tmp_path, zz_x="CC BY-SA 4.0", zz_y="CC BY-NC-SA 4.0")
+    monkeypatch.setattr(bo, "OVERRIDES_DIR", tmp_path)
+    monkeypatch.setattr(bo, "OUTPUT_DIR", tmp_path / "output")
+    monkeypatch.setattr(bo, "lemmatize", lambda token, lang: token)
+    monkeypatch.setattr(sys, "argv", ["build_override", "zz"])
+    with caplog.at_level(logging.WARNING, logger=ud_conllu.log.name):
+        bo.main()
+    assert "skipping zz_y (CC BY-NC-SA 4.0)" in caplog.text
+    assert "skipping zz_z (no license)" in caplog.text
+    assert (tmp_path / "output" / "zz.tsv").read_text(encoding="utf-8") == (
+        "correr\tcorres\n"
+    )
+
+
+def test_main_exits_without_allowed_train(tmp_path, monkeypatch):
+    splits = tmp_path / "splits"
+    splits.mkdir()
+    (splits / "zz_x-ud-train.conllu").write_text(_conllu([]), encoding="utf-8")
+    monkeypatch.setattr(ud_conllu, "UD_SPLITS", splits)
+    _licenses(monkeypatch, tmp_path, zz_x="GNU GPL 3.0")
+    monkeypatch.setattr(sys, "argv", ["build_override", "zz"])
+    with pytest.raises(SystemExit, match="allowed license"):
+        bo.main()
 
 
 def test_main_rejects_unknown_treebank(tmp_path, monkeypatch):

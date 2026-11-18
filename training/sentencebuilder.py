@@ -1,11 +1,14 @@
 """Regenerate the sentence-starter lists that `simplemma.sentences` ships.
 
-Mines on train and adopts only if the list beats the shipped one on dev.
+Mines on train splits under an allowed license, see `ud_conllu.allowed_license`,
+and adopts only if the list beats the shipped one on dev. Pre-tokenized dev
+text is not scored on.
 
 Usage: uv run python -m training.sentencebuilder <lang> [--check]
 """
 
 import argparse
+import re
 import textwrap
 from collections import Counter
 from collections.abc import Iterator
@@ -14,9 +17,10 @@ from pathlib import Path
 
 import simplemma.sentences as sentences
 from simplemma.utils import normalize_token
-from training.ud_conllu import UD_SPLITS, discover_treebanks
+from training.ud_conllu import UD_SPLITS, discover_treebanks, licensed_treebanks
 
 MIN_SUPPORT = 2
+_SPACED_PUNCTUATION = re.compile(r" [.,]( |$)")
 
 
 def gold_sentences(path: Path) -> list[str]:
@@ -27,6 +31,11 @@ def gold_sentences(path: Path) -> list[str]:
             for line in filehandle
             if line.startswith("# text = ") and (text := line[9:].strip())
         ]
+
+
+def pretokenized(gold: list[str]) -> bool:
+    """Most sentences space their punctuation (de_hdt), unlike running text."""
+    return sum(bool(_SPACED_PUNCTUATION.search(text)) for text in gold) > len(gold) / 2
 
 
 def sentence_ends(gold: list[str], joiner: str) -> set[int]:
@@ -142,16 +151,26 @@ def main() -> None:
             )
     if not paths:
         parser.error(f"no *-ud-dev or -test treebank for {args.lang!r} in {UD_SPLITS}")
-    held_out = [gold_sentences(path) for path in paths]
+    held_out = []
+    for path in paths:
+        gold = gold_sentences(path)
+        if pretokenized(gold):
+            print(f"not scoring on {path.name}: pre-tokenized text")
+        else:
+            held_out.append(gold)
+    if not held_out:
+        parser.error(f"only pre-tokenized {held_out_split} text for {args.lang!r}")
     shipped = boundary_f1(args.lang, held_out)
     print(
         f"shipped: {shipped:.5f} boundary F1 "
-        f"over {len(paths)} {held_out_split} treebanks"
+        f"over {len(held_out)} {held_out_split} treebanks"
     )
     if args.check:
         return
 
-    train = discover_treebanks(args.lang, "train", UD_SPLITS)
+    train = licensed_treebanks(
+        discover_treebanks(args.lang, "train", UD_SPLITS), args.lang
+    )
     mined = select(*mine(args.lang, [gold_sentences(path) for path in train]))
     with starters_replaced(args.lang, mined):
         candidate = boundary_f1(args.lang, held_out)

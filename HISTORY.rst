@@ -13,6 +13,8 @@ x.x.x (unreleased)
 - Suffix rules also apply to hyphenated tokens (gramaticko-lexikálních -> gramaticko-lexikální)
 - German and Russian prefix lists removed (negligible accuracy impact), Ukrainian kept
 - Correction lists fixed and extended for 26 languages, largest gains for is, gd and ru
+- Correction lists and sentence starters only use CC BY, CC BY-SA, CC0 and public-domain treebanks, plus CC BY-NC-SA for grc and la (#191)
+- Evaluation and mining move to UD 2.19
 - Breaking: ``fallback_lemmatization_strategy`` replaced by ``fallback``, a plain ``(token, lang) -> str`` callable,
   and the ``simplemma.strategies.fallback`` subpackage is removed
 - Breaking: ``ApostropheBoundaryStrategy`` removed, folded into ``DefaultStrategy``
