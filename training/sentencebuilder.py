@@ -11,9 +11,9 @@ import argparse
 import re
 import textwrap
 from collections import Counter
-from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import AbstractContextManager
 from pathlib import Path
+from unittest.mock import patch
 
 import simplemma.sentences as sentences
 from simplemma.utils import normalize_token
@@ -105,18 +105,11 @@ def boundary_f1(lang: str, golds: list[list[str]]) -> float:
     return sum(scores) / len(scores) if scores else float("nan")
 
 
-@contextmanager
-def starters_replaced(lang: str, starters: frozenset[str]) -> Iterator[None]:
+def starters_replaced(
+    lang: str, starters: frozenset[str]
+) -> AbstractContextManager[object]:
     """Swap in `starters` for `lang`, restoring on exit."""
-    previous = sentences._STARTERS.get(lang)
-    sentences._STARTERS[lang] = starters
-    try:
-        yield
-    finally:
-        if previous is None:
-            del sentences._STARTERS[lang]
-        else:
-            sentences._STARTERS[lang] = previous
+    return patch.dict(sentences._STARTERS, {lang: starters})
 
 
 def as_literal(lang: str, starters: frozenset[str]) -> str:

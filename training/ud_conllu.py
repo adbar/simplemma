@@ -48,8 +48,6 @@ def discover_treebanks(
     )
 
 
-_REFETCH = "move training/data/UD/ aside and re-run training.download_eval_data"
-
 FREE_LICENSE = re.compile(r"CC BY(-SA)? \d\.\d|CC0( 1\.0)?|Public Domain")
 # Digital humanities languages, where non-commercial data is accepted.
 NC_LICENSE = re.compile(r"CC BY-NC-SA \d\.\d")
@@ -57,29 +55,19 @@ NC_LANGS = frozenset({"grc", "la"})
 
 
 def read_licenses(path: Path | None = None) -> dict[str, str]:
-    """Dataset name to license. Exits if the file is missing, empty or malformed."""
+    """Dataset name to license. Exits if the file is missing."""
     path = path or UD_LICENSES
     if not path.exists():
-        sys.exit(f"no {path}, {_REFETCH}")
-    licenses = {}
-    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-        if not line:
-            continue
-        name, tab, lic = line.partition("\t")
-        if not tab:
-            sys.exit(f"{path}:{number}: expected 'dataset<TAB>license', got {line!r}")
-        licenses[name] = lic
-    if not licenses:
-        sys.exit(f"{path} is empty, check the README 'License:' lines, then {_REFETCH}")
-    return licenses
+        sys.exit(
+            f"no {path}, move training/data/UD/ aside "
+            "and re-run training.download_eval_data"
+        )
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return dict(line.split("\t", 1) for line in lines if line)
 
 
-def allowed_license(lic: str | None, lang: str) -> bool:
-    """CC BY, CC BY-SA, CC0 or public domain, plus CC BY-NC-SA for NC_LANGS.
-
-    A missing license fails."""
-    if lic is None:
-        return False
+def allowed_license(lic: str, lang: str) -> bool:
+    """CC BY, CC BY-SA, CC0 or public domain, plus CC BY-NC-SA for NC_LANGS."""
     return bool(
         FREE_LICENSE.fullmatch(lic) or (lang in NC_LANGS and NC_LICENSE.fullmatch(lic))
     )
@@ -91,7 +79,7 @@ def licensed_treebanks(paths: Iterable[Path], lang: str) -> list[Path]:
     kept = []
     for path in paths:
         name = dataset_name(path)
-        lic = licenses.get(name)
+        lic = licenses.get(name, "")
         if allowed_license(lic, lang):
             kept.append(path)
         else:

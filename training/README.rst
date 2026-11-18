@@ -242,7 +242,7 @@ one).
 under the same license filter as the override lexicons. It prints a
 paste-able literal only if they beat the shipped list on dev. Otherwise it
 says ``keep the shipped list``. Dev treebanks with pre-tokenized text
-(de_hdt, pt_cintil) are not scored on. ``--check`` scores the shipped
+(such as de_hdt, pt_cintil) are not scored on. ``--check`` scores the shipped
 list alone. Run it before and after any splitter change.
 
 Abbreviations are not mined: held out they gain at most +0.0025 F1, against

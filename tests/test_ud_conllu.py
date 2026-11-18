@@ -13,6 +13,8 @@ from training.ud_conllu import (
     read_licenses,
 )
 
+from .conftest import write_licenses
+
 # 3.1 is an empty node with a real lemma and 1-2 an MWT span, both skipped
 CONLLU = (
     "1-2\tdunno\t_\t_\t_\t_\t_\t_\t_\t_\n"
@@ -98,21 +100,9 @@ def test_read_licenses(tmp_path):
     }
 
 
-@pytest.mark.parametrize(
-    ("content", "message"),
-    [
-        (None, "re-run training.download_eval_data"),
-        ("", "is empty"),
-        ("\n\n", "is empty"),
-        ("de_gsd CC BY 4.0\n", "licenses.tsv:1: expected"),
-    ],
-)
-def test_read_licenses_exits_on_bad_file(tmp_path, content, message):
-    path = tmp_path / "licenses.tsv"
-    if content is not None:
-        path.write_text(content)
-    with pytest.raises(SystemExit, match=message):
-        read_licenses(path)
+def test_read_licenses_exits_on_missing_file(tmp_path):
+    with pytest.raises(SystemExit, match="re-run training.download_eval_data"):
+        read_licenses(tmp_path / "licenses.tsv")
 
 
 @pytest.mark.parametrize(
@@ -129,7 +119,7 @@ def test_read_licenses_exits_on_bad_file(tmp_path, content, message):
         ("CC BY-NC-ND 4.0", "la", False),
         ("GNU GPL 3.0", "zz", False),
         ("LGPL-LR", "zz", False),
-        (None, "la", False),
+        ("", "la", False),
     ],
 )
 def test_allowed_license(license, lang, allowed):
@@ -137,9 +127,7 @@ def test_allowed_license(license, lang, allowed):
 
 
 def test_licensed_treebanks(tmp_path, monkeypatch, caplog):
-    path = tmp_path / "licenses.tsv"
-    path.write_text("zz_x\tCC BY 4.0\nzz_y\tCC BY-NC-SA 4.0\n")
-    monkeypatch.setattr(ud_conllu, "UD_LICENSES", path)
+    write_licenses(monkeypatch, tmp_path, zz_x="CC BY 4.0", zz_y="CC BY-NC-SA 4.0")
     paths = [tmp_path / f"zz_{t}-ud-train.conllu" for t in "xyz"]
     with caplog.at_level(logging.WARNING, logger=ud_conllu.log.name):
         assert licensed_treebanks(paths, "zz") == paths[:1]

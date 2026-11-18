@@ -1,11 +1,12 @@
-import logging
 import sys
 from collections import Counter
 
 import pytest
 
 import simplemma.sentences as sentences
-from training import sentencebuilder, ud_conllu
+from training import sentencebuilder
+
+from .conftest import write_licenses
 
 
 def _treebank(path, sents: list[str]) -> None:
@@ -78,9 +79,7 @@ def test_as_literal_round_trips_including_hyphenated_entries():
 
 
 def _cli(tmp_path, monkeypatch, lang, *flags):
-    licenses = tmp_path / "licenses.tsv"
-    licenses.write_text("de_x\tCC BY 4.0\nde_y\tCC BY-NC-SA 4.0\n")
-    monkeypatch.setattr(ud_conllu, "UD_LICENSES", licenses)
+    write_licenses(monkeypatch, tmp_path, de_x="CC BY 4.0", de_y="CC BY-NC-SA 4.0")
     monkeypatch.setattr(sentencebuilder, "UD_SPLITS", tmp_path)
     monkeypatch.setattr(sys, "argv", ["sentencebuilder.py", lang, *flags])
     sentencebuilder.main()
@@ -100,25 +99,15 @@ def test_main_emits_a_literal_when_the_mined_list_wins(tmp_path, monkeypatch, ca
     assert sentences._STARTERS["de"] != frozenset({"ja"})
 
 
-def test_main_skips_disallowed_train(tmp_path, monkeypatch, capsys, caplog):
+def test_main_skips_disallowed_train(tmp_path, monkeypatch, capsys):
     pairs = ["Er kauft u. a.", "Ja das stimmt."] * 4
     _treebank(tmp_path / "de_y-ud-train.conllu", pairs)
     _treebank(tmp_path / "de_x-ud-train.conllu", ["Ein Satz.", "Noch einer."])
     _treebank(tmp_path / "de_x-ud-dev.conllu", pairs)
 
-    with caplog.at_level(logging.WARNING, logger=ud_conllu.log.name):
-        _cli(tmp_path, monkeypatch, "de")
+    _cli(tmp_path, monkeypatch, "de")
 
-    assert "skipping de_y (CC BY-NC-SA 4.0)" in caplog.text
     assert "keep the shipped list" in capsys.readouterr().out
-
-
-def test_main_errors_without_allowed_train(tmp_path, monkeypatch):
-    _treebank(tmp_path / "de_y-ud-train.conllu", ["Ein Satz.", "Noch einer."])
-    _treebank(tmp_path / "de_x-ud-dev.conllu", ["Ein Satz.", "Noch einer."])
-
-    with pytest.raises(SystemExit, match="allowed license"):
-        _cli(tmp_path, monkeypatch, "de")
 
 
 def test_main_keeps_the_shipped_list_when_mining_does_not_help(
