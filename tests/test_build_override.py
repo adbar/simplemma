@@ -1,6 +1,7 @@
 import logging
 import sys
 from collections import Counter
+from pathlib import Path
 
 import pytest
 
@@ -218,7 +219,9 @@ def test_resolve_overrides_per_treebank_veto():
     }
 
 
-def _main(tmp_path, monkeypatch, treebanks: dict[str, str], licenses, *argv) -> str:
+def _main(
+    tmp_path: Path, monkeypatch, treebanks: dict[str, str], licenses, *argv
+) -> str:
     """Run main() on the given train splits, return the written zz.tsv."""
     splits = tmp_path / "splits"
     splits.mkdir()
