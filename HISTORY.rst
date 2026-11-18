@@ -5,6 +5,7 @@ History
 x.x.x (unreleased)
 ------------------
 
+- New language: Korean (ko), with particle stripping and 하다/되다 suffix rules
 - Unknown tokens are no longer lowercased for es, hy, lt, lv, pt and uk (proper nouns keep their case), only for bg and sk
 - Rules and affix tables re-checked on UD: es leaves affix decomposition, imprecise en ``-ships`` and es ``-té`` rules removed
 - Affix decomposition splits compounds in greedy mode only, now covers hbs, is, ro, sl and sv,

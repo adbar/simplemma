@@ -5,7 +5,7 @@ description: "Simplemma is a lightweight, dependency-free Python library for mul
 
 # Simplemma
 
-A lightweight Python library that reduces words to their base form in 54
+A lightweight Python library that reduces words to their base form in 55
 languages, and ships the text processing needed to get there: a script-aware
 tokenizer, a rule-based sentence splitter and dictionary-driven language
 detection. No models to download, no dependencies to install, and a memory
@@ -40,7 +40,7 @@ footprint you can choose.
 - [Usage](usage.md) for language chaining, greedy decomposition,
   tokenization, sentence splitting, language detection and the caveats that
   come with a dictionary-based approach
-- [Supported languages](supported-languages.md) for the 54 languages, their
+- [Supported languages](supported-languages.md) for the 55 languages, their
   dictionary sizes and their measured accuracy
 - [Classes and strategies](classes-and-strategies.md) to assemble your own
   lemmatizer out of strategies and dictionary factories

@@ -109,6 +109,7 @@ _GREEK_SCRIPTS = frozenset({"GREEK", "CYPRIOT", "LINEAR"})
 _ARABIC_SCRIPTS = frozenset({"ARABIC"})
 _DEVANAGARI_SCRIPTS = frozenset({"DEVANAGARI"})
 _HEBREW_SCRIPTS = frozenset({"HEBREW"})
+_HANGUL_SCRIPTS = frozenset({"HANGUL"})
 _LATIN_PLUS_CYRILLIC = frozenset({"LATIN", "CYRILLIC"})
 
 
@@ -142,6 +143,8 @@ JUNK_ENTRY_PREDICATES: dict[
     "tl": lambda k, ks, vs: "TAGALOG" in ks,
     # Not the broad check: it would drop Phoenician attestations.
     "he": lambda k, ks, vs: _foreign_script_key(ks, vs, _HEBREW_SCRIPTS),
+    # Romanized readings and Hanja spellings, English words in text stay unknown.
+    "ko": lambda k, ks, vs: bool((ks | vs) - _HANGUL_SCRIPTS),
 }
 
 

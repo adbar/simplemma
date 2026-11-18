@@ -28,7 +28,7 @@ Each figure in the main README is the accuracy on the language's best
 general-purpose treebank. Parallel, spoken, learner and historical treebanks
 are excluded.
 
-Three exceptions due to treebank annotation:
+Four exceptions due to treebank annotation:
 
 - Dutch excludes underscore-joined compound lemmas (``klooster_orde``),
   which single-token output cannot match. With them it is about 0.91.
@@ -37,6 +37,10 @@ Three exceptions due to treebank annotation:
 - Finnish, Estonian and Hungarian compound markers (``yli#opisto``,
   ``sisse_tulek``, ``el+mond``) are stripped before scoring, see
   ``_GOLD_COMPOUND_SEPARATORS`` in ``ud_conllu.py``.
+- Korean gold lemmas are morpheme sequences (``주관+하+고``) or bare stems.
+  ``ko_gold_lemma`` in ``ud_conllu.py`` cuts them before the first particle,
+  ending or copula morpheme and adds 다 to predicate stems. LittlePrince keeps
+  the first morpheme only (소화될 -> 소화) and scores about 0.79.
 
 ``python3 training/evaluate_simplemma.py`` scores the ``dev`` and ``test``
 splits and writes ``training/data/results/results_summary.csv`` plus one
@@ -94,7 +98,7 @@ shared key: new data can only add keys, existing mappings change only via a
 reviewed override. ``--gate`` refuses to write on a UD regression.
 
 A new language needs an ISO code, a left-to-right script, and morphology
-where several forms reduce to one entry (Korean does not fit, Urdu suffers).
+where several forms reduce to one entry (Urdu suffers).
 After ``--in-place`` it appears in ``SUPPORTED_LANGUAGES``. Potential sources:
 `issue 1 <https://github.com/adbar/simplemma/issues/1>`_.
 
@@ -110,7 +114,12 @@ usual starting point. It is thin on less-resourced languages and noisy.
 2. ``python3 training/kaikki_to_tsv.py <dump.jsonl> training/lists/lt.txt``.
    The converter prefers explicit ``form_of``/``alt_of`` relations, falls back
    to the entry's ``forms`` table, drops known-noisy rows, and emits an
-   identity pair for uninflected headwords.
+   identity pair for uninflected headwords. A dropped romanization or
+   transliteration does not block that identity. Korean verb and adjective
+   forms in 다 also yield their stem (했다 -> 했), so the clitic cells can
+   strip an ending down to a key (``_STEM_KEY_ENDINGS``). Korean
+   inflected-form entries without a ``form_of`` link are skipped, since they
+   would map to themselves (``_FORM_TEMPLATES``).
 3. Skim the output by hand. Small errors are common in every source.
 
 
@@ -157,7 +166,8 @@ run. Removing a row needs a rebuild from the committed
 Only re-mine languages whose treebanks agree: rows mined from the other
 treebanks must improve each held-out one. As of 2026-10, this holds for
 ``cs``, ``es``, ``et``, ``is``, ``it``, ``nl``, ``pl``, ``ru``, ``sl``,
-``sv`` and ``uk``, and for ``fr`` with ``--exclude fr_alts`` (Middle French).
+``sv`` and ``uk``, for ``fr`` with ``--exclude fr_alts`` (Middle French) and
+for ``ko`` with ``--exclude ko_ksl`` (learner treebank).
 It fails for ``de``, ``fi``, ``la``, ``lt``, ``pt`` and ``ro``.
 
 ``--in-place`` is deliberately lossy: multi-word forms are dropped, curly
@@ -202,6 +212,16 @@ Scoring is exact match against the dictionary lemma
 word" predicate. The CI test
 ``tests/strategies/defaultrules/test_precision.py`` enforces the per-rule
 precision bar and the no-overlap rule on every shipped table.
+
+Korean is the exception. Its particle strip cell (target ``""``) cannot be
+scored in the dictionary, which holds no noun+particle forms. A tail is kept
+if at least 20 GSD+Kaist train tokens left unresolved by the dictionary,
+clitic, prefix and hyphen strategies end in it, and at least 85% of them have
+the form minus the tail as gold. Candidates are the Kaikki particles, the
+forms of 이다 and pairs of them (에서는, 이라고도). The 하다/되다 tails are
+the endings found in at least half of the X하다/X되다 tables. A Korean clitic
+tail is kept only if removing it loses UD train tokens, confirmed per
+treebank on dev and test. The screens are not part of the repository.
 
 The in-dictionary check has a blind spot: dictionaries are dominated by
 regular declensions, real text by a few irregular high-frequency words. So

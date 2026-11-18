@@ -161,6 +161,14 @@ _CLITIC_CASES = [
     # stripping "n't" from "can't" leaves "ca", a real but wrong entry
     pytest.param("can't", "en", None, id="en-cant-excluded"),
     pytest.param("won't", "en", None, id="en-wont-excluded"),
+    pytest.param("서울까지", "ko", "서울", id="ko-particle-kkaji"),
+    pytest.param("한국어로", "ko", "한국어", id="ko-particle-ro"),
+    pytest.param("곳이에요", "ko", "곳", id="ko-copula-chain"),
+    pytest.param("고양이는", "ko", "고양이", id="ko-no-chain-on-known-stem"),
+    # 위안화 is a word, 화 is no particle
+    pytest.param("위안화", "ko", None, id="ko-noun-final-syllable"),
+    # a stem missing from the dictionary leaves the token to the rules
+    pytest.param("가나다라마는", "ko", None, id="ko-unknown-stem"),
     pytest.param("كتابه", "ar", "كتاب", id="ar-enclitic-hu"),
     pytest.param("كتابها", "ar", "كتاب", id="ar-enclitic-ha"),
     pytest.param("كتابهم", "ar", "كتاب", id="ar-enclitic-hum"),

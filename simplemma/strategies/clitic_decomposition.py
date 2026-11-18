@@ -50,6 +50,23 @@ CLITIC_LANGS: dict[str, SuffixRules] = {
     ),
     # ك and ي left out: they collide with root-final letters and nisba endings
     "ar": SuffixRules({"": "هن هم ها ه كم نا"}, min_stem=MIN_STEM_LEN, caps=True),
+    # particles, verb endings and copula forms after a dictionary stem
+    "ko": SuffixRules(
+        {
+            "": (
+                "가 같이 거든 거라 게 겠다 겠습니다 겠어요 고 과 구나 구요 군요 기"
+                " 길래 까지 께 께서 나 냐 네 느냐 느냐고 느니 는 는가 는다 는데 니 니까"
+                " 다 다고 더니 더라도 던 도 도록 들 라 라고 라도 란 랑 려고 로 로부터"
+                " 로서 를 마다 마저 만 만큼 며 면 밖에 보다 보다도 부터 서 세요 셔 셔서"
+                " 소 슴 습니까 습니다 시고 십니다 십시오 아요 야 야말로 어서 어야 어요"
+                " 었기 었음 에 에게로 에기 에는 에다 에다가 에요 엔 여 여서 여야 였기"
+                " 였음 오 요 으 으니 으라 으러 으려 으로 으로서 은 을 을지 읍시다 이다"
+                " 이라서 인가 인데 자 조차 죠 지 지만 지비 질 한테 한테서 인다 여요"
+                " 입니다 였다 였어요 였습니다 입니까 였느냐 일"
+            ),
+        },
+        min_stem=1,
+    ),
 }
 
 # second strip: hyphen chains (portar-se-la), bare only in es and gl
@@ -61,6 +78,8 @@ CLITIC_CHAINS: dict[str, SuffixRules] = {
     "gl": CLITIC_LANGS["gl"],
     "pt": _HYPHEN_CHAIN,
     "ca": _HYPHEN_CHAIN,
+    # the copula before an ending (곳이에요, 학생이지만)
+    "ko": SuffixRules({"": "이"}, min_stem=1),
 }
 
 

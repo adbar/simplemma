@@ -159,6 +159,29 @@ def test_foreign_script_key_drop() -> None:
     assert lemmatize("pintu", lang="ms") == "pintu"
 
 
+def test_korean() -> None:
+    """Dictionary stems, particles, the copula, and no Latin or Hanja keys."""
+    assert lemmatize("갔습니다", lang="ko") == "가다"
+    assert lemmatize("먹는다", lang="ko") == "먹다"
+    assert lemmatize("정부는", lang="ko") == "정부"
+    assert lemmatize("쌀이", lang="ko") == "쌀"
+    assert lemmatize("생각했다", lang="ko") == "생각하다"
+    # inflected-form entries don't map to themselves
+    assert lemmatize("몰라요", lang="ko") == "모르다"
+    assert lemmatize("했으니", lang="ko") == "하다"
+    assert lemmatize("인", lang="ko") == "이다"
+    assert lemmatize("였다", lang="ko") == "이다"
+    assert lemmatize("in", lang="ko") == "in"
+    assert lemmatize("犬", lang="ko") == "犬"
+    assert text_lemmatizer("친구와 서울에서 영화를 봤습니다.", lang="ko") == [
+        "친구",
+        "서울",
+        "영화",
+        "보다",
+        ".",
+    ]
+
+
 def test_armenian_intonation_marks() -> None:
     """Marked token looked up first, then the mark-stripped form."""
     assert lemmatize("Մի՞թե", lang="hy") == "միթե"  # strip fallback, cased match

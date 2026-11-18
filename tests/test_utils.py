@@ -75,6 +75,7 @@ def test_per_language_tables_reference_supported_languages() -> None:
     from simplemma.utils import CANON_LANGS
     from training.build_lang_config import BUILD_NORMALIZATION, JUNK_ENTRY_PREDICATES
     from training.dictionary_builder import FRONTCODE_REVERSE_KEY_LANGS, OVERRIDES_DIR
+    from training.kaikki_to_tsv import _STEM_KEY_ENDINGS
     from training.ud_conllu import DATASET_LANG_OVERRIDES, _GOLD_COMPOUND_SEPARATORS
     from training.wikidata_lexemes import LANGUAGE_QIDS
     from training.wordlist_ingest import IDENTITY_SOFT_LANGS, PARADIGM_PRIOR_LANGS
@@ -98,6 +99,7 @@ def test_per_language_tables_reference_supported_languages() -> None:
         "BUILD_NORMALIZATION": BUILD_NORMALIZATION,
         "JUNK_ENTRY_PREDICATES": JUNK_ENTRY_PREDICATES,
         "FRONTCODE_REVERSE_KEY_LANGS": FRONTCODE_REVERSE_KEY_LANGS,
+        "_STEM_KEY_ENDINGS": _STEM_KEY_ENDINGS,
         "IDENTITY_SOFT_LANGS": IDENTITY_SOFT_LANGS,
         "PARADIGM_PRIOR_LANGS": PARADIGM_PRIOR_LANGS,
         "LANGUAGE_QIDS": LANGUAGE_QIDS,

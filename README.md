@@ -6,10 +6,10 @@
 [![Reference DOI: 10.5281/zenodo.4673264](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.4673264-brightgreen)](https://doi.org/10.5281/zenodo.4673264)
 [![Downloads](https://img.shields.io/pypi/dm/simplemma.svg)](https://pypistats.org/packages/simplemma)
 
-Fast, dependency-free lemmatization for 54 languages.
+Fast, dependency-free lemmatization for 55 languages.
 Pure Python, no models to download, works offline.
 
-- **A 19 MB install** with no per-language downloads: 9 of the 54 languages have
+- **A 19 MB install** with no per-language downloads: 9 of the 55 languages have
   no Stanza lemmatizer and 34 no spaCy pipeline
 - **~1.9M tokens/s** (German) and **~3.4M** (English) with tokenization
   included, over 100 MB/s sentence splitting, milliseconds to first lemma
@@ -39,7 +39,7 @@ and fast, and its small footprint suits contexts where speed and
 simplicity matter: low-resource settings, teaching, or a baseline for
 lemmatization and morphological analysis.
 
-Currently, 54 languages are partly or fully supported (see the list below).
+Currently, 55 languages are partly or fully supported (see the list below).
 <!-- include:pitch:end -->
 
 
@@ -190,7 +190,7 @@ The following languages are available, identified by their [BCP 47
 language tag](https://en.wikipedia.org/wiki/IETF_language_tag), usually
 the ISO 639-1 code.
 
-Available languages (2026-08-04):
+Available languages (2026-11-17):
 
 The *Forms* column counts the inflected word forms stored in the
 dictionary, while *Lemmata* counts the distinct base forms they map to
@@ -231,6 +231,7 @@ morphology rather than a data error.
 | `is` | Icelandic | 210 | 18 | 0.87 | on UD IS-GC |
 | `it` | Italian | 358 | 28 | 0.96 | on UD IT-ISDT |
 | `ka` | Georgian | 448 | 16 | 0.85 | on UD KA-GLC |
+| `ko` | Korean | 407 | 35 | 0.93 | on UD KO-Kaist |
 | `la` | Latin | 1,289 | 70 | 0.89 | on UD LA-PROIEL, alternative: [LatinCy](https://spacy.io/universe/project/latincy) |
 | `lb` | Luxembourgish | 306 | 79 |  | only a <1k-token UD treebank available |
 | `lt` | Lithuanian | 365 | 28 | 0.87 | on UD LT-ALKSNIS |
@@ -270,7 +271,8 @@ best-performing general-purpose treebank; train splits are excluded from
 scoring as they are mined for the correction lists and gate every candidate.
 The `training/` folder documents the protocol, the annotation-driven
 exceptions (Dutch compound lemmas, Hebrew and Arabic proclitics,
-Finnish/Estonian/Hungarian compound-boundary markers) and how to reproduce
+Finnish/Estonian/Hungarian compound-boundary markers, Korean morpheme
+sequences) and how to reproduce
 the figures.
 
 The benchmark only incidentally captures what this library is most useful

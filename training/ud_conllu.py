@@ -59,6 +59,30 @@ def canon_lemma(lemma: str, form: str, lang: str) -> str:
     return canonicalize_token(normalize_token(lemma), lang)
 
 
+# Last stem tag before 다. KAIST tags are lowercase: xsa marks an adverb, Sejong XSA
+# an adjective. VC, VCP and jp only end a standalone copula token (이다).
+_KO_PREDICATE_TAGS = frozenset(
+    "pvg pvd paa pad px xsv xsm VV VA VX VCN XSV XSA JJ VC VCP jp".split()
+)
+
+
+def ko_gold_lemma(lemma: str, xpos: str) -> str:
+    """Dictionary form: the stem before the first particle, ending or copula."""
+    tags = xpos.split("+")
+    cut = next(
+        (i for i, tag in enumerate(tags) if i and (tag[:1] in "jeJE" or tag == "VCP")),
+        len(tags),
+    )
+    morphemes = lemma.split("+")
+    aligned = len(morphemes) == len(tags)
+    stem = "".join(morphemes[:cut]) if aligned else lemma
+    last = tags[cut - 1] if aligned else tags[0]
+    # A misaligned morpheme sequence can't be cut, so it stays as is.
+    if not stem or (not aligned and "+" in lemma):
+        return lemma
+    return stem + "다" if last in _KO_PREDICATE_TAGS else stem
+
+
 def _strip_compound_markers(lemma: str, form: str, separator: str) -> str:
     """Strip compound markers from `lemma` unless `form` shows them as content."""
     core = lemma.strip(separator)
@@ -85,6 +109,8 @@ def iter_word_tokens_in_sentences(
             if not isinstance(token_id, int) or token["lemma"] == "_":
                 continue
             token["form"] = normalize_token(_strip_mwt_artifact(token["form"]))
+            if lang == "ko" and token.get("xpos"):
+                token["lemma"] = ko_gold_lemma(token["lemma"], token["xpos"])
             token["lemma"] = canon_lemma(token["lemma"], token["form"], lang)
             form = token["form"].lower() if token_id == 1 else token["form"]
             yield form, token

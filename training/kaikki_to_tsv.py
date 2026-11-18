@@ -18,14 +18,21 @@ _UNCONDITIONAL_DROP_TAGS = frozenset(
         "table-tags",
         "inflection-template",
         "class",
-        "romanization",
-        "transliteration",
         "Baybayin",
     }
 )
 
-# Cross-reference rows, dropped only when the form differs from the entry's word.
-_CROSS_REFERENCE_TAGS = frozenset({"pronoun", "possessive", "auxiliary"})
+# Verb and adjective forms in 다 also yield their stem (했다 -> 했).
+_STEM_KEY_ENDINGS = {"ko": "다"}
+_STEM_KEY_POS = frozenset({"verb", "adj"})
+
+# Inflected-form entries, skipped when they lack a form-of link (몰라요, 했다).
+_FORM_TEMPLATES = frozenset({"ko-verb-form", "ko-adj-form"})
+
+# Cross-reference and reading rows, dropped only when the form differs from the word.
+_CROSS_REFERENCE_TAGS = frozenset(
+    {"pronoun", "possessive", "auxiliary", "romanization", "transliteration"}
+)
 
 
 # Junk only on tl verb pages, it tags real forms elsewhere (cy mutation).
@@ -88,6 +95,8 @@ def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
 
     if found_relation:
         return
+    if any(t.get("name") in _FORM_TEMPLATES for t in entry.get("head_templates", ())):
+        return
 
     yielded_form = False
     dropped_junk = False
@@ -115,7 +124,18 @@ def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
     """Yield unique (lemma, word_form) pairs, preferring form_of/alt_of over forms.
 
     Duplicates must not count as extra attestations downstream."""
-    yield from dict.fromkeys(_extract_pairs_raw(entry))
+    pairs = dict.fromkeys(_extract_pairs_raw(entry))
+    ending = _STEM_KEY_ENDINGS.get(entry.get("lang_code", ""))
+    if ending and entry.get("pos") in _STEM_KEY_POS:
+        word = _normalize(entry.get("word") or "", False)
+        bases = list(pairs)
+        # The headword counts as a form, unless form-of/alt-of or nothing yielded.
+        if bases and all(lemma == word for lemma, _ in bases):
+            bases.append((word, word))
+        for lemma, form in bases:
+            if len(form) > len(ending) and form.endswith(ending):
+                pairs.setdefault((lemma, form[: -len(ending)]))
+    yield from pairs
 
 
 def main(input_path: Path, output_path: Path) -> None:
