@@ -6,6 +6,8 @@ import pytest
 import simplemma.sentences as sentences
 from training import sentencebuilder
 
+from .conftest import write_licenses
+
 
 def _treebank(path, sents: list[str]) -> None:
     """Only the '# text =' lines are read, so a token row would be dead weight."""
@@ -31,11 +33,11 @@ def test_sentence_ends_offsets_match_the_joined_text():
 def test_mine_scores_a_starter_by_gold_boundaries(tmp_path):
     # "u. a." suppresses the junction: gold breaks before "Ja", never before "nein"
     path = tmp_path / "de_x-ud-train.conllu"
-    _treebank(
-        path, ["Er kauft u. a.", "Ja das stimmt.", "Es gilt u. a. nein doch nicht."] * 2
-    )
+    sents = ["Er kauft u. a.", "Ja das stimmt.", "Es gilt u. a. nein doch nicht."]
+    _treebank(path, sents * 2 + ["Er kauft u. a.", "Ja, das stimmt."])
     gain, loss = sentencebuilder.mine("de", [sentencebuilder.gold_sentences(path)])
-    assert gain["ja"] == 2
+    # "Ja," and "Ja" pool under one key
+    assert gain["ja"] == 3
     assert loss["nein"] == 2
     assert "ja" not in loss
 
@@ -77,6 +79,7 @@ def test_as_literal_round_trips_including_hyphenated_entries():
 
 
 def _cli(tmp_path, monkeypatch, lang, *flags):
+    write_licenses(monkeypatch, tmp_path, de_x="CC BY 4.0", de_y="CC BY-NC-SA 4.0")
     monkeypatch.setattr(sentencebuilder, "UD_SPLITS", tmp_path)
     monkeypatch.setattr(sys, "argv", ["sentencebuilder.py", lang, *flags])
     sentencebuilder.main()
@@ -94,6 +97,17 @@ def test_main_emits_a_literal_when_the_mined_list_wins(tmp_path, monkeypatch, ca
     assert '"de": frozenset(' in out
     assert '"ja ' in out
     assert sentences._STARTERS["de"] != frozenset({"ja"})
+
+
+def test_main_skips_disallowed_train(tmp_path, monkeypatch, capsys):
+    pairs = ["Er kauft u. a.", "Ja das stimmt."] * 4
+    _treebank(tmp_path / "de_y-ud-train.conllu", pairs)
+    _treebank(tmp_path / "de_x-ud-train.conllu", ["Ein Satz.", "Noch einer."])
+    _treebank(tmp_path / "de_x-ud-dev.conllu", pairs)
+
+    _cli(tmp_path, monkeypatch, "de")
+
+    assert "keep the shipped list" in capsys.readouterr().out
 
 
 def test_main_keeps_the_shipped_list_when_mining_does_not_help(
@@ -115,6 +129,31 @@ def test_main_check_only_scores_the_shipped_list(tmp_path, monkeypatch, capsys):
     out = capsys.readouterr().out
     assert out.startswith("shipped: ")
     assert "mined" not in out
+
+
+def test_pretokenized_needs_a_majority_of_spaced_dots_or_commas():
+    assert sentencebuilder.pretokenized(["Ein Satz .", "Ja , klar .", "Nein."])
+    assert not sentencebuilder.pretokenized(["Ein Satz .", "Nein."])
+    assert not sentencebuilder.pretokenized(["Qui est-il ?", "Non !"])
+
+
+def test_main_does_not_score_on_pretokenized_text(tmp_path, monkeypatch, capsys):
+    _treebank(tmp_path / "de_x-ud-dev.conllu", ["Ein Satz.", "Noch einer."])
+    _treebank(tmp_path / "de_y-ud-dev.conllu", ["Ein Satz .", "Noch einer .", "Ja."])
+
+    _cli(tmp_path, monkeypatch, "de", "--check")
+
+    out = capsys.readouterr().out
+    assert "not scoring on de_y-ud-dev.conllu" in out
+    assert "over 1 dev treebanks" in out
+
+
+def test_main_errors_with_only_pretokenized_text(tmp_path, monkeypatch):
+    _treebank(tmp_path / "de_y-ud-dev.conllu", ["Ein Satz .", "Noch einer ."])
+
+    with pytest.raises(SystemExit) as excinfo:
+        _cli(tmp_path, monkeypatch, "de", "--check")
+    assert excinfo.value.code == 2
 
 
 def test_main_falls_back_to_test_without_dev(tmp_path, monkeypatch, capsys):

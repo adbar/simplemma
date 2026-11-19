@@ -8,6 +8,7 @@ from training.download_eval_data import (
     _md5,
     _safe_extract,
     get_relevant_language_data_folders,
+    treebank_license,
 )
 
 
@@ -57,42 +58,55 @@ def test_main_refuses_existing_folder(tmp_path, monkeypatch):
         download_eval_data.main()
 
 
-def test_main_downloads_extracts_and_writes_splits(tmp_path, monkeypatch):
+TRAIN = b"# a German treebank line\nHunde\tHund\n"
+DEV = b"# a German treebank line\nKatzen\tKatze\n"
+
+
+def _fake_release(tmp_path, monkeypatch, readme: bytes):
+    """Patch main() to 'download' a one-treebank release, return the UD folder."""
     clean_folder = tmp_path / "UD"
     data_folder = clean_folder / "_download"
-    splits_folder = clean_folder / "splits"
-    version_file = clean_folder / "UD_VERSION"
     monkeypatch.setattr(download_eval_data, "CLEAN_DATA_FOLDER", clean_folder)
     monkeypatch.setattr(download_eval_data, "DATA_FOLDER", data_folder)
     monkeypatch.setattr(download_eval_data, "DATA_FILE", data_folder / "ud.tgz")
-    monkeypatch.setattr(download_eval_data, "UD_SPLITS", splits_folder)
-    monkeypatch.setattr(download_eval_data, "VERSION_FILE", version_file)
-
-    train_content = b"# a German treebank line\nHunde\tHund\n"
-    dev_content = b"# a German treebank line\nKatzen\tKatze\n"
-
+    monkeypatch.setattr(download_eval_data, "UD_SPLITS", clean_folder / "splits")
+    monkeypatch.setattr(download_eval_data, "VERSION_FILE", clean_folder / "UD_VERSION")
+    monkeypatch.setattr(download_eval_data, "UD_LICENSES", clean_folder / "lic.tsv")
     monkeypatch.setattr(download_eval_data, "BITSTREAM_MD5", "sentinel-md5")
     monkeypatch.setattr(download_eval_data, "_md5", lambda path: "sentinel-md5")
 
     def fake_urlretrieve(url, filename):
-        version = download_eval_data.UD_VERSION
-        base = f"ud-treebanks-v{version}/UD_German-GSD"
+        base = f"ud-treebanks-v{download_eval_data.UD_VERSION}/UD_German-GSD"
         _make_tar(
             filename,
             {
-                f"{base}/de_gsd-ud-train.conllu": train_content,
-                f"{base}/de_gsd-ud-dev.conllu": dev_content,
+                f"{base}/de_gsd-ud-train.conllu": TRAIN,
+                f"{base}/de_gsd-ud-dev.conllu": DEV,
+                f"{base}/README.md": readme,
             },
         )
 
     monkeypatch.setattr("urllib.request.urlretrieve", fake_urlretrieve)
+    return clean_folder
+
+
+def test_main_downloads_extracts_and_writes_splits(tmp_path, monkeypatch):
+    readme = b"# Summary\n\nLicense: CC BY-SA 4.0\n"
+    clean_folder = _fake_release(tmp_path, monkeypatch, readme)
 
     download_eval_data.main()
 
-    assert (splits_folder / "de_gsd-ud-train.conllu").read_bytes() == train_content
-    assert (splits_folder / "de_gsd-ud-dev.conllu").read_bytes() == dev_content
-    assert version_file.exists()
-    assert "sentinel-md5" in version_file.read_text()
+    assert (clean_folder / "splits" / "de_gsd-ud-train.conllu").read_bytes() == TRAIN
+    assert (clean_folder / "splits" / "de_gsd-ud-dev.conllu").read_bytes() == DEV
+    assert "sentinel-md5" in (clean_folder / "UD_VERSION").read_text()
+    assert (clean_folder / "lic.tsv").read_text() == "de_gsd\tCC BY-SA 4.0\n"
+
+
+def test_main_raises_without_any_license(tmp_path, monkeypatch):
+    clean_folder = _fake_release(tmp_path, monkeypatch, b"# Summary\n")
+    with pytest.raises(RuntimeError, match="no 'License:' line"):
+        download_eval_data.main()
+    assert not (clean_folder / "lic.tsv").exists()
 
 
 def test_main_raises_on_checksum_mismatch(tmp_path, monkeypatch):
@@ -134,3 +148,11 @@ def test_get_relevant_language_data_folders(tmp_path):
     results = dict(get_relevant_language_data_folders(tmp_path))
 
     assert results == {"de": de_folder, "nn": nn_folder}
+
+
+def test_treebank_license(tmp_path):
+    assert treebank_license(tmp_path) is None
+    (tmp_path / "README.txt").write_text("Summary\n\nlicense:  CC BY 4.0  \n")
+    assert treebank_license(tmp_path) == "CC BY 4.0"
+    (tmp_path / "README.txt").write_text("License:\n# Changelog\nLicense: CC BY 4.0\n")
+    assert treebank_license(tmp_path) == "CC BY 4.0"
