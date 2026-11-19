@@ -171,6 +171,8 @@ def test_korean() -> None:
     assert lemmatize("했으니", lang="ko") == "하다"
     assert lemmatize("인", lang="ko") == "이다"
     assert lemmatize("였다", lang="ko") == "이다"
+    assert lemmatize("이에요", lang="ko") == "이다"
+    assert lemmatize("예요", lang="ko") == "이다"
     assert lemmatize("in", lang="ko") == "in"
     assert lemmatize("犬", lang="ko") == "犬"
     assert text_lemmatizer("친구와 서울에서 영화를 봤습니다.", lang="ko") == [
