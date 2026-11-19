@@ -167,6 +167,7 @@ _CLITIC_CASES = [
     pytest.param("고양이는", "ko", "고양이", id="ko-no-chain-on-known-stem"),
     # 위안화 is a word, 화 is no particle
     pytest.param("위안화", "ko", None, id="ko-noun-final-syllable"),
+    pytest.param("유지비", "ko", None, id="ko-noun-final-jibi"),
     # a stem missing from the dictionary leaves the token to the rules
     pytest.param("가나다라마는", "ko", None, id="ko-unknown-stem"),
     pytest.param("كتابه", "ar", "كتاب", id="ar-enclitic-hu"),

@@ -49,7 +49,8 @@ error CSV per dataset.
 Each split has one role. **train** is used to mine overrides and sentence
 starters and to gate changes. It is never scored. **dev** and **test** are
 scored and gate nothing, except sentence-starter adoption on dev (see
-``sentencebuilder`` below). Train shows whether a change helps
+``sentencebuilder`` below) and the Korean clitic tail pruning (see the
+``rulebuilder`` section). Train shows whether a change helps
 or hurts, but overstates by how much (up to 2x), so never report from it
 or rank candidates with it. A language without a train split is gated on
 dev, else test, with a WARNING. ``sw`` has no UD data at all.
@@ -221,7 +222,8 @@ the form minus the tail as gold. Candidates are the Kaikki particles, the
 forms of 이다 and pairs of them (에서는, 이라고도). The 하다/되다 tails are
 the endings found in at least half of the X하다/X되다 tables. A Korean clitic
 tail is kept only if removing it loses UD train tokens, confirmed per
-treebank on dev and test. The screens are not part of the repository.
+treebank on dev and test. If train is unaffected, dev and test decide. The
+screens are not part of the repository.
 
 The in-dictionary check has a blind spot: dictionaries are dominated by
 regular declensions, real text by a few irregular high-frequency words. So
