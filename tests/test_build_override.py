@@ -1,6 +1,7 @@
 import logging
 import sys
 from collections import Counter
+from pathlib import Path
 
 import pytest
 
@@ -8,6 +9,7 @@ from training import build_override as bo
 from training import ud_conllu
 
 from .conftest import conllu as _conllu
+from .conftest import write_licenses
 
 
 def _collect(tmp_path, lang: str, texts: list[str]):
@@ -217,6 +219,24 @@ def test_resolve_overrides_per_treebank_veto():
     }
 
 
+def _main(
+    tmp_path: Path, monkeypatch, treebanks: dict[str, str], licenses, *argv
+) -> str:
+    """Run main() on the given train splits, return the written zz.tsv."""
+    splits = tmp_path / "splits"
+    splits.mkdir()
+    for name, text in treebanks.items():
+        (splits / f"{name}-ud-train.conllu").write_text(text, encoding="utf-8")
+    monkeypatch.setattr(ud_conllu, "UD_SPLITS", splits)
+    write_licenses(monkeypatch, tmp_path, **licenses)
+    monkeypatch.setattr(bo, "OVERRIDES_DIR", tmp_path)
+    monkeypatch.setattr(bo, "OUTPUT_DIR", tmp_path / "output")
+    monkeypatch.setattr(bo, "lemmatize", lambda token, lang: token)
+    monkeypatch.setattr(sys, "argv", ["build_override", *argv])
+    bo.main()
+    return (tmp_path / "output" / "zz.tsv").read_text(encoding="utf-8")
+
+
 def test_main_end_to_end(tmp_path, monkeypatch, caplog):
     """main() mines train splits, merges, writes, and promotes with --in-place."""
     splits = tmp_path / "splits"
@@ -225,6 +245,7 @@ def test_main_end_to_end(tmp_path, monkeypatch, caplog):
     train += _conllu([[(1, "corre", "otro", "VERB")]] * 5)  # contradicts a reviewed row
     (splits / "zz_x-ud-train.conllu").write_text(train, encoding="utf-8")
     monkeypatch.setattr(ud_conllu, "UD_SPLITS", splits)
+    write_licenses(monkeypatch, tmp_path, zz_x="CC BY-SA 4.0")
 
     overrides = tmp_path / "overrides"
     overrides.mkdir()
@@ -248,32 +269,31 @@ def test_main_end_to_end(tmp_path, monkeypatch, caplog):
     assert (overrides / "zz.tsv").read_text(encoding="utf-8") == expected
 
 
-def test_main_excludes_treebanks(tmp_path, monkeypatch):
-    splits = tmp_path / "splits"
-    splits.mkdir()
+def test_main_drops_excluded_and_unlicensed_treebanks(tmp_path, monkeypatch):
+    """zz_y is excluded and zz_z unlicensed, either would veto zz_x."""
     kept = _conllu([[(1, "corres", "correr", "VERB")]] * 5)
     vetoing = _conllu([[(1, "corres", "corres", "VERB")]] * 5)
-    (splits / "zz_x-ud-train.conllu").write_text(kept, encoding="utf-8")
-    (splits / "zz_y-ud-train.conllu").write_text(vetoing, encoding="utf-8")
-    monkeypatch.setattr(ud_conllu, "UD_SPLITS", splits)
-    monkeypatch.setattr(bo, "OVERRIDES_DIR", tmp_path)
-    monkeypatch.setattr(bo, "OUTPUT_DIR", tmp_path / "output")
-    monkeypatch.setattr(bo, "lemmatize", lambda token, lang: token)
-    monkeypatch.setattr(sys, "argv", ["build_override", "--exclude", "zz_y", "zz"])
-    bo.main()
-    assert (tmp_path / "output" / "zz.tsv").read_text(encoding="utf-8") == (
-        "correr\tcorres\n"
+    out = _main(
+        tmp_path,
+        monkeypatch,
+        {"zz_x": kept, "zz_y": vetoing, "zz_z": vetoing},
+        {"zz_x": "CC BY 4.0", "zz_y": "CC BY 4.0", "zz_z": "CC BY-NC-SA 4.0"},
+        *("zz", "--exclude", "zz_y"),
     )
+    assert out == "correr\tcorres\n"
 
 
 def test_main_rejects_unknown_treebank(tmp_path, monkeypatch):
-    splits = tmp_path / "splits"
-    splits.mkdir()
-    (splits / "zz_x-ud-train.conllu").write_text(_conllu([]), encoding="utf-8")
-    monkeypatch.setattr(ud_conllu, "UD_SPLITS", splits)
-    monkeypatch.setattr(sys, "argv", ["build_override", "zz", "--exclude", "zz_typo"])
     with pytest.raises(SystemExit, match="unknown treebanks"):
-        bo.main()
+        _main(
+            tmp_path,
+            monkeypatch,
+            {"zz_x": _conllu([])},
+            {},
+            "zz",
+            "--exclude",
+            "zz_typo",
+        )
 
 
 def test_resolve_overrides_ties_are_insertion_order_independent():

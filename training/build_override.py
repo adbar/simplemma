@@ -4,6 +4,8 @@ A form gets its majority lemma when the pooled evidence clears its POS-class
 bar and the lemma beats the current output, overall and in every
 often-attesting treebank. Shipping still requires a dictionary rebuild.
 
+Only train splits under an allowed license are mined, see `ud_conllu.allowed_license`.
+
 Usage: uv run python -m training.build_override <lang> [--exclude TREEBANK]... [--in-place]
 """
 
@@ -18,7 +20,12 @@ from pathlib import Path
 from simplemma import lemmatize
 from training.clean_wordlist import pair_violation, write_pairs
 from training.dictionary_builder import OVERRIDES_DIR, _canon, _layer_entries
-from training.ud_conllu import dataset_name, discover_treebanks, iter_word_tokens
+from training.ud_conllu import (
+    dataset_name,
+    discover_treebanks,
+    iter_word_tokens,
+    licensed_treebanks,
+)
 
 log = logging.getLogger(__name__)
 
@@ -201,7 +208,9 @@ def main() -> None:
     unknown = set(args.exclude) - {dataset_name(path) for path in all_paths}
     if unknown:
         sys.exit(f"unknown treebanks for {lang!r}: {', '.join(sorted(unknown))}")
-    train_paths = [path for path in all_paths if dataset_name(path) not in args.exclude]
+    train_paths = licensed_treebanks(
+        (path for path in all_paths if dataset_name(path) not in args.exclude), lang
+    )
     per_treebank, form_tags = collect_candidates(train_paths, lang)
     path = OVERRIDES_DIR / f"{lang}.tsv"
     existing = _layer_entries(path, lang)

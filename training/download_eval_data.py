@@ -5,12 +5,13 @@ API=https://lindat.mff.cuni.cz/repository/server/api
   curl -sI "$API/pid/find?id=hdl:<handle>"        -> Location: .../items/<item>
   curl -s "$API/core/items/<item>/bundles"        -> ORIGINAL bundle uuid
   curl -s "$API/core/bundles/<bundle>/bitstreams" -> content href + checkSum
-update the constants, delete training/data/UD/, re-run the evaluation.
+update the constants, move training/data/UD/ aside, re-run the evaluation.
 """
 
 import argparse
 import hashlib
 import logging
+import re
 import shutil
 import tarfile
 import urllib.request
@@ -18,17 +19,17 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from simplemma.strategies.dictionaries.dictionary_factory import SUPPORTED_LANGUAGES
-from training.ud_conllu import UD_SPLITS, dataset_name, dataset_to_lang
+from training.ud_conllu import UD_LICENSES, UD_SPLITS, dataset_name, dataset_to_lang
 
 log = logging.getLogger(__name__)
 
-UD_VERSION = "2.18"
-UD_HANDLE = "11234/1-6149"
+UD_VERSION = "2.19"
+UD_HANDLE = "11234/1-6316"
 BITSTREAM_URL = (
     "https://lindat.mff.cuni.cz/repository/server/api/core/bitstreams/"
-    "d91b1ffc-fc31-41a0-bd8f-3b876864a1d5/content"
+    "bd57416d-f1ec-43a0-8ebd-0a53cb9bda59/content"
 )
-BITSTREAM_MD5 = "e9bfd544a48eac63ea3bb41e80c78813"
+BITSTREAM_MD5 = "b17a48b52be561010470f8c5c2146809"
 
 CLEAN_DATA_FOLDER = UD_SPLITS.parent
 DATA_FOLDER = CLEAN_DATA_FOLDER / "_download"
@@ -58,6 +59,17 @@ def get_relevant_language_data_folders(
             yield (lang, lang_data_folder)
 
 
+def treebank_license(folder: Path) -> str | None:
+    """The `License:` line of the treebank README."""
+    for name in ("README.md", "README.txt"):
+        readme = folder / name
+        if readme.exists():
+            text = readme.read_text(encoding="utf-8", errors="replace")
+            if match := re.search(r"^License:[ \t]*(.+?)[ \t]*$", text, re.M | re.I):
+                return match.group(1)
+    return None
+
+
 def _safe_extract(tar: tarfile.TarFile, dest: Path) -> None:
     for member in tar.getmembers():
         member_path = (dest / member.name).resolve()
@@ -72,7 +84,7 @@ def _safe_extract(tar: tarfile.TarFile, dest: Path) -> None:
 def main(keep_download: bool = False) -> None:
     if DATA_FOLDER.exists() or CLEAN_DATA_FOLDER.exists():
         raise Exception(
-            "Data folder seems to be already present. Delete it before creating new data."
+            "Data folder seems to be already present. Move it aside before creating new data."
         )
 
     CLEAN_DATA_FOLDER.mkdir(parents=True)
@@ -94,12 +106,25 @@ def main(keep_download: bool = False) -> None:
     uncompressed_data_folder = next(DATA_FOLDER.glob("ud-treebanks-*"))
 
     log.info("Filtering files...")
+    licenses = {}
     for lang, dataset_folder in get_relevant_language_data_folders(
         uncompressed_data_folder
     ):
         log.info(f"{lang} - {dataset_folder}")
-        for file in sorted(dataset_folder.glob("*.conllu")):
+        conllu_files = sorted(dataset_folder.glob("*.conllu"))
+        for file in conllu_files:
             (UD_SPLITS / file.name).write_bytes(file.read_bytes())
+        lic = treebank_license(dataset_folder)
+        if lic is None:
+            log.warning(f"no license line in {dataset_folder.name}")
+        else:
+            licenses[dataset_name(conllu_files[0])] = lic
+    if not licenses:
+        raise RuntimeError("no 'License:' line in any treebank README")
+    UD_LICENSES.write_text(
+        "".join(f"{name}\t{lic}\n" for name, lic in sorted(licenses.items())),
+        encoding="utf-8",
+    )
 
     VERSION_FILE.write_text(
         f"version={UD_VERSION}\nhandle={UD_HANDLE}\nmd5={BITSTREAM_MD5}\n"

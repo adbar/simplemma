@@ -61,6 +61,11 @@ def test_abbreviations_and_starter_arbitration() -> None:
         "Er kauft die Firma u. a.",
         "Die Preise steigen.",
     ]
+    # trailing punctuation does not hide the starter
+    assert split_sentences("Er kauft die Firma u. a. Aber, sie zahlt.", "de") == [
+        "Er kauft die Firma u. a.",
+        "Aber, sie zahlt.",
+    ]
 
 
 def test_no_arbitration_after_initials() -> None:
@@ -69,6 +74,13 @@ def test_no_arbitration_after_initials() -> None:
     ]
     assert split_sentences("Hij sprak met J. De Wit gisteren.", "nl") == [
         "Hij sprak met J. De Wit gisteren."
+    ]
+    # a starter letter as an initial after a title is no boundary
+    assert split_sentences("O Sr. E. Santos chegou.", "pt") == [
+        "O Sr. E. Santos chegou."
+    ]
+    assert split_sentences("Přednášel dr. K. Čapek včera.", "cs") == [
+        "Přednášel dr. K. Čapek včera."
     ]
 
 
@@ -125,9 +137,9 @@ def test_word_window_stops_at_any_whitespace() -> None:
 
 
 def test_spaced_punctuation_register() -> None:
-    assert split_sentences("Le prix est bas . Les clients sont contents .", "fr") == [
+    assert split_sentences("Le prix est bas . Il est content .", "fr") == [
         "Le prix est bas .",
-        "Les clients sont contents .",
+        "Il est content .",
     ]
 
 

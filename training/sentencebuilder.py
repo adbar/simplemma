@@ -1,22 +1,25 @@
 """Regenerate the sentence-starter lists that `simplemma.sentences` ships.
 
-Mines on train and adopts only if the list beats the shipped one on dev.
+Mines on train splits under an allowed license, see `ud_conllu.allowed_license`,
+and adopts only if the list beats the shipped one on dev. Pre-tokenized dev
+text is not scored on.
 
 Usage: uv run python -m training.sentencebuilder <lang> [--check]
 """
 
 import argparse
+import re
 import textwrap
 from collections import Counter
-from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import AbstractContextManager
 from pathlib import Path
+from unittest.mock import patch
 
 import simplemma.sentences as sentences
-from simplemma.utils import normalize_token
-from training.ud_conllu import UD_SPLITS, discover_treebanks
+from training.ud_conllu import UD_SPLITS, discover_treebanks, licensed_treebanks
 
 MIN_SUPPORT = 2
+_SPACED_PUNCTUATION = re.compile(r" [.,]( |$)")
 
 
 def gold_sentences(path: Path) -> list[str]:
@@ -27,6 +30,11 @@ def gold_sentences(path: Path) -> list[str]:
             for line in filehandle
             if line.startswith("# text = ") and (text := line[9:].strip())
         ]
+
+
+def pretokenized(gold: list[str]) -> bool:
+    """Most sentences space their punctuation (de_hdt), unlike running text."""
+    return sum(bool(_SPACED_PUNCTUATION.search(text)) for text in gold) > len(gold) / 2
 
 
 def sentence_ends(gold: list[str], joiner: str) -> set[int]:
@@ -65,7 +73,7 @@ def mine(lang: str, golds: list[list[str]]) -> tuple[Counter[str], Counter[str]]
             token = word.group()
             if token[:1].isalpha():
                 counts = gain if after in starts else loss
-                counts[normalize_token(token.lower())] += 1
+                counts[sentences._starter_key(token)] += 1
     return gain, loss
 
 
@@ -96,18 +104,11 @@ def boundary_f1(lang: str, golds: list[list[str]]) -> float:
     return sum(scores) / len(scores) if scores else float("nan")
 
 
-@contextmanager
-def starters_replaced(lang: str, starters: frozenset[str]) -> Iterator[None]:
+def starters_replaced(
+    lang: str, starters: frozenset[str]
+) -> AbstractContextManager[object]:
     """Swap in `starters` for `lang`, restoring on exit."""
-    previous = sentences._STARTERS.get(lang)
-    sentences._STARTERS[lang] = starters
-    try:
-        yield
-    finally:
-        if previous is None:
-            del sentences._STARTERS[lang]
-        else:
-            sentences._STARTERS[lang] = previous
+    return patch.dict(sentences._STARTERS, {lang: starters})
 
 
 def as_literal(lang: str, starters: frozenset[str]) -> str:
@@ -142,16 +143,26 @@ def main() -> None:
             )
     if not paths:
         parser.error(f"no *-ud-dev or -test treebank for {args.lang!r} in {UD_SPLITS}")
-    held_out = [gold_sentences(path) for path in paths]
+    held_out = []
+    for path in paths:
+        gold = gold_sentences(path)
+        if pretokenized(gold):
+            print(f"not scoring on {path.name}: pre-tokenized text")
+        else:
+            held_out.append(gold)
+    if not held_out:
+        parser.error(f"only pre-tokenized {held_out_split} text for {args.lang!r}")
     shipped = boundary_f1(args.lang, held_out)
     print(
         f"shipped: {shipped:.5f} boundary F1 "
-        f"over {len(paths)} {held_out_split} treebanks"
+        f"over {len(held_out)} {held_out_split} treebanks"
     )
     if args.check:
         return
 
-    train = discover_treebanks(args.lang, "train", UD_SPLITS)
+    train = licensed_treebanks(
+        discover_treebanks(args.lang, "train", UD_SPLITS), args.lang
+    )
     mined = select(*mine(args.lang, [gold_sentences(path) for path in train]))
     with starters_replaced(args.lang, mined):
         candidate = boundary_f1(args.lang, held_out)

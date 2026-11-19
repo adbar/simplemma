@@ -1,5 +1,8 @@
 """Shared conventions for reading the UD treebank files."""
 
+import logging
+import re
+import sys
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import Any
@@ -8,7 +11,11 @@ from conllu import parse_incr
 
 from simplemma.utils import canonicalize_token, normalize_token
 
+log = logging.getLogger(__name__)
+
 UD_SPLITS = Path(__file__).parent / "data" / "UD" / "splits"
+# Dataset name to the license line of its README, written at download.
+UD_LICENSES = UD_SPLITS.parent / "licenses.tsv"
 
 DATASET_LANG_OVERRIDES = {
     "no_bokmaal": "nb",
@@ -39,6 +46,47 @@ def discover_treebanks(
         for path in (ud_splits or UD_SPLITS).glob(f"*{suffix}")
         if dataset_to_lang(dataset_name(path)) == lang
     )
+
+
+FREE_LICENSE = re.compile(r"CC BY(-SA)? \d\.\d|CC0( 1\.0)?|Public Domain")
+# Digital humanities languages, where non-commercial data is accepted.
+NC_LICENSE = re.compile(r"CC BY-NC-SA \d\.\d")
+NC_LANGS = frozenset({"grc", "la"})
+
+
+def read_licenses(path: Path | None = None) -> dict[str, str]:
+    """Dataset name to license. Exits if the file is missing."""
+    path = path or UD_LICENSES
+    if not path.exists():
+        sys.exit(
+            f"no {path}, move training/data/UD/ aside "
+            "and re-run training.download_eval_data"
+        )
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return dict(line.split("\t", 1) for line in lines if line)
+
+
+def allowed_license(lic: str, lang: str) -> bool:
+    """CC BY, CC BY-SA, CC0 or public domain, plus CC BY-NC-SA for NC_LANGS."""
+    return bool(
+        FREE_LICENSE.fullmatch(lic) or (lang in NC_LANGS and NC_LICENSE.fullmatch(lic))
+    )
+
+
+def licensed_treebanks(paths: Iterable[Path], lang: str) -> list[Path]:
+    """Train paths under an allowed license. Warns on each other, exits if none."""
+    licenses = read_licenses()
+    kept = []
+    for path in paths:
+        name = dataset_name(path)
+        lic = licenses.get(name, "")
+        if allowed_license(lic, lang):
+            kept.append(path)
+        else:
+            log.warning(f"{lang}: skipping {name} ({lic or 'no license'})")
+    if not kept:
+        sys.exit(f"no train split under an allowed license for {lang!r}")
+    return kept
 
 
 def _strip_mwt_artifact(value: str) -> str:
@@ -106,7 +154,8 @@ def iter_word_tokens_in_sentences(
     for tokens in sentences:
         for token in tokens:
             token_id = token["id"]
-            if not isinstance(token_id, int) or token["lemma"] == "_":
+            # ar_nyuad ships "_" forms with real lemmas.
+            if not isinstance(token_id, int) or "_" in (token["form"], token["lemma"]):
                 continue
             token["form"] = normalize_token(_strip_mwt_artifact(token["form"]))
             if lang == "ko" and token.get("xpos"):

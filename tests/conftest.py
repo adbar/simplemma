@@ -3,6 +3,7 @@ from typing import Any
 
 from simplemma import BaseTokenSampler
 from simplemma.strategies import DictionaryFactory
+from training import ud_conllu
 
 
 class FixedMapping(DictionaryFactory):
@@ -28,6 +29,13 @@ def conllu(sentences: Iterable[Iterable[tuple[Any, ...]]]) -> str:
         ]
         blocks.append("\n".join(lines))
     return "\n\n".join(blocks) + "\n\n"
+
+
+def write_licenses(monkeypatch, tmp_path, **licenses: str) -> None:
+    """Point UD_LICENSES at a file mapping each dataset name to its license."""
+    path = tmp_path / "licenses.tsv"
+    path.write_text("".join(f"{k}\t{v}\n" for k, v in licenses.items()))
+    monkeypatch.setattr(ud_conllu, "UD_LICENSES", path)
 
 
 class CustomTokenSampler(BaseTokenSampler):

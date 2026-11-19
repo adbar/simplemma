@@ -57,8 +57,10 @@ dev, else test, with a WARNING. ``sw`` has no UD data at all.
 
 ``eval_gate.gate()`` (library, no CLI) rejects a candidate dictionary that
 lowers token or type accuracy on any of the language's treebanks. It runs
-the full ``Lemmatizer``, same protocol as ``evaluate_simplemma``. Shared UD
-conventions live in ``ud_conllu.py``.
+the full ``Lemmatizer``, same protocol as ``evaluate_simplemma``. It scores
+on every treebank whatever its license, since no data from scoring ships.
+The same holds for the sentence-starter dev check. Shared UD conventions
+live in ``ud_conllu.py``.
 
 
 Dictionaries
@@ -142,11 +144,23 @@ Override lexicons
 
 ``python3 -m training.build_override <code> [--exclude TREEBANK ...] [--in-place]``
 mines an override lexicon from the language's UD train splits, minus the
-excluded treebanks. A form qualifies with 3 occurrences (closed class) or 5
-(open class) and 60% agreement on its majority lemma. The lemma must beat
-the current output by 2 tokens, and lose tokens in no treebank with 3 or
-more occurrences. Proper nouns, adpositions, participles, underscore-joined
-lemmas and case-only changes are skipped as treebank conventions. Letterless
+excluded treebanks.
+
+Only CC BY, CC BY-SA, CC0 and public-domain treebanks
+are mined, plus CC BY-NC-SA for grc and la (``allowed_license``). Licenses
+come from each treebank's README, recorded at download in
+``training/data/UD/licenses.tsv``. A treebank without one is skipped with a
+warning. ``licenses/UD_Treebanks.txt`` lists the treebanks per language.
+Regenerate it after a UD bump. It lists the allowed train splits that yield
+tokens with a usable form and lemma. This leaves out ar_nyuad, en_esl and
+en_gumreddit (forms replaced by ``_``) and en_eslspok (no lemmas).
+
+A form
+qualifies with 3 occurrences (closed class) or 5 (open class) and 60%
+agreement on its majority lemma. The lemma must beat the current output by
+2 tokens, and lose tokens in no treebank with 3 or more occurrences. Proper
+nouns, adpositions, participles, underscore-joined lemmas and case-only
+changes are skipped as treebank conventions. Letterless
 lemmas are skipped as junk. A lowercase form with a cased lemma is skipped
 as a sentence-initial artifact. Existing rows that UD contradicts are
 logged, not changed. Output goes to ``training/output/`` unless
@@ -246,9 +260,11 @@ Sentence starters
 (suppress a boundary after ``.``) and ``_STARTERS`` (re-open a suppressed
 one).
 
-``python3 -m training.sentencebuilder <code>`` mines starters on train and
-prints a paste-able literal only if they beat the shipped list on dev,
-otherwise it says ``keep the shipped list``. ``--check`` scores the shipped
+``python3 -m training.sentencebuilder <code>`` mines starters on train,
+under the same license filter as the override lexicons. It prints a
+paste-able literal only if they beat the shipped list on dev. Otherwise it
+says ``keep the shipped list``. Dev treebanks with pre-tokenized text
+(such as de_hdt, pt_cintil) are not scored on. ``--check`` scores the shipped
 list alone. Run it before and after any splitter change.
 
 Abbreviations are not mined: held out they gain at most +0.0025 F1, against

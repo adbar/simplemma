@@ -190,7 +190,7 @@ The following languages are available, identified by their [BCP 47
 language tag](https://en.wikipedia.org/wiki/IETF_language_tag), usually
 the ISO 639-1 code.
 
-Available languages (2026-11-17):
+Available languages (2026-11-19):
 
 The *Forms* column counts the inflected word forms stored in the
 dictionary, while *Lemmata* counts the distinct base forms they map to
@@ -200,31 +200,31 @@ morphology rather than a data error.
 
 | Code | Language | Forms (10³) | Lemm. (10³) | Acc. | Comments |
 | ---- | -------- | ----------- | ------------| ---- | -------- |
-| `ar` | Arabic | 298 | 49 | 0.91 | on UD AR-PADT; real-world (unsegmented) input scores ≈0.85 |
+| `ar` | Arabic | 297 | 49 | 0.90 | on UD AR-PADT; real-world (unsegmented) input scores ≈0.85 |
 | `ast` | Asturian | 154 | 36 |  |  |
-| `bg` | Bulgarian | 226 | 26 | 0.89 | on UD BG-BTB |
+| `bg` | Bulgarian | 226 | 25 | 0.87 | on UD BG-BTB |
 | `ca` | Catalan | 641 | 64 | 0.95 | on UD CA-AnCora |
-| `cs` | Czech | 363 | 47 | 0.95 | on UD CS-FicTree |
+| `cs` | Czech | 360 | 46 | 0.95 | on UD CS-FicTree |
 | `cy` | Welsh | 402 | 21 | 0.95 | on UD CY-CCG |
 | `da` | Danish | 788 | 117 | 0.95 | on UD DA-DDT, alternative: [lemmy](https://github.com/sorenlind/lemmy) |
 | `de` | German | 1,116 | 334 | 0.97 | on UD DE-GSD, see also [German-NLP list](https://github.com/adbar/German-NLP#Lemmatization) |
-| `el` | Greek | 250 | 28 | 0.93 | on UD EL-GDT |
-| `en` | English | 182 | 78 | 0.96 | on UD EN-LinES, alternative: [LemmInflect](https://github.com/bjascob/LemmInflect) |
+| `el` | Greek | 250 | 28 | 0.92 | on UD EL-GDT |
+| `en` | English | 182 | 77 | 0.96 | on UD EN-LinES, alternative: [LemmInflect](https://github.com/bjascob/LemmInflect) |
 | `enm` | Middle English | 43 | 6 |  |  |
-| `eo` | Esperanto | 191 | 18 | 0.95 | on UD EO-PraGo (test-only treebank, no train split) |
+| `eo` | Esperanto | 191 | 18 | 0.94 | on UD EO-PraGo (test-only treebank, no train split) |
 | `es` | Spanish | 824 | 88 | 0.96 | on UD ES-AnCora |
-| `et` | Estonian | 2,690 | 95 | 0.92 | on UD ET-EWT, low coverage |
-| `fa` | Persian | 47 | 14 | 0.95 | on UD FA-Seraji |
+| `et` | Estonian | 2,689 | 94 | 0.92 | on UD ET-EWT, low coverage |
+| `fa` | Persian | 47 | 14 | 0.96 | on UD FA-Seraji |
 | `fi` | Finnish | 3,547 | 125 | 0.91 | on UD FI-TDT, see [this benchmark](https://github.com/aajanki/finnish-pos-accuracy) |
 | `fr` | French | 250 | 37 | 0.96 | on UD FR-Sequoia |
 | `ga` | Irish | 444 | 48 | 0.93 | on UD GA-IDT |
 | `gd` | Gaelic | 73 | 16 | 0.91 | on UD GD-ARCOSG |
-| `gl` | Galician | 426 | 43 | 0.92 | on UD GL-CTG |
+| `gl` | Galician | 426 | 43 | 0.95 | on UD GL-CTG |
 | `grc` | Ancient Greek | 852 | 22 | 0.86 | on UD GRC-PROIEL (best available; no general-register grc treebank exists), alternative: [odyCy](https://github.com/centre-for-humanities-computing/odyCy) |
 | `gv` | Manx | 77 | 14 | 0.92 | on UD GV-Cadhan |
-| `hbs` | Serbo-Croatian | 610 | 49 | 0.90 | on UD HR-SET + SR-SET (token-weighted); Croatian and Serbian lists to be added later |
-| `he` | Hebrew | 105 | 10 | 0.93 | on UD HE-HTB; real-world (unsegmented) input scores ≈0.82 |
-| `hi` | Hindi | 86 | 19 | 0.95 | on UD HI-HDTB |
+| `hbs` | Serbo-Croatian | 610 | 49 | 0.91 | on UD HR-SET + SR-SET (token-weighted); Croatian and Serbian lists to be added later |
+| `he` | Hebrew | 105 | 11 | 0.93 | on UD HE-HTB; real-world (unsegmented) input scores ≈0.82 |
+| `hi` | Hindi | 85 | 19 | 0.95 | on UD HI-HDTB |
 | `hu` | Hungarian | 1,763 | 45 | 0.88 | on UD HU-Szeged |
 | `hy` | Armenian | 467 | 17 | 0.92 | on UD HY-BSUT |
 | `id` | Indonesian | 22 | 4 | 0.93 | on UD ID-CSUI |
@@ -234,7 +234,7 @@ morphology rather than a data error.
 | `ko` | Korean | 407 | 35 | 0.93 | on UD KO-Kaist |
 | `la` | Latin | 1,289 | 70 | 0.89 | on UD LA-PROIEL, alternative: [LatinCy](https://spacy.io/universe/project/latincy) |
 | `lb` | Luxembourgish | 306 | 79 |  | only a <1k-token UD treebank available |
-| `lt` | Lithuanian | 365 | 28 | 0.87 | on UD LT-ALKSNIS |
+| `lt` | Lithuanian | 365 | 28 | 0.88 | on UD LT-ALKSNIS |
 | `lv` | Latvian | 178 | 15 | 0.84 | on UD LV-LVTB |
 | `mk` | Macedonian | 546 | 41 | 0.92 | on UD MK-MTB (test-only treebank, no train split) |
 | `ml` | Malayalam | 746 | 64 | 0.69 | on UD ML-UFAL (small test-only treebank, no train split), experimental |
@@ -254,7 +254,7 @@ morphology rather than a data error.
 | `sw` | Swahili | 4,869 | 4 |  | experimental |
 | `tl` | Tagalog | 78 | 25 | 0.84 | on UD TL-TRG (test-only treebank, no train split) |
 | `tr` | Turkish | 1,236 | 40 | 0.92 | on UD TR-KeNet |
-| `uk` | Ukrainian | 599 | 45 | 0.95 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
+| `uk` | Ukrainian | 599 | 45 | 0.94 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
 
 
 Languages marked as low-coverage may be better served by
@@ -308,6 +308,17 @@ from the following sources, listed in order of relative importance:
 -   [Wikinflection
     corpus](https://github.com/lenakmeth/Wikinflection-Corpus) by Eleni
     Metheniti (CC BY 4.0 License)
+
+The correction lists and sentence starters are mined from [Universal
+Dependencies](https://universaldependencies.org/) train splits under CC BY
+or CC BY-SA. Ancient Greek and Latin also use CC BY-NC-SA splits. Their
+data is restricted to non-commercial use. For commercial use, delete
+`grc.plzma` and `la.plzma` from `simplemma/strategies/dictionaries/data/`,
+which removes both languages. Correction rows that none of
+these splits contains are attested by Wiktionary (Kaikki) or were reviewed
+by hand. Arabic, Bulgarian, Estonian, Galician, Hindi, Hungarian, Swahili
+and Tagalog have no such split. See `licenses/UD_Treebanks.txt` for the
+treebanks per language.
 
 
 <!-- include:credits:end -->
