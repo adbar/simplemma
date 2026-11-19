@@ -9,6 +9,7 @@ from training.ud_conllu import (
     canon_lemma,
     dataset_to_lang,
     iter_word_tokens_in_sentences,
+    ko_gold_lemma,
     licensed_treebanks,
     read_licenses,
 )
@@ -185,3 +186,32 @@ def test_dataset_to_lang_overrides_and_default():
     assert dataset_to_lang("sr_set") == "hbs"
     assert dataset_to_lang("ro_rrt") == "ro"
     assert dataset_to_lang("en") == "en"
+
+
+def test_ko_gold_lemma():
+    """Morpheme sequence to dictionary form, cut before particles and endings."""
+    assert ko_gold_lemma("주관+하+고", "ncpa+xsv+ecc") == "주관하다"
+    assert ko_gold_lemma("학교+에서", "ncn+jca") == "학교"
+    assert ko_gold_lemma("학생+이+다", "NNG+VCP+EF") == "학생"
+    assert ko_gold_lemma("학생+이+다", "ncn+jp+ef") == "학생"
+    assert ko_gold_lemma("행복+하+ㄴ", "NNG+XSA+ETM") == "행복하다"
+    assert ko_gold_lemma("조용+히", "ncps+xsa") == "조용히"
+    # stem-only lemma (PUD): the first tag decides
+    assert ko_gold_lemma("먹", "VV+EP+EF") == "먹다"
+    # misaligned morpheme sequence (KSL): kept, no 다
+    assert ko_gold_lemma("말+으시+ㅂ시오", "VX+EF") == "말+으시+ㅂ시오"
+    # standalone copula
+    assert ko_gold_lemma("이+다", "VCP+EF") == "이다"
+    assert ko_gold_lemma("이", "VC") == "이다"
+    assert ko_gold_lemma("이+다", "jp+ef") == "이다"
+
+
+def test_iter_word_tokens_ko_gold():
+    conllu = "1\t학교에서\t학교+에서\tNOUN\tncn+jca\t_\t0\troot\t_\t_\n\n"
+    ((_, token),) = list(iter_word_tokens_in_sentences(parse(conllu), "ko"))
+    assert token["lemma"] == "학교"
+    ((_, token),) = list(iter_word_tokens_in_sentences(parse(conllu), "en"))
+    assert token["lemma"] == "학교+에서"
+    conllu = "1\t학교에서\t학교+에서\tNOUN\t_\t_\t0\troot\t_\t_\n\n"
+    ((_, token),) = list(iter_word_tokens_in_sentences(parse(conllu), "ko"))
+    assert token["lemma"] == "학교+에서"

@@ -1,5 +1,5 @@
 site_name: Simplemma
-site_description: Fast, dependency-free lemmatization, tokenization and sentence splitting for 54 languages.
+site_description: Fast, dependency-free lemmatization, tokenization and sentence splitting for 55 languages.
 site_url: https://adbar.github.io/simplemma/
 
 theme:

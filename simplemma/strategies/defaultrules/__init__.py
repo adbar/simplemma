@@ -11,6 +11,7 @@ from .et import apply_et
 from .fi import apply_fi
 from .is_ import apply_is
 from .ka import apply_ka
+from .ko import apply_ko
 from .la import apply_la
 from .lv import apply_lv
 from .ms import apply_ms
@@ -34,6 +35,7 @@ RULE_FUNCTIONS: dict[str, Callable[[str], str | None]] = {
     "fi": apply_fi,
     "is": apply_is,
     "ka": apply_ka,
+    "ko": apply_ko,
     "la": apply_la,
     "lv": apply_lv,
     "ms": apply_ms,

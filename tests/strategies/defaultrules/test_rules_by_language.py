@@ -102,6 +102,12 @@ RULE_CASES = [
     ("ka", "მოძრაობისას", None),
     # stem-final -ლთა is not a case ending here, so no *კალი
     ("ka", "კალთა", None),
+    ("ko", "공부했습니다", "공부하다"),
+    ("ko", "발표됐다", "발표되다"),
+    ("ko", "학교에서", "학교"),
+    ("ko", "학생입니다", "학생"),
+    # irregular past stems are left to the dictionary
+    ("ko", "먹었다", None),
     ("nn", "akslingane", "aksling"),
     ("nn", "kaptein", None),
     ("uk", "близького", "близький"),

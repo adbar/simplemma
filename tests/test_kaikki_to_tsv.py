@@ -315,9 +315,75 @@ def test_extract_pairs_identity_for_uninflected_headword():
 
 def test_extract_pairs_no_identity_after_junk_form_drop():
     """An entry with only dropped junk forms must not fall back to identity."""
-    entry = {"word": "plants", "forms": [{"form": "plánts", "tags": ["romanization"]}]}
-    assert list(extract_pairs(entry)) == []
     entry = {"word": "x", "forms": [{"form": "y", "tags": ["table-tags"]}]}
+    assert list(extract_pairs(entry)) == []
+
+
+def test_extract_pairs_identity_after_reading_drop():
+    """A dropped romanization is no inflection: the headword keeps its identity."""
+    entry = {"word": "사람", "forms": [{"form": "saram", "tags": ["romanization"]}]}
+    assert list(extract_pairs(entry)) == [("사람", "사람")]
+    entry = {"word": "x", "forms": [{"form": "y", "tags": ["transliteration"]}]}
+    assert list(extract_pairs(entry)) == [("x", "x")]
+
+
+def test_extract_pairs_ko_stem_keys():
+    """ko verb and adjective forms in 다 also yield their stem, nouns don't."""
+    entry = {
+        "word": "하다",
+        "lang_code": "ko",
+        "pos": "verb",
+        "forms": [{"form": "했다"}, {"form": "합니다"}, {"form": "하고"}],
+    }
+    assert list(extract_pairs(entry)) == [
+        ("하다", "했다"),
+        ("하다", "합니다"),
+        ("하다", "하고"),
+        ("하다", "했"),
+        ("하다", "합니"),
+        ("하다", "하"),
+    ]
+    noun = {"word": "바다", "lang_code": "ko", "pos": "noun"}
+    assert list(extract_pairs(noun)) == [("바다", "바다")]
+    other = {**entry, "lang_code": "ja"}
+    assert ("하다", "하") not in set(extract_pairs(other))
+
+
+def test_extract_pairs_ko_stem_keys_form_of():
+    """A form-of entry yields the stem of its own word, not of its headword."""
+    entry = {
+        "word": "갔다",
+        "lang_code": "ko",
+        "pos": "verb",
+        "senses": [{"form_of": [{"word": "가다"}]}],
+    }
+    assert list(extract_pairs(entry)) == [("가다", "갔다"), ("가다", "갔")]
+
+
+def test_extract_pairs_skips_ko_form_entries_without_form_of():
+    """An inflected-form entry with no form-of link would map to itself."""
+    entry = {
+        "word": "했다",
+        "lang_code": "ko",
+        "pos": "verb",
+        "head_templates": [{"name": "ko-verb-form", "args": {"root": "하다"}}],
+        "forms": [{"form": "haetda", "tags": ["romanization"]}],
+    }
+    assert list(extract_pairs(entry)) == []
+    adj = {**entry, "pos": "adj", "head_templates": [{"name": "ko-adj-form"}]}
+    assert list(extract_pairs(adj)) == []
+    linked = {**entry, "senses": [{"form_of": [{"word": "하다"}]}]}
+    assert list(extract_pairs(linked)) == [("하다", "했다"), ("하다", "했")]
+
+
+def test_extract_pairs_no_ko_stem_key_without_pairs():
+    """A verb whose forms were all dropped yields no stem key either."""
+    entry = {
+        "word": "하다",
+        "lang_code": "ko",
+        "pos": "verb",
+        "forms": [{"form": "y", "tags": ["table-tags"]}],
+    }
     assert list(extract_pairs(entry)) == []
 
 

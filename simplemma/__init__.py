@@ -1,4 +1,4 @@
-"""Simplemma: fast, dependency-free lemmatization for 54 languages."""
+"""Simplemma: fast, dependency-free lemmatization for 55 languages."""
 
 from .__metadata__ import __title__, __author__, __license__, __version__
 from .language_detector import LanguageDetector, in_target_language, langdetect

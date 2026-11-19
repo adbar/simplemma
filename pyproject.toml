@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "simplemma"
-description = "Fast and zero-dependency lemmatization, tokenization and sentence splitting for 54 languages."
+description = "Fast and zero-dependency lemmatization, tokenization and sentence splitting for 55 languages."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE", "licenses/*"]
