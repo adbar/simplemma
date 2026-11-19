@@ -75,6 +75,13 @@ def test_no_arbitration_after_initials() -> None:
     assert split_sentences("Hij sprak met J. De Wit gisteren.", "nl") == [
         "Hij sprak met J. De Wit gisteren."
     ]
+    # a starter letter as an initial after a title is no boundary
+    assert split_sentences("O Sr. E. Santos chegou.", "pt") == [
+        "O Sr. E. Santos chegou."
+    ]
+    assert split_sentences("Přednášel dr. K. Čapek včera.", "cs") == [
+        "Přednášel dr. K. Čapek včera."
+    ]
 
 
 def test_ellipsis_and_closers() -> None:

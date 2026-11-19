@@ -11,7 +11,7 @@ _TERMINATORS = {None: ".!?…։؟।॥", "el": ".!?…;\u037e"}
 _STRONG_TERMINATORS = "?!;\u037e"
 _CLOSERS = "\"'”’»)]"
 _EDGE = "(["  # stripped for the abbreviation lookup only, not quotes
-_STARTER_TRAIL = ",:;.-"  # stripped for the starter lookup
+_STARTER_TRAIL = ",:;-"  # stripped for the starter lookup, not "." (initials)
 _EMPTY: frozenset[str] = frozenset()
 _PARAGRAPH = re.compile(r"\n\s*\n")
 _WORD = re.compile(r"\S+")
@@ -126,7 +126,7 @@ def _starter_follows(text: str, after: int, starters: frozenset[str]) -> bool:
 
 
 def _starter_key(word: str) -> str:
-    """Lookup form of a word in `_STARTERS`: lowercased, trailing punctuation off."""
+    """Lookup form of a word in `_STARTERS`: lowercased, trailing `_STARTER_TRAIL` off."""
     return normalize_token(word.lower()).rstrip(_STARTER_TRAIL)
 
 
