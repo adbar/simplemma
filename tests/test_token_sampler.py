@@ -11,7 +11,7 @@ def test_token_sampler() -> None:
     assert sampler.sample_text("Abcd_E Abcde") == ["Abcd", "Abcde"]
 
     sampler = MostCommonTokenSampler(capitalized_threshold=0)
-    assert sampler.sample_text("ABCD Efgh ijkl mn") == ["ABCD", "Efgh", "ijkl"]
+    assert sampler.sample_text("ABCD Efgh ijkl mn o") == ["ABCD", "Efgh", "ijkl", "mn"]
 
     sampler = MostCommonTokenSampler(capitalized_threshold=0, sample_size=1)
     assert sampler.sample_text("Efgh Efgh ijkl mn") == ["Efgh"]
@@ -19,8 +19,14 @@ def test_token_sampler() -> None:
     relaxed = RelaxedMostCommonTokenSampler()
     assert relaxed.sample_text("ABCD Efgh ijkl mn") == ["ABCD", "Efgh", "ijkl"]
 
-    custom = CustomTokenSampler(3)
+    custom = CustomTokenSampler(4)
     assert custom.sample_text("ABCD Efgh ijkl mn") == []
+
+
+def test_combining_marks_stay_in_token() -> None:
+    text = "नमस्ते दुनिया"
+    assert MostCommonTokenSampler().sample_text(text) == ["नमस्ते", "दुनिया"]
+    assert RelaxedMostCommonTokenSampler().sample_text(text) == ["नमस्ते", "दुनिया"]
 
 
 def test_sample_tokens_empty_token() -> None:
@@ -31,7 +37,7 @@ def test_sample_tokens_empty_token() -> None:
 def test_capitalized_threshold() -> None:
     sampler = MostCommonTokenSampler()
     # 2 of 3 capitalized is under the 0.8 threshold, so they are removed
-    assert sampler.sample_text("ABCD Efgh ijkl mn") == ["ijkl"]
+    assert sampler.sample_text("ABCD Efgh ijkl mn o") == ["ijkl", "mn"]
     # 4 of 4 capitalized meets the threshold, so they are kept
     assert sorted(sampler.sample_text("Abcd Efgh Ijkl Mnop")) == [
         "Abcd",

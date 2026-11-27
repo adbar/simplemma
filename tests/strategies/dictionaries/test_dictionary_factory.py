@@ -1,12 +1,19 @@
+import inspect
 import lzma
 
 import pytest
 
-from simplemma.strategies import DefaultDictionaryFactory
+from simplemma.strategies import DefaultDictionaryFactory, TrieDictionaryFactory
 from simplemma.strategies.dictionaries import frontcode
 from simplemma.strategies.dictionaries.dictionary_factory import (
     MappingStrToByteString,
 )
+
+
+@pytest.mark.parametrize("factory", [DefaultDictionaryFactory, TrieDictionaryFactory])
+def test_cache_max_size_default(factory: type) -> None:
+    params = inspect.signature(factory).parameters
+    assert params["cache_max_size"].default == 32
 
 
 def test_decode_rejects_non_frontcoded_payload() -> None:

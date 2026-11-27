@@ -13,7 +13,7 @@ both through an implementation of the `LemmatizationStrategy` protocol.
 `DictionaryFactory`.
 
 For example, to conserve RAM by limiting how many language dictionaries
-stay cached (default: 8), pass a `cache_max_size` to
+stay cached (default: 32), pass a `cache_max_size` to
 `DefaultDictionaryFactory`, wrap it in a `DefaultStrategy`, and hand that
 to a `Lemmatizer` and/or `LanguageDetector`:
 
@@ -26,7 +26,7 @@ to a `Lemmatizer` and/or `LanguageDetector`:
 >>> Lemmatizer(lemmatization_strategy=strategy).lemmatize('doughnuts', lang='en')
 'doughnut'
 >>> LanguageDetector('la', lemmatization_strategy=strategy).proportion_in_target_languages("opera post physica posita (τὰ μετὰ τὰ φυσικά)")
-0.6666666666666666
+0.5714285714285714
 ```
 
 When no strategy finds a lemma, `Lemmatizer` calls its `fallback`, a plain

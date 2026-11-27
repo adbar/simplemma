@@ -16,9 +16,17 @@ x.x.x (unreleased)
 - Correction lists fixed and extended for 26 languages, largest gains for is, gd and ru
 - Correction lists and sentence starters only use CC BY, CC BY-SA, CC0 and public-domain treebanks, plus CC BY-NC-SA for grc and la (#191)
 - Evaluation and mining move to UD 2.19
+- Language detection ranks by dictionary lookup, with the full strategy only when no language wins,
+  samples two-letter words and keeps combining marks inside words (hi, ml):
+  94.6 -> 97.1% (dev) and 93.2 -> 96.8% (test) on UD sentences across all 55 languages, about 2x faster
+- Galician function words added to the dictionary (587 adverbs, pronouns, determiners and conjunctions)
+- ``greedy`` on ``langdetect()`` is deprecated, it has no effect
+- Dictionary factories cache 32 languages instead of 8
 - Breaking: ``fallback_lemmatization_strategy`` replaced by ``fallback``, a plain ``(token, lang) -> str`` callable,
   and the ``simplemma.strategies.fallback`` subpackage is removed
 - Breaking: ``ApostropheBoundaryStrategy`` removed, folded into ``DefaultStrategy``
+- Breaking: ``LanguageDetector`` without a strategy scores by dictionary lookup,
+  pass ``lemmatization_strategy=DefaultStrategy()`` for the previous scores
 - Breaking: the ``defaultprefixes`` module is merged into ``prefix_decomposition``
 
 

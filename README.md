@@ -160,7 +160,7 @@ corpora.
 ``` python
 >>> from simplemma import langdetect
 >>> langdetect('"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy."', lang=("cs", "sk"))
-[('cs', 1.0), ('sk', 0.14285714285714285), ('unk', 0.0)]
+[('cs', 0.875), ('sk', 0.25), ('unk', 0.125)]
 ```
 
 
@@ -219,7 +219,7 @@ morphology rather than a data error.
 | `fr` | French | 250 | 37 | 0.96 | on UD FR-Sequoia |
 | `ga` | Irish | 444 | 48 | 0.93 | on UD GA-IDT |
 | `gd` | Gaelic | 73 | 16 | 0.91 | on UD GD-ARCOSG |
-| `gl` | Galician | 426 | 43 | 0.95 | on UD GL-CTG |
+| `gl` | Galician | 426 | 44 | 0.95 | on UD GL-CTG |
 | `grc` | Ancient Greek | 852 | 22 | 0.86 | on UD GRC-PROIEL (best available; no general-register grc treebank exists), alternative: [odyCy](https://github.com/centre-for-humanities-computing/odyCy) |
 | `gv` | Manx | 77 | 14 | 0.92 | on UD GV-Cadhan |
 | `hbs` | Serbo-Croatian | 610 | 49 | 0.91 | on UD HR-SET + SR-SET (token-weighted); Croatian and Serbian lists to be added later |
