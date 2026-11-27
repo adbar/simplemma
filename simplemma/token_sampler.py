@@ -6,10 +6,11 @@ from collections import Counter
 from typing import Protocol
 from collections.abc import Iterable
 
-from .tokenizer import RegexTokenizer, Tokenizer
+from .tokenizer import _MARKS, RegexTokenizer, Tokenizer
 
-SPLIT_INPUT = re.compile(r"[^\W\d_]{3,}")
-RELAXED_SPLIT_INPUT = re.compile(r"[\w-]{3,}")
+# combining marks stay inside a word (Devanagari and Malayalam vowel signs, NFD)
+SPLIT_INPUT = re.compile(rf"[^\W\d_](?:[^\W\d_]|[{_MARKS}])+")
+RELAXED_SPLIT_INPUT = re.compile(rf"[\w{_MARKS}-]{{3,}}")
 
 
 class TokenSampler(Protocol):

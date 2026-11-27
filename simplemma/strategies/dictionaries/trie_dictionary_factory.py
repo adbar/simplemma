@@ -52,7 +52,7 @@ class TrieDictionaryFactory(CachingDictionaryFactory):
 
     def __init__(
         self,
-        cache_max_size: int = 8,
+        cache_max_size: int = 32,
         use_disk_cache: bool = True,
         disk_cache_dir: str | None = None,
     ) -> None:

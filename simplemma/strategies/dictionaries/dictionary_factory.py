@@ -106,7 +106,7 @@ class CachingDictionaryFactory(DictionaryFactory):
 
     __slots__ = ("_get_dictionary",)
 
-    def __init__(self, cache_max_size: int = 8) -> None:
+    def __init__(self, cache_max_size: int = 32) -> None:
         self._get_dictionary = lru_cache(maxsize=cache_max_size)(
             self._get_dictionary_uncached
         )

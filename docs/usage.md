@@ -133,10 +133,10 @@ token recognized in several counts towards each and they need not sum to 1.
 >>> from simplemma import in_target_language, langdetect
 # language detection
 >>> langdetect('"Exoplaneta, též extrasolární planeta, je planeta obíhající kolem jiné hvězdy než kolem Slunce."', lang=("cs", "sk"))
-[('cs', 1.0), ('sk', 0.25), ('unk', 0.0)]
+[('cs', 0.8888888888888888), ('sk', 0.3333333333333333), ('unk', 0.1111111111111111)]
 # proportion of known words
 >>> in_target_language("opera post physica posita (τὰ μετὰ τὰ φυσικά)", lang="la")
-0.6666666666666666
+0.5714285714285714
 ```
 
 The `greedy` argument triggers use of the greedier decomposition algorithm
