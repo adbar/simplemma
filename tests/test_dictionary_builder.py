@@ -583,6 +583,14 @@ def test_compose_keeps_override_entries_from_junk_filter(tmp_path) -> None:
     assert "rádost" not in out
 
 
+def test_compose_is_idempotent_on_value_folded_identities(tmp_path) -> None:
+    """A he geresh identity folds to a letterless pair, dropped on the first pass."""
+    base = {"׳": "׳", "בית": "בית"}
+    out = dictionary_builder._compose_from_base(base, "he", overrides_dir=tmp_path)
+    assert "׳" not in out
+    assert dictionary_builder._compose_from_base(out, "he", tmp_path) == out
+
+
 def test_clean_base_drops_junk_keys_keeps_values() -> None:
     d = {
         "dogs": "dog",

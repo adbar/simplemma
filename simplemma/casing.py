@@ -111,10 +111,20 @@ class SentenceCasing:
             else -1
         )
         for i, token in enumerate(tokens):
-            if self._keep_as_acronym(token, i == initial, shouting):
+            if i == initial and self._exact_allcaps_key(token, shouting):
+                yield (token, False)  # the dict decides: BMW stays, CON -> con
+            elif self._keep_as_acronym(token, i == initial, shouting):
                 yield (token, True)
             else:
                 yield (self.initial_surface(token) if i == initial else token, False)
+
+    def _exact_allcaps_key(self, token: str, shouting: bool) -> bool:
+        assert self._member is not None  # only reached on the acronym path
+        return (
+            not shouting
+            and is_keepable_allcaps(token)
+            and self._member(token, self._lang0)
+        )
 
     def _keep_as_acronym(self, token: str, initial: bool, shouting: bool) -> bool:
         """Whether to keep this ALL-CAPS token verbatim."""

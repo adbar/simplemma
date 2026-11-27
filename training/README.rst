@@ -28,15 +28,16 @@ Each figure in the main README is the accuracy on the language's best
 general-purpose treebank. Parallel, spoken, learner and historical treebanks
 are excluded.
 
-Four exceptions due to treebank annotation:
+Three exceptions due to treebank annotation:
 
-- Dutch excludes underscore-joined compound lemmas (``klooster_orde``),
-  which single-token output cannot match. With them it is about 0.91.
-- Hebrew and Arabic proclitics are scored as pre-split sub-tokens. On
-  unsegmented input the accuracies are about 0.82 and 0.85.
-- Finnish, Estonian and Hungarian compound markers (``yli#opisto``,
-  ``sisse_tulek``, ``el+mond``) are stripped before scoring, see
-  ``_GOLD_COMPOUND_SEPARATORS`` in ``ud_conllu.py``.
+- Hebrew and Arabic proclitics are scored as pre-split sub-tokens, as the
+  treebanks come segmented. Accuracy is lower on unsegmented input.
+- Gold annotation markers are stripped before scoring, see ``_GOLD_MARKERS``
+  and ``_GOLD_SUFFIXES`` in ``ud_conllu.py``. These are compound markers in
+  Dutch, Estonian, Finnish, Hungarian and Latin (``klooster_orde``,
+  ``sisse_tulek``, ``yli#opisto``, ``el+mond``), Norwegian ``$`` on
+  punctuation, the Arabic PUD dagger alif and the Bulgarian optional
+  reflexive (``смея-(се)``).
 - Korean gold lemmas are morpheme sequences (``주관+하+고``) or bare stems.
   ``ko_gold_lemma`` in ``ud_conllu.py`` cuts them before the first particle,
   ending or copula morpheme and adds 다 to predicate stems. LittlePrince keeps
@@ -100,10 +101,35 @@ do not deduplicate. For a shipped language the installed mapping wins every
 shared key: new data can only add keys, existing mappings change only via a
 reviewed override. ``--gate`` refuses to write on a UD regression.
 
+A re-ingest can gain overall and still break frequent forms. The ru, hbs and
+pl overrides therefore carry pin rows, which keep the previous lemma of each
+form whose new mapping breaks at least 3 more train tokens than it fixes
+(licensed treebanks only).
+
 A new language needs an ISO code, a left-to-right script, and morphology
 where several forms reduce to one entry (Urdu suffers).
 After ``--in-place`` it appears in ``SUPPORTED_LANGUAGES``. Potential sources:
 `issue 1 <https://github.com/adbar/simplemma/issues/1>`_.
+
+Building from scratch
+^^^^^^^^^^^^^^^^^^^^^
+
+The shipped dictionaries cannot be rebuilt from public data alone. Their base
+merges word lists from earlier releases that are no longer published, and
+kaikki.org keeps no past dumps. A rebuild is reproducible only because it
+starts from the shipped file.
+
+To build a shipped language from a word list alone, move its ``.plzma`` out of
+``simplemma/strategies/dictionaries/data/`` and run ``wordlist_ingest``. The
+overrides still apply. Expect a weaker dictionary. On UD dev and test, a build
+from the current Kaikki dump alone scored below the shipped one for 36 of 41
+languages (measured 2026-11). For 32 of them the loss is 1.8 to 21 points,
+e.g. fr -11.6, it -13.7, tr -20.7. Most of it comes from frequent function
+words. A form that is also a headword with its own inflections maps to itself
+(fr ``est`` the noun, not ``être``). The overrides were mined against the
+shipped dictionary, so they do not cover these cases. With the file moved,
+``--gate`` has no baseline. Keep the moved file and score both versions with
+``evaluate_simplemma.py`` before shipping the new one.
 
 
 Word lists from Kaikki
@@ -203,8 +229,7 @@ order does not matter. Leading dots are required stem characters
 (``"..ante"``), ``min_stem=`` sets a minimum stem length for the whole table,
 ``stops=`` lists suffixes on which the rules abstain. Guards are keywords of
 the same table, all off by default: ``min_len=``, ``caps=`` (skip
-capitalized), ``hyphen=`` (skip hyphenated, ``HyphenRemovalStrategy``
-handles them earlier), ``excluded=`` (stoplist). lv picks between two tables
+capitalized), ``excluded=`` (stoplist). lv picks between two tables
 by capitalization, de is hand-written, ru normalizes ё ahead of its table.
 
 ``python3 -m training.rulebuilder <code>`` runs four functions, then

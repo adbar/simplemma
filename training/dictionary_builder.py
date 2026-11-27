@@ -287,8 +287,9 @@ def _compose_from_base(
     mydict = {**base, **overrides}
     if overrides:
         LOGGER.info("%s: override layer applied -> %s entries", langcode, len(mydict))
-    mydict = _scrub(mydict)
+    # Scrub after the value fold, which can turn an identity into a junk pair.
     mydict = _apply_build_normalization(mydict, langcode)
+    mydict = _scrub(mydict)
     mydict = _ensure_value_selfmaps(mydict)
     # After selfmaps, so identity keys planted for junk values get dropped too.
     # Reviewed overrides outrank the junk predicates.

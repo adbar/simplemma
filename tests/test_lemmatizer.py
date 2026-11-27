@@ -441,7 +441,10 @@ _INITIAL_CASING_CASES = [
     ("da", "MED venlig hilsen.", "med"),  # da: all-caps still lowered
     ("es", "Pepa baila.", "pepa"),  # non-gated lang: unchanged
     ("de", "DENIC verwaltet die Domains.", "DENIC"),
-    ("de", "MIT dem Auto fahren.", "mit"),  # dateline homograph defers to D' gate
+    ("de", "IN der Stadt wohnen.", "in"),  # no exact key: lowered
+    ("de", "BMW baut Autos.", "BMW"),  # exact key, not Bmw
+    ("es", "CON el perro.", "con"),  # exact key, the dict lowers it
+    ("uk", "ЦЕ наш дім.", "це"),
 ]
 
 
@@ -467,7 +470,7 @@ _ACRONYM_CASES = [
     ("de", "MM und DC sind hier bekannt.", ["DC"], ["MM"]),
     ("uk", "Це СБУ.", ["СБУ"], []),  # a lone acronym is not shouting
     # an opening quote shifts neither the initial slot nor the flush
-    ("de", "„MIT dem Auto fahren.“", ["mit"], ["MIT"]),
+    ("de", "„IN der Stadt wohnen.“", ["in"], ["IN"]),
     # the Armenian full stop isolates the shouted heading
     (
         "hy",

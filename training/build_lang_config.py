@@ -137,6 +137,8 @@ JUNK_ENTRY_PREDICATES: dict[
     "fa": _ar_fa_junk,
     # Not the broad check: Latin abbreviations (US, DM) are legitimate in bg.
     "bg": lambda k, ks, vs: _foreign_script_key(ks, vs, _CYRILLIC_SCRIPTS),
+    # Romanized forms and English table headers (form -> жаль) as keys.
+    "ru": lambda k, ks, vs: _foreign_script_key(ks, vs, _CYRILLIC_SCRIPTS),
     "hi": lambda k, ks, vs: _foreign_script_entry(ks, vs, _DEVANAGARI_SCRIPTS),
     # ms is biscriptal: Jawi keys are fine, a Latin key with a Jawi value is not.
     "ms": lambda k, ks, vs: _foreign_script_key(ks, vs, _ARABIC_SCRIPTS),

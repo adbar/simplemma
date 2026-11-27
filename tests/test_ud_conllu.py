@@ -142,7 +142,15 @@ def test_canon_lemma_strips_compound_separators():
     assert canon_lemma("yli#opisto", "yliopisto", "fi") == "yliopisto"
     assert canon_lemma("sisse_tulek", "sissetulek", "et") == "sissetulek"
     assert canon_lemma("el+mond", "elmond", "hu") == "elmond"
-    assert canon_lemma("klooster_orde", "kloosterorde", "nl") == "klooster_orde"
+    assert canon_lemma("klooster_orde", "kloosterorde", "nl") == "kloosterorde"
+    assert canon_lemma("klooster_orde", "kloosterorde", "de") == "klooster_orde"
+    assert canon_lemma("op=staan", "opstaan", "et") == "opstaan"
+    assert canon_lemma("$.", ".", "nb") == "."
+
+
+def test_canon_lemma_strips_bg_optional_reflexive():
+    assert canon_lemma("смея-(се)", "смее", "bg") == "смея"
+    assert canon_lemma("-(се)", "се", "bg") == "-(се)"
 
 
 def test_canon_lemma_folds_apostrophes_like_the_runtime():

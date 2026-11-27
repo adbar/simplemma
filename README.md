@@ -15,8 +15,8 @@ Pure Python, no models to download, works offline.
   included, over 100 MB/s sentence splitting, milliseconds to first lemma
 - **Tunable RAM footprint**: ~175 MB, ~50 MB with `low_memory=True`, or ~30 MB per
   language with tries
-- **0.91 to 0.97 accuracy** for 35 languages, German at 0.97 and English at
-  0.96, and 0.85 to 0.90 for morphologically richer ones such as Hungarian,
+- **0.91 to 0.97 accuracy** for 39 languages, German and English at
+  0.97, and 0.85 to 0.90 for morphologically richer ones such as Hungarian,
   Latin and Ancient Greek: a few points behind trained neural pipelines,
   hundreds of times faster
 - Useful utilities included: script-aware tokenizer, rule-based sentence
@@ -200,16 +200,16 @@ morphology rather than a data error.
 
 | Code | Language | Forms (10³) | Lemm. (10³) | Acc. | Comments |
 | ---- | -------- | ----------- | ------------| ---- | -------- |
-| `ar` | Arabic | 297 | 49 | 0.90 | on UD AR-PADT; real-world (unsegmented) input scores ≈0.85 |
+| `ar` | Arabic | 309 | 50 | 0.91 | on UD AR-PADT, lower when unsegmented |
 | `ast` | Asturian | 154 | 36 |  |  |
-| `bg` | Bulgarian | 226 | 25 | 0.87 | on UD BG-BTB |
+| `bg` | Bulgarian | 226 | 25 | 0.90 | on UD BG-BTB |
 | `ca` | Catalan | 641 | 64 | 0.95 | on UD CA-AnCora |
 | `cs` | Czech | 360 | 46 | 0.95 | on UD CS-FicTree |
 | `cy` | Welsh | 402 | 21 | 0.95 | on UD CY-CCG |
 | `da` | Danish | 788 | 117 | 0.95 | on UD DA-DDT, alternative: [lemmy](https://github.com/sorenlind/lemmy) |
 | `de` | German | 1,116 | 334 | 0.97 | on UD DE-GSD, see also [German-NLP list](https://github.com/adbar/German-NLP#Lemmatization) |
 | `el` | Greek | 250 | 28 | 0.92 | on UD EL-GDT |
-| `en` | English | 182 | 77 | 0.96 | on UD EN-LinES, alternative: [LemmInflect](https://github.com/bjascob/LemmInflect) |
+| `en` | English | 182 | 78 | 0.97 | on UD EN-LinES, alternative: [LemmInflect](https://github.com/bjascob/LemmInflect) |
 | `enm` | Middle English | 43 | 6 |  |  |
 | `eo` | Esperanto | 191 | 18 | 0.94 | on UD EO-PraGo (test-only treebank, no train split) |
 | `es` | Spanish | 824 | 88 | 0.96 | on UD ES-AnCora |
@@ -222,39 +222,39 @@ morphology rather than a data error.
 | `gl` | Galician | 426 | 43 | 0.95 | on UD GL-CTG |
 | `grc` | Ancient Greek | 852 | 22 | 0.86 | on UD GRC-PROIEL (best available; no general-register grc treebank exists), alternative: [odyCy](https://github.com/centre-for-humanities-computing/odyCy) |
 | `gv` | Manx | 77 | 14 | 0.92 | on UD GV-Cadhan |
-| `hbs` | Serbo-Croatian | 610 | 49 | 0.91 | on UD HR-SET + SR-SET (token-weighted); Croatian and Serbian lists to be added later |
-| `he` | Hebrew | 105 | 11 | 0.93 | on UD HE-HTB; real-world (unsegmented) input scores ≈0.82 |
+| `hbs` | Serbo-Croatian | 645 | 53 | 0.91 | on UD HR-SET + SR-SET (token-weighted), Croatian and Serbian lists to be added later |
+| `he` | Hebrew | 106 | 11 | 0.93 | on UD HE-HTB, lower when unsegmented |
 | `hi` | Hindi | 85 | 19 | 0.95 | on UD HI-HDTB |
-| `hu` | Hungarian | 1,763 | 45 | 0.88 | on UD HU-Szeged |
-| `hy` | Armenian | 467 | 17 | 0.92 | on UD HY-BSUT |
+| `hu` | Hungarian | 1,773 | 45 | 0.88 | on UD HU-Szeged |
+| `hy` | Armenian | 478 | 17 | 0.92 | on UD HY-BSUT |
 | `id` | Indonesian | 22 | 4 | 0.93 | on UD ID-CSUI |
 | `is` | Icelandic | 210 | 18 | 0.87 | on UD IS-GC |
 | `it` | Italian | 358 | 28 | 0.96 | on UD IT-ISDT |
 | `ka` | Georgian | 448 | 16 | 0.85 | on UD KA-GLC |
-| `ko` | Korean | 407 | 35 | 0.93 | on UD KO-Kaist |
+| `ko` | Korean | 408 | 35 | 0.93 | on UD KO-Kaist |
 | `la` | Latin | 1,289 | 70 | 0.89 | on UD LA-PROIEL, alternative: [LatinCy](https://spacy.io/universe/project/latincy) |
 | `lb` | Luxembourgish | 306 | 79 |  | only a <1k-token UD treebank available |
 | `lt` | Lithuanian | 365 | 28 | 0.88 | on UD LT-ALKSNIS |
-| `lv` | Latvian | 178 | 15 | 0.84 | on UD LV-LVTB |
-| `mk` | Macedonian | 546 | 41 | 0.92 | on UD MK-MTB (test-only treebank, no train split) |
+| `lv` | Latvian | 179 | 16 | 0.84 | on UD LV-LVTB |
+| `mk` | Macedonian | 549 | 41 | 0.92 | on UD MK-MTB (test-only treebank, no train split) |
 | `ml` | Malayalam | 746 | 64 | 0.69 | on UD ML-UFAL (small test-only treebank, no train split), experimental |
 | `ms` | Malay | 18 | 4 |  |  |
-| `nb` | Norwegian (Bokmål) | 641 | 140 | 0.84 | on UD NO-Bokmaal |
-| `nl` | Dutch | 370 | 125 | 0.96 | on UD NL-Alpino, excl. underscore-joined compound lemmas |
-| `nn` | Norwegian (Nynorsk) | 138 | 36 | 0.83 | on UD NO-Nynorsk |
-| `pl` | Polish | 3,670 | 264 | 0.96 | on UD PL-LFG |
+| `nb` | Norwegian (Bokmål) | 641 | 140 | 0.95 | on UD NO-Bokmaal |
+| `nl` | Dutch | 370 | 125 | 0.94 | on UD NL-Alpino |
+| `nn` | Norwegian (Nynorsk) | 138 | 36 | 0.94 | on UD NO-Nynorsk |
+| `pl` | Polish | 3,804 | 280 | 0.96 | on UD PL-LFG |
 | `pt` | Portuguese | 927 | 95 | 0.96 | on UD PT-GSD |
 | `ro` | Romanian | 345 | 37 | 0.94 | on UD RO-RRT |
-| `ru` | Russian | 1,362 | 131 | 0.95 | on UD RU-SynTagRus, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
+| `ru` | Russian | 1,517 | 141 | 0.95 | on UD RU-SynTagRus, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
 | `se` | Northern Sámi | 115 | 7 | 0.97 | on UD SME-Giella |
 | `sk` | Slovak | 908 | 73 | 0.92 | on UD SK-SNK |
 | `sl` | Slovene | 157 | 31 | 0.96 | on UD SL-SSJ |
-| `sq` | Albanian | 96 | 10 | 0.71 | on UD SQ-STAF |
+| `sq` | Albanian | 96 | 12 | 0.82 | on UD SQ-STAF |
 | `sv` | Swedish | 964 | 129 | 0.96 | on UD SV-Talbanken, alternative: [lemmy](https://github.com/sorenlind/lemmy) |
 | `sw` | Swahili | 4,869 | 4 |  | experimental |
 | `tl` | Tagalog | 78 | 25 | 0.84 | on UD TL-TRG (test-only treebank, no train split) |
 | `tr` | Turkish | 1,236 | 40 | 0.92 | on UD TR-KeNet |
-| `uk` | Ukrainian | 599 | 45 | 0.94 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
+| `uk` | Ukrainian | 605 | 45 | 0.94 | on UD UK-IU, alternative: [pymorphy2](https://github.com/kmike/pymorphy2/) |
 
 
 Languages marked as low-coverage may be better served by

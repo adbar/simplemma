@@ -92,7 +92,11 @@ def mine(
             if start < MIN_STEM_CHARS or len(f) - start > 8:
                 continue
             candidates[(f[start:], lemma[start:])] += 1
-    kept_candidates = {k for k, v in candidates.items() if v >= support_min and k[0]}
+    kept_candidates = {
+        k
+        for k, v in candidates.items()
+        if v >= support_min and k[0] and not _META.search(k[0] + k[1])
+    }
 
     by_len: dict[int, dict[str, list[str]]] = defaultdict(dict)
     for s_from, s_to in kept_candidates:
@@ -128,7 +132,7 @@ def _table(groups: dict[str, list[str]]) -> Rules:
             if _META.search(s):
                 raise ValueError(f"non-literal suffix/target {s!r} -> {target!r}")
     return SuffixRules(
-        {t: " ".join(sorted(ss, key=len, reverse=True)) for t, ss in groups.items()},
+        {t: " ".join(ss) for t, ss in groups.items()},
         min_stem=MIN_STEM_CHARS,
         min_len=MIN_LEN_DEFAULT,
         caps=True,
@@ -136,20 +140,11 @@ def _table(groups: dict[str, list[str]]) -> Rules:
 
 
 def build_rules(cells: Cells) -> Rules:
-    "One cell per target, longest/most-supported first (display order only)."
+    "One cell per target."
     by_target: dict[str, list[str]] = defaultdict(list)
     for sf, st in cells:
         by_target[st].append(sf)
-    groups = dict(
-        sorted(
-            by_target.items(),
-            key=lambda kv: (
-                -max(len(s) for s in kv[1]),
-                -sum(cells[(s, kv[0])] for s in kv[1]),
-            ),
-        )
-    )
-    return _table(groups)
+    return _table(dict(by_target))
 
 
 def _score_cell(
@@ -214,10 +209,10 @@ def refine(
         cell_stats, _ = score_cells(rules, dictionary, fold_accents=fold_accents)
         bad = {
             cell
-            for cell, (n, ok) in cell_stats.items()
-            if n < support_min or 100 * ok / n < prec_min
+            for cell in cells
+            if (n := cell_stats.get(cell, [0, 0])[0]) < support_min
+            or 100 * cell_stats[cell][1] / n < prec_min
         }
-        bad |= {cell for cell in cells if cell_stats.get(cell, [0])[0] < support_min}
         if not bad:
             return rules
         cells = {cell: n for cell, n in cells.items() if cell not in bad}

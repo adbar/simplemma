@@ -16,6 +16,11 @@ x.x.x (unreleased)
 - Correction lists fixed and extended for 26 languages, largest gains for is, gd and ru
 - Correction lists and sentence starters only use CC BY, CC BY-SA, CC0 and public-domain treebanks, plus CC BY-NC-SA for grc and la (#191)
 - Evaluation and mining move to UD 2.19
+- Wiktionary refresh: ar and sq rebuilt (sq 0.71 -> 0.82), he, hbs, hu, hy, lv, mk, pl, ru and uk extended
+- Correction lists: et participles, nl compounds without underscore, English irregular verbs and street abbreviations,
+  two-way swaps become identities (cs, cy, ga, hu, is, nl, sq, sv)
+- Sentence-initial ALL-CAPS dictionary keys are no longer lowercased (BMW, VIA)
+- Evaluation strips gold markers for ar, bg, et, la, nb, nl and nn (README: bg, nb, nn up, nl now includes compounds)
 - Breaking: ``fallback_lemmatization_strategy`` replaced by ``fallback``, a plain ``(token, lang) -> str`` callable,
   and the ``simplemma.strategies.fallback`` subpackage is removed
 - Breaking: ``ApostropheBoundaryStrategy`` removed, folded into ``DefaultStrategy``
