@@ -76,7 +76,11 @@ def test_per_language_tables_reference_supported_languages() -> None:
     from training.build_lang_config import BUILD_NORMALIZATION, JUNK_ENTRY_PREDICATES
     from training.dictionary_builder import FRONTCODE_REVERSE_KEY_LANGS, OVERRIDES_DIR
     from training.kaikki_to_tsv import _STEM_KEY_ENDINGS
-    from training.ud_conllu import DATASET_LANG_OVERRIDES, _GOLD_COMPOUND_SEPARATORS
+    from training.ud_conllu import (
+        DATASET_LANG_OVERRIDES,
+        _GOLD_MARKERS,
+        _GOLD_SUFFIXES,
+    )
     from training.wikidata_lexemes import LANGUAGE_QIDS
     from training.wordlist_ingest import IDENTITY_SOFT_LANGS, PARADIGM_PRIOR_LANGS
 
@@ -103,7 +107,8 @@ def test_per_language_tables_reference_supported_languages() -> None:
         "IDENTITY_SOFT_LANGS": IDENTITY_SOFT_LANGS,
         "PARADIGM_PRIOR_LANGS": PARADIGM_PRIOR_LANGS,
         "LANGUAGE_QIDS": LANGUAGE_QIDS,
-        "_GOLD_COMPOUND_SEPARATORS": _GOLD_COMPOUND_SEPARATORS,
+        "_GOLD_MARKERS": _GOLD_MARKERS,
+        "_GOLD_SUFFIXES": _GOLD_SUFFIXES,
         "DATASET_LANG_OVERRIDES values": DATASET_LANG_OVERRIDES.values(),
         "overrides/*.tsv": [p.stem for p in OVERRIDES_DIR.glob("*.tsv")],
     }

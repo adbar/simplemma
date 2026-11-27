@@ -37,6 +37,7 @@ ICTY	ICTY-em
 INA	INA
 IZ	IZ
 internet	Interneta
+Ivanko	Ivanko
 Ivanov	Ivanova
 Ivo	Ive
 ja	Ja
@@ -100,6 +101,7 @@ predsedništvo	Predsedništva
 predsjedništvo	Predsjedništva
 prema	Prema
 prije	Prije
+Profil	Profil
 Redžep	Redžep
 Ren	Ren
 Rockwool	Rockwoola
@@ -196,6 +198,7 @@ do	do
 dobijati	dobija
 dobivati	dobiva
 dobivati	dobivaju
+dobivanje	dobivanje
 dobar	dobrom
 dobar	dobru
 događaj	događaj
@@ -278,6 +281,7 @@ ispunjavanje	ispunjavanju
 ispunjenje	ispunjenja
 ispunjenje	ispunjenju
 istaći	istakao
+istorijski	istorijski
 itko	itko
 iz	iz
 iza	iza
@@ -379,6 +383,7 @@ kršenje	kršenja
 kršenje	kršenje
 Kukan	kukan
 Kurti	kurti
+kvalitet	kvalitet
 lako	lako
 legalno	legalno
 levo	levo
@@ -570,6 +575,7 @@ oba	obiju
 objavljivanje	objavljivanja
 objavljivati	objavljuju
 oba	obje
+obnavljanje	obnavljanje
 obraćanje	obraćanju
 obveza	obveza
 od	od
@@ -580,6 +586,8 @@ održati	održanom
 održavanje	održavanja
 odsto	odsto
 odvijati	odvija
+oglašavanje	oglašavanje
+ograničavanje	ograničavanje
 oko	oko
 okrilje	okriljem
 okupljati	okuplja
@@ -613,6 +621,7 @@ ostvarivanje	ostvarivanje
 ostvarivanje	ostvarivanju
 otklanjanje	otklanjanje
 otpadni	otpadnih
+otplatiti	otplatiti
 otpuštanje	otpuštanja
 otvaranje	otvaranja
 otvaranje	otvaranje
@@ -645,6 +654,7 @@ ovaj	ovu
 očuvanje	očuvanje
 pa	pa
 pak	pak
+paljenje	paljenje
 paralelno	paralelno
 performansa	performansama
 period	periodu
@@ -704,9 +714,11 @@ početkom	početkom
 počinitelj	počinitelja
 počinjen	počinjene
 počivati	počiva
+poštivanje	poštivanje
 pošto	pošto
 pravo	pravima
 pre	pre
+prebacivanje	prebacivanje
 pred	pred
 predlagati	predlaže
 predlagati	predlažu
@@ -730,6 +742,7 @@ preostao	preostalih
 preuzimanje	preuzimanja
 previše	previše
 prezentacija	prezentacije
+prečišćavanje	prečišćavanje
 pri	pri
 približno	približno
 pridruživanje	pridruživanja
@@ -749,6 +762,7 @@ privatan	privatnog
 privlačenje	privlačenje
 proglašenje	proglašenje
 proizlaziti	proizlazi
+projekat	projekat
 prolaziti	prolazi
 pronalaženje	pronalaženje
 proračunski	proračunskih
@@ -756,6 +770,7 @@ protekao	proteklih
 protestovati	protestuju
 protiv	protiv
 protivljenje	protivljenje
+pročišćavanje	pročišćavanje
 proširenje	proširenje
 proći	prošla
 prvenstveno	prvenstveno
@@ -821,8 +836,10 @@ biti	smo
 snažno	snažno
 sebe	sobom
 spadati	spada
+spašavanje	spašavanje
 spoljni	spoljnu
 spreman	spreman
+sprječavanje	sprječavanje
 sprovoditi	sprovodi
 sprovođenje	sprovođenje
 sprovođenje	sprovođenju
@@ -845,6 +862,7 @@ sudjelovanje	sudjelovanje
 sukladno	sukladno
 suočavanje	suočavanje
 susjed	susjedi
+sučeljavanje	sučeljavanje
 sav	sva
 svaki	svaka
 svaki	svake
@@ -942,8 +960,10 @@ tvrditi	tvrde
 tzv.	tzv.
 u	u
 ubistvo	ubistva
+ublažavanje	ublažavanje
 ukidanje	ukidanje
 uklanjanje	uklanjanja
+uključivanje	uključivanje
 uključivati	uključivao
 uključivati	uključivati
 uključivati	uključuje
@@ -955,9 +975,11 @@ ulaganje	ulaganja
 ulaziti	ulazi
 umesto	umesto
 umjesto	umjesto
+unapređivanje	unapređivanje
 unatoč	unatoč
 unutar	unutar
 uoči	uoči
+upoznavanje	upoznavanje
 upozorenje	upozorenja
 upravo	upravo
 uprkos	uprkos

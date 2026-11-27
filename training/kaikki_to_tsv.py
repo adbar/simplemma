@@ -93,7 +93,10 @@ def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
                 yield (_normalize(ref_word, fold), norm_word)
                 found_relation = True
 
-    if found_relation:
+    # Mixed entries (a form-of sense next to real senses) keep their forms.
+    if found_relation and all(
+        s.get("form_of") or s.get("alt_of") for s in entry.get("senses", ())
+    ):
         return
     if any(t.get("name") in _FORM_TEMPLATES for t in entry.get("head_templates", ())):
         return
@@ -121,7 +124,7 @@ def _extract_pairs_raw(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
 
 
 def extract_pairs(entry: dict[str, Any]) -> Iterator[tuple[str, str]]:
-    """Yield unique (lemma, word_form) pairs, preferring form_of/alt_of over forms.
+    """Yield unique (lemma, word_form) pairs, form_of/alt_of links before forms.
 
     Duplicates must not count as extra attestations downstream."""
     pairs = dict.fromkeys(_extract_pairs_raw(entry))

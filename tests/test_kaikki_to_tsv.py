@@ -85,6 +85,15 @@ def test_extract_pairs_prefers_senses_over_forms():
     assert list(extract_pairs(entry)) == [("Hund", "Hunde")]
 
 
+def test_extract_pairs_mixed_entry_keeps_forms():
+    entry = {
+        "word": "nada",
+        "senses": [{"form_of": [{"word": "nadar"}]}, {"glosses": ["nothing"]}],
+        "forms": [{"form": "nadas"}],
+    }
+    assert list(extract_pairs(entry)) == [("nadar", "nada"), ("nada", "nadas")]
+
+
 def test_extract_pairs_skips_meta_tagged_forms():
     """table-tags/inflection-template rows are template headers, not word forms."""
     entry = {

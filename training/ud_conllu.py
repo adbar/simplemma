@@ -94,16 +94,31 @@ def _strip_mwt_artifact(value: str) -> str:
     return value.strip("_") or value
 
 
-# Gold compound-boundary markers (yli#opisto), per language as '_' is real elsewhere.
-_GOLD_COMPOUND_SEPARATORS = {"fi": "#", "et": "_", "hu": "+"}
+# Gold annotation markers (yli#opisto, $. in nb/nn, ar PUD ` for the dagger alif),
+# per language as '_' or '+' are real elsewhere.
+_GOLD_MARKERS = {
+    "ar": "`",
+    "et": "_=+",
+    "fi": "#",
+    "hu": "+",
+    "la": "+",
+    "nb": "$",
+    "nl": "_",
+    "nn": "$",
+}
+# bg BTB marks an optional reflexive (смея-(се)).
+_GOLD_SUFFIXES = {"bg": "-(се)"}
 
 
 def canon_lemma(lemma: str, form: str, lang: str) -> str:
     """Gold lemma cleaned of markers and folded into the shipped dict's key space."""
     lemma = _strip_mwt_artifact(lemma)
-    separator = _GOLD_COMPOUND_SEPARATORS.get(lang)
-    if separator and separator in lemma:
-        lemma = _strip_compound_markers(lemma, _strip_mwt_artifact(form), separator)
+    for marker in _GOLD_MARKERS.get(lang, ""):
+        if marker in lemma:
+            lemma = _strip_compound_markers(lemma, _strip_mwt_artifact(form), marker)
+    suffix = _GOLD_SUFFIXES.get(lang)
+    if suffix:
+        lemma = lemma.removesuffix(suffix) or lemma
     return canonicalize_token(normalize_token(lemma), lang)
 
 

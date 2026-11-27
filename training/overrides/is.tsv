@@ -54,6 +54,7 @@ auðunn	Auðuni
 auðunn	Auðunn
 að	Að
 annar	Aðrir
+B	B
 babýlon	Babýlon
 barði	Barða
 beljus	Beljus
@@ -107,6 +108,7 @@ kristur	Christi
 christian	Christians
 kristur	Christus
 collins	Collins
+D	D
 dalir	Dali
 dalmaría	Dalmaría
 danakonungur	Danakonungs
@@ -134,6 +136,7 @@ drottinn	Drottins
 drottinn	Drottni
 dufgusson	Dufgusson
 dumas	Dumas
+E	E
 ef	EF
 er	ER
 edmond	Edmond
@@ -187,6 +190,7 @@ eysteinn	Eystein
 eysteinn	Eysteinn
 eða	EÐA
 eða	Eða
+F	F
 frumhlaup	FRUMHLAUP
 fara	Far
 felix	Felix
@@ -217,6 +221,7 @@ frá	Frá
 Fréttablaðið	Fréttablaðinu
 fyrir	Fyr
 fyrr	Fyrst
+G	G
 galterus	Galterus
 galílea	Galílea
 garðaríki	Garðaríki
@@ -279,6 +284,7 @@ gyða	Gyða
 gyðingaland	Gyðingaland
 gyða	Gyðu
 gíslason	Gíslasonar
+H	H
 h.	H.
 hafa	Haf
 hafa	Hafa
@@ -370,6 +376,7 @@ hólar	Hólum
 hörgárdalur	Hörgárdal
 Harpa	Hörpu
 hún	Hún
+I	I
 jesús	Iesu
 jesús	Iesus
 illugi	Illugi
@@ -381,6 +388,7 @@ ingjaldshvol	Ingjaldshvoli
 ingjaldshvol	Ingjaldshvols
 ingjaldur	Ingjaldur
 innan	Innan
+J	J
 ja	Ja
 jakob	Jakob
 jamunth	Jamunth
@@ -407,6 +415,7 @@ jú	Jú
 júdas	Júdas
 júdas	Júdasar
 júdit	Júdit
+K	K
 kalman	Kalman
 kalmanstunga	Kalmanstungu
 kapitulum	Kapitulum
@@ -468,6 +477,7 @@ kórmakur	Kórmakur
 kata	Kötu
 kúrland	Kúrlandi
 kýlan	Kýlan
+L	L
 lamartíne	Lamartíne
 landres	Landres
 lasarus	Lasarum
@@ -536,6 +546,7 @@ móðar	Móðar
 möðruvellir	Möðruvöllum
 múlasýsla	Múlasýslu
 mýrdalur	Mýrdalnum
+N	N
 n.	N.
 nabogodonosor	Nabogodonosor
 napóleon	Napóleon
@@ -557,6 +568,7 @@ níníve	Níníve
 noregur	Nóregi
 noregur	Nóregs
 nú	Nú
+O	O
 og	OG
 oddur	Odd
 oddastaður	Oddastað
@@ -569,6 +581,7 @@ ormur	Ormi
 ormur	Orms
 ormur	Ormur
 ozias	Ozias
+P	P
 paradís	Paradísar
 parmenio	Parmenio
 parmenionis	Parmenionis
@@ -587,6 +600,7 @@ pétur	Pétur
 pétur	Péturs
 pílatus	Pílatus
 pútíphar	Pútíphar
+R	R
 rabbí	Rabbí
 ragnheiður	Ragnheiði
 ragnhildur	Ragnhildi
@@ -605,6 +619,7 @@ ríkharður	Ríkharður
 ríkilað	Ríkilað
 ríó	Ríó
 rómaborg	Rómaborg
+S	S
 sakarías	Sakarías
 salómon	Salómon
 sameinaður	Sameinuðu
@@ -689,6 +704,7 @@ símon	Símon
 símon	Símonar
 sören	Sören
 sörkvi	Sörkvis
+T	T
 tagldur	Tagldar
 tagldarbani	Tagldarbani
 taka	Tak
@@ -713,11 +729,13 @@ tögld	Tögld
 týhús	Týhúsinu
 týhús	Týhúsið
 týhús	Týhússins
+U	U
 um	UM
 um	Um
 uni	Uni
 upp	Upp
 urðarköttur	Urðarköttur
+V	V
 vagau	Vagau
 vagnhöfði	Vagnhöfði
 valdi	Valdi
@@ -753,6 +771,9 @@ víðidalur	Víðidal
 víðivöllur	Víðivöllum
 w	W.
 wórs	Wórs
+X	X
+Y	Y
+Z	Z
 abel	abel
 af	af
 afar	afar
@@ -816,6 +837,7 @@ auðun	auðun
 auðunn	auðunn
 að	að
 aðeins	aðeins
+b	b
 bann	banni
 baptisti	baptista
 bara	bara
@@ -948,6 +970,7 @@ býsna	býsna
 bjóða	býð
 bjóða	býðst
 bjóða	býður
+d	d
 daglega	daglega
 daglega	dagliga
 dauðdagi	dauðdaga
@@ -999,6 +1022,7 @@ danskur	dönsku
 dýrlegur	dýrlega
 dýrmætur	dýrmæt
 dýra	dýrunum
+e	e
 ef	ef
 efna	efna
 efnahagur	efnahags-
@@ -1076,6 +1100,7 @@ eyði	eyði
 eyða	eyðir
 eða	eða
 eður	eður
+f	f
 fagna	fagnandi
 fagna	fagnar
 fagnaður	fagnaðar
@@ -1257,6 +1282,7 @@ föðurleifð	föðurleifð
 fýsa	fýsir
 fýsa	fýsti
 fýsa	fýstist
+g	g
 gefa	gafst
 gefa	gaft
 gagna	gagnast
@@ -1380,6 +1406,7 @@ góss	góssi
 góðmannlega	góðmannlega
 góðvilji	góðvilja
 göfugur	göfgum
+h	h
 hafa	haf
 hafa	hafi
 hafa	hafim
@@ -1644,6 +1671,7 @@ höndla	höndlað
 hann	hönum
 hörmung	hörmungar
 húskarl	húskarlar
+i	i
 fjórir	iiii
 illa	illa
 illugi	illugi
@@ -1674,6 +1702,7 @@ iðrast	iðraðist
 iðr	iðrin
 iðrun	iðrunar
 iðrast	iðruðust
+j	j
 jafna	jafna
 jafnan	jafnan
 jafnframt	jafnframt
@@ -1698,6 +1727,7 @@ jóladagur	jóladag
 jólafasta	jólaföstu
 jólaveisla	jólaveislu
 júdit	júdit
+k	k
 kostur	k.
 kall	kallinn
 kalla	kallið
@@ -1820,6 +1850,7 @@ kalla	köllum
 koma	kömur
 kúgildi	kúgildum
 kjósa	kýs
+l	l
 lag	lagið
 leggja	lagst
 leggja	lagðan
@@ -2098,6 +2129,7 @@ mótmæla	mótmæla
 mótspyrna	mótspyrnu
 móðir	móður
 mögulega	mögulega
+n	n
 nokkur	nakkvað
 naumt	naumast
 naumlega	naumlega
@@ -2170,6 +2202,7 @@ nokkur	nökkvern
 nýta	nýti
 nýr	nýtt
 njóta	nýtur
+o	o
 og	o.
 odd	oddi
 of	of
@@ -2203,6 +2236,7 @@ orrusta	orrostu
 verða	orðið
 orð	orðum
 ég	oss
+p	p
 persónulega	persónulega
 ponta	pontu
 prentverk	prentverkið
@@ -2220,6 +2254,7 @@ pílatus	pílatus
 pína	pínast
 pípari	píparinn
 pírati	píratar
+r	r
 ragnheiður	ragnheiður
 rammaáætlun	rammaáætlunar
 ranglega	ranglega
@@ -2308,6 +2343,7 @@ rök	rökum
 rangur	röngu
 rúmur	rúma
 rúmstokkur	rúmstokknum
+s	s
 svo	s.
 safna	safnar
 safna	safnaðist
@@ -2651,6 +2687,7 @@ sýna	sýnir
 sýni	sýnis
 sýna	sýnist
 sýn	sýnum
+t	t
 tafarlaust	tafarlaust
 tag	tagi
 taka	tak
@@ -2723,6 +2760,7 @@ tómur	tóm
 tónn	tón
 töluvert	töluvert
 týndast	týndist
+u	u
 ugga	uggir
 umfram	umfram
 umhverfis	umhverfis
@@ -2756,6 +2794,7 @@ verða	urðum
 utan	utan
 utanferð	utanferðar
 utar	utar
+v	v
 vaka	vakandi
 vaka	vakir
 vakna	vaknar
@@ -2932,6 +2971,8 @@ vara	vörum
 verja	vörðu
 verjast	vörðust
 vaxa	vöxnu
+x	x
+y	y
 yfir	yfir
 yfirbragð	yfirbragði
 yfirferð	yfirferðar
@@ -2954,6 +2995,7 @@ yðar	yðvarra
 yðar	yðvarri
 yðar	yðvars
 yðar	yðvart
+z	z
 á	Á
 áki	Áka
 áki	Áki
@@ -2971,6 +3013,7 @@ yðar	yðvart
 ásgrímur	Ásgrímur
 ásmundarson	Ásmundarson
 ásmundur	Ásmundi
+É	É
 ég	Ég
 í	Í
 ískaríot	Ískaríot
@@ -2978,6 +3021,7 @@ yðar	yðvart
 ísrael	Ísrael
 ívar	Ívar
 ívarsson	Ívarsson
+Ð	Ð
 ófeigsson	Ófeigsson
 ólöf	Ólafar
 ólafsson	Ólafssonar
@@ -2991,17 +3035,21 @@ yðar	yðvart
 órækja	Órækju
 ótta	Ótta
 óðinn	Óðinn
+Ö	Ö
 ögmundur	Ögmund
 ögmundur	Ögmundar
 ögmundur	Ögmundur
 annar	Önnur
 örlygsstaðafundur	Örlygsstaðafund
 össur	Össur
+Ú	Ú
 úlfur	Úlfs
 úlfur	Úlfur
 úlrik	Úlrik
 úr	Úr
 út	Út
+Ý	Ý
+Þ	Þ
 þangað	Þangað
 það	Það
 þegar	Þegar
@@ -3132,6 +3180,7 @@ eiga	ættir
 eiga	ættu
 ævinlega	ævinlega
 æði	æði
+é	é
 þú	ér
 íbúð	íbúinn
 íslenskur	íslenskan
@@ -3139,6 +3188,7 @@ eiga	ættu
 íslenskur	íslenzkum
 ítreka	ítrekar
 ítrekað	ítrekað
+ð	ð
 ófær	ófært
 ógurlega	ógurlega
 ógurlegur	ógurligur
@@ -3180,6 +3230,7 @@ vor	órum
 óvís	óvíst
 vaða	óð
 vaða	óðu
+ö	ö
 öldungis	öldungis
 öndverður	öndverðu
 enginn	önga
@@ -3190,6 +3241,7 @@ enginn	öngum
 arfur	örfum
 örðugur	örðugt
 öðlast	öðlist
+ú	ú
 úrbót	úrbætur
 úrslitaleikur	úrslitaleik
 úrvalsdeild	úrvalsdeildinni
@@ -3200,7 +3252,9 @@ arfur	örfum
 útvelja	útvalda
 útvelja	útvalið
 útvega	útvegaði
+ý	ý
 ýmist	ýmist
+þ	þ
 þekja	þakið
 þakka	þakk
 þakka	þakkar
